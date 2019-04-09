@@ -1,10 +1,10 @@
-import QtQuick 2.9
+import QtQuick 2.13
 import QtQuick.Controls 1.4 as Old
-import QtQuick.Controls 2.2
+import QtQuick.Controls 2.5
 import QtGraphicalEffects 1.0
 import JASP.Theme 1.0
 
-FocusScope
+Item
 {
 	id: __myRoot
 
@@ -18,7 +18,7 @@ FocusScope
 		border.width:	1
 		border.color:	Theme.uiBorder
 
-		JASPDataView
+		TableView
 		{
 			focus:				__myRoot.focus
 
@@ -28,14 +28,16 @@ FocusScope
 			anchors.right:		parent.right
 			anchors.bottom:		dataStatusBar.top
 
-			font:	Theme.font
+			//font:	Theme.font
 
-			//headersGradient: myHeadersGradient
+			delegate: Text { font: Theme.font; text: display;  }
+
+
 			model:				dataSetModel
 
-			onDoubleClicked:	__myRoot.doubleClicked()
+			//onDoubleClicked:	__myRoot.doubleClicked()
 
-			leftTopCornerItem:
+			/*leftTopCornerItem:
 				Rectangle
 				{
 					id:		filterToggleButton
@@ -111,7 +113,9 @@ FocusScope
 					}
 
 
-				}
+				}*/
+
+			/*
 
 			rowNumberDelegate:
 				Rectangle
@@ -343,6 +347,8 @@ FocusScope
 					cursorShape:		containsMouse && dataSetModel.columnIcon(columnIndex)  !== columnTypeScale ? Qt.PointingHandCursor : Qt.ArrowCursor
 				}
 			}
+
+			*/
 		}
 
 		Rectangle
