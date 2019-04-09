@@ -30,7 +30,29 @@ Item
 
 			//font:	Theme.font
 
-			delegate: Text { font: Theme.font; text: display;  }
+			delegate:
+				Item
+				{
+					implicitHeight: cellText.implicitHeight + (Theme.itemPadding * 2)
+					implicitWidth:  cellText.implicitWidth  + (Theme.itemPadding * 2)
+
+					Rectangle
+					{
+						width: parent.width + border.width
+						height: parent.height + border.width
+						border.color: Theme.black
+						border.width: 1
+					}
+
+					Text
+					{
+						id:		cellText
+						font: Theme.font;
+						text: display;
+
+						anchors.centerIn: parent
+					}
+				}
 
 
 			model:				dataSetModel
