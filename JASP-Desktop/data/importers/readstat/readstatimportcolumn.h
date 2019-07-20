@@ -16,7 +16,7 @@ public:
 	Column::ColumnType	columnType()							const				{ return _type; }
 	bool				isValueEqual(Column &col, size_t row)	const	override;
 	bool				hasLabels()								const				{ return _labelsID != ""; }
-	const std::string &	labelsID()								const				{ return  _labelsID;	}
+	const std::string &	labelsID()								const				{ return _labelsID;	}
 
 	void				addValue(const readstat_value_t & val);
 	void				addValue(const double			& val);
