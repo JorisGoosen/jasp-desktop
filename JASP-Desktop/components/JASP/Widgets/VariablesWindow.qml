@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2013-2018 University of Amsterdam
+// Copyright (C) 2013-2019 University of Amsterdam
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -303,8 +303,9 @@ FocusScope
 						
 					}
 					
-					Text {
-						visible: styleData.column === 1
+					Text
+					{
+						visible:		styleData.column === 1
 						
 						color:			Theme.textDisabled
 						text:			styleData.value
@@ -314,7 +315,8 @@ FocusScope
 						verticalAlignment: Text.AlignVCenter
 					}
 					
-					TextInput {
+					TextInput
+					{
 						visible:		styleData.column === 2
 						
 						color:			Theme.textEnabled
