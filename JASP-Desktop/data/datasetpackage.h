@@ -32,7 +32,7 @@
 #define DEFAULT_FILTER_JSON	"{\"formulas\":[]}"
 #define DEFAULT_FILTER_GEN	"generatedFilter <- rep(TRUE, rowcount)"
 
-DECLARE_ENUM(parIdxType, data, label, filter)
+DECLARE_ENUM(parIdxType, data, label, filter, root)
 
 class DataSetPackage : public QAbstractItemModel //Not QAbstractTableModel because of: https://stackoverflow.com/a/38999940
 {
@@ -54,6 +54,7 @@ public:
 				QVariant			headerData(	int section, Qt::Orientation orientation, int role = Qt::DisplayRole )	const	override;
 				bool				setData(	const QModelIndex &index, const QVariant &value, int role)						override;
 				Qt::ItemFlags		flags(		const QModelIndex &index)												const	override;
+				bool				hasChildren(const QModelIndex &index)												const	override;
 				parIdxType			parentModelIndexIs(const QModelIndex &index)										const;
 				QModelIndex			parentModelForType(parIdxType type, int column = 0)									const;
 
