@@ -241,7 +241,6 @@ HEADERS += \
     data/computedcolumnsmodel.h \
     data/datasetloader.h \
     data/datasetpackage.h \
-    data/datasettablemodel.h \
     data/fileevent.h \
     analysis/options/variableinfo.h \
     engine/enginerepresentation.h \
@@ -410,7 +409,6 @@ SOURCES += \
     data/computedcolumnsmodel.cpp \
     data/datasetloader.cpp \
     data/datasetpackage.cpp \
-    data/datasettablemodel.cpp \
     data/fileevent.cpp \
     engine/enginerepresentation.cpp \
     engine/enginesync.cpp \
@@ -488,7 +486,7 @@ SOURCES += \
     resultstesting/compareresults.cpp \
     resultstesting/resultscomparetable.cpp \
     widgets/filemenu/filemenu.cpp \
-    $$PWD/gui/messageforwarder.cpp \
+    gui/messageforwarder.cpp \
     widgets/filemenu/filemenubasiclistmodel.cpp \
     modules/ribbonmodelfiltered.cpp \
     utilities/helpmodel.cpp \

@@ -144,16 +144,16 @@ void JASPImporter::loadDataArchive_1_00(DataSetPackage *packageData, const std::
 			if (rowCount > 0)
 				dataSet->setRowCount(rowCount);
 		}
-		catch (boost::interprocess::bad_alloc &e)
+		catch (boost::interprocess::bad_alloc &)
 		{
 			try
 			{
 				packageData->setDataSet(SharedMemory::enlargeDataSet(packageData->dataSet()));
 				success = false;
 			}
-			catch(std::exception &e)	{ throw std::runtime_error("Out of memory: this data set is too large for your computer's available memory"); }
+			catch(std::exception &)	{ throw std::runtime_error("Out of memory: this data set is too large for your computer's available memory"); }
 		}
-		catch(std::exception e)	{ Log::log() << "n " << e.what() << std::endl;	}
+		catch(std::exception & e)	{ Log::log() << "n " << e.what() << std::endl;	}
 		catch(...)					{ Log::log() << "something else" << std::endl;	}
 	}
 	while(!success);

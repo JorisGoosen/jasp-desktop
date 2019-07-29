@@ -110,7 +110,7 @@ bool ComputedColumnsModel::areLoopDependenciesOk(std::string columnName, std::st
 	{
 		(*_computedColumns)[columnName].checkForLoopInDepenedencies(code);
 	}
-	catch(std::logic_error e)
+	catch(std::logic_error & e)
 	{
 		validate(QString::fromStdString(columnName)); //To stop loading gif
 
@@ -261,7 +261,7 @@ void ComputedColumnsModel::clearColumn(std::string columnName)
 		emit refreshColumn(col->column());
 		emitHeaderDataChanged(QString::fromStdString(col->name()));
 	}
-	catch(columnNotFound e){}
+	catch(columnNotFound & e){}
 
 
 }
@@ -275,7 +275,7 @@ void ComputedColumnsModel::recomputeColumn(std::string columnName)
 		ComputedColumn * col = &((*_computedColumns)[columnName]);
 		col->findDependencies();
 	}
-	catch(columnNotFound e){}
+	catch(columnNotFound & e){}
 
 	checkForDependentColumnsToBeSent(columnName, true);
 }
@@ -407,12 +407,12 @@ ComputedColumn * ComputedColumnsModel::createComputedColumn(QString name, int co
 			theData->setColumnCount(newColumnIndex + 1);
 			success = true;
 		}
-		catch (boost::interprocess::bad_alloc &e)
+		catch (boost::interprocess::bad_alloc &)
 		{
 			try {	theData = SharedMemory::enlargeDataSet(theData);	}
-			catch (std::exception &e)	{	throw std::runtime_error("Out of memory: this data set is too large for your computer's available memory");	}
+			catch (std::exception &)	{	throw std::runtime_error("Out of memory: this data set is too large for your computer's available memory");	}
 		}
-		catch (std::exception e)	{	Log::log() << "ComputedColumnsModel::createComputedColum std::exception: " << e.what()	<< std::endl; 	}
+		catch (std::exception & e)	{	Log::log() << "ComputedColumnsModel::createComputedColum std::exception: " << e.what()	<< std::endl; 	}
 		catch (...)					{	Log::log() << "ComputedColumnsModel::createComputedColum some other exception\n "		<< std::endl;	}
 	}
 	while (!success);

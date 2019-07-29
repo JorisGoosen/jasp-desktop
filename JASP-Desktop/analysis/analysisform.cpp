@@ -80,8 +80,8 @@ QVariant AnalysisForm::requestInfo(const Term &term, VariableInfo::InfoType info
 		}
 		}
 	}
-	catch(columnNotFound e) {} //just return an empty QVariant right?
-	catch(std::exception e)
+	catch(columnNotFound & e) {} //just return an empty QVariant right?
+	catch(std::exception & e)
 	{
 		Log::log() << "AnalysisForm::requestInfo had an exception! " << e.what() << std::flush;
 		throw e;
@@ -171,7 +171,7 @@ void AnalysisForm::_parseQML()
 		QMLItem *control = nullptr;
 		qmlControlType controlType;
 		try						{ controlType	= qmlControlTypeFromQString(controlTypeStr);	}
-		catch(std::exception)	{ _errorMessages.append(QString::fromLatin1("Unknown Control type: ") + controlTypeStr); continue; }
+		catch(std::exception&)	{ _errorMessages.append(QString::fromLatin1("Unknown Control type: ") + controlTypeStr); continue; }
 
 		switch(controlType)
 		{
@@ -230,7 +230,7 @@ void AnalysisForm::_parseQML()
 			qmlListViewType	listViewType;
 
 			try	{ listViewType	= qmlListViewTypeFromQString(listViewTypeStr);	}
-			catch(std::exception)
+			catch(std::exception&)
 			{
 				_errorMessages.append(QString::fromLatin1("Unknown listViewType: ") + listViewType + QString::fromLatin1(" form VariablesList ") + controlName);
 				listViewType = qmlListViewType::AssignedVariables;

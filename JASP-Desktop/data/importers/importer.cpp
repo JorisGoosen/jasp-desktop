@@ -13,10 +13,7 @@ Importer::~Importer() {}
 
 void Importer::loadDataSet(const std::string &locator, boost::function<void(const std::string &, int)> progressCallback)
 {
-	bool enginesLoaded = !_packageData->enginesInitializing();
-
-	if(enginesLoaded)
-		_packageData->pauseEngines();
+	_packageData->beginLoadingData();
 
 	ImportDataSet *importDataSet = loadFile(locator, progressCallback);
 
@@ -39,8 +36,7 @@ void Importer::loadDataSet(const std::string &locator, boost::function<void(cons
 	}
 
 	delete importDataSet;
-	if(enginesLoaded)
-		_packageData->resumeEngines();
+	_packageData->endLoadingData();
 }
 
 void Importer::syncDataSet(const std::string &locator, boost::function<void(const std::string &, int)> progress)
@@ -219,18 +215,18 @@ void Importer::initColumn(int colNo, ImportColumn *importColumn)
 			fillSharedMemoryColumn(importColumn, column);
 			success = true;
 		}
-		catch (boost::interprocess::bad_alloc &e)
+		catch (boost::interprocess::bad_alloc &)
 		{
 			try {
 				_packageData->setDataSet(SharedMemory::enlargeDataSet(_packageData->dataSet()));
 				success = false;
 			}
-			catch (std::exception &e)
+			catch (std::exception &)
 			{
 				throw std::runtime_error("Out of memory: this data set is too large for your computer's available memory");
 			}
 		}
-		catch (std::exception e)	{ Log::log() << "n " << e.what() << std::endl;		}
+		catch (std::exception & e)	{ Log::log() << "n " << e.what() << std::endl;		}
 		catch (...)					{ Log::log() << "something else\n " << std::endl;	}
 
 	} while (success == false);
@@ -245,11 +241,7 @@ void Importer::_syncPackage(
 		bool										rowCountChanged)
 
 {
-	bool enginesLoaded = !_packageData->enginesInitializing();
-
-	if(enginesLoaded)
-		_packageData->pauseEngines();
-	_packageData->dataSet()->setSynchingData(true);
+	_packageData->beginSynchingData();
 
 	std::vector<std::string>			_changedColumns;
 	std::vector<std::string>			_missingColumns;
@@ -273,7 +265,7 @@ void Importer::_syncPackage(
 			tempChangedNameList[indexColChanged.first] = indexColChanged.second->name();
 
 
-	int colNo = _packageData->dataSet()->columnCount();
+	int colNo = _packageData->columnCount();
 	setDataSetRowCount(syncDataSet->rowCount());
 
 	if (changedColumns.size() > 0)
@@ -320,9 +312,5 @@ void Importer::_syncPackage(
 		}
 	}
 
-	_packageData->dataSet()->setSynchingData(false);
-	_packageData->dataChanged(_packageData, _changedColumns, _missingColumns, _changeNameColumns, rowCountChanged, newColumns.size() > 0);
-
-	if(enginesLoaded)
-		_packageData->resumeEngines();
+	_packageData->endSynchingData(_changedColumns, _missingColumns, _changeNameColumns, rowCountChanged, newColumns.size() > 0);
 }

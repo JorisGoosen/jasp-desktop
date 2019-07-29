@@ -111,7 +111,7 @@ void EngineSync::start(int ppi)
 
 		}
 	}
-	catch (interprocess_exception e)
+	catch (interprocess_exception & e)
 	{
 		Log::log()  << "interprocess exception! " << e.what() <<  std::endl;
 		throw e;

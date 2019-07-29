@@ -425,7 +425,7 @@ QQuickItem * DataSetView::createTextItem(int row, int col)
 		ItemContextualized	* itemCon	= nullptr;
 
 		QModelIndex ind(_model->index(row, col));
-		bool active = _model->data(ind, _roleNameToRole["active"]).toBool();
+		bool active = _model->data(ind, _roleNameToRole["filter"]).toBool();
 
 		if(_textItemStorage.size() > 0)
 		{

@@ -33,7 +33,6 @@
 #include "data/asyncloaderthread.h"
 #include "data/columnsmodel.h"
 #include "data/computedcolumnsmodel.h"
-#include "data/datasettablemodel.h"
 #include "data/fileevent.h"
 #include "data/filtermodel.h"
 #include "engine/enginesync.h"
@@ -140,9 +139,8 @@ private:
 
 	void checkUsedModules();
 
-	void packageChanged(DataSetPackage *package);
-	void packageDataChanged(DataSetPackage *package, std::vector<std::string> &changedColumns, std::vector<std::string> &missingColumns, std::map<std::string, std::string> &changeNameColumns,	bool rowCountChanged, bool hasNewColumns);
-	void setDataSetAndPackageInModels(DataSetPackage *package);
+	void packageChanged();
+	void setDataSetAndPackageInModels();
 	void setPackageModified();
 	void refreshAnalysesUsingColumns(std::vector<std::string> &changedColumns, std::vector<std::string> &missingColumns, std::map<std::string, std::string> &changeNameColumns, bool rowCountChanged, bool hasNewColumns);
 
@@ -193,6 +191,7 @@ signals:
 	void downloadNewJASPUrlChanged(QString downloadNewJASPUrl);
 
 private slots:
+	void packageDataChanged(std::vector<std::string> &changedColumns, std::vector<std::string> &missingColumns, std::map<std::string, std::string> &changeNameColumns,	bool rowCountChanged, bool hasNewColumns);
 	void resultsPageLoaded();
 	void showResultsPanel() { setDataPanelVisible(false); }
 
@@ -233,7 +232,6 @@ private:
 	Analyses					*	_analyses				= nullptr;
 	ResultsJsInterface			*	_resultsJsInterface		= nullptr;
 	DataSetPackage				*	_package				= nullptr;
-	DataSetTableModel			*	_tableModel				= nullptr;
 	LevelsTableModel			*	_levelsTableModel		= nullptr;
 	labelFilterGenerator		*	_labelFilterGenerator	= nullptr;
 	ColumnsModel				*	_columnsModel			= nullptr;
