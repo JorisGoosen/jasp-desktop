@@ -103,6 +103,7 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 
 	_preferences			= new PreferencesModel(this);
 	_package				= new DataSetPackage(this);
+	_datasetTableModel		= new DataSetTableModel(_package);
 	_dynamicModules			= new DynamicModules(this);
 	_analyses				= new Analyses(this, _dynamicModules);
 	_engineSync				= new EngineSync(_analyses, _package, _dynamicModules, this);
@@ -303,7 +304,7 @@ void MainWindow::loadQML()
 	_qml = new QQmlApplicationEngine(this);
 
 	_qml->rootContext()->setContextProperty("mainWindow",				this);
-	_qml->rootContext()->setContextProperty("dataSetModel",				_package);
+	_qml->rootContext()->setContextProperty("dataSetModel",				_datasetTableModel);
 	_qml->rootContext()->setContextProperty("levelsTableModel",			_levelsTableModel);
 	_qml->rootContext()->setContextProperty("columnsModel",				_columnsModel);
 	_qml->rootContext()->setContextProperty("computedColumnsInterface",	_computedColumnsModel);

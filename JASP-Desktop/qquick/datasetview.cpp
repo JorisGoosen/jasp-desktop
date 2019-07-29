@@ -39,16 +39,16 @@ DataSetView::DataSetView(QQuickItem *parent) : QQuickItem (parent), _metricsFont
 	_lastInstancedDataSetView = this;
 }
 
-void DataSetView::setModel(QAbstractTableModel * model)
+void DataSetView::setModel(QAbstractItemModel * model)
 {
 	if(_model != model)
 	{
 		_model = model;
 
-		connect(_model, &QAbstractTableModel::dataChanged,			this, &DataSetView::modelDataChanged);
-		connect(_model, &QAbstractTableModel::headerDataChanged,	this, &DataSetView::modelHeaderDataChanged);
-		connect(_model, &QAbstractTableModel::modelAboutToBeReset,	this, &DataSetView::modelAboutToBeReset);
-		connect(_model, &QAbstractTableModel::modelReset,			this, &DataSetView::modelWasReset);
+		connect(_model, &QAbstractItemModel::dataChanged,			this, &DataSetView::modelDataChanged);
+		connect(_model, &QAbstractItemModel::headerDataChanged,		this, &DataSetView::modelHeaderDataChanged);
+		connect(_model, &QAbstractItemModel::modelAboutToBeReset,	this, &DataSetView::modelAboutToBeReset);
+		connect(_model, &QAbstractItemModel::modelReset,			this, &DataSetView::modelWasReset);
 
 		setRolenames();
 

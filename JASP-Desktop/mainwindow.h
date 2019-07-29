@@ -32,6 +32,7 @@
 #include "data/asyncloader.h"
 #include "data/asyncloaderthread.h"
 #include "data/columnsmodel.h"
+#include "data/datasettablemodel.h"
 #include "data/computedcolumnsmodel.h"
 #include "data/fileevent.h"
 #include "data/filtermodel.h"
@@ -232,6 +233,7 @@ private:
 	Analyses					*	_analyses				= nullptr;
 	ResultsJsInterface			*	_resultsJsInterface		= nullptr;
 	DataSetPackage				*	_package				= nullptr;
+	DataSetTableModel			*	_datasetTableModel		= nullptr;
 	LevelsTableModel			*	_levelsTableModel		= nullptr;
 	labelFilterGenerator		*	_labelFilterGenerator	= nullptr;
 	ColumnsModel				*	_columnsModel			= nullptr;

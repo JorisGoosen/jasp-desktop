@@ -53,15 +53,24 @@ void DataSetPackage::setDataSet(DataSet * dataSet)
 	//emit dataSetChanged(_dataSet);
 }
 
+QModelIndex DataSetPackage::index(int row, int column, const QModelIndex &parent) const
+{
+	static parIdxType parents[] = { parIdxType::root, parIdxType::data, parIdxType::label, parIdxType::filter };	//Should be same order as defined
+	return createIndex(row, column, static_cast<void*>(parents + int(parentModelIndexIs(parent))));					//So yeah, that is not a pointer but that shouldn't be problem
+}
+
+
+QModelIndex DataSetPackage::parent(const QModelIndex & index) const
+{
+	parIdxType parentType = parentModelIndexIs(index);
+	return parentModelForType(parentType);
+}
+
 parIdxType DataSetPackage::parentModelIndexIs(const QModelIndex &index) const
 {
 	if(index.isValid())
-		switch(index.row())
-		{
-		case 0:	return parIdxType::data;
-		case 1: return parIdxType::label; //col is actually columnIndex of label
-		case 2: return parIdxType::filter;
-		}
+		return *static_cast<parIdxType*>(index.internalPointer()); //Is defined in static array in index!
+
 	return parIdxType::root;
 }
 
@@ -76,8 +85,6 @@ QModelIndex DataSetPackage::parentModelForType(parIdxType type, int column) cons
 
 	return QModelIndex(); // parIdxType::root
 }
-
-bool				hasChildren(const QModelIndex &index)												const	override;
 
 int DataSetPackage::rowCount(const QModelIndex & parent) const
 {
@@ -114,9 +121,11 @@ bool DataSetPackage::getRowFilter(int row) const
 
 QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 {
+	if(!index.isValid()) return QVariant();
+
 	switch(parentModelIndexIs(index.parent()))
 	{
-	case parIdxType::root: should do something about root I guess?
+	case parIdxType::root:		return QVariant();
 	case parIdxType::filter:
 		if(_dataSet == nullptr || index.column() < 0 || index.column() >= _dataSet->filterVector().size())
 			return true;
