@@ -20,44 +20,59 @@
 #define DATASETTABLEMODEL_H
 
 #include <QModelIndex>
-#include <QSortFilterProxyModel>
+#include <QAbstractProxyModel>
 #include <QIcon>
 
 #include "common.h"
 #include "datasetpackage.h"
 
 
-class DataSetTableModel : public QSortFilterProxyModel
+class DataSetTableModel : public QAbstractProxyModel
 {
 	Q_OBJECT
 	Q_PROPERTY(int columnsFilteredCount READ columnsFilteredCount NOTIFY columnsFilteredCountChanged)
 
 public:
-	explicit						DataSetTableModel(DataSetPackage * package) : QSortFilterProxyModel(package), _package(package)
-	{
-		setSourceModel(_package);
-		connect(_package, &DataSetPackage::columnsFilteredCountChanged, this, &DataSetTableModel::columnsFilteredCountChanged);
-	}
-	//int				rowCount(	const QModelIndex &parent = QModelIndex())								const	override;
-	//int				columnCount(const QModelIndex &parent = QModelIndex())								const	override;
+	explicit						DataSetTableModel(DataSetPackage * package);
 
-	QModelIndex		mapToSource(	const QModelIndex &proxyIndex)	const override;
-	QModelIndex		mapFromSource(	const QModelIndex &sourceIndex) const override;
 
-	int columnsFilteredCount() { return _package->columnsFilteredCount(); }
+	/*QHash<int, QByteArray>	roleNames()																			const	override;
 
-	Q_INVOKABLE bool				isColumnNameFree(QString name)								{ return _package->isColumnNameFree(name);								}
-	Q_INVOKABLE bool				getRowFilter(int row)					const				{ return _package->getRowFilter(row);									}
-	Q_INVOKABLE	QVariant			columnTitle(int column)					const				{ return _package->columnTitle(column);									}
-	Q_INVOKABLE QVariant			columnIcon(int column)					const				{ return _package->columnIcon(column);									}
-	Q_INVOKABLE QVariant			getColumnTypesWithCorrespondingIcon()	const				{ return _package->getColumnTypesWithCorrespondingIcon();				}
-	Q_INVOKABLE bool				columnHasFilter(int column)				const				{ return _package->columnHasFilter(column);								}
-	Q_INVOKABLE bool				columnUsedInEasyFilter(int column)		const				{ return _package->columnUsedInEasyFilter(column);						}
-	Q_INVOKABLE void				resetAllFilters()											{		 _package->resetAllFilters();									}
-	Q_INVOKABLE int					setColumnTypeFromQML(int columnIndex, int newColumnType)	{ return _package->setColumnTypeFromQML(columnIndex, newColumnType);	}
+
+	QVariant				headerData(	int section, Qt::Orientation orientation, int role = Qt::DisplayRole )	const	override;
+	bool					setData(	const QModelIndex &index, const QVariant &value, int role)						override;
+	Qt::ItemFlags			flags(		const QModelIndex &index)												const	override;*/
+
+	QModelIndex				index(int row, int column, const QModelIndex &parent = QModelIndex())				const	override;
+	QVariant				data(			const QModelIndex & index, int role = Qt::DisplayRole)				const	override;
+	QModelIndex				parent(			const QModelIndex & index)											const	override;
+	int						rowCount(		const QModelIndex & parent = QModelIndex())							const	override;
+	int						columnCount(	const QModelIndex & parent = QModelIndex())							const	override;
+	QModelIndex				mapToSource(	const QModelIndex & proxyIndex)										const	override;
+	QModelIndex				mapFromSource(	const QModelIndex & sourceIndex)									const	override;
+
+	int						columnsFilteredCount() { return _package->columnsFilteredCount(); }
+
+	Q_INVOKABLE bool		isColumnNameFree(QString name)								{ return _package->isColumnNameFree(name);								}
+	Q_INVOKABLE bool		getRowFilter(int row)					const				{ return _package->getRowFilter(row);									}
+	Q_INVOKABLE	QVariant	columnTitle(int column)					const				{ return _package->columnTitle(column);									}
+	Q_INVOKABLE QVariant	columnIcon(int column)					const				{ return _package->columnIcon(column);									}
+	Q_INVOKABLE QVariant	getColumnTypesWithCorrespondingIcon()	const				{ return _package->getColumnTypesWithCorrespondingIcon();				}
+	Q_INVOKABLE bool		columnHasFilter(int column)				const				{ return _package->columnHasFilter(column);								}
+	Q_INVOKABLE bool		columnUsedInEasyFilter(int column)		const				{ return _package->columnUsedInEasyFilter(column);						}
+	Q_INVOKABLE void		resetAllFilters()											{		 _package->resetAllFilters();									}
+	Q_INVOKABLE int			setColumnTypeFromQML(int columnIndex, int newColumnType)	{ return _package->setColumnTypeFromQML(columnIndex, newColumnType);	}
+
+
+public slots:
+	void modelAboutToBeResetHandler()	{ beginResetModel();	}
+	void modelResetHandler()			{ endResetModel();		}
 
 signals:
 	void columnsFilteredCountChanged();
+	/*void QAbstractItemModel::dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles = ...)
+	void QAbstractItemModel::headerDataChanged(Qt::Orientation orientation, int first, int last)*/
+
 
 private:
 	DataSetPackage				*_package = nullptr;

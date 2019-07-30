@@ -18,6 +18,14 @@
 
 #include "datasettablemodel.h"
 
+DataSetTableModel::DataSetTableModel(DataSetPackage * package)
+	: QAbstractProxyModel(package), _package(package)
+{
+	setSourceModel(_package);
+	connect(_package, &DataSetPackage::columnsFilteredCountChanged, this, &DataSetTableModel::columnsFilteredCountChanged	);
+	connect(_package, &DataSetPackage::modelAboutToBeReset,			this, &DataSetTableModel::modelAboutToBeResetHandler	);
+	connect(_package, &DataSetPackage::modelReset,					this, &DataSetTableModel::modelResetHandler				);
+}
 
 QModelIndex	DataSetTableModel::mapToSource(const QModelIndex &proxyIndex)	const
 {
@@ -29,17 +37,37 @@ QModelIndex	DataSetTableModel::mapToSource(const QModelIndex &proxyIndex)	const
 
 QModelIndex	DataSetTableModel::mapFromSource(const QModelIndex &sourceIndex) const
 {
-	if(_package->parentModelIndexIs(sourceIndex) == parIdxType::data)
+	if(_package->parentIndexTypeIs(sourceIndex) == parIdxType::data || _package->parentIndexTypeIs(sourceIndex.parent()) != parIdxType::data)
 		return QModelIndex();
 
 	return index(sourceIndex.row(), sourceIndex.column(), QModelIndex());
 }
 
-/*
+QModelIndex	DataSetTableModel::parent(const QModelIndex & index) const
+{
+	return QModelIndex();
+}
+
+QModelIndex	DataSetTableModel::index(int row, int column, const QModelIndex &parent) const
+{
+	return createIndex(row, column, nullptr);
+}
+
 int	DataSetTableModel::rowCount(const QModelIndex &parent) const
 {
-	std::cout << "rowCount of parent " << parIdxTypeToString(_package->parentModelIndexIs(parent)) << std::flush;
-	int rowC = _package->rowCount(mapToSource(_package->parentModelForType
-
+	int rowCount = _package->rowCount(mapToSource(parent));
+	return rowCount;
 }
-int	DataSetTableModel::columnCount(const QModelIndex &parent = QModelIndex())								const	override;*/
+
+int	DataSetTableModel::columnCount(const QModelIndex &parent) const
+{
+	int colCount = _package->columnCount(mapToSource(parent));;
+	return colCount;
+}
+
+QVariant DataSetTableModel::data(const QModelIndex & index, int role) const
+{
+	QVariant returnThis = _package->data(mapToSource(index), role);
+
+	return returnThis;
+}

@@ -786,6 +786,7 @@ void MainWindow::dataSetIORequestHandler(FileEvent *event)
 
 			switch(MessageForwarder::showSaveDiscardCancel("Save Workspace?", "Save changes to workspace " + title + " before closing?\n\nYour changes will be lost if you don't save them."))
 			{
+			default:
 			case MessageForwarder::DialogResponse::Cancel:
 				event->setComplete(false);
 				dataSetIOCompleted(event);

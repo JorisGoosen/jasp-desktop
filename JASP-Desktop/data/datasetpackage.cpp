@@ -15,9 +15,13 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include "log.h"
+#include "utilities/qutils.h"
+
 #define ENUM_DECLARATION_CPP
 #include "datasetpackage.h"
-#include "utilities/qutils.h"
+
+parIdxType DataSetPackage::_nodeCategory[] = { parIdxType::root, parIdxType::data, parIdxType::label, parIdxType::filter, parIdxType::leaf };	//Should be same order as defined
 
 DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 {
@@ -50,47 +54,52 @@ void DataSetPackage::reset()
 void DataSetPackage::setDataSet(DataSet * dataSet)
 {
 	_dataSet = dataSet;
-	//emit dataSetChanged(_dataSet);
 }
 
+//This function got a bit out of hand...
 QModelIndex DataSetPackage::index(int row, int column, const QModelIndex &parent) const
 {
-	static parIdxType parents[] = { parIdxType::root, parIdxType::data, parIdxType::label, parIdxType::filter };	//Should be same order as defined
-	return createIndex(row, column, static_cast<void*>(parents + int(parentModelIndexIs(parent))));					//So yeah, that is not a pointer but that shouldn't be problem
+	parIdxType * pointer = _nodeCategory;
+
+	if(!parent.isValid())	pointer += row; //this index will be the actual data/labels/filter and will remember what type it is through the pointer
+	else					pointer = static_cast<parIdxType*>(parent.internalPointer());
+
+	return createIndex(row, column, static_cast<void*>(pointer));
 }
 
+parIdxType DataSetPackage::parentIndexTypeIs(const QModelIndex &index) const
+{
+	if(!index.isValid()) return parIdxType::root;
+
+	parIdxType	* pointer = static_cast<parIdxType*>(index.internalPointer());
+	return		* pointer; //Is defined in static array in index!
+}
 
 QModelIndex DataSetPackage::parent(const QModelIndex & index) const
 {
-	parIdxType parentType = parentModelIndexIs(index);
+	parIdxType parentType = parentIndexTypeIs(index);
+
+	if(parentType == parIdxType::leaf)
+		Log::log() << "DataSetPackage just had an index that had parIdxType::leaf as parent... That should NOT happen!" << std::endl;
+
 	return parentModelForType(parentType);
 }
 
-parIdxType DataSetPackage::parentModelIndexIs(const QModelIndex &index) const
-{
-	if(index.isValid())
-		return *static_cast<parIdxType*>(index.internalPointer()); //Is defined in static array in index!
 
-	return parIdxType::root;
-}
 
 QModelIndex DataSetPackage::parentModelForType(parIdxType type, int column) const
 {
-	switch(type)
-	{
-	case parIdxType::data:		return index(0, column, QModelIndex());
-	case parIdxType::label:		return index(1, column, QModelIndex());
-	case parIdxType::filter:	return index(2, column, QModelIndex());
-	}
+	if(type == parIdxType::root) return QModelIndex();
 
-	return QModelIndex(); // parIdxType::root
+	return index(int(type), column, QModelIndex());
 }
 
 int DataSetPackage::rowCount(const QModelIndex & parent) const
 {
-	switch(parentModelIndexIs(parent))
+	switch(parentIndexTypeIs(parent))
 	{
-	case parIdxType::root:		return 3;
+	case parIdxType::root:		return int(parIdxType::leaf);
+	case parIdxType::leaf:		return 1; //Shouldnt really be called anyway
 	case parIdxType::label:		return _dataSet == nullptr ? 0 : _dataSet->columnCount() > parent.column() ? _dataSet->columns()[parent.column()].labels().size() : 0;
 	case parIdxType::filter:
 	case parIdxType::data:		return _dataSet == nullptr ? 0 : _dataSet->rowCount();
@@ -101,9 +110,10 @@ int DataSetPackage::rowCount(const QModelIndex & parent) const
 
 int DataSetPackage::columnCount(const QModelIndex &parent) const
 {
-	switch(parentModelIndexIs(parent))
+	switch(parentIndexTypeIs(parent))
 	{
 	case parIdxType::root:
+	case parIdxType::leaf:
 	case parIdxType::filter:	return 1;
 	case parIdxType::label:
 	case parIdxType::data:		return _dataSet == nullptr ? 0 : _dataSet->columnCount();
@@ -123,9 +133,13 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 {
 	if(!index.isValid()) return QVariant();
 
-	switch(parentModelIndexIs(index.parent()))
+	parIdxType parentType = parentIndexTypeIs(index);
+
+	switch(parentType)
 	{
-	case parIdxType::root:		return QVariant();
+	default:
+		return QVariant();
+
 	case parIdxType::filter:
 		if(_dataSet == nullptr || index.column() < 0 || index.column() >= _dataSet->filterVector().size())
 			return true;

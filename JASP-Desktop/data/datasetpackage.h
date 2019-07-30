@@ -32,7 +32,7 @@
 #define DEFAULT_FILTER_JSON	"{\"formulas\":[]}"
 #define DEFAULT_FILTER_GEN	"generatedFilter <- rep(TRUE, rowcount)"
 
-DECLARE_ENUM_WITH_TYPE(parIdxType, unsigned char, root = 0, data, label, filter) //If this is changed then DataSetPackage::index must also be!
+DECLARE_ENUM_WITH_TYPE(parIdxType, unsigned char, root = 0, data, label, filter, leaf) //If this is changed then DataSetPackage::index must also be!
 
 class DataSetPackage : public QAbstractItemModel //Not QAbstractTableModel because of: https://stackoverflow.com/a/38999940
 {
@@ -40,6 +40,9 @@ class DataSetPackage : public QAbstractItemModel //Not QAbstractTableModel becau
 	Q_PROPERTY(int columnsFilteredCount READ columnsFilteredCount NOTIFY columnsFilteredCountChanged)
 
 	typedef std::map<std::string, std::map<int, std::string>> emptyValsType;
+
+private:
+	static parIdxType _nodeCategory[];
 
 public:
 	enum class	specialRoles { filter = Qt::UserRole, lines, maxColString, columnIsComputed, computedColumnIsInvalidated, columnIsFiltered, computedColumnError, value, columnType };
@@ -56,7 +59,7 @@ public:
 				Qt::ItemFlags		flags(		const QModelIndex &index)												const	override;
 				QModelIndex			parent(		const QModelIndex & index)												const	override;
 				QModelIndex			index(int row, int column, const QModelIndex &parent = QModelIndex())				const	override;
-				parIdxType			parentModelIndexIs(const QModelIndex &index)										const;
+				parIdxType			parentIndexTypeIs(const QModelIndex &index)										const;
 				QModelIndex			parentModelForType(parIdxType type, int column = 0)									const;
 
 				void				storeInEmptyValues(std::string columnName, std::map<int, std::string> emptyValues)	{ _emptyValuesMap[columnName] = emptyValues;	}
