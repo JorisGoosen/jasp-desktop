@@ -49,8 +49,9 @@ void jaspPrint(std::string msg)
 #ifdef JASP_R_INTERFACE_LIBRARY
 	std::cout << msg << std::endl;
 #else
+	//Rcpp::Function("print")(Rf_mkCharLenCE(msg.c_str(), msg.size(), CE_UTF8));
 	Rcpp::Rcout << msg << "\n";
-	//Rprintf(msg.c_str());
+	//Rprintf(Rf_mkChar(msg.c_str()));
 #endif
 }
 

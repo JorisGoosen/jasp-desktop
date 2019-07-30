@@ -342,7 +342,11 @@ std::string	jaspTable::getCellFormatted(size_t col, size_t row, size_t maxCol, s
 	else if(_colFormats.rowCount() > col)			format = _colFormats[col];
 
 	if(val.isNull())	return "";
-	if(val.isString())	return val.asString();
+	if(val.isString())
+	{
+		std::cout << "getCellFOrmatted: " << val.asString() << std::endl;
+		return val.asString();
+	}	
 	if(val.isBool())	return val.asBool() ? "true" : "false";
 
 	if(format == "")
