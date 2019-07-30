@@ -207,6 +207,7 @@ HEADERS += \
     analysis/options/terms.h \
     analysis/analyses.h \
     analysis/analysis.h \
+    data/datasettableproxy.h \
     data/exporters/dataexporter.h \
     data/exporters/exporter.h \
     data/exporters/jaspexporter.h \
@@ -378,6 +379,7 @@ SOURCES += \
     analysis/options/terms.cpp \
     analysis/analyses.cpp \
     analysis/analysis.cpp \
+    data/datasettableproxy.cpp \
     data/exporters/dataexporter.cpp \
     data/exporters/exporter.cpp \
     data/exporters/jaspexporter.cpp \

@@ -18,56 +18,23 @@
 
 #include "datasettablemodel.h"
 
-DataSetTableModel::DataSetTableModel(DataSetPackage * package)
-	: QAbstractProxyModel(package), _package(package)
+DataSetTableModel::DataSetTableModel(DataSetPackage * package) : DataSetTableProxy(package, parIdxType::data)
 {
-	setSourceModel(_package);
 	connect(_package, &DataSetPackage::columnsFilteredCountChanged, this, &DataSetTableModel::columnsFilteredCountChanged	);
-	connect(_package, &DataSetPackage::modelAboutToBeReset,			this, &DataSetTableModel::modelAboutToBeResetHandler	);
-	connect(_package, &DataSetPackage::modelReset,					this, &DataSetTableModel::modelResetHandler				);
 }
 
-QModelIndex	DataSetTableModel::mapToSource(const QModelIndex &proxyIndex)	const
-{
-	if(!proxyIndex.isValid())
-		return _package->parentModelForType(parIdxType::data);
 
-	return _package->index(proxyIndex.row(), proxyIndex.column(), _package->parentModelForType(parIdxType::data));
+void DataSetTableModel::setShowInactive(bool showInactive)
+{
+	if (_showInactive == showInactive)
+		return;
+
+	_showInactive = showInactive;
+	emit showInactiveChanged(_showInactive);
+	invalidateFilter();
 }
 
-QModelIndex	DataSetTableModel::mapFromSource(const QModelIndex &sourceIndex) const
+bool DataSetTableModel::filterAcceptsRows(int source_row, const QModelIndex & source_parent)	const
 {
-	if(_package->parentIndexTypeIs(sourceIndex) == parIdxType::data || _package->parentIndexTypeIs(sourceIndex.parent()) != parIdxType::data)
-		return QModelIndex();
-
-	return index(sourceIndex.row(), sourceIndex.column(), QModelIndex());
-}
-
-QModelIndex	DataSetTableModel::parent(const QModelIndex & index) const
-{
-	return QModelIndex();
-}
-
-QModelIndex	DataSetTableModel::index(int row, int column, const QModelIndex &parent) const
-{
-	return createIndex(row, column, nullptr);
-}
-
-int	DataSetTableModel::rowCount(const QModelIndex &parent) const
-{
-	int rowCount = _package->rowCount(mapToSource(parent));
-	return rowCount;
-}
-
-int	DataSetTableModel::columnCount(const QModelIndex &parent) const
-{
-	int colCount = _package->columnCount(mapToSource(parent));;
-	return colCount;
-}
-
-QVariant DataSetTableModel::data(const QModelIndex & index, int role) const
-{
-	QVariant returnThis = _package->data(mapToSource(index), role);
-
-	return returnThis;
+	return _showInactive || _package->getRowFilter(source_row);
 }

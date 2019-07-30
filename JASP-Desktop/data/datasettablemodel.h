@@ -19,40 +19,21 @@
 #ifndef DATASETTABLEMODEL_H
 #define DATASETTABLEMODEL_H
 
-#include <QModelIndex>
-#include <QAbstractProxyModel>
-#include <QIcon>
-
-#include "common.h"
-#include "datasetpackage.h"
+#include "datasettableproxy.h"
 
 
-class DataSetTableModel : public QAbstractProxyModel
+class DataSetTableModel : public DataSetTableProxy
 {
 	Q_OBJECT
-	Q_PROPERTY(int columnsFilteredCount READ columnsFilteredCount NOTIFY columnsFilteredCountChanged)
+	Q_PROPERTY(int	columnsFilteredCount	READ columnsFilteredCount							NOTIFY columnsFilteredCountChanged)
+	Q_PROPERTY(bool showInactive			READ showInactive			WRITE setShowInactive	NOTIFY showInactiveChanged)
 
 public:
-	explicit						DataSetTableModel(DataSetPackage * package);
+	explicit				DataSetTableModel(DataSetPackage * package);
 
+	bool					filterAcceptsRows(int source_row, const QModelIndex & source_parent)	const;
 
-	/*QHash<int, QByteArray>	roleNames()																			const	override;
-
-
-	QVariant				headerData(	int section, Qt::Orientation orientation, int role = Qt::DisplayRole )	const	override;
-	bool					setData(	const QModelIndex &index, const QVariant &value, int role)						override;
-	Qt::ItemFlags			flags(		const QModelIndex &index)												const	override;*/
-
-	QModelIndex				index(int row, int column, const QModelIndex &parent = QModelIndex())				const	override;
-	QVariant				data(			const QModelIndex & index, int role = Qt::DisplayRole)				const	override;
-	QModelIndex				parent(			const QModelIndex & index)											const	override;
-	int						rowCount(		const QModelIndex & parent = QModelIndex())							const	override;
-	int						columnCount(	const QModelIndex & parent = QModelIndex())							const	override;
-	QModelIndex				mapToSource(	const QModelIndex & proxyIndex)										const	override;
-	QModelIndex				mapFromSource(	const QModelIndex & sourceIndex)									const	override;
-
-	int						columnsFilteredCount() { return _package->columnsFilteredCount(); }
-
+				int			columnsFilteredCount()					const				{ return _package->columnsFilteredCount(); }
 	Q_INVOKABLE bool		isColumnNameFree(QString name)								{ return _package->isColumnNameFree(name);								}
 	Q_INVOKABLE bool		getRowFilter(int row)					const				{ return _package->getRowFilter(row);									}
 	Q_INVOKABLE	QVariant	columnTitle(int column)					const				{ return _package->columnTitle(column);									}
@@ -63,19 +44,17 @@ public:
 	Q_INVOKABLE void		resetAllFilters()											{		 _package->resetAllFilters();									}
 	Q_INVOKABLE int			setColumnTypeFromQML(int columnIndex, int newColumnType)	{ return _package->setColumnTypeFromQML(columnIndex, newColumnType);	}
 
-
-public slots:
-	void modelAboutToBeResetHandler()	{ beginResetModel();	}
-	void modelResetHandler()			{ endResetModel();		}
+				bool		showInactive()															const				{ return _showInactive;	}
 
 signals:
-	void columnsFilteredCountChanged();
-	/*void QAbstractItemModel::dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles = ...)
-	void QAbstractItemModel::headerDataChanged(Qt::Orientation orientation, int first, int last)*/
+				void		columnsFilteredCountChanged();
+				void		showInactiveChanged(bool showInactive);
 
+public slots:
+				void		setShowInactive(bool showInactive);
 
 private:
-	DataSetPackage				*_package = nullptr;
+	bool					_showInactive	= false;
 };
 
 #endif // DATASETTABLEMODEL_H

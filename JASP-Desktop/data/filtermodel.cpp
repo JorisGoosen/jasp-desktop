@@ -112,16 +112,17 @@ void FilterModel::processFilterResult(std::vector<bool> filterResult, int reques
 	if((requestId > -1 && requestId < _lastSentRequestId) || _package == nullptr || _package->dataSet() == nullptr)
 		return;
 
-	_package->dataSet()->setSynchingData(true);
+	_package->beginLoadingData();
+
 	_package->setDataFilter(_rFilter.toStdString()); //store the filter that was last used and actually gave results.
 	if(_package->dataSet()->setFilterVector(filterResult))
 	{
-		_package->dataSet()->setSynchingData(false);
+		_package->endLoadingData();
 		refreshAllAnalyses();
 		emit filterUpdated();
 		updateStatusBar();
 	}
-	_package->dataSet()->setSynchingData(false);
+	else _package->endLoadingData();
 }
 
 

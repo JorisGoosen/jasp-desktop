@@ -141,9 +141,9 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		return QVariant();
 
 	case parIdxType::filter:
-		if(_dataSet == nullptr || index.column() < 0 || index.column() >= _dataSet->filterVector().size())
+		if(_dataSet == nullptr || index.row() < 0 || index.row() >= _dataSet->filterVector().size())
 			return true;
-		return _dataSet->filterVector()[index.column()];
+		return _dataSet->filterVector()[index.row()];
 
 	case parIdxType::data:
 		if(_dataSet == nullptr || index.column() >= _dataSet->columnCount() || index.row() >= _dataSet->rowCount())
@@ -165,7 +165,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 			bool	up		= iAmActive,
 					left	= iAmActive,
 					down	= iAmActive && !belowMeIsActive,
-					right	= iAmActive && index.column() == columnCount() - 1; //always draw left line and right line only if last col
+					right	= iAmActive && index.column() == columnCount(index.parent()) - 1; //always draw left line and right line only if last col
 
 			return			(left ?		1 : 0) +
 							(right ?	2 : 0) +
@@ -175,7 +175,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		}
 
 	case parIdxType::label:
-		if(_dataSet == nullptr || index.column() >= _dataSet->columnCount() || index.row() >= rowCount(parentModelForType(parIdxType::label, index.column())))
+		if(_dataSet == nullptr || index.column() >= columnCount(index.parent()) || index.row() >= rowCount(index.parent()))
 			return QVariant(); // if there is no data then it doesn't matter what role we play
 
 		switch(role)
