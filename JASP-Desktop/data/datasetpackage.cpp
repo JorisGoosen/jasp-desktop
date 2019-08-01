@@ -17,6 +17,7 @@
 
 #include "log.h"
 #include "utilities/qutils.h"
+#include "sharedmemory.h"
 
 #define ENUM_DECLARATION_CPP
 #include "datasetpackage.h"
@@ -56,7 +57,11 @@ void DataSetPackage::setDataSet(DataSet * dataSet)
 	_dataSet = dataSet;
 }
 
-//This function got a bit out of hand...
+void DataSetPackage::createDataSet()
+{
+	setDataSet(SharedMemory::createDataSet());
+}
+
 QModelIndex DataSetPackage::index(int row, int column, const QModelIndex &parent) const
 {
 	parIdxType * pointer = _nodeCategory;
@@ -72,7 +77,7 @@ parIdxType DataSetPackage::parentIndexTypeIs(const QModelIndex &index) const
 	if(!index.isValid()) return parIdxType::root;
 
 	parIdxType	* pointer = static_cast<parIdxType*>(index.internalPointer());
-	return		* pointer; //Is defined in static array in index!
+	return		* pointer; //Is defined in static array _nodeCategory!
 }
 
 QModelIndex DataSetPackage::parent(const QModelIndex & index) const
@@ -98,10 +103,10 @@ int DataSetPackage::rowCount(const QModelIndex & parent) const
 {
 	switch(parentIndexTypeIs(parent))
 	{
-	case parIdxType::root:		return int(parIdxType::leaf);
 	case parIdxType::leaf:		return 1; //Shouldnt really be called anyway
 	case parIdxType::label:		return _dataSet == nullptr ? 0 : _dataSet->columnCount() > parent.column() ? _dataSet->columns()[parent.column()].labels().size() : 0;
 	case parIdxType::filter:
+	case parIdxType::root:		//return int(parIdxType::leaf); Its more logical to get the actual datasize
 	case parIdxType::data:		return _dataSet == nullptr ? 0 : _dataSet->rowCount();
 	}
 
@@ -112,10 +117,10 @@ int DataSetPackage::columnCount(const QModelIndex &parent) const
 {
 	switch(parentIndexTypeIs(parent))
 	{
-	case parIdxType::root:
 	case parIdxType::leaf:
 	case parIdxType::filter:	return 1;
 	case parIdxType::label:
+	case parIdxType::root:		//Default is columnCount of data because it makes programming easier. I do hope it doesn't mess up the use of the tree-like-structure of the data though
 	case parIdxType::data:		return _dataSet == nullptr ? 0 : _dataSet->columnCount();
 	}
 
@@ -199,7 +204,7 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 	case int(specialRoles::maxColString):
 	{
 		//calculate some kind of maximum string to give views an expectation of the width needed for a column
-		QString dummyText = headerData(section, orientation, Qt::DisplayRole).toString() + "XXXXX" + (isComputedColumn(section) ? "XXXXX" : ""); //Bit of padding for filtersymbol and columnIcon
+		QString dummyText = headerData(section, orientation, Qt::DisplayRole).toString() + "XXXXX" + (isColumnComputed(section) ? "XXXXX" : ""); //Bit of padding for filtersymbol and columnIcon
 		int colWidth = _dataSet->getMaximumColumnWidthInCharacters(section);
 
 		while(colWidth > dummyText.length())
@@ -209,8 +214,8 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 	}
 	case Qt::DisplayRole:									return orientation == Qt::Horizontal ? tq(_dataSet->column(section).name()) : QVariant(section + 1);
 	case Qt::TextAlignmentRole:								return QVariant(Qt::AlignCenter);
-	case int(specialRoles::columnIsComputed):				return isComputedColumn(section);
-	case int(specialRoles::computedColumnIsInvalidated):	return isComputedColumnInvalided(section);
+	case int(specialRoles::columnIsComputed):				return isColumnComputed(section);
+	case int(specialRoles::computedColumnIsInvalidated):	return isColumnInvalidated(section);
 	case int(specialRoles::columnIsFiltered):				return columnHasFilter(section) || columnUsedInEasyFilter(section);
 	case int(specialRoles::computedColumnError):			return tq(getComputedColumnError(section));
 	}
@@ -502,7 +507,7 @@ int DataSetPackage::setColumnTypeFromQML(int columnIndex, int newColumnType)
 void DataSetPackage::beginSynchingData()
 {
 	beginLoadingData();
-	dataSet()->setSynchingData(true);
+	_dataSet->setSynchingData(true);
 }
 
 void DataSetPackage::endSynchingData(std::vector<std::string>			&	changedColumns,
@@ -511,7 +516,7 @@ void DataSetPackage::endSynchingData(std::vector<std::string>			&	changedColumns
 									 bool									rowCountChanged,
 									 bool									hasNewColumns)
 {
-	dataSet()->setSynchingData(false);
+	_dataSet->setSynchingData(false);
 
 	emit dataSynched(changedColumns, missingColumns, changeNameColumns, rowCountChanged, hasNewColumns);
 	endLoadingData();
@@ -536,4 +541,180 @@ void DataSetPackage::endLoadingData()
 		resumeEngines();
 
 	emit dataSetChanged(_dataSet);
+}
+
+void DataSetPackage::setDataSetSize(int columnCount, int rowCount)
+{
+	enlargeDataSetIfNecessary([&]()
+	{
+		_dataSet->setColumnCount(columnCount);
+
+		if (rowCount > 0)
+			_dataSet->setRowCount(rowCount);
+	});
+}
+
+bool DataSetPackage::initColumnAsScale(int colNo, std::string newName, const std::vector<double> & values)
+{
+	enlargeDataSetIfNecessary([&]()
+	{
+		Column &column = _dataSet->column(colNo);
+		column.setName(newName);
+		column.setColumnAsScale(values);
+	});
+
+}
+
+std::map<int, std::string> DataSetPackage::initColumnAsNominalText(int colNo, std::string newName, const std::vector<std::string> & values)
+{
+	enlargeDataSetIfNecessary([&]()
+	{
+		Column &column = _dataSet->column(colNo);
+		column.setName(newName);
+		column.setColumnAsNominalText(values);
+	});
+}
+
+bool DataSetPackage::initColumnAsNominalOrOrdinal(int colNo, std::string newName, const std::vector<int> & values, const std::set<int> &uniqueValues, bool is_ordinal)
+{
+	enlargeDataSetIfNecessary([&]()
+	{
+		Column &column = _dataSet->column(colNo);
+		column.setName(newName);
+		column.setColumnAsNominalOrOrdinal(values, uniqueValues, is_ordinal);
+	});
+}
+
+bool DataSetPackage::initColumnAsScale(QVariant colID, std::string newName, const std::vector<double> & values)
+{
+	if(colID.type() == QMetaType::Int || colID.type() == QMetaType::UInt)
+	{
+		int colNo = colID.type() == QMetaType::Int ? colID.toInt() : colID.toUInt();
+		return initColumnAsScale(colNo, newName, values);
+	}
+	else
+		return initColumnAsScale(colID.toString().toStdString(), newName, values);
+}
+
+std::map<int, std::string> DataSetPackage::initColumnAsNominalText(		QVariant colID,			std::string newName, const std::vector<std::string>	& values)
+{
+	if(colID.type() == QMetaType::Int || colID.type() == QMetaType::UInt)
+	{
+		int colNo = colID.type() == QMetaType::Int ? colID.toInt() : colID.toUInt();
+		return initColumnAsNominalText(colNo, newName, values);
+	}
+	else
+		return initColumnAsNominalText(colID.toString().toStdString(), newName, values);
+}
+
+bool DataSetPackage::initColumnAsNominalOrOrdinal(	QVariant colID, std::string newName, const std::vector<int> & values, const std::set<int> &uniqueValues, bool is_ordinal)
+{
+	if(colID.type() == QMetaType::Int || colID.type() == QMetaType::UInt)
+	{
+		int colNo = colID.type() == QMetaType::Int ? colID.toInt() : colID.toUInt();
+		return initColumnAsNominalOrOrdinal(colNo, newName, values, uniqueValues, is_ordinal);
+	}
+	else
+		return initColumnAsNominalOrOrdinal(colID.toString().toStdString(), newName, values, uniqueValues, is_ordinal);
+}
+
+
+void DataSetPackage::enlargeDataSetIfNecessary(std::function<void()> tryThis)
+{
+	while(true)
+	{
+		try	{ tryThis(); return; }
+		catch (boost::interprocess::bad_alloc &)
+		{
+			try							{ setDataSet(SharedMemory::enlargeDataSet(_dataSet)); }
+			catch (std::exception &)	{ throw std::runtime_error("Out of memory: this data set is too large for your computer's available memory");	}
+		}
+		catch (std::exception & e)	{ Log::log() << "std::exception in enlargeDataSetIfNecessary: " << e.what() << std::endl;	}
+		catch (...)					{ Log::log() << "something went wrong while enlargeDataSetIfNecessary " << std::endl;		}
+
+	}
+}
+
+std::vector<std::string> DataSetPackage::columnNames(bool includeComputed)
+{
+	std::vector<std::string> names;
+
+	if(_dataSet)
+		for(const Column & col : _dataSet->columns())
+			if(includeComputed || !isColumnComputed(col.name()))
+				names.push_back(col.name());
+
+	return names;
+}
+
+bool DataSetPackage::isColumnDifferentFromStringValues(std::string columnName, std::vector<std::string> strVals)
+{
+	try
+	{
+		Column & col = _dataSet->column(columnName);
+		return col.isColumnDifferentFromStringValues(strVals);
+	}
+	catch(columnNotFound & ) { }
+
+	return true;
+}
+
+void DataSetPackage::renameColumn(std::string oldColumnName, std::string newColumnName)
+{
+	try
+	{
+		Column & col = _dataSet->column(oldColumnName);
+		col.setName(newColumnName);
+	}
+	catch(...)
+	{
+		Log::log() << "Couldn't rename column from '" << oldColumnName << "' to '" << newColumnName << "'" << std::endl;
+	}
+}
+
+void DataSetPackage::writeDataSetToOStream(std::ostream out, bool includeComputed)
+{
+	std::vector<Column*> cols;
+
+	int columnCount = _dataSet->columnCount();
+	for (int i = 0; i < columnCount; i++)
+	{
+		Column &column		= _dataSet->column(i);
+		std::string name	= column.name();
+
+		if(!isColumnComputed(name) || includeComputed)
+			cols.push_back(&column);
+	}
+
+
+	for (size_t i = 0; i < cols.size(); i++)
+	{
+		Column *column		= cols[i];
+		std::string name	= column->name();
+
+		if (stringUtils::escapeValue(name))	out << '"' << name << '"';
+		else								out << name;
+
+		if (i < cols.size()-1)	out << ",";
+		else					out << "\n";
+
+	}
+
+	size_t rowCount = rowCount();
+
+	for (size_t r = 0; r < rowCount; r++)
+		for (size_t i = 0; i < cols.size(); i++)
+		{
+			Column *column = cols[i];
+
+			std::string value = column->getOriginalValue(r);
+			if (value != ".")
+			{
+				if (stringUtils::escapeValue(value))	out << '"' << value << '"';
+				else									out << value;
+			}
+
+			if (i < cols.size()-1)		out << ",";
+			else if (r != rowCount-1)	out << "\n";
+		}
 }

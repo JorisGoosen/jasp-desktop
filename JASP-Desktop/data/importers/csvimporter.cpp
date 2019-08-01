@@ -126,6 +126,6 @@ void CSVImporter::fillSharedMemoryColumn(ImportColumn *importColumn, Column &col
 {
 	CSVImportColumn * csvColumn = dynamic_cast<CSVImportColumn *>(importColumn);
 
-	fillSharedMemoryColumnWithStrings(csvColumn->getValues(), column);
+	initColumnWithStrings(csvColumn->getValues(), column);
 }
 

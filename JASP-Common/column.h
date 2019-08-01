@@ -52,9 +52,6 @@ public:
 	///ColumnType is set up to be used as bitflags in places such as assignedVariablesModel and such
 	enum ColumnType { ColumnTypeUnknown = 0, ColumnTypeNominal = 1, ColumnTypeNominalText = 2, ColumnTypeOrdinal = 4, ColumnTypeScale = 8 };
 
-	static bool isEmptyValue(const std::string& val);
-	static bool isEmptyValue(const double& val);
-
 	bool resetEmptyValues(std::map<int, std::string>& emptyValuesMap);
 
 
@@ -182,8 +179,6 @@ public:
 	Doubles AsDoubles;
 	Ints AsInts;
 
-
-
 	static std::string columnTypeToString(ColumnType type);
 	static ColumnType columnTypeFromString(std::string type);
 
@@ -215,6 +210,8 @@ public:
 	bool hasFilter() const;
 
 	void resetFilter();
+
+	bool isColumnDifferentFromStringValues(std::vector<std::string> strVals);
 
 private:	
 

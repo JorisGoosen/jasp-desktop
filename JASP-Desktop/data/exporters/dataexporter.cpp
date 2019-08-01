@@ -16,17 +16,14 @@
 //
 
 #include "dataexporter.h"
-
-
 #include <boost/filesystem.hpp>
-
 #include <sys/stat.h>
-
 #include "dataset.h"
-
 #include <boost/nowide/fstream.hpp>
+#include "stringutils.h"
 
 using namespace std;
+
 
 DataExporter::DataExporter(bool includeComputeColumns) : _includeComputeColumns(includeComputeColumns) {
 	_defaultFileType = Utils::csv;
@@ -59,11 +56,11 @@ void DataExporter::saveDataSet(const std::string &path, DataSetPackage* package,
 		Column *column		= cols[i];
 		std::string name	= column->name();
 
-		if (escapeValue(name))	outfile << '"' << name << '"';
-		else					outfile << name;
+		if (stringUtils::escapeValue(name))	outfile << '"' << name << '"';
+		else								outfile << name;
 
-		if (i < cols.size()-1)	outfile << ",";
-		else					outfile << "\n";
+		if (i < cols.size()-1)				outfile << ",";
+		else								outfile << "\n";
 
 	}
 
@@ -77,12 +74,12 @@ void DataExporter::saveDataSet(const std::string &path, DataSetPackage* package,
 			string value = column->getOriginalValue(r);
 			if (value != ".")
 			{
-				if (escapeValue(value))	outfile << '"' << value << '"';
-				else					outfile << value;
+				if (stringUtils::escapeValue(value))	outfile << '"' << value << '"';
+				else									outfile << value;
 			}
 
-			if (i < cols.size()-1)		outfile << ",";
-			else if (r != rowCount-1)	outfile << "\n";
+			if (i < cols.size()-1)						outfile << ",";
+			else if (r != rowCount-1)					outfile << "\n";
 		}
 
 	outfile.flush();
@@ -92,27 +89,3 @@ void DataExporter::saveDataSet(const std::string &path, DataSetPackage* package,
 }
 
 
-bool DataExporter::escapeValue(std::string &value)
-{
-	bool useQuotes = false;
-	std::size_t found = value.find(",");
-	if (found != std::string::npos)
-		useQuotes = true;
-
-	if (value.find_first_of(" \n\r\t\v\f") == 0)
-		useQuotes = true;
-
-
-	if (value.find_last_of(" \n\r\t\v\f") == value.length() - 1)
-		useQuotes = true;
-
-	size_t p = value.find("\"");
-	while (p != std::string::npos)
-	{
-		value.insert(p, "\"");
-		p = value.find("\"", p + 2);
-		useQuotes = true;
-	}
-
-	return useQuotes;
-}

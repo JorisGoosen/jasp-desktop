@@ -59,20 +59,6 @@ const Labels & Column::labels() const
 	return _labels;
 }
 
-bool Column::isEmptyValue(const string& val)
-{
-	if (val.empty()) return true;
-	const vector<string>& emptyValues = Utils::getEmptyValues();
-	return std::find(emptyValues.begin(), emptyValues.end(), val) != emptyValues.end();
-}
-
-bool Column::isEmptyValue(const double &val)
-{
-	if (std::isnan(val)) return true;
-	const vector<double>& emptyValues = Utils::getDoubleEmptyValues();
-	return std::find(emptyValues.begin(), emptyValues.end(), val) != emptyValues.end();
-}
-
 void Column::_convertVectorIntToDouble(vector<int> &intValues, vector<double> &doubleValues)
 {
 	doubleValues.clear();
@@ -108,7 +94,7 @@ bool Column::_resetEmptyValuesForNominal(std::map<int, string> &emptyValuesMap)
 			if (search != emptyValuesMap.end())
 			{
 				string orgValue = search->second;
-				if (!isEmptyValue(orgValue))
+				if (!Utils::isEmptyValue(orgValue))
 				{
 					// This value is not empty anymore
 					if (Utils::getIntValue(orgValue, intValue))
@@ -128,7 +114,7 @@ bool Column::_resetEmptyValuesForNominal(std::map<int, string> &emptyValuesMap)
 				}
 			}
 		}
-		else if (intValue != INT_MIN && isEmptyValue(intValue))
+		else if (intValue != INT_MIN && Utils::isEmptyValue(intValue))
 		{
 			// This value is now considered as empty
 			*ints = INT_MIN;
@@ -172,7 +158,7 @@ bool Column::_resetEmptyValuesForScale(std::map<int, string> &emptyValuesMap)
 			if (search != emptyValuesMap.end())
 			{
 				string orgValue = search->second;
-				if (!isEmptyValue(orgValue))
+				if (!Utils::isEmptyValue(orgValue))
 				{
 					// This value is not empty anymore
 					if (Utils::getDoubleValue(orgValue, doubleValue))
@@ -188,7 +174,7 @@ bool Column::_resetEmptyValuesForScale(std::map<int, string> &emptyValuesMap)
 				}
 			}
 		}
-		else if (!std::isnan(doubleValue) && isEmptyValue(doubleValue))
+		else if (!std::isnan(doubleValue) && Utils::isEmptyValue(doubleValue))
 		{
 			// This value is now considered as empty
 			*doubles = NAN;
@@ -263,11 +249,11 @@ bool Column::_resetEmptyValuesForNominalText(std::map<int, string> &emptyValuesM
 			{
 				string orgValue = search->second;
 				values.push_back(orgValue);
-				if (!isEmptyValue(orgValue))
+				if (!Utils::isEmptyValue(orgValue))
 					hasChanged = true;
 				if (canBeConvertedToIntegers || canBeConvertedToDoubles)
 				{
-					if (isEmptyValue(orgValue))
+					if (Utils::isEmptyValue(orgValue))
 					{
 						if (canBeConvertedToIntegers)
 							intValues.push_back(INT_MIN);
@@ -339,7 +325,7 @@ bool Column::_resetEmptyValuesForNominalText(std::map<int, string> &emptyValuesM
 		{
 			string orgValue = _labels.getValueFromKey(key);
 			values.push_back(orgValue);
-			if (isEmptyValue(orgValue))
+			if (Utils::isEmptyValue(orgValue))
 			{
 				hasChanged = true;
 				if (canBeConvertedToIntegers)
@@ -456,7 +442,7 @@ bool Column::_changeColumnToNominalOrOrdinal(ColumnType newColumnType)
 			if (key != INT_MIN)
 			{
 				string value = _labels.getValueFromKey(key);
-				if (!isEmptyValue(value))
+				if (!Utils::isEmptyValue(value))
 					success = Utils::getIntValue(value, intValue);
 			}
 
@@ -495,7 +481,7 @@ bool Column::_changeColumnToNominalOrOrdinal(ColumnType newColumnType)
 		{
 			int intValue = INT_MIN;
 			double doubleValue = *doubles;
-			if (!isEmptyValue(doubleValue))
+			if (!Utils::isEmptyValue(doubleValue))
 				success = Utils::getIntValue(doubleValue, intValue);
 
 			if (!success)
@@ -548,7 +534,7 @@ bool Column::_changeColumnToScale()
 			int intValue = *ints;
 			double doubleValue = NAN;
 
-			if (intValue != INT_MIN && !isEmptyValue(intValue))
+			if (intValue != INT_MIN && !Utils::isEmptyValue(intValue))
 				doubleValue = (double)intValue;
 
 			values.push_back(doubleValue);
@@ -563,7 +549,7 @@ bool Column::_changeColumnToScale()
 			if (key != INT_MIN)
 			{
 				string value = _labels.getValueFromKey(key);
-				if (!isEmptyValue(value))
+				if (!Utils::isEmptyValue(value))
 					success = Utils::getDoubleValue(value, doubleValue);
 			}
 
@@ -798,7 +784,7 @@ std::map<int, std::string> Column::setColumnAsNominalText(const std::vector<std:
 
 	std::sort(sortedCases.begin(), sortedCases.end());
 
-	sortedCases.erase(std::remove_if(sortedCases.begin(),	sortedCases.end(), [](std::string x){	return isEmptyValue(x);}), sortedCases.end());
+	sortedCases.erase(std::remove_if(sortedCases.begin(),	sortedCases.end(), [](std::string x){	return Utils::isEmptyValue(x);}), sortedCases.end());
 
 	std::map<std::string, int> map = _labels.syncStrings(sortedCases, labels, changedSomething);
 
@@ -810,7 +796,7 @@ std::map<int, std::string> Column::setColumnAsNominalText(const std::vector<std:
 		if(intInputItr == AsInts.end())
 			throw std::runtime_error("Column::setColumnAsNominalText ran out of Ints in assigning..");
 
-		if (isEmptyValue(value))
+		if (Utils::isEmptyValue(value))
 		{
 			if(changedSomething != nullptr && *intInputItr != INT_MIN)
 				*changedSomething = true;
@@ -928,8 +914,8 @@ bool Column::isValueEqual(int row, double value)
 	if (_columnType == Column::ColumnTypeScale)
 	{
 		double d = AsDoubles[row];
-		if (isEmptyValue(value))
-			return isEmptyValue(d);
+		if (Utils::isEmptyValue(value))
+			return Utils::isEmptyValue(d);
 		else
 			return d == value;
 	}
@@ -1005,16 +991,8 @@ bool Column::isValueEqual(int row, const string &value)
 		default:
 		{
 			int key = AsInts[row];
-			if (key == INT_MIN)
-			{
-				result = isEmptyValue(value);
-			}
-			else
-			{
-				result = (value.substr(0, 128) == _labels.getValueFromKey(key));
-			}
+			result = key == INT_MIN ? Utils::isEmptyValue(value) : (value.substr(0, 128) == _labels.getValueFromKey(key));
 		}
-
 	}
 
 	return result;
@@ -1034,7 +1012,7 @@ string Column::_getScaleValue(int row)
 		char ninf[] = { (char)0x2D, (char)0xE2, (char)0x88, (char)0x9E, 0 };
 		return string(ninf);
 	}
-	else if (isEmptyValue(v))
+	else if (Utils::isEmptyValue(v))
 	{
 		return Utils::emptyValue;
 	}
@@ -1395,3 +1373,43 @@ void Column::resetFilter()
 	for(size_t i=0; i< labels().size(); i++)
 		labels()[i].setFilterAllows(true);
 }
+
+bool Column::isColumnDifferentFromStringValues(std::vector<std::string> strVals)
+{
+	if(strVals.size() != rowCount()) return true;
+
+	for(int row = 0; row < strVals.size(); row++)
+		switch(columnType())
+		{
+		case Column::ColumnTypeOrdinal:
+		case Column::ColumnTypeNominal:
+		{
+			int intValue;
+			if (Utils::convertValueToIntForImport(strVals[row], intValue))
+				if(!isValueEqual(row, intValue))
+					return true;
+			break;
+		}
+
+		case Column::ColumnTypeScale:
+		{
+			double doubleValue;
+			if (Utils::convertValueToDoubleForImport(strVals[row], doubleValue))
+				if(!isValueEqual(row, doubleValue))
+					return true;
+			break;
+		}
+
+		case Column::ColumnTypeNominalText:
+			if(!isValueEqual(row, strVals[row]))
+				return true;
+			break;
+
+		default:
+			return true;
+		}
+
+	return false;
+}
+
+

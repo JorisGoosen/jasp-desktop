@@ -61,13 +61,7 @@ public:
 	 */
 	virtual size_t size() const;
 
-	/**
-	 * @brief isValueEqual Returns true if the column/row are identical.
-	 * @param col The columns
-	 * @param row
-	 * @return true if equal.
-	 */
-	virtual bool isValueEqual(Column &col, size_t row) const;
+	std::vector<std::string>	allValuesAsStrings()					const	override;
 
 	/**
 	 * @brief hasCall Checks for presence of a cell at row.

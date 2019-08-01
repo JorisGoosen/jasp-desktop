@@ -62,7 +62,7 @@ void ODSImporter::fillSharedMemoryColumn(ImportColumn *importColumn, Column &col
 	ODSImportColumn *odsColumn = dynamic_cast<ODSImportColumn *>(importColumn);
 	const std::vector<std::string> &values = odsColumn->getData();
 
-	fillSharedMemoryColumnWithStrings(values, column);
+	initColumnWithStrings(values, column);
 
 
 }

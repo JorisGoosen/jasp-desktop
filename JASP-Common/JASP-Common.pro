@@ -48,7 +48,6 @@ SOURCES += \
 	version.cpp \
   enginedefinitions.cpp \
   timers.cpp \
-    stringutils.cpp \
     log.cpp
 
 HEADERS += \

@@ -12,11 +12,11 @@ public:
 				ReadStatImportColumn(ImportDataSet* importDataSet, std::string name, std::string labelsID, Column::ColumnType columnType = Column::ColumnTypeUnknown);
 				~ReadStatImportColumn()							override;
 
-	size_t				size()									const	override;
-	Column::ColumnType	columnType()							const				{ return _type; }
-	bool				isValueEqual(Column &col, size_t row)	const	override;
-	bool				hasLabels()								const				{ return _labelsID != ""; }
-	const std::string &	labelsID()								const				{ return  _labelsID;	}
+	size_t						size()									const	override;
+	Column::ColumnType			columnType()							const				{ return _type; }
+	std::vector<std::string>	allValuesAsStrings()					const	override;
+	bool						hasLabels()								const				{ return _labelsID != ""; }
+	const std::string &			labelsID()								const				{ return  _labelsID;	}
 
 	void				addValue(const readstat_value_t & val);
 	void				addValue(const double			& val);

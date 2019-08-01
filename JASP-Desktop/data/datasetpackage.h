@@ -49,6 +49,8 @@ public:
 
 									DataSetPackage(QObject * parent);
 				void				reset();
+				void				setDataSetSize(int columnCount, int rowCount);
+				void				createDataSet();
 
 		QHash<int, QByteArray>		roleNames()																			const	override;
 				int					rowCount(	const QModelIndex &parent = QModelIndex())								const	override;
@@ -59,15 +61,17 @@ public:
 				Qt::ItemFlags		flags(		const QModelIndex &index)												const	override;
 				QModelIndex			parent(		const QModelIndex & index)												const	override;
 				QModelIndex			index(int row, int column, const QModelIndex &parent = QModelIndex())				const	override;
-				parIdxType			parentIndexTypeIs(const QModelIndex &index)										const;
+				parIdxType			parentIndexTypeIs(const QModelIndex &index)											const;
 				QModelIndex			parentModelForType(parIdxType type, int column = 0)									const;
+
+				int					dataRowCount()		const { return rowCount(parentModelForType(parIdxType::data));		}
+				int					dataColumnCount()	const { return columnCount(parentModelForType(parIdxType::data));	}
 
 				void				storeInEmptyValues(std::string columnName, std::map<int, std::string> emptyValues)	{ _emptyValuesMap[columnName] = emptyValues;	}
 				void				resetEmptyValues()																	{ _emptyValuesMap.clear();											}
 
 				std::string			id()								const	{ return _id;							}
 				bool				isReady()							const	{ return _analysesHTMLReady;			}
-				DataSet			*	dataSet()									{ return _dataSet;						}
 				bool				isLoaded()							const	{ return _isLoaded;						 }
 				bool				isArchive()							const	{ return _isArchive;					  }
 				bool				isModified()						const	{ return _isModified;					   }
@@ -135,8 +139,6 @@ public:
 
 				bool				setColumnType(int columnIndex, Column::ColumnType newColumnType);
 				Column::ColumnType	getColumnType(int columnIndex);
-				bool				isComputedColumn(int colIndex)				const { return isColumnComputed(colIndex); }
-				bool				isComputedColumnInvalided(int colIndex)		const { return isColumnInvalidated(colIndex); }
 
 				void				beginLoadingData();
 				void				endLoadingData();
@@ -146,6 +148,22 @@ public:
 													std::map<std::string, std::string>	&	changeNameColumns,
 													bool									rowCountChanged,
 													bool									hasNewColumns);
+
+				bool						initColumnAsNominalOrOrdinal(	int colNo,				std::string newName, const std::vector<int>			& values,	const std::set<int> &uniqueValues, bool is_ordinal = false);
+				std::map<int, std::string>	initColumnAsNominalText(		int colNo,				std::string newName, const std::vector<std::string>	& values);
+				bool						initColumnAsScale(				int colNo,				std::string newName, const std::vector<double>		& values);
+				bool						initColumnAsScale(				std::string colName,	std::string newName, const std::vector<double>		& values)																{ return initColumnAsScale(_dataSet->getColumnIndex(colName), newName, values); }
+				std::map<int, std::string>	initColumnAsNominalText(		std::string colName,	std::string newName, const std::vector<std::string>	& values)																{ return initColumnAsNominalText(_dataSet->getColumnIndex(colName), newName, values); }
+				bool						initColumnAsNominalOrOrdinal(	std::string colName,	std::string newName, const std::vector<int>			& values,	const std::set<int> &uniqueValues, bool is_ordinal = false) { return initColumnAsNominalOrOrdinal(_dataSet->getColumnIndex(colName), newName, values, uniqueValues, is_ordinal); }
+				bool						initColumnAsNominalOrOrdinal(	QVariant colID,			std::string newName, const std::vector<int>			& values,	const std::set<int> &uniqueValues, bool is_ordinal = false);
+				std::map<int, std::string>	initColumnAsNominalText(		QVariant colID,			std::string newName, const std::vector<std::string>	& values);
+				bool						initColumnAsScale(				QVariant colID,			std::string newName, const std::vector<double>		& values);
+
+				std::vector<std::string>	columnNames(bool includeComputed = true);
+				bool						isColumnDifferentFromStringValues(std::string columnName, std::vector<std::string> strVals);
+
+				void						renameColumn(std::string oldColumnName, std::string newColumnName);
+				void						writeDataSetToOStream(std::ostream out, bool includeComputed);
 
 signals:
 				void				dataSynched(	std::vector<std::string>			&	changedColumns,
@@ -171,9 +189,12 @@ public slots:
 				void				notifyColumnFilterStatusChanged(int columnIndex);
 				void				setColumnsUsedInEasyFilter(std::set<std::string> usedColumns);
 
+private:
+				///This function allows you to run some code that changes something in the _dataSet and will try to enlarge it if it fails with an allocation error. Otherwise it might
+				void				enlargeDataSetIfNecessary(std::function<void()> tryThis);
+
 
 private:
-
 	DataSet					*	_dataSet					= nullptr;
 	emptyValsType				_emptyValuesMap;
 
