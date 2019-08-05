@@ -74,8 +74,6 @@ signals:
 	void chosenColumnChanged(int chosenColumn);
 
 private:
-	Column		*_column;
-	DataSet		*_dataSet		= NULL;
 	std::string _colName		= "";
 	int			_chosenColumn	= -1;
 
