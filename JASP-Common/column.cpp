@@ -403,12 +403,13 @@ bool Column::_resetEmptyValuesForNominalText(std::map<int, string> &emptyValuesM
 
 bool Column::resetEmptyValues(std::map<int, string> &emptyValuesMap)
 {
-	if (_columnType == Column::ColumnTypeOrdinal || _columnType == Column::ColumnTypeNominal)
-		return _resetEmptyValuesForNominal(emptyValuesMap);
-	else if (_columnType == Column::ColumnTypeScale)
-		return _resetEmptyValuesForScale(emptyValuesMap);
-	else
-		return _resetEmptyValuesForNominalText(emptyValuesMap);
+	switch(_columnType)
+	{
+	case Column::ColumnTypeOrdinal:
+	case Column::ColumnTypeNominal:		return _resetEmptyValuesForNominal(emptyValuesMap);
+	case Column::ColumnTypeScale:		return _resetEmptyValuesForScale(emptyValuesMap);
+	default:							return _resetEmptyValuesForNominalText(emptyValuesMap);
+	}
 }
 
 void Column::setSharedMemory(managed_shared_memory *mem)

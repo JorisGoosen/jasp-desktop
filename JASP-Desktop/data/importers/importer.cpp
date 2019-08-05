@@ -40,6 +40,10 @@ void Importer::loadDataSet(const std::string &locator, boost::function<void(cons
 	_packageData->endLoadingData();
 }
 
+void Importer::initColumn(QVariant colId, ImportColumn *importColumn)
+{
+	initColumnWithStrings(colId, importColumn->name(),  importColumn->allValuesAsStrings());
+}
 
 void Importer::initColumnWithStrings(QVariant colId, std::string newName, const std::vector<std::string> &values)
 {
@@ -153,7 +157,7 @@ void Importer::_syncPackage(
 	}
 
 	int colNo = _packageData->columnCount();
-	setDataSetRowCount(syncDataSet->rowCount());
+	_packageData->setDataSetRowCount(syncDataSet->rowCount());
 
 	for (auto indexColChanged : changedColumns)
 	{
@@ -168,7 +172,7 @@ void Importer::_syncPackage(
 	{
 		for (auto it = newColumns.begin(); it != newColumns.end(); ++it, ++colNo)
 		{
-			increaseDataSetColCount(syncDataSet->rowCount());
+			_packageData->increaseDataSetColCount(syncDataSet->rowCount());
 			Log::log() << "New column " << it->first << std::endl;
 
 			initColumn(_packageData->dataColumnCount() - 1, syncDataSet->getColumn(it->first));

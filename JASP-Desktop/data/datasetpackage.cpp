@@ -18,6 +18,8 @@
 #include "log.h"
 #include "utilities/qutils.h"
 #include "sharedmemory.h"
+#include <QThread>
+#include "engine/enginesync.h"
 
 #define ENUM_DECLARATION_CPP
 #include "datasetpackage.h"
@@ -26,8 +28,36 @@ parIdxType DataSetPackage::_nodeCategory[] = { parIdxType::root, parIdxType::dat
 
 DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 {
+	//True init is done in setEngineSync!
+}
+
+void DataSetPackage::setEngineSync(EngineSync * engineSync)
+{
+	_engineSync = engineSync;
+
+	//These signals should *ONLY* be called from a different thread than _engineSync!
+	connect(this,	&DataSetPackage::pauseEnginesSignal,	_engineSync,	&EngineSync::pause,		Qt::BlockingQueuedConnection);
+	connect(this,	&DataSetPackage::resumeEnginesSignal,	_engineSync,	&EngineSync::resume,	Qt::BlockingQueuedConnection);
+
 	reset();
 	informComputedColumnsOfPackage();
+}
+
+bool DataSetPackage::isThisTheSameThreadAsEngineSync()
+{
+	return	QThread::currentThread() == _engineSync->thread();
+}
+
+void DataSetPackage::pauseEngines()
+{
+	if(isThisTheSameThreadAsEngineSync())	_engineSync->pause();
+	else									emit pauseEnginesSignal();
+}
+
+void DataSetPackage::resumeEngines()
+{
+	if(isThisTheSameThreadAsEngineSync())	_engineSync->resume();
+	else									emit resumeEnginesSignal();
 }
 
 void DataSetPackage::reset()
@@ -59,7 +89,14 @@ void DataSetPackage::setDataSet(DataSet * dataSet)
 
 void DataSetPackage::createDataSet()
 {
-	setDataSet(SharedMemory::createDataSet());
+	setDataSet(SharedMemory::createDataSet()); //Why would we do this here but the free in the asyncloader?
+}
+
+void DataSetPackage::freeDataSet()
+{
+	if(_dataSet)
+		emit freeDatasetSignal(_dataSet);
+	_dataSet = nullptr;
 }
 
 QModelIndex DataSetPackage::index(int row, int column, const QModelIndex &parent) const
@@ -185,6 +222,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 
 		switch(role)
 		{
+		case int(specialRoles::filter):				return _dataSet->column(index.column()).labels()[index.row()].filterAllows();
 		case int(specialRoles::value):				return tq(_dataSet->column(index.column()).labels().getValueFromRow(index.row()));
 		case Qt::DisplayRole:
 		default:									return tq(_dataSet->column(index.column()).labels().getLabelFromRow(index.row()));
@@ -192,6 +230,11 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 	}
 
 	return QVariant(); // <- because gcc is stupid
+}
+
+size_t DataSetPackage::getMaximumColumnWidthInCharacters(int columnIndex) const
+{
+	return _dataSet ? _dataSet->getMaximumColumnWidthInCharacters(columnIndex) : 0;
 }
 
 QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, int role)	const
@@ -205,7 +248,7 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 	{
 		//calculate some kind of maximum string to give views an expectation of the width needed for a column
 		QString dummyText = headerData(section, orientation, Qt::DisplayRole).toString() + "XXXXX" + (isColumnComputed(section) ? "XXXXX" : ""); //Bit of padding for filtersymbol and columnIcon
-		int colWidth = _dataSet->getMaximumColumnWidthInCharacters(section);
+		int colWidth = getMaximumColumnWidthInCharacters(section);
 
 		while(colWidth > dummyText.length())
 			dummyText += "X";
@@ -217,6 +260,7 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 	case int(specialRoles::columnIsComputed):				return isColumnComputed(section);
 	case int(specialRoles::computedColumnIsInvalidated):	return isColumnInvalidated(section);
 	case int(specialRoles::columnIsFiltered):				return columnHasFilter(section) || columnUsedInEasyFilter(section);
+	case int(specialRoles::labelsHasFilter):				return columnHasFilter(section);
 	case int(specialRoles::computedColumnError):			return tq(getComputedColumnError(section));
 	}
 
@@ -265,7 +309,7 @@ QHash<int, QByteArray> DataSetPackage::roleNames() const
 		roles[int(specialRoles::filter)]						= QString("filter").toUtf8();
 		roles[int(specialRoles::columnType)]					= QString("columnType").toUtf8();
 		roles[int(specialRoles::maxColString)]					= QString("maxColString").toUtf8();
-		roles[int(specialRoles::columnIsFiltered)]				= QString("columnIsFiltered").toUtf8();
+		roles[int(specialRoles::labelsHasFilter)]				= QString("labelsHasFilter").toUtf8();
 		roles[int(specialRoles::columnIsComputed)]				= QString("columnIsComputed").toUtf8();
 		roles[int(specialRoles::computedColumnError)]			= QString("computedColumnError").toUtf8();
 		roles[int(specialRoles::computedColumnIsInvalidated)]	= QString("computedColumnIsInvalidated").toUtf8();
@@ -411,29 +455,24 @@ QVariant DataSetPackage::getColumnTypesWithCorrespondingIcon() const
 QVariant DataSetPackage::columnTitle(int column) const
 {
 	if(_dataSet != nullptr && column >= 0 && size_t(column) < _dataSet->columnCount())
-	{
-		QString value = tq(_dataSet->column(column).name());
-		return QVariant(value);
-	}
-	else
-		return QVariant();
+		return tq(_dataSet->column(column).name());
+
+	return QVariant();
 }
 
 QVariant DataSetPackage::columnIcon(int column) const
 {
 	if(_dataSet != nullptr && column >= 0 && size_t(column) < _dataSet->columnCount())
-	{
-		Column &columnref = _dataSet->column(column);
-		return QVariant(columnref.columnType());
-	}
-	else
-		return QVariant(-1);
+		return QVariant(_dataSet->column(column).columnType());
+
+	return QVariant(-1);
 }
 
 bool DataSetPackage::columnHasFilter(int column) const
 {
 	if(_dataSet != nullptr && column >= 0 && size_t(column) < _dataSet->columnCount())
 		return _dataSet->column(column).hasFilter();
+	
 	return false;
 }
 
@@ -472,11 +511,6 @@ bool DataSetPackage::setColumnType(int columnIndex, Column::ColumnType newColumn
 	return changed;
 }
 
-Column::ColumnType DataSetPackage::getColumnType(int columnIndex)
-{
-	return _dataSet->column(columnIndex).columnType();
-}
-
 void DataSetPackage::refreshColumn(Column * column)
 {
 	for(size_t col=0; col<_dataSet->columns().columnCount(); col++)
@@ -493,7 +527,7 @@ void DataSetPackage::columnWasOverwritten(std::string columnName, std::string po
 
 int DataSetPackage::setColumnTypeFromQML(int columnIndex, int newColumnType)
 {
-	bool changed = setColumnType(columnIndex, (Column::ColumnType)newColumnType);
+	bool changed = setColumnType(columnIndex, Column::ColumnType(newColumnType));
 
 	if (changed)
 	{
@@ -501,13 +535,21 @@ int DataSetPackage::setColumnTypeFromQML(int columnIndex, int newColumnType)
 		emit columnDataTypeChanged(_dataSet->column(columnIndex).name());
 	}
 
-	return getColumnType(columnIndex);
+	return columnType(columnIndex);
 }
 
 void DataSetPackage::beginSynchingData()
 {
 	beginLoadingData();
 	_dataSet->setSynchingData(true);
+}
+
+void DataSetPackage::endSynchingDataChangedColumns(std::vector<std::string>	&	changedColumns)
+{
+	 std::vector<std::string>				missingColumns;
+	 std::map<std::string, std::string>		changeNameColumns;
+
+	endSynchingData(changedColumns, missingColumns, changeNameColumns, false, false);
 }
 
 void DataSetPackage::endSynchingData(std::vector<std::string>			&	changedColumns,
@@ -540,10 +582,10 @@ void DataSetPackage::endLoadingData()
 	if(_enginesLoadedAtBeginSync)
 		resumeEngines();
 
-	emit dataSetChanged(_dataSet);
+	emit dataSetChanged();
 }
 
-void DataSetPackage::setDataSetSize(int columnCount, int rowCount)
+void DataSetPackage::setDataSetSize(size_t columnCount, size_t rowCount)
 {
 	enlargeDataSetIfNecessary([&]()
 	{
@@ -551,38 +593,63 @@ void DataSetPackage::setDataSetSize(int columnCount, int rowCount)
 
 		if (rowCount > 0)
 			_dataSet->setRowCount(rowCount);
-	});
+	}, "setDataSetSize");
 }
 
-bool DataSetPackage::initColumnAsScale(int colNo, std::string newName, const std::vector<double> & values)
+bool DataSetPackage::initColumnAsScale(size_t colNo, std::string newName, const std::vector<double> & values)
 {
+	bool out = false;
+
 	enlargeDataSetIfNecessary([&]()
 	{
 		Column &column = _dataSet->column(colNo);
 		column.setName(newName);
-		column.setColumnAsScale(values);
-	});
+		out = column.setColumnAsScale(values);
+	}, "initColumnAsScale");
 
+	return out;
 }
 
-std::map<int, std::string> DataSetPackage::initColumnAsNominalText(int colNo, std::string newName, const std::vector<std::string> & values)
+std::map<int, std::string> DataSetPackage::initColumnAsNominalText(size_t colNo, std::string newName, const std::vector<std::string> & values, const std::map<std::string, std::string> & labels)
 {
+	std::map<int, std::string> out;
+
 	enlargeDataSetIfNecessary([&]()
 	{
 		Column &column = _dataSet->column(colNo);
 		column.setName(newName);
-		column.setColumnAsNominalText(values);
-	});
+		out = column.setColumnAsNominalText(values, labels);
+	}, "initColumnAsNominalText");
+
+	return out;
 }
 
-bool DataSetPackage::initColumnAsNominalOrOrdinal(int colNo, std::string newName, const std::vector<int> & values, const std::set<int> &uniqueValues, bool is_ordinal)
+bool DataSetPackage::initColumnAsNominalOrOrdinal(size_t colNo, std::string newName, const std::vector<int> & values, const std::set<int> &uniqueValues, bool is_ordinal)
 {
+	bool out = false;
+
 	enlargeDataSetIfNecessary([&]()
 	{
 		Column &column = _dataSet->column(colNo);
 		column.setName(newName);
-		column.setColumnAsNominalOrOrdinal(values, uniqueValues, is_ordinal);
-	});
+		out = column.setColumnAsNominalOrOrdinal(values, uniqueValues, is_ordinal);
+	}, "initColumnAsNominalOrOrdinal");
+
+	return out;
+}
+
+bool DataSetPackage::initColumnAsNominalOrOrdinal(size_t colNo, std::string newName, const std::vector<int> & values, const std::map<int, std::string> &uniqueValues, bool is_ordinal)
+{
+	bool out = false;
+
+	enlargeDataSetIfNecessary([&]()
+	{
+		Column &column = _dataSet->column(colNo);
+		column.setName(newName);
+		out = column.setColumnAsNominalOrOrdinal(values, uniqueValues, is_ordinal);
+	}, "initColumnAsNominalOrOrdinal");
+
+	return out;
 }
 
 bool DataSetPackage::initColumnAsScale(QVariant colID, std::string newName, const std::vector<double> & values)
@@ -596,15 +663,15 @@ bool DataSetPackage::initColumnAsScale(QVariant colID, std::string newName, cons
 		return initColumnAsScale(colID.toString().toStdString(), newName, values);
 }
 
-std::map<int, std::string> DataSetPackage::initColumnAsNominalText(		QVariant colID,			std::string newName, const std::vector<std::string>	& values)
+std::map<int, std::string> DataSetPackage::initColumnAsNominalText(QVariant colID, std::string newName, const std::vector<std::string> & values, const std::map<std::string, std::string> & labels)
 {
 	if(colID.type() == QMetaType::Int || colID.type() == QMetaType::UInt)
 	{
 		int colNo = colID.type() == QMetaType::Int ? colID.toInt() : colID.toUInt();
-		return initColumnAsNominalText(colNo, newName, values);
+		return initColumnAsNominalText(colNo, newName, values, labels);
 	}
 	else
-		return initColumnAsNominalText(colID.toString().toStdString(), newName, values);
+		return initColumnAsNominalText(colID.toString().toStdString(), newName, values, labels);
 }
 
 bool DataSetPackage::initColumnAsNominalOrOrdinal(	QVariant colID, std::string newName, const std::vector<int> & values, const std::set<int> &uniqueValues, bool is_ordinal)
@@ -618,8 +685,18 @@ bool DataSetPackage::initColumnAsNominalOrOrdinal(	QVariant colID, std::string n
 		return initColumnAsNominalOrOrdinal(colID.toString().toStdString(), newName, values, uniqueValues, is_ordinal);
 }
 
+bool DataSetPackage::initColumnAsNominalOrOrdinal(	QVariant colID, std::string newName, const std::vector<int> & values, const std::map<int, std::string> &uniqueValues, bool is_ordinal)
+{
+	if(colID.type() == QMetaType::Int || colID.type() == QMetaType::UInt)
+	{
+		int colNo = colID.type() == QMetaType::Int ? colID.toInt() : colID.toUInt();
+		return initColumnAsNominalOrOrdinal(colNo, newName, values, uniqueValues, is_ordinal);
+	}
+	else
+		return initColumnAsNominalOrOrdinal(colID.toString().toStdString(), newName, values, uniqueValues, is_ordinal);
+}
 
-void DataSetPackage::enlargeDataSetIfNecessary(std::function<void()> tryThis)
+void DataSetPackage::enlargeDataSetIfNecessary(std::function<void()> tryThis, const char * callerText)
 {
 	while(true)
 	{
@@ -629,8 +706,8 @@ void DataSetPackage::enlargeDataSetIfNecessary(std::function<void()> tryThis)
 			try							{ setDataSet(SharedMemory::enlargeDataSet(_dataSet)); }
 			catch (std::exception &)	{ throw std::runtime_error("Out of memory: this data set is too large for your computer's available memory");	}
 		}
-		catch (std::exception & e)	{ Log::log() << "std::exception in enlargeDataSetIfNecessary: " << e.what() << std::endl;	}
-		catch (...)					{ Log::log() << "something went wrong while enlargeDataSetIfNecessary " << std::endl;		}
+		catch (std::exception & e)	{ Log::log() << "std::exception in enlargeDataSetIfNecessary for " << callerText << ": " << e.what() << std::endl;	}
+		catch (...)					{ Log::log() << "something went wrong while enlargeDataSetIfNecessary for " << callerText << "..." << std::endl;	}
 
 	}
 }
@@ -672,7 +749,7 @@ void DataSetPackage::renameColumn(std::string oldColumnName, std::string newColu
 	}
 }
 
-void DataSetPackage::writeDataSetToOStream(std::ostream out, bool includeComputed)
+void DataSetPackage::writeDataSetToOStream(std::ostream & out, bool includeComputed)
 {
 	std::vector<Column*> cols;
 
@@ -700,9 +777,9 @@ void DataSetPackage::writeDataSetToOStream(std::ostream out, bool includeCompute
 
 	}
 
-	size_t rowCount = rowCount();
+	size_t rows = rowCount();
 
-	for (size_t r = 0; r < rowCount; r++)
+	for (size_t r = 0; r < rows; r++)
 		for (size_t i = 0; i < cols.size(); i++)
 		{
 			Column *column = cols[i];
@@ -715,6 +792,257 @@ void DataSetPackage::writeDataSetToOStream(std::ostream out, bool includeCompute
 			}
 
 			if (i < cols.size()-1)		out << ",";
-			else if (r != rowCount-1)	out << "\n";
+			else if (r != rows-1)		out << "\n";
 		}
+}
+
+std::string DataSetPackage::getColumnTypeNameForJASPFile(Column::ColumnType columnType)
+{
+	switch(columnType)
+	{
+	case Column::ColumnTypeNominal:			return "Nominal";
+	case Column::ColumnTypeNominalText:		return "NominalText";
+	case Column::ColumnTypeOrdinal:			return "Ordinal";
+	case Column::ColumnTypeScale:			return "Continuous";
+	default:								return "Unknown";
+	}
+}
+
+Column::ColumnType DataSetPackage::parseColumnTypeForJASPFile(std::string name)
+{
+	if (name == "Nominal")				return  Column::ColumnTypeNominal;
+	else if (name == "NominalText")		return  Column::ColumnTypeNominalText;
+	else if (name == "Ordinal")			return  Column::ColumnTypeOrdinal;
+	else if (name == "Continuous")		return  Column::ColumnTypeScale;
+	else								return  Column::ColumnTypeUnknown;
+}
+
+Json::Value DataSetPackage::columnToJsonForJASPFile(size_t columnIndex, Json::Value labelsData, size_t & dataSize)
+{
+	Column &column					= _dataSet->column(columnIndex);
+	std::string name				= column.name();
+	Json::Value columnMetaData		= Json::Value(Json::objectValue);
+	columnMetaData["name"]			= Json::Value(name);
+	columnMetaData["measureType"]	= Json::Value(getColumnTypeNameForJASPFile(column.columnType()));
+
+	if (column.columnType()			!= Column::ColumnTypeScale)
+	{
+		columnMetaData["type"] = Json::Value("integer");
+		dataSize += sizeof(int) * rowCount();
+	}
+	else
+	{
+		columnMetaData["type"] = Json::Value("number");
+		dataSize += sizeof(double) * rowCount();
+	}
+
+
+	if (column.columnType() != Column::ColumnTypeScale)
+	{
+		Labels &labels = column.labels();
+		if (labels.size() > 0)
+		{
+			Json::Value &columnLabelData	= labelsData[name];
+			Json::Value &labelsMetaData		= columnLabelData["labels"];
+			int labelIndex = 0;
+
+			for (const Label &label : labels)
+			{
+				Json::Value keyValueFilterPair(Json::arrayValue);
+
+				keyValueFilterPair.append(label.value());
+				keyValueFilterPair.append(label.text());
+				keyValueFilterPair.append(label.filterAllows());
+
+				labelsMetaData.append(keyValueFilterPair);
+				labelIndex += 1;
+			}
+
+			Json::Value &orgStringValuesMetaData	= columnLabelData["orgStringValues"];
+			std::map<int, std::string> &orgLabels	= labels.getOrgStringValues();
+			for (const std::pair<int, std::string> &pair : orgLabels)
+			{
+				Json::Value keyValuePair(Json::arrayValue);
+				keyValuePair.append(pair.first);
+				keyValuePair.append(pair.second);
+				orgStringValuesMetaData.append(keyValuePair);
+			}
+		}
+	}
+
+	return columnMetaData;
+}
+
+void DataSetPackage::columnLabelsFromJsonForJASPFile(Json::Value xData, Json::Value columnDesc, size_t columnIndex, std::map<std::string, std::map<int, int> > & mapNominalTextValues)
+{
+	std::string name					= columnDesc["name"].asString();
+	Json::Value &orgStringValuesDesc	= columnDesc["orgStringValues"];
+	Json::Value &labelsDesc				= columnDesc["labels"];
+	std::map<int, int>& mapValues		= mapNominalTextValues[name];	// This is needed for old JASP file where factor keys where not filled in the right way
+
+	if (labelsDesc.isNull() &&  ! xData.isNull())
+	{
+		Json::Value &columnlabelData = xData[name];
+
+		if (!columnlabelData.isNull())
+		{
+			labelsDesc			= columnlabelData["labels"];
+			orgStringValuesDesc = columnlabelData["orgStringValues"];
+		}
+	}
+
+	enlargeDataSetIfNecessary([&]()
+	{
+		Column &column = _dataSet->column(columnIndex);
+		Column::ColumnType columnType = parseColumnTypeForJASPFile(columnDesc["measureType"].asString());
+
+		column.setName(name);
+		column.setColumnType(columnType);
+
+		Labels &labels = column.labels();
+		labels.clear();
+		int index = 1;
+
+		for (Json::Value keyValueFilterTrip : labelsDesc)
+		{
+			int zero		= 0; //MSVC complains on int(0) with: error C2668: 'Json::Value::get': ambiguous call to overloaded function
+			int key			= keyValueFilterTrip.get(zero,		Json::nullValue).asInt();
+			std::string val = keyValueFilterTrip.get(1,			Json::nullValue).asString();
+			bool fil		= keyValueFilterTrip.get(2,			true).asBool();
+			int labelValue	= key;
+
+			if (columnType == Column::ColumnTypeNominalText)
+			{
+				labelValue		= index;
+				mapValues[key]	= labelValue;
+			}
+
+			labels.add(labelValue, val, fil, columnType == Column::ColumnTypeNominalText);
+
+			index++;
+		}
+
+		if (!orgStringValuesDesc.isNull())
+		{
+			for (Json::Value keyValuePair : orgStringValuesDesc)
+			{
+				int zero		= 0; //MSVC complains on int(0) with: error C2668: 'Json::Value::get': ambiguous call to overloaded function
+				int key			= keyValuePair.get(zero,	Json::nullValue).asInt();
+				std::string val = keyValuePair.get(1,		Json::nullValue).asString();
+				if (mapValues.find(key) != mapValues.end())
+					key = mapValues[key];
+				else
+					Log::log() << "Cannot find key " << key << std::flush;
+				labels.setOrgStringValues(key, val);
+			}
+		}
+
+	}, "columnLabelsFromJsonForJASPFile");
+
+}
+
+std::vector<int> DataSetPackage::getColumnDataInts(size_t columnIndex)
+{
+	if(_dataSet == nullptr) return {};
+
+	Column & col = _dataSet->column(columnIndex);
+	return std::vector<int>(col.AsInts.begin(), col.AsInts.end());
+}
+
+std::vector<double> DataSetPackage::getColumnDataDbls(size_t columnIndex)
+{
+	if(_dataSet == nullptr) return {};
+
+	Column & col = _dataSet->column(columnIndex);
+	return std::vector<double>(col.AsDoubles.begin(), col.AsDoubles.end());
+}
+
+void DataSetPackage::setColumnDataInts(size_t columnIndex, std::vector<int> ints)
+{
+	Column & col = _dataSet->column(columnIndex);
+	Labels & lab = col.labels();
+
+	for(size_t r = 0; r<ints.size(); r++)
+	{
+		int value = ints[r];
+
+		//Maybe something went wrong somewhere and we do not have labels for all values...
+		try
+		{
+			if (value != INT_MIN)
+				lab.getLabelObjectFromKey(value);
+		}
+		catch (const labelNotFound &)
+		{
+			Log::log() << "Value '" << value << "' in column '" << col.name() << "' did not have a corresponding label, adding one now.\n";
+			lab.add(value, std::to_string(value), true, col.columnType() == Column::ColumnTypeNominalText);
+		}
+
+		col.setValue(r, value);
+	}
+}
+
+
+void DataSetPackage::setColumnDataDbls(size_t columnIndex, std::vector<double> dbls)
+{
+	Column & col = _dataSet->column(columnIndex);
+	Labels & lab = col.labels();
+
+	for(size_t r = 0; r<dbls.size(); r++)
+		col.setValue(r, dbls[r]);
+}
+
+void DataSetPackage::emptyValuesChangedHandler()
+{
+	if (isLoaded())
+	{
+		beginSynchingData();
+		std::vector<std::string> colChanged;
+
+		enlargeDataSetIfNecessary([&](){ colChanged = _dataSet->resetEmptyValues(emptyValuesMap()); }, "emptyValuesChangedHandler");
+
+		endSynchingDataChangedColumns(colChanged);
+	}
+}
+
+bool DataSetPackage::setFilterData(std::string filter, std::vector<bool> filterResult)
+{
+	setDataFilter(filter);
+
+	bool someFilterValueChanged = _dataSet ? _dataSet->setFilterVector(filterResult) : false;
+
+	if(someFilterValueChanged) //We could also send exactly those cells that were changed if we were feeling particularly inclined to write the code...
+	{
+		emit dataChanged(index(0, 0, parentModelForType(parIdxType::filter)),	index(rowCount(), 0,				parentModelForType(parIdxType::filter)));
+		emit dataChanged(index(0, 0, parentModelForType(parIdxType::data)),		index(rowCount(), columnCount(),	parentModelForType(parIdxType::data)));
+	}
+
+	return someFilterValueChanged;
+}
+
+Column::ColumnType DataSetPackage::columnType(std::string columnName)	const
+{
+	int colIndex = getColumnIndex(columnName);
+
+	if(colIndex > -1)	return columnType(colIndex);
+	else				return Column::ColumnTypeUnknown;
+}
+
+QStringList DataSetPackage::getColumnLabelsAsStringList(std::string columnName)	const
+{
+	int colIndex = getColumnIndex(columnName);
+
+	if(colIndex > -1)	return getColumnLabelsAsStringList(colIndex);
+	else				return QStringList();;
+}
+
+QStringList DataSetPackage::getColumnLabelsAsStringList(size_t columnIndex)	const
+{
+	QStringList list;
+	if(columnIndex < 0 || columnIndex >= columnCount()) return list;
+
+	for(const Label & label : _dataSet->column(columnIndex).labels())
+		list.append(tq(label.text()));
+
+	return list;
 }

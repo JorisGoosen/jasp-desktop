@@ -63,7 +63,7 @@ public:
 	bool synchingData()						const	{ return _synchingData; }
 	void setSynchingData(bool newVal);
 
-	int	 getMaximumColumnWidthInCharacters(size_t columnIndex) const;
+	size_t	 getMaximumColumnWidthInCharacters(size_t columnIndex) const;
 
 private:
 	Columns			_columns;

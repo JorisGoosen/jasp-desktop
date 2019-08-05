@@ -52,7 +52,7 @@ public:
 private:
 
 	std::vector<ComputedColumn*>	_computedColumns;
-	DataSetPackage*					_package = NULL;
+	DataSetPackage*					_package = nullptr;
 
 };
 

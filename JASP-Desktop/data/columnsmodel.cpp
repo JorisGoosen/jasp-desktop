@@ -2,19 +2,14 @@
 
 QVariant ColumnsModel::data(const QModelIndex &index, int role) const
 {
-	if (_dataSet == nullptr || _dataSet->synchingData())
-		return QVariant();
+	if(index.row() < 0 || index.row() >= rowCount()) return QVariant();
 
-	if(index.row() >= rowCount()) return QVariant();
-
-	Column & col=_dataSet->column(index.row());
-
-	if(role == NameRole)
-		return QString::fromStdString(col.name());
-	else if(role ==TypeRole)
-		return "column";
-	else if(role == IconSourceRole)
-		switch(col.columnType())
+	switch(role)
+	{
+	case NameRole:			return _tableModel->columnTitle(index.row());
+	case TypeRole:			return "column";
+	case IconSourceRole:
+		switch(_tableModel->columnType(index.row()))
 		{
 		case Column::ColumnType::ColumnTypeScale:		return "qrc:/icons/variable-scale.svg";
 		case Column::ColumnType::ColumnTypeOrdinal:		return "qrc:/icons/variable-ordinal.svg";
@@ -22,16 +17,19 @@ QVariant ColumnsModel::data(const QModelIndex &index, int role) const
 		case Column::ColumnType::ColumnTypeNominalText:	return "qrc:/icons/variable-nominal-text.svg";
 		default:										return "";
 		}
-	else if(role == ToolTipRole)
+	case ToolTipRole:
 	{
-		QString usedIn = col.columnType() == Column::ColumnType::ColumnTypeScale ? "which can be used in numerical comparisons" : col.columnType() == Column::ColumnType::ColumnTypeOrdinal ? "which can only be used in (in)equivalence, greater and lesser than comparisons" : "which can only be used in (in)equivalence comparisons";
-		return QString("The '") + QString::fromStdString(col.name()) + "'-column " + usedIn;
+		Column::ColumnType colType = _tableModel->columnType(index.row());
+		QString usedIn = colType == Column::ColumnType::ColumnTypeScale ? "which can be used in numerical comparisons" : colType == Column::ColumnType::ColumnTypeOrdinal ? "which can only be used in (in)equivalence, greater and lesser than comparisons" : "which can only be used in (in)equivalence comparisons";
+		return "The '" + _tableModel->columnTitle(index.row()).toString() + "'-column " + usedIn;
+	}
 	}
 
 	return QVariant();
 }
 
-QHash<int, QByteArray> ColumnsModel::roleNames() const {
+QHash<int, QByteArray> ColumnsModel::roleNames() const
+{
 	static const auto roles = QHash<int, QByteArray>{
 		{ NameRole,					"columnName"},
 		{ TypeRole,					"type"},
@@ -42,13 +40,14 @@ QHash<int, QByteArray> ColumnsModel::roleNames() const {
 	return roles;
 }
 
-void ColumnsModel::setDataSet(DataSet *dataSet)
+// It is the headerdata from untransposed source
+void ColumnsModel::onHeaderDataChanged(Qt::Orientation orientation, int first, int last)
 {
-	beginResetModel();
-	_dataSet = dataSet;
-	endResetModel();
+	if(orientation == Qt::Horizontal)
+		emit dataChanged(index(first, 0), index(last, columnCount()));
 }
 
+/*
 void ColumnsModel::refreshColumn(Column * column)
 {
 	int rowChanged = _dataSet->getColumnIndex(column->name());
@@ -61,3 +60,4 @@ void ColumnsModel::datasetHeaderDataChanged(Qt::Orientation orientation, int fir
 	beginResetModel();
 	endResetModel();
 }
+*/

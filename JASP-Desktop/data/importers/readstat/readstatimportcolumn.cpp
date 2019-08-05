@@ -38,9 +38,16 @@ std::string ReadStatImportColumn::valueAsString(size_t row) const
 
 }
 
-bool ReadStatImportColumn::isValueEqual(Column &col, size_t row) const
+
+std::vector<std::string> ReadStatImportColumn::allValuesAsStrings() const
 {
-	return row < size() && isStringValueEqual(valueAsString(row), col, row);
+	std::vector<std::string> strs;
+	strs.reserve(size());
+
+	for(size_t row = 0; row<size(); row++)
+		strs.push_back(valueAsString(row));
+
+	return strs;
 }
 
 
@@ -62,8 +69,8 @@ void ReadStatImportColumn::addValue(const string & val)
 	case Column::ColumnTypeScale:
 	{
 		double dblVal;
-		if(convertValueToDouble(val, dblVal))	addValue(dblVal);
-		else									addMissingValue();
+		if(Utils::convertValueToDoubleForImport(val, dblVal))	addValue(dblVal);
+		else													addMissingValue();
 
 		break;
 	}
@@ -72,8 +79,8 @@ void ReadStatImportColumn::addValue(const string & val)
 	case Column::ColumnTypeNominal:
 	{
 		int intVal;
-		if(convertValueToInt(val, intVal))	addValue(intVal);
-		else								addMissingValue();
+		if(Utils::convertValueToIntForImport(val, intVal))	addValue(intVal);
+		else												addMissingValue();
 
 		break;
 	}

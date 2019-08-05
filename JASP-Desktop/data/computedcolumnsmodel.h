@@ -20,9 +20,9 @@ class ComputedColumnsModel : public QObject
 	Q_PROPERTY(QString	showThisColumn				READ showThisColumn					WRITE setShowThisColumn					NOTIFY showThisColumnChanged			)
 
 public:
-	explicit	ComputedColumnsModel(Analyses * analyses, QObject * parent);
+	explicit	ComputedColumnsModel(Analyses * analyses, DataSetPackage * dataSetPackage);
 
-				bool	datasetLoaded()					{ return _package != nullptr; }
+				bool	datasetLoaded()					{ return _package->hasDataSet(); }
 				QString	computeColumnRCode();
 				QString computeColumnRCodeCommentStripped();
 				QString computeColumnError();
@@ -77,7 +77,6 @@ signals:
 				void	headerDataChanged(Qt::Orientation orientation, int first, int last);
 				void	sendComputeCode(QString columnName, QString code, Column::ColumnType columnType);
 				void	computeColumnUsesRCodeChanged();
-				void	dataSetChanged(DataSet * newDataSet);
 				void	refreshData();
 				void	showAnalysisForm(Analysis *analysis);
 				void	lastCreatedColumnChanged(QString lastCreatedColumn);

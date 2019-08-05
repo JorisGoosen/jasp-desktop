@@ -3,7 +3,7 @@
 
 Columns& ComputedColumns::columns()
 {
-	return _package->dataSet()->columns();
+	return _package->_dataSet->columns();
 }
 
 

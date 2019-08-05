@@ -528,17 +528,6 @@ void Analyses::selectAnalysis(Analysis * analysis)
 		}
 }
 
-void Analyses::setDataSet(DataSet *dataSet)
-{
-	if(_dataSet == dataSet)
-		return;
-
-	_dataSet = dataSet;
-	
-	emit dataSetChanged();
-}
-
-
 void Analyses::setCurrentAnalysisIndex(int currentAnalysisIndex)
 {
 	if (_currentAnalysisIndex == currentAnalysisIndex)

@@ -353,7 +353,8 @@ HEADERS += \
     widgets/listmodelfiltereddataentry.h \
     data/importers/readstat/readstat_custom_io.h \
     data/importers/readstat/readstat_windows_helper.h \
-    data/datasettablemodel.h
+    data/datasettablemodel.h \
+    data/labelmodel.h
 
 SOURCES += \
     analysis/analysisform.cpp \
@@ -518,7 +519,8 @@ SOURCES += \
     widgets/sortable.cpp \
     widgets/listmodelfiltereddataentry.cpp \
     data/importers/readstat/readstat_custom_io.cpp \
-    data/datasettablemodel.cpp
+    data/datasettablemodel.cpp \
+    data/labelmodel.cpp
 
 
 RESOURCES += \

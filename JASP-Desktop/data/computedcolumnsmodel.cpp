@@ -3,9 +3,10 @@
 #include "sharedmemory.h"
 #include "log.h"
 
-ComputedColumnsModel::ComputedColumnsModel(Analyses * analyses, QObject * parent)
-	: QObject(parent), _analyses(analyses)
+ComputedColumnsModel::ComputedColumnsModel(Analyses * analyses, DataSetPackage * dataSetPackage)
+	: QObject(dataSetPackage), _analyses(analyses), _package(dataSetPackage)
 {
+	connect(_package,	&DataSetPackage::dataSetChanged,				this, &ComputedColumnsModel::datasetLoadedChanged)				;
 	connect(this,		&ComputedColumnsModel::datasetLoadedChanged,	this, &ComputedColumnsModel::computeColumnJsonChanged			);
 	connect(this,		&ComputedColumnsModel::datasetLoadedChanged,	this, &ComputedColumnsModel::computeColumnRCodeChanged			);
 	connect(this,		&ComputedColumnsModel::datasetLoadedChanged,	this, &ComputedColumnsModel::computeColumnErrorChanged			);
@@ -16,6 +17,7 @@ ComputedColumnsModel::ComputedColumnsModel(Analyses * analyses, QObject * parent
 	connect(_analyses,	&Analyses::requestComputedColumnDestruction,	this, &ComputedColumnsModel::requestComputedColumnDestruction,	Qt::UniqueConnection);
 	connect(_analyses,	&Analyses::analysisRemoved,						this, &ComputedColumnsModel::analysisRemoved					);
 
+	_computedColumns = _package->computedColumnsPointer();
 }
 
 QString ComputedColumnsModel::computeColumnRCode()
@@ -178,21 +180,10 @@ void ComputedColumnsModel::emitHeaderDataChanged(QString name)
 {
 	try
 	{
-		int index = _package->dataSet()->getColumnIndex(name.toStdString());
+		int index = _package->getColumnIndex(name.toStdString());
 		emit headerDataChanged(Qt::Horizontal, index, index);
 	}
 	catch(...){}
-}
-
-void ComputedColumnsModel::setDataSetPackage(DataSetPackage * package)
-{
-	DataSetPackage * oldPackage = _package;
-
-	_package = package;
-	_computedColumns = _package == nullptr ? nullptr : _package->computedColumnsPointer();
-
-	if(oldPackage != _package)
-		emit datasetLoadedChanged();
 }
 
 void ComputedColumnsModel::revertToDefaultInvalidatedColumns()
@@ -398,24 +389,9 @@ void ComputedColumnsModel::packageSynchronized(const std::vector<std::string> & 
 ComputedColumn * ComputedColumnsModel::createComputedColumn(QString name, int columnType, ComputedColumn::computedType computeType, Analysis * analysis)
 {
 	bool success			= false;
-	DataSet	*theData		= _package->dataSet();
-	size_t newColumnIndex	= theData->columnCount();
+	size_t newColumnIndex	= _package->columnCount();
 
-	do
-	{
-		try {
-			theData->setColumnCount(newColumnIndex + 1);
-			success = true;
-		}
-		catch (boost::interprocess::bad_alloc &)
-		{
-			try {	theData = SharedMemory::enlargeDataSet(theData);	}
-			catch (std::exception &)	{	throw std::runtime_error("Out of memory: this data set is too large for your computer's available memory");	}
-		}
-		catch (std::exception & e)	{	Log::log() << "ComputedColumnsModel::createComputedColum std::exception: " << e.what()	<< std::endl; 	}
-		catch (...)					{	Log::log() << "ComputedColumnsModel::createComputedColum some other exception\n "		<< std::endl;	}
-	}
-	while (!success);
+	_package->setDataSetColumnCount(newColumnIndex + 1);
 
 	bool	createActualComputedColumn	= computeType != ComputedColumn::computedType::analysisNotComputed,
 			showComputedColumn			= createActualComputedColumn && computeType != ComputedColumn::computedType::analysis;
@@ -430,7 +406,6 @@ ComputedColumn * ComputedColumnsModel::createComputedColumn(QString name, int co
 	else
 		computedColumnsPointer()->createColumn(name.toStdString(), (Column::ColumnType)columnType);
 
-	emit dataSetChanged(_package->dataSet());
 	emit refreshData();
 
 
@@ -464,11 +439,11 @@ void ComputedColumnsModel::requestComputedColumnDestruction(QString columnNameQ)
 
 	std::string columnName = columnNameQ.toStdString();
 
-	int index = _package->dataSet()->getColumnIndex(columnName);
+	int index = _package->getColumnIndex(columnName);
 
 	_computedColumns->removeComputedColumn(columnName);
 
-	emit headerDataChanged(Qt::Horizontal, index, _package->dataSet()->columns().columnCount() + 1);
+	emit headerDataChanged(Qt::Horizontal, index, _package->columnCount() + 1);
 
 	_analyses->applyToAll([&](Analysis * analysis)
 		{ analysis->removeUsedVariable(columnName); } );

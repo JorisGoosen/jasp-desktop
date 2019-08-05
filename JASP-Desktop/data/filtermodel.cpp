@@ -2,30 +2,31 @@
 #include "variablespage/labelfiltergenerator.h"
 #include "utilities/jsonutilities.h"
 
+FilterModel::FilterModel(DataSetPackage * package, labelFilterGenerator * labelFilterGenerator)
+	: QObject(package), _package(package), _labelFilterGenerator(labelFilterGenerator)
+{
+	reset();
+	connect(this,		&FilterModel::rFilterChanged,	this, &FilterModel::rescanRFilterForColumns);
+	connect(_package,	&DataSetPackage::modelReset,	this, &FilterModel::dataSetPackageResetDone);
+}
+
 void FilterModel::reset()
 {
 	_setGeneratedFilter(DEFAULT_FILTER_GEN);
 	setConstructedJSON(DEFAULT_FILTER_JSON);
 	_setRFilter(DEFAULT_FILTER);
 
-	if(_package != nullptr && _package->dataSet() != nullptr && _package->dataSet()->rowCount() > 0)
+	if(_package->rowCount() > 0)
 		sendGeneratedAndRFilter();
 }
 
-void FilterModel::setDataSetPackage(DataSetPackage * package)
+void FilterModel::dataSetPackageResetDone()
 {
-	_package = package;
+	_setGeneratedFilter(QString::fromStdString(_labelFilterGenerator->generateFilter()));
+	setConstructedJSON(QString::fromStdString(_package->filterConstructorJson()));
+	_setRFilter(QString::fromStdString(_package->dataFilter()));
 
-	if(_package != nullptr)
-	{
-		_setGeneratedFilter(QString::fromStdString(labelFilterGenerator(_package).generateFilter()));
-		setConstructedJSON(QString::fromStdString(_package->filterConstructorJson()));
-		_setRFilter(QString::fromStdString(_package->dataFilter()));
-
-		sendGeneratedAndRFilter();
-	}
-	else
-		reset();
+	sendGeneratedAndRFilter();
 }
 
 void FilterModel::setRFilter(QString newRFilter)
@@ -109,20 +110,16 @@ bool FilterModel::_setGeneratedFilter(const QString& newGeneratedFilter)
 
 void FilterModel::processFilterResult(std::vector<bool> filterResult, int requestId)
 {
-	if((requestId > -1 && requestId < _lastSentRequestId) || _package == nullptr || _package->dataSet() == nullptr)
+	if((requestId > -1 && requestId < _lastSentRequestId))
 		return;
 
-	_package->beginLoadingData();
-
-	_package->setDataFilter(_rFilter.toStdString()); //store the filter that was last used and actually gave results.
-	if(_package->dataSet()->setFilterVector(filterResult))
+	//store the filter that was last used and actually gave results and those results:
+	if(_package->setFilterData(_rFilter.toStdString(), filterResult))
 	{
-		_package->endLoadingData();
 		refreshAllAnalyses();
 		emit filterUpdated();
 		updateStatusBar();
 	}
-	else _package->endLoadingData();
 }
 
 
@@ -140,14 +137,14 @@ void FilterModel::sendGeneratedAndRFilter()
 
 void FilterModel::updateStatusBar()
 {
-	if(_package == nullptr || _package->dataSet() == nullptr)
+	if(!_package->hasDataSet())
 	{
 		setStatusBarText("No data loaded!");
 		return;
 	}
 
-	int		TotalCount			= _package->dataSet()->rowCount(),
-			TotalThroughFilter	= _package->dataSet()->filteredRowCount();
+	int		TotalCount			= _package->rowCount(),
+			TotalThroughFilter	= _package->filteredRowCount();
 	double	PercentageThrough	= 100.0 * ((double)TotalThroughFilter) / ((double)TotalCount);
 
 	std::stringstream ss;

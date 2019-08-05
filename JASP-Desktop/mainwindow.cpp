@@ -103,10 +103,11 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 
 	_preferences			= new PreferencesModel(this);
 	_package				= new DataSetPackage(this);
-	_datasetTableModel		= new DataSetTableModel(_package);
 	_dynamicModules			= new DynamicModules(this);
-	_analyses				= new Analyses(this, _dynamicModules);
+	_analyses				= new Analyses(_package, _dynamicModules);
 	_engineSync				= new EngineSync(_analyses, _package, _dynamicModules, this);
+	_datasetTableModel		= new DataSetTableModel(_package);
+	_labelModel				= new LabelModel(_package);
 
 	initLog(); //initLog needs _preferences and _engineSync!
 
@@ -115,10 +116,10 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	_resultsJsInterface		= new ResultsJsInterface();
 	_odm					= new OnlineDataManager(this);
 	_levelsTableModel		= new LevelsTableModel(this);
-	_labelFilterGenerator	= new labelFilterGenerator(_package, this);
-	_columnsModel			= new ColumnsModel(this);
-	_computedColumnsModel	= new ComputedColumnsModel(_analyses, this);
-	_filterModel			= new FilterModel(_package, this);
+	_labelFilterGenerator	= new labelFilterGenerator(_labelModel, this);
+	_columnsModel			= new ColumnsModel(_datasetTableModel);
+	_computedColumnsModel	= new ComputedColumnsModel(_analyses, _package);
+	_filterModel			= new FilterModel(_package, _labelFilterGenerator);
 	_ribbonModel			= new RibbonModel(_dynamicModules, _preferences,
 									{ "Descriptives", "T-Tests", "ANOVA", "Regression", "Frequencies", "Factor" },
                                     { "Audit", "BAIN", "Network", "Meta Analysis", "SEM", "Summary Statistics" });
@@ -164,9 +165,9 @@ MainWindow::~MainWindow()
 
 		delete _resultsJsInterface;
 		delete _engineSync;
-		if (_package && _package->dataSet())
+		if (_package->hasDataSet())
 		{
-			_loader.free(_package->dataSet());
+			_package->freeDataSet();
 			_package->reset();
 		}
 	}
@@ -202,16 +203,14 @@ void MainWindow::makeConnections()
 
 	connect(_package,				&DataSetPackage::dataSynched,						this,					&MainWindow::packageDataChanged								);
 	connect(_package,				&DataSetPackage::isModifiedChanged,					this,					&MainWindow::packageChanged									);
-	connect(_package,				&DataSetPackage::dataSetChanged,					this,					&MainWindow::dataSetChanged									);
 	connect(_package,				&DataSetPackage::columnDataTypeChanged,				_analyses,				&Analyses::dataSetColumnsChanged							);
-	connect(_package,				&DataSetPackage::pauseEnginesSignal,				_engineSync,			&EngineSync::pause											);
-	connect(_package,				&DataSetPackage::resumeEnginesSignal,				_engineSync,			&EngineSync::resume											);
-	connect(_package,				&DataSetPackage::headerDataChanged,					_columnsModel,			&ColumnsModel::datasetHeaderDataChanged						);
-	connect(_package,				&DataSetPackage::modelReset,						_columnsModel,			&ColumnsModel::refresh,										Qt::QueuedConnection);
+//	connect(_package,				&DataSetPackage::headerDataChanged,					_columnsModel,			&ColumnsModel::datasetHeaderDataChanged						);
+//	connect(_package,				&DataSetPackage::modelReset,						_columnsModel,			&ColumnsModel::refresh,										Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::allFiltersReset,					_levelsTableModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::modelReset,						_levelsTableModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::allFiltersReset,					_labelFilterGenerator,	&labelFilterGenerator::labelFilterChanged					);
 	connect(_package,				&DataSetPackage::columnDataTypeChanged,				_computedColumnsModel,	&ComputedColumnsModel::recomputeColumn						);
+	connect(_package,				&DataSetPackage::freeDatasetSignal,					&_loader,				&AsyncLoader::free											);
 
 	connect(_engineSync,			&EngineSync::engineTerminated,						this,					&MainWindow::fatalError										);
 	connect(_engineSync,			&EngineSync::refreshAllPlotsExcept,					_analyses,				&Analyses::refreshAllPlots									);
@@ -228,7 +227,6 @@ void MainWindow::makeConnections()
 	connect(_computedColumnsModel,	&ComputedColumnsModel::refreshColumn,				_package,				&DataSetPackage::refreshColumn,								Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::headerDataChanged,			_package,				&DataSetPackage::headerDataChanged,							Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::sendComputeCode,				_engineSync,			&EngineSync::computeColumn,									Qt::QueuedConnection);
-	connect(_computedColumnsModel,	&ComputedColumnsModel::dataSetChanged,				_package,				&DataSetPackage::dataSetChanged								);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::refreshData,					_package,				&DataSetPackage::refresh,									Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::showAnalysisForm,			_analyses,				&Analyses::selectAnalysis									);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::dataColumnAdded,				_fileMenu,				&FileMenu::dataColumnAdded									);
@@ -271,7 +269,7 @@ void MainWindow::makeConnections()
 
 	connect(&_loader,				&AsyncLoader::progress,								this,					&MainWindow::setProgressStatus,								Qt::QueuedConnection);
 
-	connect(_preferences,			&PreferencesModel::missingValuesChanged,			this,					&MainWindow::emptyValuesChangedHandler						);
+	connect(_preferences,			&PreferencesModel::missingValuesChanged,			_package,				&DataSetPackage::emptyValuesChangedHandler					);
 	connect(_preferences,			&PreferencesModel::plotBackgroundChanged,			this,					&MainWindow::setImageBackgroundHandler						);
 	connect(_preferences,			&PreferencesModel::plotPPIChanged,					this,					&MainWindow::plotPPIChangedHandler							);
 	connect(_preferences,			&PreferencesModel::dataAutoSynchronizationChanged,	_fileMenu,				&FileMenu::dataAutoSynchronizationChanged					);
@@ -533,13 +531,6 @@ void MainWindow::refreshAnalysesUsingColumns(std::vector<std::string> &changedCo
 	_computedColumnsModel->packageSynchronized(changedColumns, missingColumns, changeNameColumns, rowCountChanged);
 }
 
-void MainWindow::dataSetChanged(DataSet * dataSet)
-{
-	_package->setDataSet(dataSet);
-	setDataSetAndPackageInModels();
-}
-
-
 void MainWindow::setImageBackgroundHandler(QString value)
 {
 	emit imageBackgroundChanged(value);
@@ -562,17 +553,9 @@ void MainWindow::plotPPIChangedHandler(int ppi, bool wasUserAction)
 }
 
 
-void MainWindow::setDataSetAndPackageInModels()
+void MainWindow::setDatasetLoaded()
 {
-	DataSet * dataSet = _package->dataSet();
-
-	_levelsTableModel		-> setDataSet(dataSet);
-	_columnsModel			-> setDataSet(dataSet);
-	_computedColumnsModel	-> setDataSetPackage(_package);
-	_analyses				-> setDataSet(dataSet);
-	_filterModel			-> setDataSetPackage(_package);
-
-	setDatasetLoaded(dataSet != nullptr && (dataSet->rowCount() > 0 || dataSet->columnCount() > 0));
+	setDatasetLoaded(_package->rowCount() > 0 || _package->columnCount() > 0);
 }
 
 void MainWindow::packageDataChanged(vector<string>		&	changedColumns,
@@ -581,7 +564,7 @@ void MainWindow::packageDataChanged(vector<string>		&	changedColumns,
 									bool					rowCountChanged,
 									bool					hasNewColumns)
 {
-	setDataSetAndPackageInModels();
+	setDatasetLoaded();
 
 	_labelFilterGenerator->regenerateFilter();
 	_filterModel->sendGeneratedAndRFilter();
@@ -770,7 +753,7 @@ void MainWindow::dataSetIORequestHandler(FileEvent *event)
 	}
 	else if (event->operation() == FileEvent::FileSyncData)
 	{
-		if (_package->dataSet() == nullptr)
+		if (!_package->hasDataSet())
 			return;
 
 		connectFileEventCompleted(event);
@@ -893,8 +876,7 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 		}
 		else
 		{
-			if (_package->dataSet() != nullptr)
-				_loader.free(_package->dataSet());
+			_package->freeDataSet();
 			_package->reset();
 			setWelcomePageVisible(true);
 
@@ -943,8 +925,7 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 			_analyses->setVisible(false);
 			_analyses->clear();
 
-			if (_package->dataSet())
-				_loader.free(_package->dataSet());
+			_package->freeDataSet();
 			_package->reset();
 			setWelcomePageVisible(true);
 
@@ -968,7 +949,7 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 
 void MainWindow::populateUIfromDataSet()
 {
-	setDataSetAndPackageInModels();
+	setDatasetLoaded();
 
 	bool errorFound = false;
 	stringstream errorMsg;
@@ -1034,7 +1015,7 @@ void MainWindow::populateUIfromDataSet()
 
 	bool hasAnalyses = _analyses->count() > 0;
 
-	setDataAvailable((_package->dataSet()->rowCount() > 0 || _package->dataSet()->columnCount() > 0));
+	setDataAvailable((_package->rowCount() > 0 || _package->columnCount() > 0));
 
 	hideProgress();
 
@@ -1099,41 +1080,6 @@ void MainWindow::fatalError()
 		_application->exit(1);
 	}
 }
-
-
-void MainWindow::emptyValuesChangedHandler()
-{
-	if (_package->isLoaded())
-	{
-		vector<string> colChanged;
-		vector<string> missingColumns;
-		map<string, string> changeNameColumns;
-
-		_package->beginSynchingData();
-
-		try
-		{
-			colChanged = _package->dataSet()->resetEmptyValues(_package->emptyValuesMap());
-		}
-		catch (boost::interprocess::bad_alloc &e)
-		{
-			try {
-
-				_package->setDataSet(SharedMemory::enlargeDataSet(_package->dataSet()));
-				colChanged = _package->dataSet()->resetEmptyValues(_package->emptyValuesMap());
-			}
-			catch (exception &e)
-			{
-				throw runtime_error("Out of memory: this data set is too large for your computer's available memory");
-			}
-		}
-		catch (exception e)	{	cout << "MainWindow::emptyValuesChangedHandler n " << e.what() << std::endl; 	}
-		catch (...)			{	cout << "MainWindow::emptyValuesChangedHandler something when wrong...\n" << std::endl; }
-
-		_package->endSynchingData(colChanged, missingColumns, changeNameColumns, false, false);
-	}
-}
-
 
 void MainWindow::saveTextToFileHandler(const QString &filename, const QString &data)
 {

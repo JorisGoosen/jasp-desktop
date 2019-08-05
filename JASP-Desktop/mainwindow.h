@@ -35,6 +35,7 @@
 #include "data/datasettablemodel.h"
 #include "data/computedcolumnsmodel.h"
 #include "data/fileevent.h"
+#include "data/labelmodel.h"
 #include "data/filtermodel.h"
 #include "engine/enginesync.h"
 #include "modules/dynamicmodule.h"
@@ -141,7 +142,7 @@ private:
 	void checkUsedModules();
 
 	void packageChanged();
-	void setDataSetAndPackageInModels();
+	void setDatasetLoaded();
 	void setPackageModified();
 	void refreshAnalysesUsingColumns(std::vector<std::string> &changedColumns, std::vector<std::string> &missingColumns, std::map<std::string, std::string> &changeNameColumns, bool rowCountChanged, bool hasNewColumns);
 
@@ -204,11 +205,9 @@ private slots:
 	void dataSetIOCompleted(FileEvent *event);
 	void populateUIfromDataSet();
 	void startDataEditorEventCompleted(FileEvent *event);
-	void dataSetChanged(DataSet * dataSet);
 	void analysisAdded(Analysis *analysis);
 
 	void fatalError();
-	void emptyValuesChangedHandler();
 
 	void closeVariablesPage();
 	void showProgress();
@@ -249,6 +248,7 @@ private:
 	AboutModel					*	_aboutModel				= nullptr;
 	PreferencesModel			*	_preferences			= nullptr;
 	ResultMenuModel				*	_resultMenuModel		= nullptr;
+	LabelModel					*	_labelModel				= nullptr;
 
 	QSettings						_settings;
 

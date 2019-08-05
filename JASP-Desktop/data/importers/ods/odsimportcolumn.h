@@ -103,7 +103,7 @@ public:
 	// Getters.
 	Column::ColumnType getJASPColumnType() const { return _columnType; }
 
-	std::vector<std::string> getData();
+	std::vector<std::string> getData() const;
 
 private:
 
@@ -149,4 +149,4 @@ private:
 };
 
 } // end namespace.
-#endif // sentinal ODSIMPORTCOLUMN_H
+#endif // sentinel ODSIMPORTCOLUMN_H

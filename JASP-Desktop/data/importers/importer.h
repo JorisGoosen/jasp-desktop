@@ -20,7 +20,7 @@ protected:
 	virtual ImportDataSet* loadFile(const std::string &locator, boost::function<void(const std::string &, int)> progressCallback) = 0;
 
 	///colID can be either an integer (the column index in the data) or a string (the (old) name of the column in the data)
-	virtual void initColumn(QVariant colId, ImportColumn *importColumn) = 0;
+	virtual void initColumn(QVariant colId, ImportColumn *importColumn);
 
 	void initColumnWithStrings(QVariant colId, std::string newName, const std::vector<std::string> &values);
 
@@ -36,12 +36,9 @@ protected:
 	void						storeInEmptyValues(std::string columnName, std::map<int, std::string> emptyValues)																									{ _packageData->storeInEmptyValues(columnName, emptyValues);											}
 	void						resetEmptyValues()																																									{ _packageData->resetEmptyValues();																		}
 
-private:
-	void setDataSetRowCount(int rowCount)				{ _packageData->setDataSetSize(_packageData->dataColumnCount(),		rowCount); }
-	void increaseDataSetColCount(int rowCount)			{ _packageData->setDataSetSize(_packageData->dataColumnCount() + 1,	rowCount); }
-
 	DataSetPackage *_packageData;
 
+private:
 	void _syncPackage(
 			ImportDataSet								*	syncDataSet,
 			std::vector<std::pair<std::string, int>>	&	newColumns,

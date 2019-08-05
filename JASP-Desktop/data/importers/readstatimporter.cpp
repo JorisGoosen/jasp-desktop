@@ -103,24 +103,24 @@ ImportDataSet* ReadStatImporter::loadFile(const std::string &locator, boost::fun
 	return data;
 }
 
-void ReadStatImporter::fillSharedMemoryColumn(ImportColumn * importColumn, Column & column)
+void ReadStatImporter::initColumn(QVariant colId, ImportColumn * importColumn)
 {
 	ReadStatImportColumn * col = static_cast<ReadStatImportColumn*>(importColumn);
 
 	switch(col->columnType())
 	{
 	case Column::ColumnTypeScale:
-		column.setColumnAsScale(col->doubles());
+		_packageData->initColumnAsScale(colId, col->name(), col->doubles());
 		break;
 
 	case Column::ColumnTypeOrdinal:
 	case Column::ColumnTypeNominal:
-		if(col->hasLabels())	column.setColumnAsNominalOrOrdinal(col->ints(), col->intLabels(),	col->columnType() == Column::ColumnTypeOrdinal);
-		else					column.setColumnAsNominalOrOrdinal(col->ints(), col->uniqueInts(),	col->columnType() == Column::ColumnTypeOrdinal);
+		if(col->hasLabels())	_packageData->initColumnAsNominalOrOrdinal(colId, col->name(), col->ints(), col->intLabels(),	col->columnType() == Column::ColumnTypeOrdinal);
+		else					_packageData->initColumnAsNominalOrOrdinal(colId, col->name(), col->ints(), col->uniqueInts(),	col->columnType() == Column::ColumnTypeOrdinal);
 		break;
 
 	case Column::ColumnTypeNominalText:
-		_packageData->storeInEmptyValues(column.name(), column.setColumnAsNominalText(col->strings(), col->strLabels()));
+		_packageData->storeInEmptyValues(col->name(), _packageData->initColumnAsNominalText(colId, col->name(), col->strings(), col->strLabels()));
 		break;
 
 	default:

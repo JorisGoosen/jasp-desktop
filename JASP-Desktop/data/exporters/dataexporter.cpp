@@ -36,51 +36,7 @@ void DataExporter::saveDataSet(const std::string &path, DataSetPackage* package,
 
 	boost::nowide::ofstream outfile(path.c_str(), ios::out);
 
-	DataSet *dataset = package->dataSet();
-
-	std::vector<Column*> cols;
-
-	int columnCount = dataset->columnCount();
-	for (int i = 0; i < columnCount; i++)
-	{
-		Column &column = dataset->column(i);
-		string name = column.name();
-
-		if(!package->isColumnComputed(name) || _includeComputeColumns)
-			cols.push_back(&column);
-	}
-
-
-	for (size_t i = 0; i < cols.size(); i++)
-	{
-		Column *column		= cols[i];
-		std::string name	= column->name();
-
-		if (stringUtils::escapeValue(name))	outfile << '"' << name << '"';
-		else								outfile << name;
-
-		if (i < cols.size()-1)				outfile << ",";
-		else								outfile << "\n";
-
-	}
-
-	size_t rowCount = dataset->rowCount();
-
-	for (size_t r = 0; r < rowCount; r++)
-		for (size_t i = 0; i < cols.size(); i++)
-		{
-			Column *column = cols[i];
-
-			string value = column->getOriginalValue(r);
-			if (value != ".")
-			{
-				if (stringUtils::escapeValue(value))	outfile << '"' << value << '"';
-				else									outfile << value;
-			}
-
-			if (i < cols.size()-1)						outfile << ",";
-			else if (r != rowCount-1)					outfile << "\n";
-		}
+	package->writeDataSetToOStream(outfile, _includeComputeColumns);
 
 	outfile.flush();
 	outfile.close();
