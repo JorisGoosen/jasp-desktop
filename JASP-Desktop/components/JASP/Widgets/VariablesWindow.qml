@@ -16,12 +16,12 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import QtQuick 2.7
+import QtQuick			2.7
 import QtQuick.Controls 2.2 as New
 import QtQuick.Controls 1.4 as OLD
-import QtQuick.Layouts 1.3
+import QtQuick.Layouts	1.3
 
-import JASP.Theme 1.0
+import JASP.Theme		1.0
 
 FocusScope
 {
@@ -29,7 +29,7 @@ FocusScope
 	visible:	opened
 	
 				property real calculatedMinimumHeight:	buttonColumnVariablesWindow.minimumHeight + columnNameVariablesWindow.height + 6 + (Theme.generalAnchorMargin * 2)
-	readonly	property bool opened:					levelsTableModel.chosenColumn != -1
+	readonly	property bool opened:					levelsTableModel.visible
 	
 	Connections
 	{
@@ -41,21 +41,11 @@ FocusScope
 			{
 				//to prevent the editText in the labelcolumn to get stuck and overwrite the next columns data... We have to remove activeFocus from it
 				levelsTableViewRectangle.focus = true //So we just put it somewhere
-				columnNameVariablesWindow.text = dataSetModel.columnTitle(chosenColumn)
-				levelsTableModel.setColumnFromQML(chosenColumn)
+				columnNameVariablesWindow.text = dataSetModel.columnTitle(levelsTableModel.chosenColumn )
 				levelsTableView.selection.clear()
 			}
 		}
 	}
-	
-	function chooseColumn(chooseThisColumn)
-	{
-		if(levelsTableModel.chosenColumn === chooseThisColumn)
-			chooseThisColumn = -1
-		
-		levelsTableModel.chosenColumn = chooseThisColumn
-	}
-	
 	
 	Item
 	{
@@ -199,7 +189,7 @@ FocusScope
 					sendCurrentColumnChanged()
 				}
 				
-				function closeYourself() { variablesWindow.chooseColumn(-1) }
+				function closeYourself() { levelsTableModel.visible = false; }
 				
 				
 				OLD.TableViewColumn
@@ -448,7 +438,7 @@ FocusScope
 				{
 					id:				variablesWindowCloseButton
 					iconSource:		"qrc:/images/cross.png"
-					onClicked:		variablesWindow.chooseColumn(-1)
+					onClicked:		levelsTableModel.visible = false;
 					height:			buttonColumnVariablesWindow.buttonHeight
 					implicitHeight: buttonColumnVariablesWindow.buttonHeight
 					width:			height

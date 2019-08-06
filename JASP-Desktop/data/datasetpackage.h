@@ -69,7 +69,7 @@ public:
 				bool				setData(	const QModelIndex &index, const QVariant &value, int role)						override;
 				Qt::ItemFlags		flags(		const QModelIndex &index)												const	override;
 				QModelIndex			parent(		const QModelIndex & index)												const	override;
-				QModelIndex			index(int row, int column, const QModelIndex &parent = QModelIndex())				const	override;
+				QModelIndex			index(int row, int column, const QModelIndex &parent)								const	override;
 				parIdxType			parentIndexTypeIs(const QModelIndex &index)											const;
 				QModelIndex			parentModelForType(parIdxType type, int column = 0)									const;
 				int					filteredRowCount()																	const { return _dataSet ? _dataSet->filteredRowCount() : 0; }

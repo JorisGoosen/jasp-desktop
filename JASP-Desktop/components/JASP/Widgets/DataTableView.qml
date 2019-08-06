@@ -96,8 +96,8 @@ FocusScope
 					{
 						dataSetModel.setColumnTypeFromQML(columnIndex, columnType)
 
-						if(variablesWindow.chosenColumn === columnIndex && colIcon.myColumnType() === columnTypeScale)
-							variablesWindow.chooseColumn(-1)
+						if(levelsTableModel.chosenColumn === columnIndex && colIcon.myColumnType() === columnTypeScale)
+							levelsTableModel.visible = false;
 					}
 
 					ColumnTypeModel {
@@ -273,15 +273,19 @@ FocusScope
 
 					onClicked:
 					{
-						var chooseThisColumn = (columnIndex > -1 && dataSetModel.columnIcon(columnIndex)  !== columnTypeScale) ? columnIndex : -1
-						variablesWindow.chooseColumn(chooseThisColumn)
+						var chooseThisColumn			= (columnIndex > -1 && dataSetModel.columnIcon(columnIndex)  !== columnTypeScale) ? columnIndex : -1;
 
-						if(columnIndex >= 0 && dataSetModel.columnUsedInEasyFilter(columnIndex))
+						if(columnIndex >= 0)
 						{
-							filterWindow.showEasyFilter = true
-							filterWindow.open()
-						}
+							levelsTableModel.visible		= levelsTableModel.chosenColumn	!= chooseThisColumn;
+							levelsTableModel.chosenColumn	= chooseThisColumn;
 
+							if(dataSetModel.columnUsedInEasyFilter(columnIndex))
+							{
+								filterWindow.showEasyFilter = true
+								filterWindow.open()
+							}
+						}
 					}
 
 					hoverEnabled:		true

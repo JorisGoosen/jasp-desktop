@@ -1,31 +1,21 @@
 ﻿#ifndef LEVELSTABLEMODEL_H
 #define LEVELSTABLEMODEL_H
 
-#include <QAbstractTableModel>
-
-#include "column.h"
-
 #include "common.h"
-#include "dataset.h"
+#include "data/datasettableproxy.h"
 
-class LevelsTableModel : public QAbstractTableModel
+class LevelsTableModel : public DataSetTableProxy
 {
 	Q_OBJECT
-	Q_PROPERTY(int filteredOut READ filteredOut NOTIFY filteredOutChanged)
-	Q_PROPERTY(int chosenColumn READ chosenColumn WRITE setChosenColumn NOTIFY chosenColumnChanged)
+	Q_PROPERTY(int	filteredOut		READ filteredOut									NOTIFY filteredOutChanged)
+	Q_PROPERTY(int	chosenColumn	READ proxyParentColumn	WRITE setProxyParentColumn	NOTIFY proxyParentColumnChanged)
+	Q_PROPERTY(bool visible			READ visible			WRITE setVisible			NOTIFY visibleChanged)
 
 public:
-	LevelsTableModel(QObject *parent = 0);
+	LevelsTableModel(DataSetPackage * package);
 	~LevelsTableModel()	{ }
 
-	enum class Roles {
-		ValueRole = Qt::UserRole + 1,
-		LabelRole,
-		FilterRole
-	};
-	Q_ENUM(Roles)
-
-	void setColumn(Column *column);
+	/*void setColumn(Column *column);
 	Q_INVOKABLE void clearColumn();
 
 	int						rowCount(const QModelIndex &parent = QModelIndex())						const	override;
@@ -34,13 +24,13 @@ public:
 	QVariant				headerData(int section, Qt::Orientation orientation, int role)			const	override;
 	Qt::ItemFlags			flags(const QModelIndex &index)											const	override;
 	bool					setData(const QModelIndex & index, const QVariant & value, int role)			override;
-	QHash<int, QByteArray>	roleNames()																const	override;
+	QHash<int, QByteArray>	roleNames()																const	override;*/
 
 	void moveUp(QModelIndexList &selection);
 	void moveDown(QModelIndexList &selection);
 
 	Q_INVOKABLE void reverse();
-	Q_INVOKABLE void setColumnFromQML()							{ setColumn(&_dataSet->column(_chosenColumn)); }
+	//Q_INVOKABLE void setColumnFromQML()							{ setColumn(&_dataSet->column(_chosenColumn)); }
 	Q_INVOKABLE void moveUpFromQML(QVariantList selection)		{ QModelIndexList List = convertQVariantList_to_QModelIndexList(selection); moveUp(List); }
 	Q_INVOKABLE void moveDownFromQML(QVariantList selection)	{ QModelIndexList List = convertQVariantList_to_QModelIndexList(selection); moveDown(List); }
 
@@ -50,35 +40,49 @@ public:
 	Q_INVOKABLE bool allowFilter(int row);
 	Q_INVOKABLE void resetFilterAllows();
 
-	void setDataSet(DataSet * thisDataSet);
+	//void setDataSet(DataSet * thisDataSet);
 	int filteredOut();
 
-	int chosenColumn() const { return _chosenColumn; }
+	//int chosenColumn() const { return _chosenColumn; }
+
+	bool visible() const {	return _visible; }
 
 public slots:
-	void refresh();
+	/*void refresh();
 	void refreshColumn(Column * column);
 	void refreshConnectedModelsToName(Column * column) { emit refreshConnectedModelsByName(column->name());	}
+*/
 
+	//void setChosenColumn(int chosenColumn);
 
-	void setChosenColumn(int chosenColumn);
+	void setVisible(bool visible)
+	{
+		if (_visible == visible)
+			return;
+
+		_visible = visible;
+		emit visibleChanged(_visible);
+	}
 
 signals:
-	void refreshConnectedModels(Column * column);
-	void refreshConnectedModelsByName(std::string columnName);
+	/*void refreshConnectedModels(Column * column);
+	void refreshConnectedModelsByName(std::string columnName);*/
 	void resizeLabelColumn();
 	void labelFilterChanged();
 	void notifyColumnHasFilterChanged(int column); //should be on column but column is not a Qt object.
 	void filteredOutChanged();
 
-	void chosenColumnChanged(int chosenColumn);
+	//void chosenColumnChanged(int chosenColumn);
+
+	void visibleChanged(bool visible);
 
 private:
 	std::string _colName		= "";
-	int			_chosenColumn	= -1;
+	bool		_visible		= false;
+	//int			_chosenColumn	= -1;
 
 	void _moveRows(QModelIndexList &selection, bool up = true);
-	int currentColumnIndex();
+	//int currentColumnIndex();
 
 };
 

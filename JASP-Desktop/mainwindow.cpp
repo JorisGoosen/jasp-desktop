@@ -115,7 +115,7 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 
 	_resultsJsInterface		= new ResultsJsInterface();
 	_odm					= new OnlineDataManager(this);
-	_levelsTableModel		= new LevelsTableModel(this);
+	_levelsTableModel		= new LevelsTableModel(_package);
 	_labelFilterGenerator	= new labelFilterGenerator(_labelModel, this);
 	_columnsModel			= new ColumnsModel(_datasetTableModel);
 	_computedColumnsModel	= new ComputedColumnsModel(_analyses, _package);
@@ -164,12 +164,14 @@ MainWindow::~MainWindow()
 		_odm->clearAuthenticationOnExit(OnlineDataManager::OSF);
 
 		delete _resultsJsInterface;
-		delete _engineSync;
+
 		if (_package->hasDataSet())
 		{
 			_package->freeDataSet();
 			_package->reset();
 		}
+
+		delete _engineSync; //delete enginesync after freeing dataset because otherwise segfault!
 	}
 	catch(...)
 	{
@@ -197,17 +199,17 @@ void MainWindow::makeConnections()
 	connect(this,					&MainWindow::editImageCancelled,					_resultsJsInterface,	&ResultsJsInterface::cancelImageEdit						);
 
 	connect(_levelsTableModel,		&LevelsTableModel::notifyColumnHasFilterChanged,	_package,				&DataSetPackage::notifyColumnFilterStatusChanged			);
-	connect(_levelsTableModel,		&LevelsTableModel::refreshConnectedModels,			_package,				&DataSetPackage::refreshColumn								);
+	//connect(_levelsTableModel,		&LevelsTableModel::refreshConnectedModels,			_package,				&DataSetPackage::refreshColumn								);
 	connect(_levelsTableModel,		&LevelsTableModel::labelFilterChanged,				_labelFilterGenerator,	&labelFilterGenerator::labelFilterChanged					);
-	connect(_levelsTableModel,		&LevelsTableModel::refreshConnectedModelsByName,	_computedColumnsModel,	&ComputedColumnsModel::checkForDependentColumnsToBeSentSlot	);
+	//connect(_levelsTableModel,		&LevelsTableModel::refreshConnectedModelsByName,	_computedColumnsModel,	&ComputedColumnsModel::checkForDependentColumnsToBeSentSlot	);
 
 	connect(_package,				&DataSetPackage::dataSynched,						this,					&MainWindow::packageDataChanged								);
 	connect(_package,				&DataSetPackage::isModifiedChanged,					this,					&MainWindow::packageChanged									);
 	connect(_package,				&DataSetPackage::columnDataTypeChanged,				_analyses,				&Analyses::dataSetColumnsChanged							);
 //	connect(_package,				&DataSetPackage::headerDataChanged,					_columnsModel,			&ColumnsModel::datasetHeaderDataChanged						);
 //	connect(_package,				&DataSetPackage::modelReset,						_columnsModel,			&ColumnsModel::refresh,										Qt::QueuedConnection);
-	connect(_package,				&DataSetPackage::allFiltersReset,					_levelsTableModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
-	connect(_package,				&DataSetPackage::modelReset,						_levelsTableModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
+	//connect(_package,				&DataSetPackage::allFiltersReset,					_levelsTableModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
+	//connect(_package,				&DataSetPackage::modelReset,						_levelsTableModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::allFiltersReset,					_labelFilterGenerator,	&labelFilterGenerator::labelFilterChanged					);
 	connect(_package,				&DataSetPackage::columnDataTypeChanged,				_computedColumnsModel,	&ComputedColumnsModel::recomputeColumn						);
 	connect(_package,				&DataSetPackage::freeDatasetSignal,					&_loader,				&AsyncLoader::free											);
@@ -223,7 +225,7 @@ void MainWindow::makeConnections()
 
 	qRegisterMetaType<Column::ColumnType>();
 
-	connect(_computedColumnsModel,	&ComputedColumnsModel::refreshColumn,				_levelsTableModel,		&LevelsTableModel::refreshColumn,							Qt::QueuedConnection);
+//	connect(_computedColumnsModel,	&ComputedColumnsModel::refreshColumn,				_levelsTableModel,		&LevelsTableModel::refreshColumn,							Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::refreshColumn,				_package,				&DataSetPackage::refreshColumn,								Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::headerDataChanged,			_package,				&DataSetPackage::headerDataChanged,							Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::sendComputeCode,				_engineSync,			&EngineSync::computeColumn,									Qt::QueuedConnection);
@@ -834,7 +836,7 @@ bool MainWindow::checkPackageModifiedBeforeClosing()
 
 void MainWindow::closeVariablesPage()
 {
-	_levelsTableModel->setChosenColumn(-1);
+	_levelsTableModel->setVisible(false);
 }
 
 void MainWindow::dataSetIOCompleted(FileEvent *event)

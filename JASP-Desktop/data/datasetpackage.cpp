@@ -24,7 +24,7 @@
 #define ENUM_DECLARATION_CPP
 #include "datasetpackage.h"
 
-parIdxType DataSetPackage::_nodeCategory[] = { parIdxType::root, parIdxType::data, parIdxType::label, parIdxType::filter, parIdxType::leaf };	//Should be same order as defined
+parIdxType DataSetPackage::_nodeCategory[] = { parIdxType::root, parIdxType::data, parIdxType::label, parIdxType::filter };	//Should be same order as defined
 
 DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 {
@@ -121,9 +121,6 @@ QModelIndex DataSetPackage::parent(const QModelIndex & index) const
 {
 	parIdxType parentType = parentIndexTypeIs(index);
 
-	if(parentType == parIdxType::leaf)
-		Log::log() << "DataSetPackage just had an index that had parIdxType::leaf as parent... That should NOT happen!" << std::endl;
-
 	return parentModelForType(parentType);
 }
 
@@ -140,11 +137,10 @@ int DataSetPackage::rowCount(const QModelIndex & parent) const
 {
 	switch(parentIndexTypeIs(parent))
 	{
-	case parIdxType::leaf:		return 1; //Shouldnt really be called anyway
-	case parIdxType::label:		return _dataSet == nullptr ? 0 : _dataSet->columnCount() > parent.column() ? _dataSet->columns()[parent.column()].labels().size() : 0;
+	case parIdxType::label:		return !_dataSet || _dataSet->columnCount() <= parent.column() ? 0 : _dataSet->columns()[parent.column()].labels().size();
 	case parIdxType::filter:
 	case parIdxType::root:		//return int(parIdxType::leaf); Its more logical to get the actual datasize
-	case parIdxType::data:		return _dataSet == nullptr ? 0 : _dataSet->rowCount();
+	case parIdxType::data:		return !_dataSet ? 0 : _dataSet->rowCount();
 	}
 
 	return 0; // <- because gcc is stupid
@@ -154,9 +150,8 @@ int DataSetPackage::columnCount(const QModelIndex &parent) const
 {
 	switch(parentIndexTypeIs(parent))
 	{
-	case parIdxType::leaf:
 	case parIdxType::filter:	return 1;
-	case parIdxType::label:
+	case parIdxType::label:		return 3; //The parent index has a column index in it that tells you which actual column was selected!
 	case parIdxType::root:		//Default is columnCount of data because it makes programming easier. I do hope it doesn't mess up the use of the tree-like-structure of the data though
 	case parIdxType::data:		return _dataSet == nullptr ? 0 : _dataSet->columnCount();
 	}
@@ -201,7 +196,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		case int(specialRoles::lines):
 		{
 			bool	iAmActive		= getRowFilter(index.row()),
-					belowMeIsActive = index.row() < rowCount() - 1	&& data(this->index(index.row() + 1, index.column()), int(specialRoles::filter)).toBool();
+					belowMeIsActive = index.row() < rowCount() - 1	&& data(this->index(index.row() + 1, index.column(), index.parent()), int(specialRoles::filter)).toBool();
 
 
 			bool	up		= iAmActive,
@@ -217,16 +212,24 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		}
 
 	case parIdxType::label:
-		if(_dataSet == nullptr || index.column() >= columnCount(index.parent()) || index.row() >= rowCount(index.parent()))
+	{
+		int parColCount = columnCount(index.parent()),
+			parRowCount = rowCount(index.parent());
+
+		if(!_dataSet || index.column() >= parColCount || index.row() >= parRowCount)
 			return QVariant(); // if there is no data then it doesn't matter what role we play
+
+		//We know which column we need through the parent index!
+		Labels & labels = _dataSet->column(index.parent().column()).labels();
 
 		switch(role)
 		{
-		case int(specialRoles::filter):				return _dataSet->column(index.column()).labels()[index.row()].filterAllows();
-		case int(specialRoles::value):				return tq(_dataSet->column(index.column()).labels().getValueFromRow(index.row()));
+		case int(specialRoles::filter):				return labels[index.row()].filterAllows();
+		case int(specialRoles::value):				return tq(labels.getValueFromRow(index.row()));
 		case Qt::DisplayRole:
-		default:									return tq(_dataSet->column(index.column()).labels().getLabelFromRow(index.row()));
+		default:									return tq(labels.getLabelFromRow(index.row()));
 		}
+	}
 	}
 
 	return QVariant(); // <- because gcc is stupid
@@ -515,14 +518,14 @@ void DataSetPackage::refreshColumn(Column * column)
 {
 	for(size_t col=0; col<_dataSet->columns().columnCount(); col++)
 		if(&(_dataSet->columns()[col]) == column)
-			emit dataChanged(index(0, col), index(rowCount()-1, col));
+			emit dataChanged(index(0, col, parentModelForType(parIdxType::data)), index(rowCount()-1, col, parentModelForType(parIdxType::data)));
 }
 
 void DataSetPackage::columnWasOverwritten(std::string columnName, std::string possibleError)
 {
 	for(size_t col=0; col<_dataSet->columns().columnCount(); col++)
 		if(_dataSet->columns()[col].name() == columnName)
-			emit dataChanged(index(0, col), index(rowCount()-1, col));
+			emit dataChanged(index(0, col, parentModelForType(parIdxType::data)), index(rowCount()-1, col, parentModelForType(parIdxType::data)));
 }
 
 int DataSetPackage::setColumnTypeFromQML(int columnIndex, int newColumnType)
