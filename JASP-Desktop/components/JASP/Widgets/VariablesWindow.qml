@@ -214,29 +214,29 @@ FocusScope
 				{
 					id: levelsTableViewLabelColumn
 					title: qsTr("Label")
-					role: "label"
+					role: "display"
 					width: levelsTableView.width - levelsTableViewValueColumn.width - 20 - levelsTableViewFilterColumn.width
 				}
 				
 				headerDelegate: Rectangle
 				{
 					//Two rectangles to show a border of exactly 1px around cells
-					id: headerBorderRectangleVars
+					id:				headerBorderRectangleVars
 					color:			Theme.grayDarker
 					border.width:	0
-					radius: 0
-					height: headerTextVars.contentHeight + (Theme.itemPadding * 2)
+					radius:			0
+					height:			headerTextVars.contentHeight + (Theme.itemPadding * 2)
 					//width: headerTextVars.width + 8
 					
 					Rectangle
 					{
-						id: colHeaderVars
+						id:		colHeaderVars
 						color:	Theme.uiBackground
 						
-						x: headerBorderRectangleVars.x
-						y: headerBorderRectangleVars.y
+						x:		headerBorderRectangleVars.x
+						y:		headerBorderRectangleVars.y
 						height: headerBorderRectangleVars.height - 1
-						width: headerBorderRectangleVars.width - 1
+						width:	headerBorderRectangleVars.width - 1
 						
 						Text
 						{
@@ -283,28 +283,30 @@ FocusScope
 						
 						background: Image
 						{
-							source: filterCheckButton.checked ? "qrc:/icons/check-mark.png" : "qrc:/images/cross.png"
-							sourceSize.width: Math.max(40, width)
-							sourceSize.height: Math.max(40, height)
-							width:	filterCheckButton.width
-							height: filterCheckButton.height
+							source:				filterCheckButton.checked ? "qrc:/icons/check-mark.png" : "qrc:/images/cross.png"
+							sourceSize.width:	Math.max(40, width)
+							sourceSize.height:	Math.max(40, height)
+							width:				filterCheckButton.width
+							height:				filterCheckButton.height
 							
 						}
 						
 					}
 					
-					Text {
-						visible: styleData.column === 1
+					Text
+					{
+						visible:			styleData.column === 1
 						
-						color:			Theme.textDisabled
-						text:			styleData.value
-						elide:			Text.ElideMiddle
-						font.pixelSize: baseFontSize * preferencesModel.uiScale
-						anchors.fill:	parent
-						verticalAlignment: Text.AlignVCenter
+						color:				Theme.textDisabled
+						text:				styleData.value
+						elide:				Text.ElideMiddle
+						font.pixelSize:		baseFontSize * preferencesModel.uiScale
+						anchors.fill:		parent
+						verticalAlignment:	Text.AlignVCenter
 					}
 					
-					TextInput {
+					TextInput
+					{
 						visible:		styleData.column === 2
 						
 						color:			Theme.textEnabled
@@ -339,13 +341,11 @@ FocusScope
 							}
 						
 						
-						
-						
 						MouseArea
 						{
-							anchors.fill: parent
-							acceptedButtons: Qt.NoButton
-							cursorShape: Qt.IBeamCursor
+							anchors.fill:		parent
+							acceptedButtons:	Qt.NoButton
+							cursorShape:		Qt.IBeamCursor
 						}
 					}
 				}

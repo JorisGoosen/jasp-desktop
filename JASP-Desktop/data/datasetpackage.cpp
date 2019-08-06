@@ -24,8 +24,6 @@
 #define ENUM_DECLARATION_CPP
 #include "datasetpackage.h"
 
-parIdxType DataSetPackage::_nodeCategory[] = { parIdxType::root, parIdxType::data, parIdxType::label, parIdxType::filter };	//Should be same order as defined
-
 DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 {
 	//True init is done in setEngineSync!
@@ -101,9 +99,15 @@ void DataSetPackage::freeDataSet()
 
 QModelIndex DataSetPackage::index(int row, int column, const QModelIndex &parent) const
 {
-	parIdxType * pointer = _nodeCategory;
+	parIdxType * pointer = 0;
 
-	if(!parent.isValid())	pointer += row; //this index will be the actual data/labels/filter and will remember what type it is through the pointer
+	if(!parent.isValid())
+	{
+		pointer += row; //this index will be the root for data/labels/filter indices and will remember what type it is through the pointer
+
+		if(parIdxType(row) == parIdxType::label)
+			pointer += column;
+	}
 	else					pointer = static_cast<parIdxType*>(parent.internalPointer());
 
 	return createIndex(row, column, static_cast<void*>(pointer));
@@ -113,15 +117,28 @@ parIdxType DataSetPackage::parentIndexTypeIs(const QModelIndex &index) const
 {
 	if(!index.isValid()) return parIdxType::root;
 
-	parIdxType	* pointer = static_cast<parIdxType*>(index.internalPointer());
-	return		* pointer; //Is defined in static array _nodeCategory!
+	//parIdxType	* pointer = static_cast<parIdxType*>(index.internalPointer());
+	//return		* pointer; //Is defined in static array _nodeCategory!
+
+	uint64_t notPointer = reinterpret_cast<uint64_t>(index.internalPointer());
+	if(notPointer < uint64_t(parIdxType::label))
+			return parIdxType(notPointer);
+
+	return parIdxType::label; //The label also encodes which column it is.
 }
 
 QModelIndex DataSetPackage::parent(const QModelIndex & index) const
 {
-	parIdxType parentType = parentIndexTypeIs(index);
+	parIdxType	parentType		= parentIndexTypeIs(index);
+	int			parentColumn	= 0;
 
-	return parentModelForType(parentType);
+	if(parentType == parIdxType::label)
+	{
+		uint64_t	notPointer		= reinterpret_cast<uint64_t>(index.internalPointer());
+					parentColumn	= notPointer - uint64_t(parIdxType::label);
+	}
+
+	return parentModelForType(parentType, parentColumn);
 }
 
 
@@ -135,9 +152,17 @@ QModelIndex DataSetPackage::parentModelForType(parIdxType type, int column) cons
 
 int DataSetPackage::rowCount(const QModelIndex & parent) const
 {
+	if(!_dataSet) return 0;
+
 	switch(parentIndexTypeIs(parent))
 	{
-	case parIdxType::label:		return !_dataSet || _dataSet->columnCount() <= parent.column() ? 0 : _dataSet->columns()[parent.column()].labels().size();
+	case parIdxType::label:
+	{
+		if(parent.column() >= _dataSet->columnCount()) return 0;
+
+		int labelSize = _dataSet->columns()[parent.column()].labels().size();
+		return labelSize;
+	}
 	case parIdxType::filter:
 	case parIdxType::root:		//return int(parIdxType::leaf); Its more logical to get the actual datasize
 	case parIdxType::data:		return !_dataSet ? 0 : _dataSet->rowCount();

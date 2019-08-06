@@ -32,7 +32,7 @@
 #define DEFAULT_FILTER_JSON	"{\"formulas\":[]}"
 #define DEFAULT_FILTER_GEN	"generatedFilter <- rep(TRUE, rowcount)"
 
-DECLARE_ENUM_WITH_TYPE(parIdxType, unsigned char, root = 0, data, label, filter, leaf) //If this is changed then DataSetPackage::index must also be!
+DECLARE_ENUM_WITH_TYPE(parIdxType, unsigned char, root = 0, data, filter, label) //If this is changed then DataSetPackage::index must also be!
 
 class EngineSync;
 
@@ -42,9 +42,6 @@ class DataSetPackage : public QAbstractItemModel //Not QAbstractTableModel becau
 	Q_PROPERTY(int columnsFilteredCount READ columnsFilteredCount NOTIFY columnsFilteredCountChanged)
 
 	typedef std::map<std::string, std::map<int, std::string>> emptyValsType;
-
-private:
-	static parIdxType _nodeCategory[];
 
 public:
 	enum class	specialRoles { filter = Qt::UserRole, lines, maxColString, columnIsComputed, computedColumnIsInvalidated, columnIsFiltered, labelsHasFilter, computedColumnError, value, columnType };
