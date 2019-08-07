@@ -56,7 +56,7 @@ public:
 	std::vector<std::string> resetEmptyValues(emptyValsType emptyValuesMap);
 
 	bool				setFilterVector(std::vector<bool> filterResult);
-	const BoolVector&	filterVector()		const	{ return _filterVector; }
+	BoolVector	&		filterVector()				{ return _filterVector; }
 	int					filteredRowCount()	const	{ return _filteredRowCount; }
 
 	bool allColumnsPassFilter()				const;

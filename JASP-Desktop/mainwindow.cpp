@@ -161,6 +161,7 @@ MainWindow::~MainWindow()
 {
 	try
 	{
+		_engineSync->stopEngines();
 		_odm->clearAuthenticationOnExit(OnlineDataManager::OSF);
 
 		delete _resultsJsInterface;
@@ -170,8 +171,8 @@ MainWindow::~MainWindow()
 			_package->freeDataSet();
 			_package->reset();
 		}
+		delete _engineSync;
 
-		delete _engineSync; //delete enginesync after freeing dataset because otherwise segfault!
 	}
 	catch(...)
 	{

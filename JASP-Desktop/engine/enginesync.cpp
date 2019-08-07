@@ -482,6 +482,8 @@ void EngineSync::subprocessFinished(int exitCode, QProcess::ExitStatus exitStatu
 
 void EngineSync::stopEngines()
 {
+	if(!_engineStarted) return;
+
 	auto timeout = QDateTime::currentSecsSinceEpoch() + 60; //shouldnt take more than a minute
 
 	//make sure we process any received messages first.

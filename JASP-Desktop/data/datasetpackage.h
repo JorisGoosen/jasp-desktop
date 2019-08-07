@@ -44,7 +44,7 @@ class DataSetPackage : public QAbstractItemModel //Not QAbstractTableModel becau
 	typedef std::map<std::string, std::map<int, std::string>> emptyValsType;
 
 public:
-	enum class	specialRoles { filter = Qt::UserRole, lines, maxColString, columnIsComputed, computedColumnIsInvalidated, columnIsFiltered, labelsHasFilter, computedColumnError, value, columnType };
+	enum class	specialRoles { filter = Qt::UserRole, lines, maxColString, columnIsComputed, computedColumnIsInvalidated, labelsHasFilter, computedColumnError, value, columnType };
 
 									DataSetPackage(QObject * parent);
 				void				setEngineSync(EngineSync * engineSync);

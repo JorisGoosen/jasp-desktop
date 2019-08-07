@@ -217,7 +217,6 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		case int(specialRoles::value):				return tq(_dataSet->column(index.column()).getOriginalValue(index.row()));
 		case int(specialRoles::filter):				return getRowFilter(index.row());
 		case int(specialRoles::columnType):			return _dataSet->columns()[index.column()].columnType();
-		case int(specialRoles::columnIsFiltered):	return _dataSet->columns()[index.column()].hasFilter();
 		case int(specialRoles::lines):
 		{
 			bool	iAmActive		= getRowFilter(index.row()),
@@ -283,13 +282,13 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 
 		return dummyText;
 	}
+	case int(specialRoles::filter):							return columnHasFilter(section) || columnUsedInEasyFilter(section);
 	case Qt::DisplayRole:									return orientation == Qt::Horizontal ? tq(_dataSet->column(section).name()) : QVariant(section + 1);
 	case Qt::TextAlignmentRole:								return QVariant(Qt::AlignCenter);
-	case int(specialRoles::columnIsComputed):				return isColumnComputed(section);
-	case int(specialRoles::computedColumnIsInvalidated):	return isColumnInvalidated(section);
-	case int(specialRoles::columnIsFiltered):				return columnHasFilter(section) || columnUsedInEasyFilter(section);
 	case int(specialRoles::labelsHasFilter):				return columnHasFilter(section);
+	case int(specialRoles::columnIsComputed):				return isColumnComputed(section);
 	case int(specialRoles::computedColumnError):			return tq(getComputedColumnError(section));
+	case int(specialRoles::computedColumnIsInvalidated):	return isColumnInvalidated(section);
 	}
 
 	return QVariant();
@@ -297,32 +296,61 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 
 bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-	throw std::runtime_error("DataSetPackage::setData is not implemented yet!");
+	if(!index.isValid() || !_dataSet) return false;
 
-	/*if (_dataSet == nullptr)
+	parIdxType parentType = parentIndexTypeIs(index);
+
+	switch(parentType)
+	{
+	default:
 		return false;
 
-	bool ok;
+	case parIdxType::filter:
+		if(index.row() < 0 || index.row() >= _dataSet->filterVector().size() || value.type() != QMetaType::Bool)
+			return false;
 
-	Column &column = _dataSet->columns()[index.column()];
-	if (column.dataType() == Column::DataTypeInt)
-	{
-		int v = value.toInt(&ok);
-		if (ok)
-			column.setValue(index.row(), v);
+		if(_dataSet->filterVector()[index.row()] != value.toBool())
+		{
+			_dataSet->filterVector()[index.row()] = value.toBool();
+
+			emit dataChanged(DataSetPackage::index(index.row(), 0, parentModelForType(parIdxType::filter)),		DataSetPackage::index(index.row(), columnCount(index.parent()), parentModelForType(parIdxType::filter)));	//Emit dataChanged for filter
+			emit dataChanged(DataSetPackage::index(index.row(), 0, parentModelForType(parIdxType::data)),		DataSetPackage::index(index.row(), columnCount(),				parentModelForType(parIdxType::data)));		//Emit dataChanged for data
+			return true;
+		}
 		else
-			emit badDataEntered(index);
+			return false;
 
-		return ok;
-	}*/
+	case parIdxType::data:
+		Log::log() << "setData for data is not supported!" << std::endl;
+		return false;
 
-	//_dataSet->columns()[index.column()].setValue(index.row(), v);
+	case parIdxType::label:
+	{
+		int parColCount = columnCount(index.parent()),
+			parRowCount = rowCount(index.parent());
+
+		if(!_dataSet || index.column() >= parColCount || index.row() >= parRowCount)
+			return QVariant(); // if there is no data then it doesn't matter what role we play
+
+		//We know which column we need through the parent index!
+		Labels & labels = _dataSet->column(index.parent().column()).labels();
+
+		switch(role)
+		{
+		case int(specialRoles::filter):				return labels[index.row()].filterAllows();
+		case int(specialRoles::value):				return tq(labels.getValueFromRow(index.row()));
+		case Qt::DisplayRole:
+		default:									return tq(labels.getLabelFromRow(index.row()));
+		}
+	}
+	}
+
 
 }
 
 Qt::ItemFlags DataSetPackage::flags(const QModelIndex &index) const
 {
-	return Qt::ItemIsSelectable | Qt::ItemIsEnabled;
+	return Qt::ItemIsSelectable | Qt::ItemIsEnabled | (parentModelForType(index) != parIdxType::data ? Qt::ItemIsEditable : 0);
 }
 
 QHash<int, QByteArray> DataSetPackage::roleNames() const

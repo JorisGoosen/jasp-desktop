@@ -85,6 +85,7 @@ QModelIndexList LevelsTableModel::convertQVariantList_to_QModelIndexList(QVarian
 
 void LevelsTableModel::resetFilterAllows()
 {
+	this guy needs to be moved to DataSetPackage
 	beginResetModel();
 	//_column->resetFilter();
 	endResetModel();
@@ -96,6 +97,7 @@ void LevelsTableModel::resetFilterAllows()
 
 bool LevelsTableModel::setAllowFilterOnLabel(int row, bool newAllowValue)
 {
+	And this gall as well!
 	/*bool atLeastOneRemains = newAllowValue;
 
 	if(!atLeastOneRemains) //Do not let the user uncheck every single one because that is useless, the user wants to uncheck row so lets see if there is another one left after that.
@@ -112,6 +114,11 @@ bool LevelsTableModel::setAllowFilterOnLabel(int row, bool newAllowValue)
 		_column->labels()[row].setFilterAllows(newAllowValue);
 		if(before != _column->hasFilter())
 			emit notifyColumnHasFilterChanged(currentColumnIndex());
+
+					*/
+			and the following signals also:
+
+			/*
 
 		emit labelFilterChanged();
 		emit dataChanged(index(row, 2), index(row, 2)); //to make sure the checkbox is set to the right value
