@@ -1,7 +1,7 @@
 
 #include "levelstablemodel.h"
 
-#include <boost/container/vector.hpp>
+
 #include <algorithm>
 
 #include <QColor>
@@ -12,6 +12,7 @@ LevelsTableModel::LevelsTableModel(DataSetPackage * package) : DataSetTableProxy
 {
 	//_column = NULL;
 	//connect(this, &LevelsTableModel::refreshConnectedModels, this, &LevelsTableModel::refreshConnectedModelsToName);
+	connect(_package, &DataSetPackage::filteredOutChanged, this, &LevelsTableModel::filteredOutChangedHandler);
 }
 
 void LevelsTableModel::_moveRows(QModelIndexList &selection, bool up)
@@ -83,71 +84,34 @@ QModelIndexList LevelsTableModel::convertQVariantList_to_QModelIndexList(QVarian
 
 }
 
+bool LevelsTableModel::setData(const QModelIndex & index, const QVariant & value, int role)
+{
+	int roleToSet = index.column() == 0 ? int(DataSetPackage::specialRoles::filter) : index.column() == 1 ? int(DataSetPackage::specialRoles::value) : Qt::DisplayRole;
+	return _package->setData(mapToSource(index), value, roleToSet);
+}
+
+void LevelsTableModel::filteredOutChangedHandler(int c)
+{
+	if(c == proxyParentColumn()) emit filteredOutChanged();
+}
+
+int LevelsTableModel::filteredOut() const
+{
+	return _package->filteredOut(proxyParentColumn());
+}
+
 void LevelsTableModel::resetFilterAllows()
 {
-	this guy needs to be moved to DataSetPackage
-	beginResetModel();
-	//_column->resetFilter();
-	endResetModel();
-
-	//emit notifyColumnHasFilterChanged(currentColumnIndex());
-	emit labelFilterChanged();
-	emit filteredOutChanged();
+	_package->resetFilterAllows(proxyParentColumn());
 }
 
-bool LevelsTableModel::setAllowFilterOnLabel(int row, bool newAllowValue)
+void LevelsTableModel::setVisible(bool visible)
 {
-	And this gall as well!
-	/*bool atLeastOneRemains = newAllowValue;
+	if (_visible == visible)
+		return;
 
-	if(!atLeastOneRemains) //Do not let the user uncheck every single one because that is useless, the user wants to uncheck row so lets see if there is another one left after that.
-		for(size_t i=0; i< _column->labels().size(); i++)
-			if(i != row && _column->labels()[i].filterAllows())
-			{
-				atLeastOneRemains = true;
-				break;
-			}
-
-	if(atLeastOneRemains)
-	{
-		bool before = _column->hasFilter();
-		_column->labels()[row].setFilterAllows(newAllowValue);
-		if(before != _column->hasFilter())
-			emit notifyColumnHasFilterChanged(currentColumnIndex());
-
-					*/
-			and the following signals also:
-
-			/*
-
-		emit labelFilterChanged();
-		emit dataChanged(index(row, 2), index(row, 2)); //to make sure the checkbox is set to the right value
-		emit filteredOutChanged();
-	}
-
-	return atLeastOneRemains;*/
-	return true;
-}
-
-bool LevelsTableModel::allowFilter(int row)
-{
-	return data(index(row, 0), int(DataSetPackage::specialRoles::filter)).toBool();// _column->labels()[row].filterAllows();
-}
-
-int LevelsTableModel::filteredOut()
-{
-	/*if(_column == NULL)
-		return 0;
-
-	int filteredOut = 0;
-
-	for(size_t i=0; i< _column->labels().size(); i++)
-		if(!_column->labels()[i].filterAllows())
-			filteredOut++;
-
-	return filteredOut;*/
-
-	return 0;
+	_visible = visible;
+	emit visibleChanged(_visible);
 }
 
 /*

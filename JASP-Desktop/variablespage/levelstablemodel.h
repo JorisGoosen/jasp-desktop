@@ -23,66 +23,39 @@ public:
 	QVariant				data(const QModelIndex &index, int role)								const	override;
 	QVariant				headerData(int section, Qt::Orientation orientation, int role)			const	override;
 	Qt::ItemFlags			flags(const QModelIndex &index)											const	override;
-	bool					setData(const QModelIndex & index, const QVariant & value, int role)			override;
 	QHash<int, QByteArray>	roleNames()																const	override;*/
+
+	bool					setData(const QModelIndex & index, const QVariant & value, int role)			override;
 
 	void moveUp(QModelIndexList &selection);
 	void moveDown(QModelIndexList &selection);
 
 	Q_INVOKABLE void reverse();
-	//Q_INVOKABLE void setColumnFromQML()							{ setColumn(&_dataSet->column(_chosenColumn)); }
+
 	Q_INVOKABLE void moveUpFromQML(QVariantList selection)		{ QModelIndexList List = convertQVariantList_to_QModelIndexList(selection); moveUp(List); }
 	Q_INVOKABLE void moveDownFromQML(QVariantList selection)	{ QModelIndexList List = convertQVariantList_to_QModelIndexList(selection); moveDown(List); }
 
 	QModelIndexList convertQVariantList_to_QModelIndexList(QVariantList selection);
 
-	Q_INVOKABLE bool setAllowFilterOnLabel(int row, bool newAllowValue);
-	Q_INVOKABLE bool allowFilter(int row);
 	Q_INVOKABLE void resetFilterAllows();
 
-	//void setDataSet(DataSet * thisDataSet);
-	int filteredOut();
-
-	//int chosenColumn() const { return _chosenColumn; }
-
-	bool visible() const {	return _visible; }
+	bool visible()		const {	return _visible; }
+	int filteredOut()	const;
 
 public slots:
-	/*void refresh();
-	void refreshColumn(Column * column);
-	void refreshConnectedModelsToName(Column * column) { emit refreshConnectedModelsByName(column->name());	}
-*/
+	void filteredOutChangedHandler(int col);
 
-	//void setChosenColumn(int chosenColumn);
-
-	void setVisible(bool visible)
-	{
-		if (_visible == visible)
-			return;
-
-		_visible = visible;
-		emit visibleChanged(_visible);
-	}
+	void setVisible(bool visible);
 
 signals:
-	/*void refreshConnectedModels(Column * column);
-	void refreshConnectedModelsByName(std::string columnName);*/
-	void resizeLabelColumn();
-	void labelFilterChanged();
-	void notifyColumnHasFilterChanged(int column); //should be on column but column is not a Qt object.
+	void visibleChanged(bool visible);
 	void filteredOutChanged();
 
-	//void chosenColumnChanged(int chosenColumn);
-
-	void visibleChanged(bool visible);
+private:
+	void	_moveRows(QModelIndexList &selection, bool up = true);
 
 private:
-	std::string _colName		= "";
-	bool		_visible		= false;
-	//int			_chosenColumn	= -1;
-
-	void _moveRows(QModelIndexList &selection, bool up = true);
-	//int currentColumnIndex();
+	bool	_visible		= false;
 
 };
 

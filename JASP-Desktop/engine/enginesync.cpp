@@ -529,6 +529,8 @@ void EngineSync::pause()
 {
 	JASPTIMER_RESUME(EngineSync::pause);
 
+	if(!_engineStarted) return;
+
 	//make sure we process any received messages first.
 	for(auto engine : _engines)
 		engine->process();

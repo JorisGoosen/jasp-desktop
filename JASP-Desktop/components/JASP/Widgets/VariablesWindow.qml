@@ -277,9 +277,11 @@ FocusScope
 						
 						
 						onClicked:
-							if(checked !== styleData.value)
-								if (!levelsTableModel.setAllowFilterOnLabel(styleData.row, checked))
-									checked = true;
+						{
+							levelsTableModel.setData(levelsTableModel.index(styleData.row, styleData.column), checked);
+							checked = Qt.binding(function(){ return styleData.value; });
+						}
+
 						
 						background: Image
 						{

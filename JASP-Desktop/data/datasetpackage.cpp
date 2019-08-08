@@ -329,28 +329,126 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 		int parColCount = columnCount(index.parent()),
 			parRowCount = rowCount(index.parent());
 
-		if(!_dataSet || index.column() >= parColCount || index.row() >= parRowCount)
-			return QVariant(); // if there is no data then it doesn't matter what role we play
+		if(!_dataSet || index.column() >= parColCount || index.row() >= parRowCount || index.column() < 0 || index.row() < 0)
+			return false;
 
 		//We know which column we need through the parent index!
-		Labels & labels = _dataSet->column(index.parent().column()).labels();
-
+		Labels				&	labels	= _dataSet->column(index.parent().column()).labels();
 		switch(role)
 		{
-		case int(specialRoles::filter):				return labels[index.row()].filterAllows();
-		case int(specialRoles::value):				return tq(labels.getValueFromRow(index.row()));
-		case Qt::DisplayRole:
-		default:									return tq(labels.getLabelFromRow(index.row()));
+		case int(specialRoles::filter):
+			if(value.type() != QMetaType::Bool) return false;
+			return setAllowFilterOnLabel(index, value.toBool());
+
+		case int(specialRoles::value):
+			return false;
+
+		default:
+			if(labels.setLabelFromRow(index.row(), value.toString().toStdString()))
+			{
+				QModelIndex parent	= index.parent();
+				size_t		row		= index.row(),
+							col		= parent.column();
+
+				emit dataChanged(DataSetPackage::index(row, 0, parent), DataSetPackage::index(row, columnCount(parent), parent));	//Emit dataChanged for filter
+
+				parent = parentModelForType(parIdxType::data);
+				emit dataChanged(DataSetPackage::index(0, col, parent), DataSetPackage::index(rowCount(), col, parent), { Qt::DisplayRole });
+
+				return true;
+			}
+			break;
 		}
 	}
 	}
 
+	return false;
+}
 
+
+void DataSetPackage::resetFilterAllows(size_t columnIndex)
+{
+	if(!_dataSet) return;
+
+	_dataSet->column(columnIndex).resetFilter();
+
+	QModelIndex parentModel = parentModelForType(parIdxType::data);
+	emit dataChanged(index(0, columnIndex,	parentModel),	index(rowCount(), columnIndex, parentModel), {int(specialRoles::filter)} );
+
+	parentModel = parentModelForType(parIdxType::label, columnIndex);
+	emit dataChanged(index(0, 0,	parentModel),			index(rowCount(parentModel), columnCount(parentModel), parentModel), {int(specialRoles::filter)} );
+
+}
+
+bool DataSetPackage::setAllowFilterOnLabel(const QModelIndex & index, bool newAllowValue)
+{
+	if(parentIndexTypeIs(index.parent()) != parIdxType::label)
+		return false;
+
+	bool atLeastOneRemains = newAllowValue;
+
+
+	QModelIndex parent	= index.parent();
+	size_t		row		= index.row(),
+				col		= parent.column();
+
+
+	if(col > columnCount() || row > rowCount(parent))
+		return false;
+
+	Column & column = _dataSet->column(col);
+	Labels & labels = column.labels();
+
+	if(!atLeastOneRemains) //Do not let the user uncheck every single one because that is useless, the user wants to uncheck row so lets see if there is another one left after that.
+		for(size_t i=0; i< labels.size(); i++)
+			if(i != row && labels[i].filterAllows())
+			{
+				atLeastOneRemains = true;
+				break;
+			}
+			else if(i == row && labels[i].filterAllows() == newAllowValue) //Did not change!
+				return true;
+
+	if(atLeastOneRemains)
+	{
+		bool before = column.hasFilter();
+		labels[row].setFilterAllows(newAllowValue);
+
+		if(before != column.hasFilter())
+			notifyColumnFilterStatusChanged(col);
+
+
+		emit labelFilterChanged();
+		emit dataChanged(DataSetPackage::index(row, 0, parent),	DataSetPackage::index(row, columnCount(parent), parent));	//Emit dataChanged for filter
+		emit filteredOutChanged(col);
+
+		return true;
+	}
+	else
+		return false;
+
+	return atLeastOneRemains;
+
+}
+
+int DataSetPackage::filteredOut(int col) const
+{
+	if(!_dataSet || col > columnCount())
+		return 0; //or -1?
+
+	Labels &	labels		= _dataSet->column(col).labels();
+	int			filteredOut = 0;
+
+	for(const Label & label : labels)
+		if(!label.filterAllows())
+			filteredOut++;
+
+	return filteredOut;
 }
 
 Qt::ItemFlags DataSetPackage::flags(const QModelIndex &index) const
 {
-	return Qt::ItemIsSelectable | Qt::ItemIsEnabled | (parentModelForType(index) != parIdxType::data ? Qt::ItemIsEditable : 0);
+	return Qt::ItemIsSelectable | Qt::ItemIsEnabled | (parentIndexTypeIs(index) != parIdxType::data ? Qt::ItemIsEditable : Qt::NoItemFlags);
 }
 
 QHash<int, QByteArray> DataSetPackage::roleNames() const
@@ -463,7 +561,7 @@ void DataSetPackage::setColumnsUsedInEasyFilter(std::set<std::string> usedColumn
 	for(auto & col : usedColumns)
 	{
 		_columnNameUsedInEasyFilter[col] = true;
-		try { notifyColumnFilterStatusChanged(_dataSet->columns().findIndexByName(col)); } catch(...) {}
+		try { notifyColumnFilterStatusChanged(_dataSet->columns().findIndexByName(col)); } catch(columnNotFound &) {}
 	}
 }
 

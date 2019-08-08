@@ -198,6 +198,9 @@ public:
 				QStringList					getColumnLabelsAsStringList(std::string columnName)		const;
 				QStringList					getColumnLabelsAsStringList(size_t columnIndex)			const;
 
+				void						resetFilterAllows(size_t columnIndex);
+				int							filteredOut(int column)									const;
+
 signals:
 				void				dataSynched(	std::vector<std::string>			&	changedColumns,
 													std::vector<std::string>			&	missingColumns,
@@ -215,6 +218,8 @@ signals:
 				void				resumeEnginesSignal();
 				bool				enginesInitializingSignal();
 				void				freeDatasetSignal(DataSet * dataset);
+				void				labelFilterChanged();
+				void				filteredOutChanged(int column);
 
 public slots:
 				void				refresh() { beginResetModel(); endResetModel(); }
@@ -228,6 +233,7 @@ private:
 				///This function allows you to run some code that changes something in the _dataSet and will try to enlarge it if it fails with an allocation error. Otherwise it might keep going for ever?
 				void				enlargeDataSetIfNecessary(std::function<void()> tryThis, const char * callerText);
 				bool				isThisTheSameThreadAsEngineSync();
+				bool				setAllowFilterOnLabel(const QModelIndex & index, bool newAllowValue);
 
 
 private:
