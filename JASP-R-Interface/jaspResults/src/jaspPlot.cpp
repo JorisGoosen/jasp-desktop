@@ -38,6 +38,8 @@ Json::Value jaspPlot::dataEntry(std::string & errorMessage) const
 	data["aspectRatio"]	= _aspectRatio;
 	data["status"]		= _error ? "error" : _status;
 	data["name"]		= getUniqueNestedName();
+	data["editOptions"]	= _editOptions;
+	data["editable"]	= !_editOptions.isNull();
 
 	return data;
 }
@@ -60,12 +62,25 @@ void jaspPlot::setPlotObject(Rcpp::RObject obj)
 		Rcpp::List writeResult = tryToWriteImage(Rcpp::_["width"] = _width, Rcpp::_["height"] = _height, Rcpp::_["plot"] = obj);
 
 		if(writeResult.containsElementNamed("png"))
-			_filePathPng = Rcpp::as<std::string>(writeResult[writeResult.findName("png")]);
+			_filePathPng = Rcpp::as<std::string>(writeResult["png"]);
+
+		_editOptions = Json::nullValue;
+
+		if(writeResult.containsElementNamed("editOptions") && !Rf_isNull(writeResult["editOptions"]))
+		{
+			std::string editOptionsStr = Rcpp::as<std::string>(writeResult["editOptions"]);
+
+			if(editOptionsStr != "")
+			{
+				_editOptions = Json::objectValue;
+				Json::Reader().parse(editOptionsStr, _editOptions);
+			}
+		}
 
 		if(writeResult.containsElementNamed("error"))
 		{
 			_error			= "Error during writeImage";
-			_errorMessage	= Rcpp::as<std::string>(writeResult[writeResult.findName("error")]);
+			_errorMessage	= Rcpp::as<std::string>(writeResult["error"]);
 		}
 
 		if(_status == "waiting" || _status == "running")
@@ -114,6 +129,7 @@ Json::Value jaspPlot::convertToJSON() const
 	obj["status"]				= _status;
 	obj["filePathPng"]			= _filePathPng;
 	obj["environmentName"]		= _envName;
+	obj["editOptions"]			= _editOptions;
 
 	return obj;
 }
@@ -128,6 +144,7 @@ void jaspPlot::convertFromJSON_SetFields(Json::Value in)
 	_status			= in.get("status",			"complete").asString();
 	_filePathPng	= in.get("filePathPng",		"null").asString();
 	_envName		= in.get("environmentName",	_envName).asString();
+	_editOptions	= in.get("editOptions",		Json::nullValue);
 	
 	setChangedDimensionsFromStateObject();
 	

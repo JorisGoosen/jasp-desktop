@@ -126,8 +126,8 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	_fileMenu				= new FileMenu(this, _package);
 	_helpModel				= new HelpModel(this);
 	_aboutModel				= new AboutModel(this);
-
 	_resultMenuModel		= new ResultMenuModel(this);
+	_plotEditorModel		= new PlotEditorModel(_analyses);
 
 	new MessageForwarder(this); //We do not need to store this
 
@@ -241,7 +241,7 @@ void MainWindow::makeConnections()
 	connect(_resultsJsInterface,	&ResultsJsInterface::analysisChangedDownstream,		this,					&MainWindow::analysisChangedDownstreamHandler				);
 	connect(_resultsJsInterface,	&ResultsJsInterface::saveTextToFile,				this,					&MainWindow::saveTextToFileHandler							);
 	connect(_resultsJsInterface,	&ResultsJsInterface::analysisSaveImage,				this,					&MainWindow::analysisSaveImageHandler						);
-	connect(_resultsJsInterface,	&ResultsJsInterface::analysisEditImage,				this,					&MainWindow::analysisEditImageHandler						);
+	connect(_resultsJsInterface,	&ResultsJsInterface::analysisResizeImage,			this,					&MainWindow::analysisEditImageHandler						);
 	connect(_resultsJsInterface,	&ResultsJsInterface::resultsPageLoadedSignal,		this,					&MainWindow::resultsPageLoaded								);
 	connect(_resultsJsInterface,	&ResultsJsInterface::removeAnalysisRequest,			_analyses,				&Analyses::removeAnalysisById								);
 	connect(_resultsJsInterface,	&ResultsJsInterface::analysisSelected,				_analyses,				&Analyses::analysisIdSelectedInResults						);
@@ -250,6 +250,7 @@ void MainWindow::makeConnections()
 	connect(_resultsJsInterface,	&ResultsJsInterface::openFileTab,					_fileMenu,				&FileMenu::showFileOpenMenu									);
 	connect(_resultsJsInterface,	&ResultsJsInterface::refreshAllAnalyses,			this,					&MainWindow::refreshKeyPressed								);
 	connect(_resultsJsInterface,	&ResultsJsInterface::removeAllAnalyses,				this,					&MainWindow::removeAllAnalyses								);
+	connect(_resultsJsInterface,	&ResultsJsInterface::showPlotEditor,				_plotEditorModel,		&PlotEditorModel::showPlotEditor							);
 
 	connect(_analyses,				&Analyses::countChanged,							this,					&MainWindow::analysesCountChangedHandler					);
 	connect(_analyses,				&Analyses::analysisResultsChanged,					this,					&MainWindow::analysisResultsChangedHandler					);
@@ -316,6 +317,7 @@ void MainWindow::loadQML()
 	_qml->rootContext()->setContextProperty("ribbonModelFiltered",		_ribbonModelFiltered);
 	_qml->rootContext()->setContextProperty("dynamicModules",			_dynamicModules);
 	_qml->rootContext()->setContextProperty("resultMenuModel",			_resultMenuModel);
+	_qml->rootContext()->setContextProperty("plotEditorModel",			_plotEditorModel);
 
 	_qml->rootContext()->setContextProperty("fileMenuModel",			_fileMenu);
 	_qml->rootContext()->setContextProperty("analysesModel",			_analyses);
@@ -670,7 +672,7 @@ void MainWindow::_analysisSaveImageHandler(Analysis* analysis, QString options)
 
 void MainWindow::analysisImageSavedHandler(Analysis *analysis)
 {
-	Json::Value results = analysis->getImgResults();
+	Json::Value results = analysis->imgResults();
 	if (results.isNull())
 		return;
 

@@ -134,6 +134,8 @@ Window
 			}
 		}
 
+
+
 		MouseArea
 		{
 			visible:					fileMenuModel.visible || modulesMenu.opened || customMenu.visible
@@ -189,6 +191,7 @@ Window
 
 		CreateComputeColumnDialog	{ id: createComputeDialog	}
 		ModuleInstaller				{ id: moduleInstallerDialog	}
+		PlotEditor					{ id: plotEditingDialog		}
 
 		/*MessageBox
 		{
