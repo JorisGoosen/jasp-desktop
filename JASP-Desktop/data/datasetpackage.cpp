@@ -431,7 +431,7 @@ bool DataSetPackage::setAllowFilterOnLabel(const QModelIndex & index, bool newAl
 
 }
 
-int DataSetPackage::filteredOut(int col) const
+int DataSetPackage::filteredOut(size_t col) const
 {
 	if(!_dataSet || col > columnCount())
 		return 0; //or -1?
@@ -1199,4 +1199,41 @@ QStringList DataSetPackage::getColumnLabelsAsStringList(size_t columnIndex)	cons
 		list.append(tq(label.text()));
 
 	return list;
+}
+
+void DataSetPackage::labelMoveRows(size_t column, std::vector<size_t> rows, bool up)
+{
+	Labels & labels = _dataSet->column(column).labels();
+
+	std::vector<Label> new_labels(labels.begin(), labels.end());
+
+	int mod = up ? -1 : 1;
+
+	std::set<size_t> rowsChanged;
+
+	for (size_t row : rows)
+	{
+		iter_swap(new_labels.begin() + row, new_labels.begin() + (row + mod));
+		rowsChanged.insert(row);
+		rowsChanged.insert(row + mod);
+	}
+
+	labels.set(new_labels);
+	QModelIndex p = parentModelForType(parIdxType::label, column);
+
+	for(size_t row: rowsChanged)
+		emit dataChanged(index(row, 0, p), index(row, columnCount(p), p));
+}
+
+void DataSetPackage::labelReverse(size_t column)
+{
+	Labels & labels = _dataSet->column(column).labels();
+
+	std::vector<Label> new_labels(labels.begin(), labels.end());
+
+	std::reverse(new_labels.begin(), new_labels.end());
+	labels.set(new_labels);
+	QModelIndex p = parentModelForType(parIdxType::label, column);
+
+	emit dataChanged(index(0, 0, p), index(rowCount(p), columnCount(p), p));
 }

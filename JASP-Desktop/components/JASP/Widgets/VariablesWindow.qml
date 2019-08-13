@@ -29,19 +29,19 @@ FocusScope
 	visible:	opened
 	
 				property real calculatedMinimumHeight:	buttonColumnVariablesWindow.minimumHeight + columnNameVariablesWindow.height + 6 + (Theme.generalAnchorMargin * 2)
-	readonly	property bool opened:					levelsTableModel.visible
+	readonly	property bool opened:					labelModel.visible
 	
 	Connections
 	{
-		target: levelsTableModel
+		target: labelModel
 		
 		onChosenColumnChanged:
 		{
-			if(levelsTableModel.chosenColumn > -1 && levelsTableModel.chosenColumn < dataSetModel.columnCount())
+			if(labelModel.chosenColumn > -1 && labelModel.chosenColumn < dataSetModel.columnCount())
 			{
 				//to prevent the editText in the labelcolumn to get stuck and overwrite the next columns data... We have to remove activeFocus from it
 				levelsTableViewRectangle.focus = true //So we just put it somewhere
-				columnNameVariablesWindow.text = dataSetModel.columnTitle(levelsTableModel.chosenColumn )
+				columnNameVariablesWindow.text = dataSetModel.columnTitle(labelModel.chosenColumn )
 				levelsTableView.selection.clear()
 			}
 		}
@@ -95,7 +95,7 @@ FocusScope
 					analysesModel.refreshAnalysesUsingColumn(columnName)
 				}
 				
-				model: levelsTableModel
+				model: labelModel
 				
 				selectionMode: OLD.SelectionMode.ExtendedSelection
 				
@@ -118,8 +118,8 @@ FocusScope
 				
 				function sendCurrentColumnChanged()
 				{
-					if(levelsTableModel.chosenColumn > -1)
-						columnChanged(dataSetModel.columnTitle(levelsTableModel.chosenColumn))
+					if(labelModel.chosenColumn > -1)
+						columnChanged(dataSetModel.columnTitle(labelModel.chosenColumn))
 				}
 				
 				function resizeValueColumn()
@@ -135,7 +135,7 @@ FocusScope
 					copySelection()
 					if(copiedSelection.length > 0 && copiedSelection[0] !== 0)
 					{
-						levelsTableModel.moveUpFromQML(copiedSelection)
+						labelModel.moveUpFromQML(copiedSelection)
 						
 						selection.clear()
 						
@@ -154,9 +154,9 @@ FocusScope
 				{
 					levelsTableViewRectangle.focus = true
 					copySelectionReversed()
-					if(copiedSelection.length > 0 && (copiedSelection[0] != (levelsTableModel.rowCount() - 1)))
+					if(copiedSelection.length > 0 && (copiedSelection[0] != (labelModel.rowCount() - 1)))
 					{
-						levelsTableModel.moveDownFromQML(copiedSelection)
+						labelModel.moveDownFromQML(copiedSelection)
 						
 						selection.clear()
 						
@@ -164,7 +164,7 @@ FocusScope
 						{
 							var selectThis = copiedSelection[i]
 							
-							if(selectThis < levelsTableModel.rowCount() - 1)
+							if(selectThis < labelModel.rowCount() - 1)
 								selection.select(selectThis + 1, selectThis + 1)
 						}
 					}
@@ -176,9 +176,9 @@ FocusScope
 				{
 					levelsTableViewRectangle.focus = true
 					copySelection()
-					levelsTableModel.reverse()
+					labelModel.reverse()
 					selection.clear()
-					var maxSelect = levelsTableModel.rowCount() - 1
+					var maxSelect = labelModel.rowCount() - 1
 					
 					for(var i=0; i<copiedSelection.length; i++)
 					{
@@ -189,7 +189,7 @@ FocusScope
 					sendCurrentColumnChanged()
 				}
 				
-				function closeYourself() { levelsTableModel.visible = false; }
+				function closeYourself() { labelModel.visible = false; }
 				
 				
 				OLD.TableViewColumn
@@ -278,7 +278,7 @@ FocusScope
 						
 						onClicked:
 						{
-							levelsTableModel.setData(levelsTableModel.index(styleData.row, styleData.column), checked);
+							labelModel.setData(labelModel.index(styleData.row, styleData.column), checked);
 							checked = Qt.binding(function(){ return styleData.value; });
 						}
 
@@ -325,7 +325,7 @@ FocusScope
 						function acceptChanges()
 						{
 							if(styleData.row >= 0 && styleData.column >= 0)
-								levelsTableModel.setData(levelsTableModel.index(styleData.row, styleData.column), text)
+								labelModel.setData(labelModel.index(styleData.row, styleData.column), text)
 						}
 						onEditingFinished: focus = false
 						
@@ -408,8 +408,8 @@ FocusScope
 				{
 					id:				eraseFiltersOnThisColumn
 					iconSource:		"qrc:/images/eraser.png"
-					onClicked:		levelsTableModel.resetFilterAllows()
-					visible:		levelsTableModel.filteredOut > 0
+					onClicked:		labelModel.resetFilterAllows()
+					visible:		labelModel.filteredOut > 0
 					
 					toolTip:		qsTr("Reset all filter checkmarks for this column")
 					
@@ -423,7 +423,7 @@ FocusScope
 					id:				eraseFiltersOnAllColumns
 					iconSource:		"qrc:/images/eraser_all.png"
 					onClicked:		dataSetModel.resetAllFilters()
-					visible:		dataSetModel.columnsFilteredCount > (levelsTableModel.filteredOut > 0 ? 1 : 0)
+					visible:		dataSetModel.columnsFilteredCount > (labelModel.filteredOut > 0 ? 1 : 0)
 					height:			buttonColumnVariablesWindow.buttonHeight
 					implicitHeight: buttonColumnVariablesWindow.buttonHeight
 					width:			height
@@ -440,7 +440,7 @@ FocusScope
 				{
 					id:				variablesWindowCloseButton
 					iconSource:		"qrc:/images/cross.png"
-					onClicked:		levelsTableModel.visible = false;
+					onClicked:		labelModel.visible = false;
 					height:			buttonColumnVariablesWindow.buttonHeight
 					implicitHeight: buttonColumnVariablesWindow.buttonHeight
 					width:			height

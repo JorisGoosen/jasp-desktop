@@ -22,20 +22,21 @@ public:
 
 	bool setData(const QModelIndex & index, const QVariant & value, int role)			override;
 
-	void moveUp(QModelIndexList &selection);
-	void moveDown(QModelIndexList &selection);
+	void moveUp(	std::vector<size_t> selection);
+	void moveDown(	std::vector<size_t> selection);
 
 	Q_INVOKABLE void reverse();
 
-	Q_INVOKABLE void moveUpFromQML(QVariantList selection)		{ QModelIndexList List = convertQVariantList_to_QModelIndexList(selection); moveUp(List); }
-	Q_INVOKABLE void moveDownFromQML(QVariantList selection)	{ QModelIndexList List = convertQVariantList_to_QModelIndexList(selection); moveDown(List); }
+	Q_INVOKABLE void moveUpFromQML(QVariantList selection)		{ moveUp(	convertQVariantList_to_RowVec(selection)); }
+	Q_INVOKABLE void moveDownFromQML(QVariantList selection)	{ moveDown(	convertQVariantList_to_RowVec(selection)); }
 
-	QModelIndexList convertQVariantList_to_QModelIndexList(QVariantList selection);
+	std::vector<size_t> convertQVariantList_to_RowVec(QVariantList selection);
 
 	Q_INVOKABLE void resetFilterAllows();
 
-	bool visible()		const {	return _visible; }
-	int filteredOut()	const;
+	bool	visible()			const {	return _visible; }
+	int		filteredOut()		const;
+	int		dataColumnCount()	const;
 
 public slots:
 	void filteredOutChangedHandler(int col);
@@ -45,9 +46,6 @@ public slots:
 signals:
 	void visibleChanged(bool visible);
 	void filteredOutChanged();
-
-private:
-	void	_moveRows(QModelIndexList &selection, bool up = true);
 
 private:
 	bool	_visible		= false;

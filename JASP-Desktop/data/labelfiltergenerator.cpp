@@ -9,7 +9,7 @@ std::string labelFilterGenerator::generateFilter()
 {
 	int neededFilters = 0;
 
-	for(size_t col=0; col<_labelModel->columnCount(); col++)
+	for(size_t col=0; col<_labelModel->dataColumnCount(); col++)
 		if(_labelModel->labelNeedsFilter(col))
 			neededFilters++;
 
@@ -30,7 +30,7 @@ std::string labelFilterGenerator::generateFilter()
 			newGeneratedFilter << "(";
 
 
-		for(size_t col=0; col<_labelModel->columnCount(); col++)
+		for(size_t col=0; col<_labelModel->dataColumnCount(); col++)
 			if(_labelModel->labelNeedsFilter(col))
 			{
 				newGeneratedFilter << (first ? "" : " & ") << generateLabelFilter(col);

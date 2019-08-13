@@ -43,6 +43,8 @@ void DataSetTableProxy::setProxyParentColumn(int proxyParentColumn)
 
 void DataSetTableProxy::modelWasReset()
 {
-	if(_proxyParentColumn >= columnCount())
-		setProxyParentColumn(std::max(0, columnCount() - 1));
+	std::cout << "void DataSetTableProxy::modelWasReset()\n proxCol: " << _proxyParentColumn << " colCount " << _package->columnCount() << std::endl;
+
+	if(_proxyParentColumn >= _package->columnCount())
+		setProxyParentColumn(std::max(0, _package->columnCount() - 1));
 }

@@ -1,5 +1,4 @@
 #include "filtermodel.h"
-#include "variablespage/labelfiltergenerator.h"
 #include "utilities/jsonutilities.h"
 
 FilterModel::FilterModel(DataSetPackage * package, labelFilterGenerator * labelFilterGenerator)

@@ -269,8 +269,7 @@ HEADERS += \
     utilities/settings.h \
     utilities/simplecrypt.h \
     utilities/simplecryptkey.h \
-    variablespage/labelfiltergenerator.h \
-    variablespage/levelstablemodel.h \
+    data/labelfiltergenerator.h \
     widgets/filemenu/filemenuobject.h \
     widgets/filemenu/datalibrary.h \
     widgets/filemenu/filesystem.h \
@@ -437,8 +436,7 @@ SOURCES += \
     utilities/resultsjsinterface.cpp \
     utilities/settings.cpp \
     utilities/simplecrypt.cpp \
-    variablespage/labelfiltergenerator.cpp \
-    variablespage/levelstablemodel.cpp \
+    data/labelfiltergenerator.cpp \
     widgets/filemenu/filemenuobject.cpp \
     widgets/filemenu/datalibrary.cpp \
     widgets/filemenu/filesystem.cpp \

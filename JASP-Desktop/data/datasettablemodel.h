@@ -44,7 +44,8 @@ public:
 	Q_INVOKABLE void		resetAllFilters()											{		 _package->resetAllFilters();									}
 	Q_INVOKABLE int			setColumnTypeFromQML(int columnIndex, int newColumnType)	{ return _package->setColumnTypeFromQML(columnIndex, newColumnType);	}
 
-	Column::ColumnType		columnType(int column)					const				{ return _package->columnType(column);									 }
+	Column::ColumnType		columnType(size_t column)					const				{ return _package->columnType(column);								}
+	std::string				columnName(size_t col)						const				{ return _package->getColumnName(col);								}
 
 				bool		showInactive()															const				{ return _showInactive;	}
 

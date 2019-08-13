@@ -48,8 +48,7 @@
 #include "utilities/jsonutilities.h"
 #include "utilities/helpmodel.h"
 #include "utilities/aboutmodel.h"
-#include "variablespage/levelstablemodel.h"
-#include "variablespage/labelfiltergenerator.h"
+#include "data/labelfiltergenerator.h"
 #include "widgets/filemenu/filemenu.h"
 
 class MainWindow : public QObject
@@ -233,7 +232,6 @@ private:
 	ResultsJsInterface			*	_resultsJsInterface		= nullptr;
 	DataSetPackage				*	_package				= nullptr;
 	DataSetTableModel			*	_datasetTableModel		= nullptr;
-	LevelsTableModel			*	_levelsTableModel		= nullptr;
 	labelFilterGenerator		*	_labelFilterGenerator	= nullptr;
 	ColumnsModel				*	_columnsModel			= nullptr;
 	ComputedColumnsModel		*	_computedColumnsModel	= nullptr;

@@ -3,8 +3,8 @@
 
 #include <QObject>
 #include "utilities/qutils.h"
-#include "data/datasetpackage.h"
-#include "variablespage/labelfiltergenerator.h"
+#include "datasetpackage.h"
+#include "labelfiltergenerator.h"
 
 class FilterModel : public QObject
 {

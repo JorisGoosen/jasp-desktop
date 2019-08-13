@@ -115,7 +115,6 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 
 	_resultsJsInterface		= new ResultsJsInterface();
 	_odm					= new OnlineDataManager(this);
-	_levelsTableModel		= new LevelsTableModel(_package);
 	_labelFilterGenerator	= new labelFilterGenerator(_labelModel, this);
 	_columnsModel			= new ColumnsModel(_datasetTableModel);
 	_computedColumnsModel	= new ComputedColumnsModel(_analyses, _package);
@@ -199,8 +198,8 @@ void MainWindow::makeConnections()
 	connect(this,					&MainWindow::screenPPIChanged,						_preferences,			&PreferencesModel::setDefaultPPI							);
 	connect(this,					&MainWindow::editImageCancelled,					_resultsJsInterface,	&ResultsJsInterface::cancelImageEdit						);
 
-	//connect(_levelsTableModel,		&LevelsTableModel::refreshConnectedModels,			_package,				&DataSetPackage::refreshColumn								);
-	//connect(_levelsTableModel,		&LevelsTableModel::refreshConnectedModelsByName,	_computedColumnsModel,	&ComputedColumnsModel::checkForDependentColumnsToBeSentSlot	);
+	//connect(_labelModel,		&LevelsTableModel::refreshConnectedModels,			_package,				&DataSetPackage::refreshColumn								);
+	//connect(_labelModel,		&LevelsTableModel::refreshConnectedModelsByName,	_computedColumnsModel,	&ComputedColumnsModel::checkForDependentColumnsToBeSentSlot	);
 
 	connect(_package,				&DataSetPackage::labelFilterChanged,				_labelFilterGenerator,	&labelFilterGenerator::labelFilterChanged					);
 	connect(_package,				&DataSetPackage::dataSynched,						this,					&MainWindow::packageDataChanged								);
@@ -208,8 +207,8 @@ void MainWindow::makeConnections()
 	connect(_package,				&DataSetPackage::columnDataTypeChanged,				_analyses,				&Analyses::dataSetColumnsChanged							);
 //	connect(_package,				&DataSetPackage::headerDataChanged,					_columnsModel,			&ColumnsModel::datasetHeaderDataChanged						);
 //	connect(_package,				&DataSetPackage::modelReset,						_columnsModel,			&ColumnsModel::refresh,										Qt::QueuedConnection);
-	//connect(_package,				&DataSetPackage::allFiltersReset,					_levelsTableModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
-	//connect(_package,				&DataSetPackage::modelReset,						_levelsTableModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
+	//connect(_package,				&DataSetPackage::allFiltersReset,					_labelModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
+	//connect(_package,				&DataSetPackage::modelReset,						_labelModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::allFiltersReset,					_labelFilterGenerator,	&labelFilterGenerator::labelFilterChanged					);
 	connect(_package,				&DataSetPackage::columnDataTypeChanged,				_computedColumnsModel,	&ComputedColumnsModel::recomputeColumn						);
 	connect(_package,				&DataSetPackage::freeDatasetSignal,					&_loader,				&AsyncLoader::free											);
@@ -225,7 +224,7 @@ void MainWindow::makeConnections()
 
 	qRegisterMetaType<Column::ColumnType>();
 
-//	connect(_computedColumnsModel,	&ComputedColumnsModel::refreshColumn,				_levelsTableModel,		&LevelsTableModel::refreshColumn,							Qt::QueuedConnection);
+//	connect(_computedColumnsModel,	&ComputedColumnsModel::refreshColumn,				_labelModel,		&LevelsTableModel::refreshColumn,							Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::refreshColumn,				_package,				&DataSetPackage::refreshColumn,								Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::headerDataChanged,			_package,				&DataSetPackage::headerDataChanged,							Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::sendComputeCode,				_engineSync,			&EngineSync::computeColumn,									Qt::QueuedConnection);
@@ -305,7 +304,7 @@ void MainWindow::loadQML()
 
 	_qml->rootContext()->setContextProperty("mainWindow",				this);
 	_qml->rootContext()->setContextProperty("dataSetModel",				_datasetTableModel);
-	_qml->rootContext()->setContextProperty("levelsTableModel",			_levelsTableModel);
+	_qml->rootContext()->setContextProperty("labelModel",				_labelModel);
 	_qml->rootContext()->setContextProperty("columnsModel",				_columnsModel);
 	_qml->rootContext()->setContextProperty("computedColumnsInterface",	_computedColumnsModel);
 	_qml->rootContext()->setContextProperty("engineSync",				_engineSync);
@@ -836,7 +835,7 @@ bool MainWindow::checkPackageModifiedBeforeClosing()
 
 void MainWindow::closeVariablesPage()
 {
-	_levelsTableModel->setVisible(false);
+	_labelModel->setVisible(false);
 }
 
 void MainWindow::dataSetIOCompleted(FileEvent *event)

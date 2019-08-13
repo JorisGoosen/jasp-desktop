@@ -43,7 +43,7 @@ Popup
 
 			Component.onCompleted:
 			{
-				levelsTableModel.clearColumn();
+				labelModel.clearColumn();
 				nameEdit.forceActiveFocus();
 			}
 

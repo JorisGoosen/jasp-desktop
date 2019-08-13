@@ -199,7 +199,10 @@ public:
 				QStringList					getColumnLabelsAsStringList(size_t columnIndex)			const;
 
 				void						resetFilterAllows(size_t columnIndex);
-				int							filteredOut(int column)									const;
+				int							filteredOut(size_t column)									const;
+
+				void						labelMoveRows(size_t column, std::vector<size_t> rows, bool up);
+				void						labelReverse(size_t column);
 
 signals:
 				void				dataSynched(	std::vector<std::string>			&	changedColumns,

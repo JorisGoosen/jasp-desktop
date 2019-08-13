@@ -5,6 +5,7 @@
 #include "datasettablemodel.h"
 #include "common.h"
 
+///Surprisingly the columns are laid out as rows ;-)
 class ColumnsModel  : public QTransposeProxyModel
 {
 	Q_OBJECT

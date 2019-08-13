@@ -96,8 +96,8 @@ FocusScope
 					{
 						dataSetModel.setColumnTypeFromQML(columnIndex, columnType)
 
-						if(levelsTableModel.chosenColumn === columnIndex && colIcon.myColumnType() === columnTypeScale)
-							levelsTableModel.visible = false;
+						if(labelModel.chosenColumn === columnIndex && colIcon.myColumnType() === columnTypeScale)
+							labelModel.visible = false;
 					}
 
 					ColumnTypeModel {
@@ -277,8 +277,8 @@ FocusScope
 
 						if(columnIndex >= 0)
 						{
-							levelsTableModel.visible		= levelsTableModel.chosenColumn	!= chooseThisColumn;
-							levelsTableModel.chosenColumn	= chooseThisColumn;
+							labelModel.visible		= labelModel.chosenColumn	!= chooseThisColumn ? true : !labelModel.visible;
+							labelModel.chosenColumn	= chooseThisColumn;
 
 							if(dataSetModel.columnUsedInEasyFilter(columnIndex))
 							{
