@@ -50,8 +50,10 @@ void JASPImporter::loadDataSet(DataSetPackage *packageData, const std::string &p
 	if (compatibility == JASPImporter::NotCompatible)	throw std::runtime_error("The file version is too new.\nPlease update to the latest version of JASP to view this file.");
 	else if (compatibility == JASPImporter::Limited)	packageData->setWarningMessage("This file was created by a newer version of JASP and may not have complete functionality.");
 
+	packageData->beginLoadingData();
 	loadDataArchive(packageData, path, progressCallback);
 	loadJASPArchive(packageData, path, progressCallback);
+	packageData->endLoadingData();
 }
 
 

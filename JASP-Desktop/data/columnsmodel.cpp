@@ -46,21 +46,7 @@ void ColumnsModel::onHeaderDataChanged(Qt::Orientation orientation, int first, i
 	beginResetModel();
 	endResetModel();
 
+	//datachanged doesnt seem to work in filterconstructor etc
 	//if(orientation == Qt::Horizontal)
 	//	emit dataChanged(index(first, 0), index(last, columnCount()), { NameRole, TypeRole, IconSourceRole, ToolTipRole });
 }
-
-/*
-void ColumnsModel::refreshColumn(Column * column)
-{
-	int rowChanged = _dataSet->getColumnIndex(column->name());
-	emit dataChanged(index(rowChanged, 0), index(rowChanged, columnCount()));
-}
-
-void ColumnsModel::datasetHeaderDataChanged(Qt::Orientation orientation, int first, int last)
-{
-	//emit dataChanged(index(first, 0), index(last, rowCount()-1));
-	beginResetModel();
-	endResetModel();
-}
-*/

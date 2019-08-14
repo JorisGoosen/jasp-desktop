@@ -5,6 +5,7 @@
 #include <QSGNode>
 #include <queue>
 #include "timers.h"
+#include "log.h"
 
 DataSetView * DataSetView::_lastInstancedDataSetView = nullptr;
 
@@ -144,8 +145,13 @@ void DataSetView::calculateCellSizes()
 
 	_dataWidth = w;
 
-	setWidth(	(_extraColumnItem != nullptr ? _dataRowsMaxHeight : 0 ) + _dataWidth					);
-	setHeight(	_dataRowsMaxHeight * (_model->rowCount() + 1)	);
+	qreal	newWidth	= (_extraColumnItem != nullptr ? _dataRowsMaxHeight : 0 ) + _dataWidth,
+			newHeight	= _dataRowsMaxHeight * (_model->rowCount() + 1);
+
+	Log::log() << "Settings WxH: " << newWidth << "X" << newHeight << std::endl;
+
+	setWidth(	newWidth);
+	setHeight(	newHeight);
 	_recalculateCellSizes = false;
 
 	emit itemSizeChanged();

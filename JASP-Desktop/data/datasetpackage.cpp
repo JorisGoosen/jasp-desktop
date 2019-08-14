@@ -270,7 +270,7 @@ size_t DataSetPackage::getMaximumColumnWidthInCharacters(int columnIndex) const
 
 QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, int role)	const
 {
-	if (_dataSet == nullptr)
+	if (!_dataSet || section < 0 || section >= (orientation == Qt::Horizontal ? columnCount() : rowCount()))
 		return QVariant();
 
 	switch(role)

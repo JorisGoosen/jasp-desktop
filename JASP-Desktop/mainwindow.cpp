@@ -198,17 +198,11 @@ void MainWindow::makeConnections()
 	connect(this,					&MainWindow::screenPPIChanged,						_preferences,			&PreferencesModel::setDefaultPPI							);
 	connect(this,					&MainWindow::editImageCancelled,					_resultsJsInterface,	&ResultsJsInterface::cancelImageEdit						);
 
-	//connect(_labelModel,		&LevelsTableModel::refreshConnectedModels,			_package,				&DataSetPackage::refreshColumn								);
-	//connect(_labelModel,		&LevelsTableModel::refreshConnectedModelsByName,	_computedColumnsModel,	&ComputedColumnsModel::checkForDependentColumnsToBeSentSlot	);
 
 	connect(_package,				&DataSetPackage::labelFilterChanged,				_labelFilterGenerator,	&labelFilterGenerator::labelFilterChanged					);
 	connect(_package,				&DataSetPackage::dataSynched,						this,					&MainWindow::packageDataChanged,							Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::isModifiedChanged,					this,					&MainWindow::packageChanged									);
 	connect(_package,				&DataSetPackage::columnDataTypeChanged,				_analyses,				&Analyses::dataSetColumnsChanged							);
-//	connect(_package,				&DataSetPackage::headerDataChanged,					_columnsModel,			&ColumnsModel::datasetHeaderDataChanged						);
-//	connect(_package,				&DataSetPackage::modelReset,						_columnsModel,			&ColumnsModel::refresh,										Qt::QueuedConnection);
-	//connect(_package,				&DataSetPackage::allFiltersReset,					_labelModel,			&LevelsTableModel::refresh,									Qt::QueuedConnection);
-	//connect(_package,				&DataSetPackage::modelReset,						_labelModel,			&LevelsTableModel::refresh,									Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::allFiltersReset,					_labelFilterGenerator,	&labelFilterGenerator::labelFilterChanged					);
 	connect(_package,				&DataSetPackage::columnDataTypeChanged,				_computedColumnsModel,	&ComputedColumnsModel::recomputeColumn						);
 	connect(_package,				&DataSetPackage::freeDatasetSignal,					&_loader,				&AsyncLoader::free											);
@@ -224,7 +218,6 @@ void MainWindow::makeConnections()
 
 	qRegisterMetaType<Column::ColumnType>();
 
-//	connect(_computedColumnsModel,	&ComputedColumnsModel::refreshColumn,				_labelModel,		&LevelsTableModel::refreshColumn,							Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::refreshColumn,				_package,				&DataSetPackage::refreshColumn,								Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::headerDataChanged,			_package,				&DataSetPackage::headerDataChanged,							Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::sendComputeCode,				_engineSync,			&EngineSync::computeColumn,									Qt::QueuedConnection);
