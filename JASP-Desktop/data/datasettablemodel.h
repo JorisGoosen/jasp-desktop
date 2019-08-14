@@ -31,7 +31,7 @@ class DataSetTableModel : public DataSetTableProxy
 public:
 	explicit				DataSetTableModel(DataSetPackage * package);
 
-	bool					filterAcceptsRows(int source_row, const QModelIndex & source_parent)	const;
+	bool					filterAcceptsRow(int source_row, const QModelIndex & source_parent)	const override;
 
 				int			columnsFilteredCount()					const				{ return _package->columnsFilteredCount(); }
 	Q_INVOKABLE bool		isColumnNameFree(QString name)								{ return _package->isColumnNameFree(name);								}
@@ -47,7 +47,7 @@ public:
 	Column::ColumnType		columnType(size_t column)					const				{ return _package->columnType(column);								}
 	std::string				columnName(size_t col)						const				{ return _package->getColumnName(col);								}
 
-				bool		showInactive()															const				{ return _showInactive;	}
+				bool		showInactive()								const				{ return _showInactive;	}
 
 signals:
 				void		columnsFilteredCountChanged();
@@ -55,9 +55,11 @@ signals:
 
 public slots:
 				void		setShowInactive(bool showInactive);
+				//void		onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles) { if( roles.count(int(DataSetPackage::specialRoles::filter)) > 0) invalidateFilter(); }
+
 
 private:
-	bool					_showInactive	= false;
+	bool					_showInactive	= true;
 };
 
 #endif // DATASETTABLEMODEL_H

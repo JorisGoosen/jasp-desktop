@@ -13,20 +13,24 @@ DataSetTableProxy::DataSetTableProxy(DataSetPackage * package, parIdxType proxyT
 
 QModelIndex	DataSetTableProxy::mapToSource(const QModelIndex &proxyIndex)	const
 {
-	if(!proxyIndex.isValid())
+	QModelIndex semiSource = QSortFilterProxyModel::mapToSource(proxyIndex);
+
+	if(!semiSource.isValid())
 		return _package->parentModelForType(_proxyType, _proxyParentColumn);
 
-	return _package->index(proxyIndex.row(), proxyIndex.column(), _package->parentModelForType(_proxyType, _proxyParentColumn));
+	return _package->index(semiSource.row(), semiSource.column(), _package->parentModelForType(_proxyType, _proxyParentColumn));
 }
 
 QModelIndex	DataSetTableProxy::mapFromSource(const QModelIndex &sourceIndex) const
 {
+	QModelIndex semiProxy = QSortFilterProxyModel::mapFromSource(sourceIndex);
+
 	QModelIndex sourceParent = sourceIndex.parent();
 
-	if(_package->parentIndexTypeIs(sourceIndex) == _proxyType || _package->parentIndexTypeIs(sourceParent) != _proxyType || sourceParent.column() != _proxyParentColumn)
+	if(_package->parentIndexTypeIs(sourceIndex) == _proxyType || _package->parentIndexTypeIs(sourceParent) != _proxyType || semiProxy.column() != _proxyParentColumn)
 		return QModelIndex();
 
-	return index(sourceIndex.row(), sourceIndex.column(), QModelIndex());
+	return index(semiProxy.row(), semiProxy.column(), QModelIndex());
 }
 
 void DataSetTableProxy::setProxyParentColumn(int proxyParentColumn)
@@ -43,8 +47,6 @@ void DataSetTableProxy::setProxyParentColumn(int proxyParentColumn)
 
 void DataSetTableProxy::modelWasReset()
 {
-	std::cout << "void DataSetTableProxy::modelWasReset()\n proxCol: " << _proxyParentColumn << " colCount " << _package->columnCount() << std::endl;
-
 	if(_proxyParentColumn >= _package->columnCount())
 		setProxyParentColumn(std::max(0, _package->columnCount() - 1));
 }

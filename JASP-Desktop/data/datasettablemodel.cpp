@@ -20,7 +20,10 @@
 
 DataSetTableModel::DataSetTableModel(DataSetPackage * package) : DataSetTableProxy(package, parIdxType::data)
 {
-	connect(_package, &DataSetPackage::columnsFilteredCountChanged, this, &DataSetTableModel::columnsFilteredCountChanged	);
+	connect(_package,	&DataSetPackage::columnsFilteredCountChanged,	this, &DataSetTableModel::columnsFilteredCountChanged	);
+	//connect(this,		&DataSetTableModel::dataChanged,				this, &DataSetTableModel::onDataChanged,				Qt::QueuedConnection);
+
+	setFilterRole(int(DataSetPackage::specialRoles::filter));
 }
 
 
@@ -34,7 +37,7 @@ void DataSetTableModel::setShowInactive(bool showInactive)
 	invalidateFilter();
 }
 
-bool DataSetTableModel::filterAcceptsRows(int source_row, const QModelIndex & source_parent)	const
+bool DataSetTableModel::filterAcceptsRow(int source_row, const QModelIndex & source_parent)	const
 {
 	return _showInactive || _package->getRowFilter(source_row);
 }

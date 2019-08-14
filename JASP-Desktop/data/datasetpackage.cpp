@@ -287,7 +287,7 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 		return dummyText;
 	}
 	case int(specialRoles::filter):							return columnHasFilter(section) || columnUsedInEasyFilter(section);
-	case Qt::DisplayRole:									return orientation == Qt::Horizontal ? tq(_dataSet->column(section).name()) : QVariant(section + 1);
+	case Qt::DisplayRole:									return orientation == Qt::Horizontal ? tq(_dataSet->column(section).name()) : QVariant(section);
 	case Qt::TextAlignmentRole:								return QVariant(Qt::AlignCenter);
 	case int(specialRoles::labelsHasFilter):				return columnHasFilter(section);
 	case int(specialRoles::columnIsComputed):				return isColumnComputed(section);
@@ -1172,8 +1172,11 @@ bool DataSetPackage::setFilterData(std::string filter, std::vector<bool> filterR
 
 	if(someFilterValueChanged) //We could also send exactly those cells that were changed if we were feeling particularly inclined to write the code...
 	{
-		emit dataChanged(index(0, 0, parentModelForType(parIdxType::filter)),	index(rowCount(), 0,				parentModelForType(parIdxType::filter)));
-		emit dataChanged(index(0, 0, parentModelForType(parIdxType::data)),		index(rowCount(), columnCount(),	parentModelForType(parIdxType::data)));
+		//emit dataChanged(index(0, 0, parentModelForType(parIdxType::filter)),	index(rowCount(), 0,				parentModelForType(parIdxType::filter)));
+		//This actually lets the whole application freeze when a filter is undone... -> emit dataChanged(index(0, 0, parentModelForType(parIdxType::data)),		index(rowCount(), columnCount(),	parentModelForType(parIdxType::data)));
+
+		beginResetModel();
+		endResetModel();
 	}
 
 	return someFilterValueChanged;

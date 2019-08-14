@@ -779,9 +779,9 @@ QQmlContext * DataSetView::setStyleDataRowNumber(QQmlContext * previousContext, 
 	if(previousContext == nullptr)
 		previousContext = new QQmlContext(qmlContext(this), this);
 
-	previousContext->setContextProperty("rowIndex",			row);
+	previousContext->setContextProperty("rowIndex",			_model->headerData(row, Qt::Vertical).toInt());
 	previousContext->setContextProperty("dataFont",			_font);
-	previousContext->setContextProperty("headerText",	text);
+	previousContext->setContextProperty("headerText",		text);
 
 
 	return previousContext;
