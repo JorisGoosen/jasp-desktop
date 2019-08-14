@@ -91,6 +91,8 @@ void LabelModel::resetFilterAllows()
 
 void LabelModel::setVisible(bool visible)
 {
+	visible = visible && rowCount() > 0; //cannot show labels when there are no labels
+
 	if (_visible == visible)
 		return;
 

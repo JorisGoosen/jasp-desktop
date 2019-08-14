@@ -160,7 +160,11 @@ int DataSetPackage::rowCount(const QModelIndex & parent) const
 	{
 		if(parent.column() >= _dataSet->columnCount()) return 0;
 
-		int labelSize = _dataSet->columns()[parent.column()].labels().size();
+		Column & col = _dataSet->columns()[parent.column()];
+		if(col.columnType() == Column::ColumnTypeScale)
+			return 0;
+
+		int labelSize = col.labels().size();
 		return labelSize;
 	}
 	case parIdxType::filter:
@@ -708,13 +712,14 @@ void DataSetPackage::endSynchingDataChangedColumns(std::vector<std::string>	&	ch
 
 void DataSetPackage::endSynchingData(std::vector<std::string>			&	changedColumns,
 									 std::vector<std::string>			&	missingColumns,
-									 std::map<std::string, std::string>	&	changeNameColumns,
+									 std::map<std::string, std::string>	&	changeNameColumns,  //origname -> newname
 									 bool									rowCountChanged,
 									 bool									hasNewColumns)
 {
 	_dataSet->setSynchingData(false);
 
-	emit dataSynched(changedColumns, missingColumns, changeNameColumns, rowCountChanged, hasNewColumns);
+	//We convert all of this stuff to qt containers even though this takes time etc. Because it needs to go through a (queued) connection and it might not work otherwise
+	emit dataSynched(tql(changedColumns), tql(missingColumns), tq(changeNameColumns), rowCountChanged, hasNewColumns);
 	endLoadingData();
 }
 

@@ -152,7 +152,7 @@ public:
 				void				endSynchingDataChangedColumns(std::vector<std::string>	&	changedColumns);
 				void				endSynchingData(std::vector<std::string>				&	changedColumns,
 													std::vector<std::string>				&	missingColumns,
-													std::map<std::string, std::string>		&	changeNameColumns,
+													std::map<std::string, std::string>		&	changeNameColumns,  //origname -> newname
 													bool										rowCountChanged,
 													bool										hasNewColumns);
 
@@ -205,11 +205,11 @@ public:
 				void						labelReverse(size_t column);
 
 signals:
-				void				dataSynched(	std::vector<std::string>			&	changedColumns,
-													std::vector<std::string>			&	missingColumns,
-													std::map<std::string, std::string>	&	changeNameColumns,
-													bool									rowCountChanged,
-													bool									hasNewColumns);
+				void				dataSynched(	QStringList				changedColumns,
+													QStringList				missingColumns,
+													QMap<QString, QString>	changeNameColumns,
+													bool					rowCountChanged,
+													bool					hasNewColumns);
 
 				void				columnsFilteredCountChanged();
 				void				badDataEntered(const QModelIndex index);

@@ -73,10 +73,7 @@ FocusScope
 				bottomMargin:	6
 				topMargin:		6
 			}
-			
-			//color: "transparent"
-			
-			
+
 			TableViewJasp
 			{
 				id:				levelsTableView
@@ -88,11 +85,6 @@ FocusScope
 					right:			buttonColumnVariablesWindow.left
 					bottom:			parent.bottom
 					rightMargin:	2
-				}
-				
-				function columnChanged(columnName)
-				{
-					analysesModel.refreshAnalysesUsingColumn(columnName)
 				}
 				
 				model: labelModel
@@ -114,12 +106,6 @@ FocusScope
 					selection.forEach( function(rowIndex) { nonreversedSelectionCopy.push(rowIndex) } )
 					for(var i=nonreversedSelectionCopy.length - 1; i >= 0; i--)
 						copiedSelection.push(nonreversedSelectionCopy[i])
-				}
-				
-				function sendCurrentColumnChanged()
-				{
-					if(labelModel.chosenColumn > -1)
-						columnChanged(dataSetModel.columnTitle(labelModel.chosenColumn))
 				}
 				
 				function resizeValueColumn()
@@ -146,8 +132,6 @@ FocusScope
 								selection.select(selectThis - 1, selectThis - 1)
 						}
 					}
-					
-					sendCurrentColumnChanged()
 				}
 				
 				function moveDown()
@@ -168,8 +152,6 @@ FocusScope
 								selection.select(selectThis + 1, selectThis + 1)
 						}
 					}
-					
-					sendCurrentColumnChanged()
 				}
 				
 				function reverse()
@@ -185,8 +167,6 @@ FocusScope
 						var selectThis = maxSelect - copiedSelection[i]
 						selection.select(selectThis, selectThis)
 					}
-					
-					sendCurrentColumnChanged()
 				}
 				
 				function closeYourself() { labelModel.visible = false; }

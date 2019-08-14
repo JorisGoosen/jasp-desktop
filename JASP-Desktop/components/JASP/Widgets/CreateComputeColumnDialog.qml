@@ -43,7 +43,7 @@ Popup
 
 			Component.onCompleted:
 			{
-				labelModel.clearColumn();
+				labelModel.visible = false;
 				nameEdit.forceActiveFocus();
 			}
 

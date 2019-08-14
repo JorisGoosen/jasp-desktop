@@ -43,8 +43,11 @@ QHash<int, QByteArray> ColumnsModel::roleNames() const
 // It is the headerdata from untransposed source
 void ColumnsModel::onHeaderDataChanged(Qt::Orientation orientation, int first, int last)
 {
-	if(orientation == Qt::Horizontal)
-		emit dataChanged(index(first, 0), index(last, columnCount()));
+	beginResetModel();
+	endResetModel();
+
+	//if(orientation == Qt::Horizontal)
+	//	emit dataChanged(index(first, 0), index(last, columnCount()), { NameRole, TypeRole, IconSourceRole, ToolTipRole });
 }
 
 /*

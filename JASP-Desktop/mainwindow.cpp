@@ -202,13 +202,13 @@ void MainWindow::makeConnections()
 	//connect(_labelModel,		&LevelsTableModel::refreshConnectedModelsByName,	_computedColumnsModel,	&ComputedColumnsModel::checkForDependentColumnsToBeSentSlot	);
 
 	connect(_package,				&DataSetPackage::labelFilterChanged,				_labelFilterGenerator,	&labelFilterGenerator::labelFilterChanged					);
-	connect(_package,				&DataSetPackage::dataSynched,						this,					&MainWindow::packageDataChanged								);
+	connect(_package,				&DataSetPackage::dataSynched,						this,					&MainWindow::packageDataChanged,							Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::isModifiedChanged,					this,					&MainWindow::packageChanged									);
 	connect(_package,				&DataSetPackage::columnDataTypeChanged,				_analyses,				&Analyses::dataSetColumnsChanged							);
 //	connect(_package,				&DataSetPackage::headerDataChanged,					_columnsModel,			&ColumnsModel::datasetHeaderDataChanged						);
 //	connect(_package,				&DataSetPackage::modelReset,						_columnsModel,			&ColumnsModel::refresh,										Qt::QueuedConnection);
-	//connect(_package,				&DataSetPackage::allFiltersReset,					_labelModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
-	//connect(_package,				&DataSetPackage::modelReset,						_labelModel,		&LevelsTableModel::refresh,									Qt::QueuedConnection);
+	//connect(_package,				&DataSetPackage::allFiltersReset,					_labelModel,			&LevelsTableModel::refresh,									Qt::QueuedConnection);
+	//connect(_package,				&DataSetPackage::modelReset,						_labelModel,			&LevelsTableModel::refresh,									Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::allFiltersReset,					_labelFilterGenerator,	&labelFilterGenerator::labelFilterChanged					);
 	connect(_package,				&DataSetPackage::columnDataTypeChanged,				_computedColumnsModel,	&ComputedColumnsModel::recomputeColumn						);
 	connect(_package,				&DataSetPackage::freeDatasetSignal,					&_loader,				&AsyncLoader::free											);
@@ -512,24 +512,33 @@ void MainWindow::packageChanged()
 }
 
 
-void MainWindow::refreshAnalysesUsingColumns(std::vector<std::string> &changedColumns,	 std::vector<std::string> &missingColumns,	 std::map<std::string, std::string> &changeNameColumns, bool rowCountChanged, bool hasNewColumns)
+void MainWindow::refreshAnalysesUsingColumns(	QStringList				changedColumns,
+												QStringList				missingColumns,
+												QMap<QString, QString>	changeNameColumns,
+												bool					rowCountChanged,
+												bool					hasNewColumns)
 {
+	std::map<std::string, std::string> changeNameColumnsStd = fq(changeNameColumns);
+
 	std::vector<std::string> oldColumnNames;
 
-	for (auto & keyval : changeNameColumns)
+	for (auto & keyval : changeNameColumnsStd)
 		oldColumnNames.push_back(keyval.first);
 
-	sort(changedColumns.begin(), changedColumns.end());
+	sort(changedColumns.begin(), changedColumns.end()); //Why are we sorting here?
 	sort(missingColumns.begin(), missingColumns.end());
 	sort(oldColumnNames.begin(), oldColumnNames.end());
 
-	_analyses->refreshAnalysesUsingColumns(changedColumns, missingColumns, changeNameColumns, oldColumnNames, hasNewColumns);
+	std::vector<std::string> changedColumnsStd(fq(changedColumns));
+	std::vector<std::string> missingColumnsStd(fq(missingColumns));
+
+	_analyses->refreshAnalysesUsingColumns(changedColumnsStd, missingColumnsStd, changeNameColumnsStd, oldColumnNames, hasNewColumns);
 	if(rowCountChanged)
 	{
 		QTimer::singleShot(0, _analyses, &Analyses::refreshAllAnalyses);
 	}
 
-	_computedColumnsModel->packageSynchronized(changedColumns, missingColumns, changeNameColumns, rowCountChanged);
+	_computedColumnsModel->packageSynchronized(changedColumnsStd, missingColumnsStd, changeNameColumnsStd, rowCountChanged);
 }
 
 void MainWindow::setImageBackgroundHandler(QString value)
@@ -559,11 +568,11 @@ void MainWindow::setDatasetLoaded()
 	setDatasetLoaded(_package->rowCount() > 0 || _package->columnCount() > 0);
 }
 
-void MainWindow::packageDataChanged(vector<string>		&	changedColumns,
-									vector<string>		&	missingColumns,
-									map<string, string> &	changeNameColumns,
-									bool					rowCountChanged,
-									bool					hasNewColumns)
+void MainWindow::packageDataChanged(	QStringList				changedColumns,
+										QStringList				missingColumns,
+										QMap<QString, QString>	changeNameColumns,
+										bool					rowCountChanged,
+										bool					hasNewColumns)
 {
 	setDatasetLoaded();
 

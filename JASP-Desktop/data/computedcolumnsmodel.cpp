@@ -358,7 +358,9 @@ void ComputedColumnsModel::packageSynchronized(const std::vector<std::string> & 
 			{
 				invalidateMe = true;
 				col->setConstructorJson(JsonUtilities::removeColumnsFromDragNDropFilterJSON(col->constructorJson(), missing));
-				if(col->codeType() == ComputedColumn::computedType::constructorCode)	col->setRCode("stop('Certain columns where removed from the definition of this computed column.')");
+
+				if(col->codeType() == ComputedColumn::computedType::constructorCode)
+					col->setRCode("stop('Certain columns where removed from the definition of this computed column.')");
 
 				if(col->name() == _currentlySelectedName.toStdString())
 				{

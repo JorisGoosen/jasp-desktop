@@ -143,7 +143,11 @@ private:
 	void packageChanged();
 	void setDatasetLoaded();
 	void setPackageModified();
-	void refreshAnalysesUsingColumns(std::vector<std::string> &changedColumns, std::vector<std::string> &missingColumns, std::map<std::string, std::string> &changeNameColumns, bool rowCountChanged, bool hasNewColumns);
+	void refreshAnalysesUsingColumns(	QStringList				changedColumns,
+										QStringList				missingColumns,
+										QMap<QString, QString>	changeNameColumns,
+										bool					rowCountChanged,
+										bool					hasNewColumns);
 
 	bool closeRequestCheck(bool &isSaving);
 	void saveTextToFileHandler(const QString &filename, const QString &data);
@@ -192,7 +196,11 @@ signals:
 	void downloadNewJASPUrlChanged(QString downloadNewJASPUrl);
 
 private slots:
-	void packageDataChanged(std::vector<std::string> &changedColumns, std::vector<std::string> &missingColumns, std::map<std::string, std::string> &changeNameColumns,	bool rowCountChanged, bool hasNewColumns);
+	void packageDataChanged(	QStringList				changedColumns,
+								QStringList				missingColumns,
+								QMap<QString, QString>	changeNameColumns,
+								bool					rowCountChanged,
+								bool					hasNewColumns);
 	void resultsPageLoaded();
 	void showResultsPanel() { setDataPanelVisible(false); }
 

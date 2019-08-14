@@ -273,12 +273,11 @@ FocusScope
 
 					onClicked:
 					{
-						var chooseThisColumn			= (columnIndex > -1 && dataSetModel.columnIcon(columnIndex)  !== columnTypeScale) ? columnIndex : -1;
-
 						if(columnIndex >= 0)
 						{
-							labelModel.visible		= labelModel.chosenColumn	!= chooseThisColumn ? true : !labelModel.visible;
-							labelModel.chosenColumn	= chooseThisColumn;
+							var changedIndex		= labelModel.chosenColumn	!= columnIndex
+							labelModel.chosenColumn	= columnIndex;
+							labelModel.visible		= changedIndex ? true : !labelModel.visible;
 
 							if(dataSetModel.columnUsedInEasyFilter(columnIndex))
 							{
