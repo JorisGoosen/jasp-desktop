@@ -140,7 +140,7 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	qmlRegisterType<JASPDoubleValidator>	("JASP", 1, 0, "JASPDoubleValidator");
 	qmlRegisterType<ResultsJsInterface>		("JASP", 1, 0, "ResultsJsInterface");
 
-	loadQML();
+	QTimer::singleShot(0, [&](){ loadQML(); });
 
 	QString missingvaluestring = _settings.value("MissingValueList", "").toString();
 	if (missingvaluestring != "")
@@ -334,6 +334,8 @@ void MainWindow::loadQML()
 	_qml->rootContext()->setContextProperty("iconDisabledFiles",	_iconDisabledFiles);
 
 	_qml->addImportPath("qrc:///components");
+
+	connect(_qml, &QQmlApplicationEngine::objectCreated, [&](QObject * obj, QUrl url) { if(obj == nullptr) { std::cerr << "Could not load QML: " + url.toString().toStdString() << std::endl; _application->exit(10); }});
 
 	_qml->load(QUrl("qrc:///components/JASP/Widgets/HelpWindow.qml"));
 	_qml->load(QUrl("qrc:///components/JASP/Widgets/AboutWindow.qml"));

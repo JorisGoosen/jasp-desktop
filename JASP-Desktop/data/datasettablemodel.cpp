@@ -34,7 +34,9 @@ void DataSetTableModel::setShowInactive(bool showInactive)
 
 	_showInactive = showInactive;
 	emit showInactiveChanged(_showInactive);
-	invalidateFilter();
+	invalidate();
+	beginResetModel();
+	endResetModel();
 }
 
 bool DataSetTableModel::filterAcceptsRow(int source_row, const QModelIndex & source_parent)	const

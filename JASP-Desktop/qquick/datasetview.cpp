@@ -148,7 +148,7 @@ void DataSetView::calculateCellSizes()
 	qreal	newWidth	= (_extraColumnItem != nullptr ? _dataRowsMaxHeight : 0 ) + _dataWidth,
 			newHeight	= _dataRowsMaxHeight * (_model->rowCount() + 1);
 
-	Log::log() << "Settings WxH: " << newWidth << "X" << newHeight << std::endl;
+	//Log::log() << "Settings WxH: " << newWidth << "X" << newHeight << std::endl;
 
 	setWidth(	newWidth);
 	setHeight(	newHeight);

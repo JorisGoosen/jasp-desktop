@@ -1,8 +1,7 @@
-import QtQuick 2.9
-import QtQuick.Controls 1.4
-import QtQuick.Controls 2.4
-import QtQuick.Layouts 1.0
-import JASP.Theme 1.0
+import QtQuick			2.13
+import QtQuick.Controls 2.13
+import QtQuick.Layouts	1.0
+import JASP.Theme		1.0
 
 Rectangle
 {
@@ -13,37 +12,34 @@ Rectangle
     {
 		id:				splitViewData
 		anchors.fill:	parent
-
 		orientation:	Qt.Vertical
+		handle:			Rectangle { color: Theme.uiBorder; }
 
-		handleDelegate: Rectangle { color: Theme.uiBorder; }
-
-        VariablesWindow
-        {
-			id:						variablesWindow
-			Layout.minimumHeight:	calculatedMinimumHeight
-        }
-
-        FilterWindow
-        {
-			id:						filterWindow
-			objectName:				"filterWindow"
-
-			Layout.maximumHeight:	rootDataset.height * 0.8
-        }
+		FilterWindow
+		{
+			id:							filterWindow
+			objectName:					"filterWindow"
+			SplitView.maximumHeight:	rootDataset.height * 0.8
+		}
 
 		ComputeColumnWindow
 		{
-			id:						computeColumnWindow
-			objectName:				"computeColumnWindow"
-			Layout.maximumHeight:	rootDataset.height * 0.8
+			id:							computeColumnWindow
+			objectName:					"computeColumnWindow"
+			SplitView.maximumHeight:	rootDataset.height * 0.8
 		}
+
+        VariablesWindow
+        {
+			id:							variablesWindow
+			SplitView.minimumHeight:	calculatedMinimumHeight
+        }
 
 		DataTableView
 		{
-			objectName:			"dataSetTableView"
-			Layout.fillHeight:	true
-			onDoubleClicked:	mainWindow.startDataEditorHandler()
+			objectName:				"dataSetTableView"
+			SplitView.fillHeight:	true
+			onDoubleClicked:		mainWindow.startDataEditorHandler()
         }
 	}
 }

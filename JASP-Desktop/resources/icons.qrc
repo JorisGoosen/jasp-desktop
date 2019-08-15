@@ -129,5 +129,7 @@
         <file>icons/audit-planning.svg</file>
         <file>icons/sort-az.png</file>
         <file>icons/sort-za.png</file>
+        <file>icons/eyeClosed.png</file>
+        <file>icons/eyeOpen.png</file>
     </qresource>
 </RCC>
