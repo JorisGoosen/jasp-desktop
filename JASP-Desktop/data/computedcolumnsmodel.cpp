@@ -232,6 +232,9 @@ void ComputedColumnsModel::computeColumnFailed(QString columnNameQ, QString erro
 
 void ComputedColumnsModel::recomputeColumn(std::string columnName)
 {
+	if(!_package->isColumnComputed(columnName))
+		return;
+
 	_package->columnSetDefaultValues(columnName);
 	_computedColumns->findAllColumnNames();
 

@@ -183,7 +183,7 @@ public:
 				void						columnLabelsFromJsonForJASPFile(Json::Value xData, Json::Value columnDesc, size_t columnIndex, std::map<std::string, std::map<int, int> > & mapNominalTextValues);
 
 				enum columnType				getColumnType(std::string columnName)	const;
-				enum columnType				getColumnType(size_t columnIndex)		const	{ return _dataSet ? _dataSet->column(columnIndex).columnType() : columnType::unknown; }
+				enum columnType				getColumnType(size_t columnIndex)		const	{ return _dataSet ? _dataSet->column(columnIndex).getColumnType() : columnType::unknown; }
 				std::string					getColumnName(size_t columnIndex)		const	{ return _dataSet ? _dataSet->column(columnIndex).name() : ""; }
 				int							getColumnIndex(std::string name)		const	{ return !_dataSet ? -1 : _dataSet->getColumnIndex(name); }
 				int							getColumnIndex(QString name)			const	{ return getColumnIndex(name.toStdString()); }

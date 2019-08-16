@@ -161,7 +161,7 @@ int DataSetPackage::rowCount(const QModelIndex & parent) const
 		if(parent.column() >= _dataSet->columnCount()) return 0;
 
 		Column & col = _dataSet->columns()[parent.column()];
-		if(col.columnType() == columnType::scale)
+		if(col.getColumnType() == columnType::scale)
 			return 0;
 
 		int labelSize = col.labels().size();
@@ -220,7 +220,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		case Qt::DisplayRole:						return tq(_dataSet->column(index.column())[index.row()]);
 		case int(specialRoles::value):				return tq(_dataSet->column(index.column()).getOriginalValue(index.row()));
 		case int(specialRoles::filter):				return getRowFilter(index.row());
-		case int(specialRoles::columnType):			return int(_dataSet->columns()[index.column()].columnType());
+		case int(specialRoles::columnType):			return int(_dataSet->columns()[index.column()].getColumnType());
 		case int(specialRoles::lines):
 		{
 			bool	iAmActive		= getRowFilter(index.row()),
@@ -627,7 +627,7 @@ QVariant DataSetPackage::columnTitle(int column) const
 QVariant DataSetPackage::columnIcon(int column) const
 {
 	if(_dataSet != nullptr && column >= 0 && size_t(column) < _dataSet->columnCount())
-		return QVariant(int(_dataSet->column(column).columnType()));
+		return QVariant(int(_dataSet->column(column).getColumnType()));
 
 	return QVariant(-1);
 }
@@ -698,7 +698,7 @@ void DataSetPackage::columnWasOverwritten(std::string columnName, std::string po
 
 int DataSetPackage::setColumnTypeFromQML(int columnIndex, int newColumnType)
 {
-	bool changed = setColumnType(columnIndex, getColumnType(newColumnType));
+	bool changed = setColumnType(columnIndex, columnType(newColumnType));
 
 	if (changed)
 	{
@@ -995,9 +995,9 @@ Json::Value DataSetPackage::columnToJsonForJASPFile(size_t columnIndex, Json::Va
 	std::string name				= column.name();
 	Json::Value columnMetaData		= Json::Value(Json::objectValue);
 	columnMetaData["name"]			= Json::Value(name);
-	columnMetaData["measureType"]	= Json::Value(getColumnTypeNameForJASPFile(column.columnType()));
+	columnMetaData["measureType"]	= Json::Value(getColumnTypeNameForJASPFile(column.getColumnType()));
 
-	if (column.columnType()			!= columnType::scale)
+	if (column.getColumnType()			!= columnType::scale)
 	{
 		columnMetaData["type"] = Json::Value("integer");
 		dataSize += sizeof(int) * rowCount();
@@ -1009,7 +1009,7 @@ Json::Value DataSetPackage::columnToJsonForJASPFile(size_t columnIndex, Json::Va
 	}
 
 
-	if (column.columnType() != columnType::scale)
+	if (column.getColumnType() != columnType::scale)
 	{
 		Labels &labels = column.labels();
 		if (labels.size() > 0)
@@ -1147,7 +1147,7 @@ void DataSetPackage::setColumnDataInts(size_t columnIndex, std::vector<int> ints
 		catch (const labelNotFound &)
 		{
 			Log::log() << "Value '" << value << "' in column '" << col.name() << "' did not have a corresponding label, adding one now.\n";
-			lab.add(value, std::to_string(value), true, col.columnType() == columnType::nominalText);
+			lab.add(value, std::to_string(value), true, col.getColumnType() == columnType::nominalText);
 		}
 
 		col.setValue(r, value);

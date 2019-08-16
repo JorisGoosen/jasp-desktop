@@ -21,6 +21,7 @@
 #include <RInside/RInside.h>
 #include <Rcpp.h>
 #include "jasprcpp_interface.h"
+#include "columntype.h"
 
 // Calls From R
 Rcpp::DataFrame jaspRCPP_readFullDataSet();
@@ -65,9 +66,6 @@ void jaspRCPP_setColumnDataHelper_FactorsLevels(Rcpp::Vector<INTSXP> data, int *
 
 //Calls from JASPresult (from R)
 typedef void (*sendFuncDef)(const char *);
-
-// This is a copy of column.h!!!!
-enum columnType { unknown = 0, nominal = 1, nominalText = 2, ordinal = 4, scale = 8 };
 
 RBridgeColumnType* jaspRCPP_marshallSEXPs(SEXP columns, SEXP columnsAsNumeric, SEXP columnsAsOrdinal, SEXP columnsAsNominal, SEXP allColumns, size_t * colMax);
 

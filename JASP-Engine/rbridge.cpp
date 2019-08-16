@@ -203,7 +203,7 @@ extern "C" RBridgeColumn* STDCALL rbridge_readFullDataSet(size_t * colMax)
 	for(int i=0; i<(*colMax); i++)
 	{
 		colHeaders[i].name = strdup(columns[i].name().c_str());
-		colHeaders[i].type = (int)columns[i].columnType();
+		colHeaders[i].type = (int)columns[i].getColumnType();
 	}
 
 	RBridgeColumn * returnThis = rbridge_readDataSet(colHeaders, (*colMax), false);
@@ -233,7 +233,7 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSetForFiltering(size_t * colMa
 		if(filterColumnsUsed.count(columns[iIn].name()) > 0)
 		{
 			colHeaders[iOut].name = strdup(columns[iIn].name().c_str());
-			colHeaders[iOut].type = (int)columns[iIn].columnType();
+			colHeaders[iOut].type = (int)columns[iIn].getColumnType();
 
 			iOut++;
 		}
@@ -288,7 +288,7 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSet(RBridgeColumnType* colHead
 		std::string				columnName		= columnInfo.name;
 								resultCol.name	= strdup(Base64::encode("X", columnName, Base64::RVarEncoding).c_str());
 		Column				&	column			= columns.get(columnName);
-		columnType				colType			= column.columnType(),
+		columnType				colType			= column.getColumnType(),
 								requestedType	= columnType(columnInfo.type);
 
 		if (requestedType == columnType::unknown)
@@ -473,7 +473,7 @@ extern "C" RBridgeColumnDescription* STDCALL rbridge_readDataSetDescription(RBri
 		std::string						columnName		= columnInfo.name;
 										resultCol.name	= strdup(Base64::encode("X", columnName, Base64::RVarEncoding).c_str());
 		Column						&	column			= columns.get(columnName);
-		columnType						colType			= column.columnType(),
+		columnType						colType			= column.getColumnType(),
 										requestedType	= columnType(columnInfo.type);
 
 		if (requestedType == columnType::unknown)

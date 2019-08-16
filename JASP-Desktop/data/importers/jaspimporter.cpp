@@ -171,7 +171,7 @@ void JASPImporter::loadDataArchive_1_00(DataSetPackage *packageData, const std::
 
 	for (int c = 0; c < columnCount; c++)
 	{
-		columnType columnType	= packageData->getColumnType(c);
+		columnType columnType			= packageData->getColumnType(c);
 		bool isScalar					= columnType == columnType::scale;
 		int typeSize					= isScalar ? sizeof(double) : sizeof(int);
 		std::map<int, int>& mapValues	= mapNominalTextValues[packageData->getColumnName(c)];

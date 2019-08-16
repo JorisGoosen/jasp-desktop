@@ -181,7 +181,7 @@ public:
 	Ints AsInts;
 
 	void setColumnType(enum columnType columnType);
-	enum columnType columnType() const;
+	enum columnType getColumnType() const;
 
 	bool changeColumnType(enum columnType newColumnType);
 
