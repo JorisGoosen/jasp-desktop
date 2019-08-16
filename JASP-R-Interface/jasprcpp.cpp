@@ -702,7 +702,7 @@ RBridgeColumnType* jaspRCPP_marshallSEXPs(SEXP columns, SEXP columnsAsNumeric, S
 		if (columns)
 		{
 			for (size_t i = 0; i < *colMax; i++)
-				columnsRequested[columns[i]] = ColumnTypeUnknown;
+				columnsRequested[columns[i]] = unknown;
 		}
 	}
 
@@ -716,10 +716,10 @@ RBridgeColumnType* jaspRCPP_marshallSEXPs(SEXP columns, SEXP columnsAsNumeric, S
 		}
 	};
 
-	setTypeRequested(columns,			ColumnTypeUnknown);
-	setTypeRequested(columnsAsNumeric,	ColumnTypeScale);
-	setTypeRequested(columnsAsOrdinal,	ColumnTypeOrdinal);
-	setTypeRequested(columnsAsNominal,	ColumnTypeNominal);
+	setTypeRequested(columns,			unknown);
+	setTypeRequested(columnsAsNumeric,	scale);
+	setTypeRequested(columnsAsOrdinal,	ordinal);
+	setTypeRequested(columnsAsNominal,	nominal);
 
 	RBridgeColumnType* result = static_cast<RBridgeColumnType*>(calloc(columnsRequested.size(), sizeof(RBridgeColumnType)));
 	int colNo = 0;

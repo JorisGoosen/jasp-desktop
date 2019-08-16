@@ -300,10 +300,10 @@ void Engine::runComputeColumn(const std::string & computeColumnName, const std::
 	Log::log() << "Engine::runComputeColumn()" << std::endl;
 
 	static const std::map<columnType, std::string> setColumnFunction = {
-		{columnType::ColumnTypeScale,		".setColumnDataAsScale"},
-		{columnType::ColumnTypeOrdinal,		".setColumnDataAsOrdinal"},
-		{columnType::ColumnTypeNominal,		".setColumnDataAsNominal"},
-		{columnType::ColumnTypeNominalText,	".setColumnDataAsNominalText"}};
+		{columnType::scale,		".setColumnDataAsScale"},
+		{columnType::ordinal,		".setColumnDataAsOrdinal"},
+		{columnType::nominal,		".setColumnDataAsNominal"},
+		{columnType::nominalText,	".setColumnDataAsNominalText"}};
 
 	std::string computeColumnCodeComplete	= "local({;calcedVals <- {"+computeColumnCode +"};\n"  "return(toString(" + setColumnFunction.at(computeColumnType) + "('" + computeColumnName +"', calcedVals)));})";
 	std::string computeColumnResultStr		= rbridge_evalRCodeWhiteListed(computeColumnCodeComplete);

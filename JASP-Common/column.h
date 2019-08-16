@@ -51,7 +51,7 @@ class Column
 
 public:
 	///ColumnType is set up to be used as bitflags in places such as assignedVariablesModel and such
-	//enum ColumnType { ColumnTypeUnknown = 0, ColumnTypeNominal = 1, ColumnTypeNominalText = 2, ColumnTypeOrdinal = 4, ColumnTypeScale = 8 };
+	//enum ColumnType { unknown = 0, nominal = 1, nominalText = 2, ordinal = 4, scale = 8 };
 
 	bool resetEmptyValues(std::map<int, std::string>& emptyValuesMap);
 
@@ -62,7 +62,7 @@ public:
 	bool overwriteDataWithOrdinal(std::vector<int> ordinalData);
 	bool overwriteDataWithNominal(std::vector<int> nominalData);
 	bool overwriteDataWithNominal(std::vector<std::string> nominalData);
-	void setDefaultValues(columnType columnType = columnType::ColumnTypeUnknown);
+	void setDefaultValues(columnType columnType = columnType::unknown);
 
 	typedef struct IntsStruct
 	{
@@ -137,7 +137,7 @@ public:
 
 	} Doubles;
 
-	Column(boost::interprocess::managed_shared_memory *mem)  : _mem(mem), _name(mem->get_segment_manager()), _columnType(columnType::ColumnTypeNominal), _rowCount(0), _blocks(std::less<ull>(), mem->get_segment_manager()), _labels(mem)
+	Column(boost::interprocess::managed_shared_memory *mem)  : _mem(mem), _name(mem->get_segment_manager()), _columnType(columnType::nominal), _rowCount(0), _blocks(std::less<ull>(), mem->get_segment_manager()), _labels(mem)
 	{
 		_id = ++count;
 	}

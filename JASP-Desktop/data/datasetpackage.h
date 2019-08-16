@@ -183,7 +183,7 @@ public:
 				void						columnLabelsFromJsonForJASPFile(Json::Value xData, Json::Value columnDesc, size_t columnIndex, std::map<std::string, std::map<int, int> > & mapNominalTextValues);
 
 				enum columnType				getColumnType(std::string columnName)	const;
-				enum columnType				getColumnType(size_t columnIndex)		const	{ return _dataSet ? _dataSet->column(columnIndex).columnType() : columnType::ColumnTypeUnknown; }
+				enum columnType				getColumnType(size_t columnIndex)		const	{ return _dataSet ? _dataSet->column(columnIndex).columnType() : columnType::unknown; }
 				std::string					getColumnName(size_t columnIndex)		const	{ return _dataSet ? _dataSet->column(columnIndex).name() : ""; }
 				int							getColumnIndex(std::string name)		const	{ return !_dataSet ? -1 : _dataSet->getColumnIndex(name); }
 				int							getColumnIndex(QString name)			const	{ return getColumnIndex(name.toStdString()); }
@@ -204,7 +204,7 @@ public:
 				void						labelMoveRows(size_t column, std::vector<size_t> rows, bool up);
 				void						labelReverse(size_t column);
 
-				void						columnSetDefaultValues(std::string columnName, columnType colType = columnType::ColumnTypeUnknown);
+				void						columnSetDefaultValues(std::string columnName, columnType colType = columnType::unknown);
 				bool						createColumn(std::string name, columnType colType);
 				void						removeColumn(std::string name);
 

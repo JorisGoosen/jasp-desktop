@@ -161,7 +161,7 @@ int DataSetPackage::rowCount(const QModelIndex & parent) const
 		if(parent.column() >= _dataSet->columnCount()) return 0;
 
 		Column & col = _dataSet->columns()[parent.column()];
-		if(col.columnType() == columnType::ColumnTypeScale)
+		if(col.columnType() == columnType::scale)
 			return 0;
 
 		int labelSize = col.labels().size();
@@ -597,7 +597,7 @@ QVariant DataSetPackage::getColumnTypesWithCorrespondingIcon() const
 {
 	static QVariantList ColumnTypeAndIcons;
 
-	//enum ColumnType { ColumnTypeUnknown = 0, ColumnTypeNominal = 1, ColumnTypeNominalText = 2, ColumnTypeOrdinal = 4, ColumnTypeScale = 8 };
+	//enum ColumnType { unknown = 0, nominal = 1, nominalText = 2, ordinal = 4, scale = 8 };
 
 	if(ColumnTypeAndIcons.size() == 0)
 	{
@@ -972,21 +972,21 @@ std::string DataSetPackage::getColumnTypeNameForJASPFile(columnType columnType)
 {
 	switch(columnType)
 	{
-	case columnType::ColumnTypeNominal:			return "Nominal";
-	case columnType::ColumnTypeNominalText:		return "NominalText";
-	case columnType::ColumnTypeOrdinal:			return "Ordinal";
-	case columnType::ColumnTypeScale:			return "Continuous";
+	case columnType::nominal:			return "Nominal";
+	case columnType::nominalText:		return "NominalText";
+	case columnType::ordinal:			return "Ordinal";
+	case columnType::scale:			return "Continuous";
 	default:									return "Unknown";
 	}
 }
 
 columnType DataSetPackage::parseColumnTypeForJASPFile(std::string name)
 {
-	if (name == "Nominal")				return  columnType::ColumnTypeNominal;
-	else if (name == "NominalText")		return  columnType::ColumnTypeNominalText;
-	else if (name == "Ordinal")			return  columnType::ColumnTypeOrdinal;
-	else if (name == "Continuous")		return  columnType::ColumnTypeScale;
-	else								return  columnType::ColumnTypeUnknown;
+	if (name == "Nominal")				return  columnType::nominal;
+	else if (name == "NominalText")		return  columnType::nominalText;
+	else if (name == "Ordinal")			return  columnType::ordinal;
+	else if (name == "Continuous")		return  columnType::scale;
+	else								return  columnType::unknown;
 }
 
 Json::Value DataSetPackage::columnToJsonForJASPFile(size_t columnIndex, Json::Value labelsData, size_t & dataSize)
@@ -997,7 +997,7 @@ Json::Value DataSetPackage::columnToJsonForJASPFile(size_t columnIndex, Json::Va
 	columnMetaData["name"]			= Json::Value(name);
 	columnMetaData["measureType"]	= Json::Value(getColumnTypeNameForJASPFile(column.columnType()));
 
-	if (column.columnType()			!= columnType::ColumnTypeScale)
+	if (column.columnType()			!= columnType::scale)
 	{
 		columnMetaData["type"] = Json::Value("integer");
 		dataSize += sizeof(int) * rowCount();
@@ -1009,7 +1009,7 @@ Json::Value DataSetPackage::columnToJsonForJASPFile(size_t columnIndex, Json::Va
 	}
 
 
-	if (column.columnType() != columnType::ColumnTypeScale)
+	if (column.columnType() != columnType::scale)
 	{
 		Labels &labels = column.labels();
 		if (labels.size() > 0)
@@ -1083,13 +1083,13 @@ void DataSetPackage::columnLabelsFromJsonForJASPFile(Json::Value xData, Json::Va
 			bool fil		= keyValueFilterTrip.get(2,			true).asBool();
 			int labelValue	= key;
 
-			if (columnType == columnType::ColumnTypeNominalText)
+			if (columnType == columnType::nominalText)
 			{
 				labelValue		= index;
 				mapValues[key]	= labelValue;
 			}
 
-			labels.add(labelValue, val, fil, columnType == columnType::ColumnTypeNominalText);
+			labels.add(labelValue, val, fil, columnType == columnType::nominalText);
 
 			index++;
 		}
@@ -1147,7 +1147,7 @@ void DataSetPackage::setColumnDataInts(size_t columnIndex, std::vector<int> ints
 		catch (const labelNotFound &)
 		{
 			Log::log() << "Value '" << value << "' in column '" << col.name() << "' did not have a corresponding label, adding one now.\n";
-			lab.add(value, std::to_string(value), true, col.columnType() == columnType::ColumnTypeNominalText);
+			lab.add(value, std::to_string(value), true, col.columnType() == columnType::nominalText);
 		}
 
 		col.setValue(r, value);
@@ -1200,7 +1200,7 @@ columnType DataSetPackage::getColumnType(std::string columnName)	const
 	int colIndex = getColumnIndex(columnName);
 
 	if(colIndex > -1)	return getColumnType(colIndex);
-	else				return columnType::ColumnTypeUnknown;
+	else				return columnType::unknown;
 }
 
 QStringList DataSetPackage::getColumnLabelsAsStringList(std::string columnName)	const

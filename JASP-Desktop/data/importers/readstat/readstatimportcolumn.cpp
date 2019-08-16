@@ -16,10 +16,10 @@ size_t ReadStatImportColumn::size() const
 	switch(_type)
 	{
 	default:							return 0;
-	case columnType::ColumnTypeScale:		return _doubles.size();
-	case columnType::ColumnTypeOrdinal:		[[clang::fallthrough]];
-	case columnType::ColumnTypeNominal:		return _ints.size();
-	case columnType::ColumnTypeNominalText:	return _strings.size();
+	case columnType::scale:		return _doubles.size();
+	case columnType::ordinal:		[[clang::fallthrough]];
+	case columnType::nominal:		return _ints.size();
+	case columnType::nominalText:	return _strings.size();
 	}
 }
 
@@ -30,10 +30,10 @@ std::string ReadStatImportColumn::valueAsString(size_t row) const
 	switch(_type)
 	{
 	default:							return Utils::emptyValue;
-	case columnType::ColumnTypeScale:		return std::to_string(_doubles[row]);
-	case columnType::ColumnTypeOrdinal:		[[clang::fallthrough]];
-	case columnType::ColumnTypeNominal:		return std::to_string(_ints[row]);
-	case columnType::ColumnTypeNominalText:	return _strings[row];
+	case columnType::scale:		return std::to_string(_doubles[row]);
+	case columnType::ordinal:		[[clang::fallthrough]];
+	case columnType::nominal:		return std::to_string(_ints[row]);
+	case columnType::nominalText:	return _strings[row];
 	}
 
 }
@@ -54,19 +54,19 @@ std::vector<std::string> ReadStatImportColumn::allValuesAsStrings() const
 void ReadStatImportColumn::addValue(const string & val)
 {
 	if(_ints.size() == 0 && _doubles.size() == 0)
-		_type = columnType::ColumnTypeNominalText; //If we haven't added anything else and the first value is a string then the rest should also be a string from now on
+		_type = columnType::nominalText; //If we haven't added anything else and the first value is a string then the rest should also be a string from now on
 
 	switch(_type)
 	{
-	case columnType::ColumnTypeUnknown:
-		_type = columnType::ColumnTypeNominalText;
+	case columnType::unknown:
+		_type = columnType::nominalText;
 		[[clang::fallthrough]];
 
-	case columnType::ColumnTypeNominalText:
+	case columnType::nominalText:
 		_strings.push_back(val);
 		break;
 
-	case columnType::ColumnTypeScale:
+	case columnType::scale:
 	{
 		double dblVal;
 		if(Utils::convertValueToDoubleForImport(val, dblVal))	addValue(dblVal);
@@ -75,8 +75,8 @@ void ReadStatImportColumn::addValue(const string & val)
 		break;
 	}
 
-	case columnType::ColumnTypeOrdinal:
-	case columnType::ColumnTypeNominal:
+	case columnType::ordinal:
+	case columnType::nominal:
 	{
 		int intVal;
 		if(Utils::convertValueToIntForImport(val, intVal))	addValue(intVal);
@@ -91,20 +91,20 @@ void ReadStatImportColumn::addValue(const double & val)
 {
 	switch(_type)
 	{
-	case columnType::ColumnTypeUnknown:
-		_type = columnType::ColumnTypeScale;
+	case columnType::unknown:
+		_type = columnType::scale;
 		[[clang::fallthrough]];
 
-	case columnType::ColumnTypeScale:
+	case columnType::scale:
 		_doubles.push_back(val);
 		break;
 
-	case columnType::ColumnTypeNominalText:
+	case columnType::nominalText:
 		addValue(std::to_string(val));
 		break;
 
-	case columnType::ColumnTypeOrdinal:
-	case columnType::ColumnTypeNominal:
+	case columnType::ordinal:
+	case columnType::nominal:
 		addValue(int(val));
 		break;
 	}
@@ -114,20 +114,20 @@ void ReadStatImportColumn::addValue(const int & val)
 {
 	switch(_type)
 	{
-	case columnType::ColumnTypeUnknown:
-		_type = columnType::ColumnTypeOrdinal;
+	case columnType::unknown:
+		_type = columnType::ordinal;
 		[[clang::fallthrough]];
 
-	case columnType::ColumnTypeOrdinal:
-	case columnType::ColumnTypeNominal:
+	case columnType::ordinal:
+	case columnType::nominal:
 		_ints.push_back(val);
 		break;
 
-	case columnType::ColumnTypeNominalText:
+	case columnType::nominalText:
 		addValue(std::to_string(val));
 		break;
 
-	case columnType::ColumnTypeScale:
+	case columnType::scale:
 		addValue(double(val));
 		break;
 	}
@@ -135,7 +135,7 @@ void ReadStatImportColumn::addValue(const int & val)
 
 void ReadStatImportColumn::addLabel(const int & val, const std::string & label)
 {
-	if(!(_type == columnType::ColumnTypeOrdinal || _type == columnType::ColumnTypeNominal))
+	if(!(_type == columnType::ordinal || _type == columnType::nominal))
 		Log::log() << "Column type being imported through readstat is not ordinal or nominal but receives an int as value for label " << label << std::endl;
 	else
 		_intLabels[val] = label;
@@ -144,9 +144,9 @@ void ReadStatImportColumn::addLabel(const int & val, const std::string & label)
 void ReadStatImportColumn::addLabel(const std::string & val, const std::string & label)
 {
 	if(_ints.size() == 0 && _doubles.size() == 0)
-		_type = columnType::ColumnTypeNominalText; //If we haven't added anything else and the first value is a string then the rest should also be a string from now on
+		_type = columnType::nominalText; //If we haven't added anything else and the first value is a string then the rest should also be a string from now on
 
-	if(_type != columnType::ColumnTypeNominalText)
+	if(_type != columnType::nominalText)
 		Log::log() << "Column type being imported through readstat is not nominal-text but receives a string as value for label " << label << std::endl;
 	else
 		_strLabels[val] = label;
@@ -156,11 +156,11 @@ void ReadStatImportColumn::addMissingValue()
 {
 	switch(_type)
 	{
-	case columnType::ColumnTypeUnknown:												return;
-	case columnType::ColumnTypeScale:		_doubles.push_back(NAN);				return;
-	case columnType::ColumnTypeOrdinal:		[[clang::fallthrough]];
-	case columnType::ColumnTypeNominal:		_ints.push_back(INT_MIN);				return;
-	case columnType::ColumnTypeNominalText:	_strings.push_back(Utils::emptyValue);	return;
+	case columnType::unknown:												return;
+	case columnType::scale:		_doubles.push_back(NAN);				return;
+	case columnType::ordinal:		[[clang::fallthrough]];
+	case columnType::nominal:		_ints.push_back(INT_MIN);				return;
+	case columnType::nominalText:	_strings.push_back(Utils::emptyValue);	return;
 	}
 }
 

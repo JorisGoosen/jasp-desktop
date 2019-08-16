@@ -287,31 +287,31 @@ void MainWindow::loadQML()
 
 	_qml = new QQmlApplicationEngine(this);
 
-	_qml->rootContext()->setContextProperty("mainWindow",				this);
-	_qml->rootContext()->setContextProperty("labelModel",				_labelModel);
-	_qml->rootContext()->setContextProperty("aboutModel",				_aboutModel);
-	_qml->rootContext()->setContextProperty("dataSetModel",				_datasetTableModel);
-	_qml->rootContext()->setContextProperty("columnsModel",				_columnsModel);
-	_qml->rootContext()->setContextProperty("analysesModel",			_analyses);
-	_qml->rootContext()->setContextProperty("dynamicModules",			_dynamicModules);
-	_qml->rootContext()->setContextProperty("preferencesModel",			_preferences);
-	_qml->rootContext()->setContextProperty("resultsJsInterface",		_resultsJsInterface);
-	_qml->rootContext()->setContextProperty("computedColumnsInterface",	_computedColumnsModel);
-	_qml->rootContext()->setContextProperty("ribbonModelFiltered",		_ribbonModelFiltered);
-	_qml->rootContext()->setContextProperty("resultMenuModel",			_resultMenuModel);
-	_qml->rootContext()->setContextProperty("fileMenuModel",			_fileMenu);
-	_qml->rootContext()->setContextProperty("filterModel",				_filterModel);
-	_qml->rootContext()->setContextProperty("ribbonModel",				_ribbonModel);
-	_qml->rootContext()->setContextProperty("engineSync",				_engineSync);
-	_qml->rootContext()->setContextProperty("helpModel",				_helpModel);
+	_qml->rootContext()->setContextProperty("mainWindow",				this					);
+	_qml->rootContext()->setContextProperty("labelModel",				_labelModel				);
+	_qml->rootContext()->setContextProperty("aboutModel",				_aboutModel				);
+	_qml->rootContext()->setContextProperty("dataSetModel",				_datasetTableModel		);
+	_qml->rootContext()->setContextProperty("columnsModel",				_columnsModel			);
+	_qml->rootContext()->setContextProperty("analysesModel",			_analyses				);
+	_qml->rootContext()->setContextProperty("dynamicModules",			_dynamicModules			);
+	_qml->rootContext()->setContextProperty("preferencesModel",			_preferences			);
+	_qml->rootContext()->setContextProperty("resultsJsInterface",		_resultsJsInterface		);
+	_qml->rootContext()->setContextProperty("computedColumnsInterface",	_computedColumnsModel	);
+	_qml->rootContext()->setContextProperty("ribbonModelFiltered",		_ribbonModelFiltered	);
+	_qml->rootContext()->setContextProperty("resultMenuModel",			_resultMenuModel		);
+	_qml->rootContext()->setContextProperty("fileMenuModel",			_fileMenu				);
+	_qml->rootContext()->setContextProperty("filterModel",				_filterModel			);
+	_qml->rootContext()->setContextProperty("ribbonModel",				_ribbonModel			);
+	_qml->rootContext()->setContextProperty("engineSync",				_engineSync				);
+	_qml->rootContext()->setContextProperty("helpModel",				_helpModel				);
 
 	_qml->rootContext()->setContextProperty("baseBlockDim",				20); //should be taken from Theme
 	_qml->rootContext()->setContextProperty("baseFontSize",				16);
 
-	_qml->rootContext()->setContextProperty("columnTypeScale",			int(columnType::ColumnTypeScale));
-	_qml->rootContext()->setContextProperty("columnTypeOrdinal",		int(columnType::ColumnTypeOrdinal));
-	_qml->rootContext()->setContextProperty("columnTypeNominal",		int(columnType::ColumnTypeNominal));
-	_qml->rootContext()->setContextProperty("columnTypeNominalText",	int(columnType::ColumnTypeNominalText));
+	_qml->rootContext()->setContextProperty("columnTypeScale",			int(columnType::scale)		);
+	_qml->rootContext()->setContextProperty("columnTypeOrdinal",		int(columnType::ordinal)		);
+	_qml->rootContext()->setContextProperty("columnTypeNominal",		int(columnType::nominal)		);
+	_qml->rootContext()->setContextProperty("columnTypeNominalText",	int(columnType::nominalText)		);
 
 	bool debug = false;
 #ifdef JASP_DEBUG

@@ -27,10 +27,10 @@ int handle_variable(int, readstat_variable_t *variable, const char *val_labels, 
 
 	switch(colMeasure)
 	{
-	case READSTAT_MEASURE_UNKNOWN:	colType = columnType::ColumnTypeUnknown;	break;
-	case READSTAT_MEASURE_NOMINAL:	colType = columnType::ColumnTypeNominal;	break;
-	case READSTAT_MEASURE_ORDINAL:	colType = columnType::ColumnTypeOrdinal;	break;
-	case READSTAT_MEASURE_SCALE:	colType = columnType::ColumnTypeScale;		break;
+	case READSTAT_MEASURE_UNKNOWN:	colType = columnType::unknown;	break;
+	case READSTAT_MEASURE_NOMINAL:	colType = columnType::nominal;	break;
+	case READSTAT_MEASURE_ORDINAL:	colType = columnType::ordinal;	break;
+	case READSTAT_MEASURE_SCALE:	colType = columnType::scale;		break;
 	}
 
 	data->addColumn(var_index, new ReadStatImportColumn(data, name, labelsID, colType));
@@ -109,17 +109,17 @@ void ReadStatImporter::initColumn(QVariant colId, ImportColumn * importColumn)
 
 	switch(col->getColumnType())
 	{
-	case columnType::ColumnTypeScale:
+	case columnType::scale:
 		_packageData->initColumnAsScale(colId, col->name(), col->doubles());
 		break;
 
-	case columnType::ColumnTypeOrdinal:
-	case columnType::ColumnTypeNominal:
-		if(col->hasLabels())	_packageData->initColumnAsNominalOrOrdinal(colId, col->name(), col->ints(), col->intLabels(),	col->getColumnType() == columnType::ColumnTypeOrdinal);
-		else					_packageData->initColumnAsNominalOrOrdinal(colId, col->name(), col->ints(), col->uniqueInts(),	col->getColumnType() == columnType::ColumnTypeOrdinal);
+	case columnType::ordinal:
+	case columnType::nominal:
+		if(col->hasLabels())	_packageData->initColumnAsNominalOrOrdinal(colId, col->name(), col->ints(), col->intLabels(),	col->getColumnType() == columnType::ordinal);
+		else					_packageData->initColumnAsNominalOrOrdinal(colId, col->name(), col->ints(), col->uniqueInts(),	col->getColumnType() == columnType::ordinal);
 		break;
 
-	case columnType::ColumnTypeNominalText:
+	case columnType::nominalText:
 		_packageData->storeInEmptyValues(col->name(), _packageData->initColumnAsNominalText(colId, col->name(), col->strings(), col->strLabels()));
 		break;
 

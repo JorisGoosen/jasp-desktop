@@ -2,13 +2,6 @@
 #define COLUMNTYPE_H
 #include "enumutilities.h"
 
-/* replace by:
-	{ columnType::ColumnTypeNominalText	, "nominalText" },
-	{ columnType::ColumnTypeNominal		, "nominal"},
-	{ columnType::ColumnTypeOrdinal		, "ordinal"},
-	{ columnType::ColumnTypeScale		, "scale"}
-	*/
-
-DECLARE_ENUM(columnType, ColumnTypeUnknown = 0, ColumnTypeNominal = 1, ColumnTypeNominalText = 2, ColumnTypeOrdinal = 4, ColumnTypeScale = 8);
+DECLARE_ENUM(columnType, unknown = 0, nominal = 1, nominalText = 2, ordinal = 4, scale = 8);
 
 #endif // COLUMNTYPE_H

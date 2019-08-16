@@ -181,7 +181,7 @@ void JASPExporter::saveDataArchive(archive *a, DataSetPackage *package, boost::f
 
 	for (size_t i = 0; i < columnCount; i++)
 	{
-		if (package->getColumnType(i) != columnType::ColumnTypeScale)
+		if (package->getColumnType(i) != columnType::scale)
 			for (const int & value : package->getColumnDataInts(i))
 				archive_write_data(a, reinterpret_cast<const char*>(&value), sizeof(int));
 		else

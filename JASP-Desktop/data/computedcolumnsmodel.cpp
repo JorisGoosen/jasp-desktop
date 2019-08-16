@@ -391,7 +391,7 @@ ComputedColumn *	ComputedColumnsModel::requestComputedColumnCreation(QString col
 	if(!_package->isColumnNameFree(columnName.toStdString()))
 		return nullptr;
 
-	return createComputedColumn(columnName, int(columnType::ColumnTypeScale), ComputedColumn::computedType::analysis, analysis);
+	return createComputedColumn(columnName, int(columnType::scale), ComputedColumn::computedType::analysis, analysis);
 }
 
 void ComputedColumnsModel::requestColumnCreation(QString columnName, Analysis * analysis, int columnType)

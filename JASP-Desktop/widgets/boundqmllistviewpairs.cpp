@@ -30,7 +30,7 @@ BoundQMLListViewPairs::BoundQMLListViewPairs(QQuickItem* item, AnalysisForm* for
 	, BoundQMLListViewDraggable(item, form)
 	, _boundTo(nullptr)
 {
-	_variableTypesSuggested = int(columnType::ColumnTypeNominal) | int(columnType::ColumnTypeOrdinal) | int(columnType::ColumnTypeScale);
+	_variableTypesSuggested = int(columnType::nominal) | int(columnType::ordinal) | int(columnType::scale);
 	_pairsModel				= new ListModelPairsAssigned(this);
 
 	setDropMode(qmlDropMode::Replace);

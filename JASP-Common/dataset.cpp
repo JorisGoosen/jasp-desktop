@@ -152,10 +152,10 @@ size_t DataSet::getMaximumColumnWidthInCharacters(size_t columnIndex) const
 
 	switch(col.columnType())
 	{
-	case columnType::ColumnTypeScale:
+	case columnType::scale:
 		return 9 + extraPad; //default precision of stringstream is 6 (and sstream is used in displaying scale values) + 3 because Im seeing some weird stuff with exp-notation  etc + some padding because of dots and whatnot
 
-	case columnType::ColumnTypeUnknown:
+	case columnType::unknown:
 		return 0;
 
 	default:

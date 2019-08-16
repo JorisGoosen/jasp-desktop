@@ -9,7 +9,7 @@ class ReadStatImportColumn : public ImportColumn
 {
 public:
 
-				ReadStatImportColumn(ImportDataSet* importDataSet, std::string name, std::string labelsID, columnType columnType = columnType::ColumnTypeUnknown);
+				ReadStatImportColumn(ImportDataSet* importDataSet, std::string name, std::string labelsID, columnType columnType = columnType::unknown);
 				~ReadStatImportColumn()							override;
 
 	size_t						size()									const	override;

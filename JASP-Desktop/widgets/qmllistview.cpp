@@ -147,10 +147,10 @@ int QMLListView::_getAllowedColumnsTypes()
 		allowedColumnsTypes = 0;
 		for (QString& allowedColumn: allowedColumns)
 		{
-			if (allowedColumn == "ordinal")				allowedColumnsTypes |= int(columnType::ColumnTypeOrdinal);
-			else if (allowedColumn == "nominal")		allowedColumnsTypes |= int(columnType::ColumnTypeNominal);
-			else if (allowedColumn == "nominalText")	allowedColumnsTypes |= int(columnType::ColumnTypeNominalText);
-			else if (allowedColumn == "scale")			allowedColumnsTypes |= int(columnType::ColumnTypeScale);
+			if (allowedColumn == "ordinal")				allowedColumnsTypes |= int(columnType::ordinal);
+			else if (allowedColumn == "nominal")		allowedColumnsTypes |= int(columnType::nominal);
+			else if (allowedColumn == "nominalText")	allowedColumnsTypes |= int(columnType::nominalText);
+			else if (allowedColumn == "scale")			allowedColumnsTypes |= int(columnType::scale);
 			else
 				addError(QString::fromLatin1("Wrong column type: ") + allowedColumn + (_name.isEmpty() ? QString() : (QString::fromLatin1(" for ListView ") + _name)));
 		}
