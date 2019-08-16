@@ -100,7 +100,8 @@ FocusScope
 							labelModel.visible = false;
 					}
 
-					ColumnTypeModel {
+					ColumnTypeModel
+					{
 						id: columnTypeModel
 					}
 

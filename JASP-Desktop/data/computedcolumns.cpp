@@ -15,13 +15,12 @@ void ComputedColumns::setPackageModified()
 
 ComputedColumn * ComputedColumns::createComputedColumn(std::string name, Column::ColumnType type, ComputedColumn::computedType desiredType)
 {
-	Column			* column			= columns().createColumn(name);
-	ComputedColumn	* newComputedColumn = new ComputedColumn(&_computedColumns, column, desiredType);
+	_package->createColumn(name, type);
+	ComputedColumn	* newComputedColumn = new ComputedColumn(name, &_computedColumns, desiredType);
 
 	_computedColumns.push_back(newComputedColumn);
-	column->setDefaultValues(type);
 
-	refreshColumnPointers();
+	findAllColumnNames();
 	setPackageModified();
 
 	return newComputedColumn;
@@ -29,10 +28,8 @@ ComputedColumn * ComputedColumns::createComputedColumn(std::string name, Column:
 
 void ComputedColumns::createColumn(std::string name, Column::ColumnType type)
 {
-	Column			* column			= columns().createColumn(name);
-	column->setDefaultValues(type);
-
-	refreshColumnPointers();
+	_package->createColumn(name, type);
+	findAllColumnNames();
 	setPackageModified();
 }
 
@@ -49,14 +46,6 @@ void ComputedColumns::removeComputedColumn(std::string name)
 	setPackageModified();
 
 	columns().removeColumn(name);  //This moves the columns, meaning the pointers in the other computeColumns are now no longer valid..
-	refreshColumnPointers();
-}
-
-void ComputedColumns::refreshColumnPointers()
-{
-	for(ComputedColumn * col : _computedColumns)
-		col->setColumn(&(columns().get(col->name())));
-
 	findAllColumnNames();
 }
 
@@ -156,12 +145,7 @@ std::string ComputedColumns::getError(std::string name)
 
 void ComputedColumns::findAllColumnNames()
 {
-	std::set<std::string> names;
-
-	for(Column & col : columns())
-		names.insert(col.name());
-
-	ComputedColumn::setAllColumnNames(names);
+	ComputedColumn::setAllColumnNames(_package->columnNames());
 }
 
 Json::Value	ComputedColumns::convertToJson()
@@ -179,7 +163,7 @@ void ComputedColumns::convertFromJson(Json::Value json)
 	_computedColumns.clear();
 
 	for(auto colJson : json)
-		_computedColumns.push_back(new ComputedColumn(&_computedColumns, &columns(), colJson));
+		_computedColumns.push_back(new ComputedColumn(&_computedColumns, colJson));
 
 	findAllColumnNames();
 

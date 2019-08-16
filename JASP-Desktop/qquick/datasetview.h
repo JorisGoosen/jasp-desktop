@@ -126,10 +126,11 @@ public slots:
 	void reloadColumnHeaders();
 
 
-	void modelDataChanged(const QModelIndex &, const QModelIndex &, const QVector<int> &)	{ modelAboutToBeReset(); calculateCellSizes(); }
-	void modelHeaderDataChanged(Qt::Orientation, int, int)									{ calculateCellSizes(); }
-	void modelAboutToBeReset()																{ _storedLineFlags.clear(); _storedDisplayText.clear(); }
-	void modelWasReset()																	{ setRolenames(); calculateCellSizes(); }
+	void modelDataChanged(const QModelIndex &, const QModelIndex &, const QVector<int> &);
+	void modelHeaderDataChanged(Qt::Orientation, int, int);
+	void modelAboutToBeReset();
+	void modelWasReset();
+	void setExtraColumnX();
 
 protected:
 	void setRolenames();

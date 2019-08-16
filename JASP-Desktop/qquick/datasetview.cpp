@@ -77,6 +77,29 @@ void DataSetView::setRolenames()
 
 }
 
+void DataSetView::modelDataChanged(const QModelIndex &, const QModelIndex &, const QVector<int> &)
+{
+	modelAboutToBeReset();
+	calculateCellSizes();
+}
+
+void DataSetView::modelHeaderDataChanged(Qt::Orientation, int, int)
+{
+	calculateCellSizes();
+}
+
+void DataSetView::modelAboutToBeReset()
+{
+	_storedLineFlags.clear();
+	_storedDisplayText.clear();
+}
+
+void DataSetView::modelWasReset()
+{
+	setRolenames();
+	calculateCellSizes();
+}
+
 void DataSetView::calculateCellSizes()
 {
 	JASPTIMER_RESUME(calculateCellSizes);
@@ -134,7 +157,6 @@ void DataSetView::calculateCellSizes()
 	for(int col=0; col<_model->columnCount(); col++)
 		w += _dataColsMaxWidth[col];
 
-
 	float x = _rowNumberMaxWidth;
 
 	for(int col=0; col<_model->columnCount(); col++)
@@ -145,7 +167,7 @@ void DataSetView::calculateCellSizes()
 
 	_dataWidth = w;
 
-	qreal	newWidth	= (_extraColumnItem != nullptr ? _dataRowsMaxHeight : 0 ) + _dataWidth,
+	qreal	newWidth	= (_extraColumnItem != nullptr ? _dataRowsMaxHeight + 1 : 0 ) + _dataWidth,
 			newHeight	= _dataRowsMaxHeight * (_model->rowCount() + 1);
 
 	//Log::log() << "Settings WxH: " << newWidth << "X" << newHeight << std::endl;
@@ -155,7 +177,6 @@ void DataSetView::calculateCellSizes()
 	_recalculateCellSizes = false;
 
 	emit itemSizeChanged();
-
 
 	JASPTIMER_STOP(calculateCellSizes);
 }
@@ -747,7 +768,12 @@ void DataSetView::updateExtraColumnItem()
 	_extraColumnItem->setX(_viewportX + _viewportW - extraColumnWidth());
 	_extraColumnItem->setY(_viewportY);
 
-	connect(_extraColumnItem, &QQuickItem::widthChanged, [&](){	_extraColumnItem->setX(_viewportX + _viewportW - _extraColumnItem->width()); });
+	connect(_extraColumnItem, &QQuickItem::widthChanged, this, &DataSetView::setExtraColumnX, Qt::UniqueConnection);
+}
+
+void DataSetView::setExtraColumnX()
+{
+	_extraColumnItem->setX(_viewportX + _viewportW - extraColumnWidth());
 }
 
 QQmlContext * DataSetView::setStyleDataItem(QQmlContext * previousContext, bool active, size_t col, size_t row)

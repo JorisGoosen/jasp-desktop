@@ -204,6 +204,8 @@ public:
 				void						labelMoveRows(size_t column, std::vector<size_t> rows, bool up);
 				void						labelReverse(size_t column);
 
+				void						columnSetDefaultValues(std::string columnName, Column::ColumnType columnType = Column::ColumnTypeUnknown);
+				bool						createColumn(std::string name, Column::ColumnType columnType);
 signals:
 				void				dataSynched(	QStringList				changedColumns,
 													QStringList				missingColumns,
@@ -226,7 +228,7 @@ signals:
 
 public slots:
 				void				refresh() { beginResetModel(); endResetModel(); }
-				void				refreshColumn(Column * column);
+				void				refreshColumn(QString columnName);
 				void				columnWasOverwritten(std::string columnName, std::string possibleError);
 				void				notifyColumnFilterStatusChanged(int columnIndex);
 				void				setColumnsUsedInEasyFilter(std::set<std::string> usedColumns);

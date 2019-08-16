@@ -560,13 +560,19 @@ ComputedColumns	* DataSetPackage::computedColumnsPointer()
 
 void DataSetPackage::setColumnsUsedInEasyFilter(std::set<std::string> usedColumns)
 {
+	std::set<std::string> toUpdate(usedColumns);
+
+	for(const auto & nameAndUsed : _columnNameUsedInEasyFilter)
+		if(nameAndUsed.second)
+			toUpdate.insert(nameAndUsed.first);
+
 	_columnNameUsedInEasyFilter.clear();
 
-	for(auto & col : usedColumns)
-	{
+	for(const std::string & col : usedColumns)
 		_columnNameUsedInEasyFilter[col] = true;
+
+	for(const std::string & col: toUpdate)
 		try { notifyColumnFilterStatusChanged(_dataSet->columns().findIndexByName(col)); } catch(columnNotFound &) {}
-	}
 }
 
 
@@ -669,11 +675,18 @@ bool DataSetPackage::setColumnType(int columnIndex, Column::ColumnType newColumn
 	return changed;
 }
 
-void DataSetPackage::refreshColumn(Column * column)
+void DataSetPackage::refreshColumn(QString columnName)
 {
-	for(size_t col=0; col<_dataSet->columns().columnCount(); col++)
-		if(&(_dataSet->columns()[col]) == column)
-			emit dataChanged(index(0, col, parentModelForType(parIdxType::data)), index(rowCount()-1, col, parentModelForType(parIdxType::data)));
+	if(!_dataSet) return;
+
+	int colIndex = getColumnIndex(columnName);
+
+	if(colIndex >= 0)
+	{
+		QModelIndex p = parentModelForType(parIdxType::data);
+		emit dataChanged(index(0, colIndex, p), index(rowCount(p), colIndex, p));
+		emit headerDataChanged(Qt::Horizontal, colIndex, colIndex);
+	}
 }
 
 void DataSetPackage::columnWasOverwritten(std::string columnName, std::string possibleError)
@@ -1244,4 +1257,34 @@ void DataSetPackage::labelReverse(size_t column)
 	QModelIndex p = parentModelForType(parIdxType::label, column);
 
 	emit dataChanged(index(0, 0, p), index(rowCount(p), columnCount(p), p));
+}
+
+void DataSetPackage::columnSetDefaultValues(std::string columnName, Column::ColumnType columnType)
+{
+	if(!_dataSet) return;
+
+	int colIndex = getColumnIndex(columnName);
+
+	if(colIndex >= 0)
+	{
+		QModelIndex p = parentModelForType(parIdxType::data);
+		_dataSet->column(colIndex).setDefaultValues(columnType);
+		emit dataChanged(index(0, colIndex, p), index(rowCount(p), colIndex, p));
+		emit headerDataChanged(Qt::Horizontal, colIndex, colIndex);
+	}
+}
+
+bool DataSetPackage::createColumn(std::string name, Column::ColumnType columnType)
+{
+	if(!_dataSet || getColumnIndex(name) >= 0) return false;
+
+	size_t newColumnIndex	= columnCount();
+
+	beginResetModel();
+	setDataSetColumnCount(newColumnIndex + 1);
+
+	_dataSet->columns().initializeColumnAs(newColumnIndex, name)->setDefaultValues(columnType);
+	endResetModel();
+
+	return true;
 }

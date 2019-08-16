@@ -28,6 +28,7 @@
 #include "datablock.h"
 #include "labels.h"
 
+#include "columntype.h"
 
 class Column
 {
@@ -50,7 +51,7 @@ class Column
 
 public:
 	///ColumnType is set up to be used as bitflags in places such as assignedVariablesModel and such
-	enum ColumnType { ColumnTypeUnknown = 0, ColumnTypeNominal = 1, ColumnTypeNominalText = 2, ColumnTypeOrdinal = 4, ColumnTypeScale = 8 };
+	//enum ColumnType { ColumnTypeUnknown = 0, ColumnTypeNominal = 1, ColumnTypeNominalText = 2, ColumnTypeOrdinal = 4, ColumnTypeScale = 8 };
 
 	bool resetEmptyValues(std::map<int, std::string>& emptyValuesMap);
 

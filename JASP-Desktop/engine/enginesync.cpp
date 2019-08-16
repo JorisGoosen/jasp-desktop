@@ -549,6 +549,8 @@ void EngineSync::resume()
 {
 	JASPTIMER_RESUME(EngineSync::resume);
 
+	if(!_engineStarted) return;
+
 	for(auto * engine : _engines)
 		engine->resumeEngine();
 

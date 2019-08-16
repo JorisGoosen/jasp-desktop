@@ -108,9 +108,9 @@ size_t Columns::findIndexByName(std::string name) const
 }
 
 
-Column * Columns::createColumn(std::string name)
+Column * Columns::initializeColumnAs(int colIndex, std::string name)
 {
-	Column * column = &at(columnCount() - 1);
+	Column * column = &at(colIndex);
 
 	column->setName(name);
 	column->_setRowCount(maxRowCount());

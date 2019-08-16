@@ -1,11 +1,9 @@
 #ifndef COMPUTEDCOLUMNS_H
 #define COMPUTEDCOLUMNS_H
 
-#include "columns.h"
 #include "computedcolumn.h"
 
 class DataSetPackage;
-class Columns;
 
 class ComputedColumns
 {

@@ -66,13 +66,13 @@ private:
 				void	invalidateDependents(std::string columnName);
 				void	checkForDependentColumnsToBeSent(std::string columnName, bool refreshMe = false);
 				void	emitSendComputeCode(QString columnName, QString code, Column::ColumnType colType);
-				void	clearColumn(std::string columnName);
+
 signals:
 				void	datasetLoadedChanged();
 				void	computeColumnRCodeChanged();
 				void	computeColumnErrorChanged();
 				void	computeColumnJsonChanged();
-				void	refreshColumn(Column * column);
+				void	refreshColumn(QString columnName);
 				void	computeColumnNameSelectedChanged();
 				void	headerDataChanged(Qt::Orientation orientation, int first, int last);
 				void	sendComputeCode(QString columnName, QString code, Column::ColumnType columnType);
