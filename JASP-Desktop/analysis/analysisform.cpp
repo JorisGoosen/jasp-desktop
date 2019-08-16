@@ -65,8 +65,8 @@ QVariant AnalysisForm::requestInfo(const Term &term, VariableInfo::InfoType info
 	try {
 		switch(info)
 		{
-		case VariableInfo::VariableType:		return _package->columnType(term.asString());
-		case VariableInfo::VariableTypeName:	return MainWindow::columnTypeToString(_package->columnType(term.asString()));
+		case VariableInfo::VariableType:		return int(_package->getColumnType(term.asString()));
+		case VariableInfo::VariableTypeName:	return columnTypeToQString(_package->getColumnType(term.asString()));
 		case VariableInfo::Labels:				return _package->getColumnLabelsAsStringList(term.asString());
 		}
 	}

@@ -1,19 +1,13 @@
 #include "computedcolumns.h"
 #include "datasetpackage.h"
 
-Columns& ComputedColumns::columns()
-{
-	return _package->_dataSet->columns();
-}
-
-
 void ComputedColumns::setPackageModified()
 {
 	if(_package != nullptr && _package->isLoaded())
 		_package->setModified(true);
 }
 
-ComputedColumn * ComputedColumns::createComputedColumn(std::string name, Column::ColumnType type, ComputedColumn::computedType desiredType)
+ComputedColumn * ComputedColumns::createComputedColumn(std::string name, columnType type, ComputedColumn::computedType desiredType)
 {
 	_package->createColumn(name, type);
 	ComputedColumn	* newComputedColumn = new ComputedColumn(name, &_computedColumns, desiredType);
@@ -26,7 +20,7 @@ ComputedColumn * ComputedColumns::createComputedColumn(std::string name, Column:
 	return newComputedColumn;
 }
 
-void ComputedColumns::createColumn(std::string name, Column::ColumnType type)
+void ComputedColumns::createColumn(std::string name, columnType type)
 {
 	_package->createColumn(name, type);
 	findAllColumnNames();
@@ -45,7 +39,7 @@ void ComputedColumns::removeComputedColumn(std::string name)
 
 	setPackageModified();
 
-	columns().removeColumn(name);  //This moves the columns, meaning the pointers in the other computeColumns are now no longer valid..
+	_package->removeColumn(name);
 	findAllColumnNames();
 }
 

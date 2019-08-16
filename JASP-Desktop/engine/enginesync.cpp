@@ -172,7 +172,7 @@ void EngineSync::sendRCode(const QString & rCode, int requestId, bool whiteListe
 	_waitingScripts.push(new RScriptStore(requestId, rCode, engineState::rCode, whiteListedVersion));
 }
 
-void EngineSync::computeColumn(const QString & columnName, const QString & computeCode, Column::ColumnType columnType)
+void EngineSync::computeColumn(const QString & columnName, const QString & computeCode, columnType colType)
 {
 	//first we remove the previously sent requests for this same column!
 	std::queue<RScriptStore*> copiedWaiting(_waitingScripts);
@@ -181,12 +181,12 @@ void EngineSync::computeColumn(const QString & columnName, const QString & compu
 	while(copiedWaiting.size() > 0)
 	{
 		RScriptStore * cur = copiedWaiting.front();
-		if(cur->typeScript != engineState::computeColumn || static_cast<RComputeColumnStore*>(cur)->columnName != columnName)
+		if(cur->typeScript != engineState::computeColumn || static_cast<RComputeColumnStore*>(cur)->_columnName != columnName)
 			_waitingScripts.push(cur);
 		copiedWaiting.pop();
 	}
 
-	_waitingScripts.push(new RComputeColumnStore(columnName, computeCode, columnType));
+	_waitingScripts.push(new RComputeColumnStore(columnName, computeCode, colType));
 }
 
 void EngineSync::processFilterScript()

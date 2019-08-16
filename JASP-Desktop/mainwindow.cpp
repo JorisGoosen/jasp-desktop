@@ -85,14 +85,6 @@ QMap<QString, QVariant> MainWindow::_iconDisabledFiles {
 	{ "scale"		, _iconPath + "variable-scale-disabled.svg"}
 };
 
-QMap<int, QString> MainWindow::_columnTypeMap {
-	{ Column::ColumnTypeNominalText	, "nominalText" },
-	{ Column::ColumnTypeNominal		, "nominal"},
-	{ Column::ColumnTypeOrdinal		, "ordinal"},
-	{ Column::ColumnTypeScale		, "scale"}
-};
-
-
 MainWindow::MainWindow(QApplication * application) : QObject(application), _application(application)
 {
 	JASPTIMER_START(MainWindowConstructor);
@@ -188,7 +180,7 @@ void MainWindow::startOnlineDataManager()
 
 }
 
-Q_DECLARE_METATYPE(Column::ColumnType)
+Q_DECLARE_METATYPE(columnType)
 
 void MainWindow::makeConnections()
 {
@@ -216,7 +208,7 @@ void MainWindow::makeConnections()
 	connect(_engineSync,			&EngineSync::computeColumnSucceeded,				_computedColumnsModel,	&ComputedColumnsModel::computeColumnSucceeded				);
 	connect(_engineSync,			&EngineSync::computeColumnFailed,					_computedColumnsModel,	&ComputedColumnsModel::computeColumnFailed					);
 
-	qRegisterMetaType<Column::ColumnType>();
+	qRegisterMetaType<columnType>();
 
 	connect(_computedColumnsModel,	&ComputedColumnsModel::refreshColumn,				_package,				&DataSetPackage::refreshColumn,								Qt::QueuedConnection);
 	connect(_computedColumnsModel,	&ComputedColumnsModel::headerDataChanged,			_package,				&DataSetPackage::headerDataChanged,							Qt::QueuedConnection);
@@ -296,31 +288,30 @@ void MainWindow::loadQML()
 	_qml = new QQmlApplicationEngine(this);
 
 	_qml->rootContext()->setContextProperty("mainWindow",				this);
-	_qml->rootContext()->setContextProperty("dataSetModel",				_datasetTableModel);
 	_qml->rootContext()->setContextProperty("labelModel",				_labelModel);
+	_qml->rootContext()->setContextProperty("aboutModel",				_aboutModel);
+	_qml->rootContext()->setContextProperty("dataSetModel",				_datasetTableModel);
 	_qml->rootContext()->setContextProperty("columnsModel",				_columnsModel);
+	_qml->rootContext()->setContextProperty("analysesModel",			_analyses);
+	_qml->rootContext()->setContextProperty("dynamicModules",			_dynamicModules);
+	_qml->rootContext()->setContextProperty("preferencesModel",			_preferences);
+	_qml->rootContext()->setContextProperty("resultsJsInterface",		_resultsJsInterface);
 	_qml->rootContext()->setContextProperty("computedColumnsInterface",	_computedColumnsModel);
-	_qml->rootContext()->setContextProperty("engineSync",				_engineSync);
+	_qml->rootContext()->setContextProperty("ribbonModelFiltered",		_ribbonModelFiltered);
+	_qml->rootContext()->setContextProperty("resultMenuModel",			_resultMenuModel);
+	_qml->rootContext()->setContextProperty("fileMenuModel",			_fileMenu);
 	_qml->rootContext()->setContextProperty("filterModel",				_filterModel);
 	_qml->rootContext()->setContextProperty("ribbonModel",				_ribbonModel);
-	_qml->rootContext()->setContextProperty("ribbonModelFiltered",		_ribbonModelFiltered);
-	_qml->rootContext()->setContextProperty("dynamicModules",			_dynamicModules);
-	_qml->rootContext()->setContextProperty("resultMenuModel",			_resultMenuModel);
-
-	_qml->rootContext()->setContextProperty("fileMenuModel",			_fileMenu);
-	_qml->rootContext()->setContextProperty("analysesModel",			_analyses);
-	_qml->rootContext()->setContextProperty("resultsJsInterface",		_resultsJsInterface);
+	_qml->rootContext()->setContextProperty("engineSync",				_engineSync);
 	_qml->rootContext()->setContextProperty("helpModel",				_helpModel);
-	_qml->rootContext()->setContextProperty("aboutModel",				_aboutModel);
-	_qml->rootContext()->setContextProperty("preferencesModel",			_preferences);
 
 	_qml->rootContext()->setContextProperty("baseBlockDim",				20); //should be taken from Theme
 	_qml->rootContext()->setContextProperty("baseFontSize",				16);
 
-	_qml->rootContext()->setContextProperty("columnTypeScale",			int(Column::ColumnType::ColumnTypeScale));
-	_qml->rootContext()->setContextProperty("columnTypeOrdinal",		int(Column::ColumnType::ColumnTypeOrdinal));
-	_qml->rootContext()->setContextProperty("columnTypeNominal",		int(Column::ColumnType::ColumnTypeNominal));
-	_qml->rootContext()->setContextProperty("columnTypeNominalText",	int(Column::ColumnType::ColumnTypeNominalText));
+	_qml->rootContext()->setContextProperty("columnTypeScale",			int(columnType::ColumnTypeScale));
+	_qml->rootContext()->setContextProperty("columnTypeOrdinal",		int(columnType::ColumnTypeOrdinal));
+	_qml->rootContext()->setContextProperty("columnTypeNominal",		int(columnType::ColumnTypeNominal));
+	_qml->rootContext()->setContextProperty("columnTypeNominalText",	int(columnType::ColumnTypeNominalText));
 
 	bool debug = false;
 #ifdef JASP_DEBUG

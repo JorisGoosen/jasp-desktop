@@ -86,10 +86,6 @@ public:
 	bool	welcomePageVisible()	const	{ return _welcomePageVisible;	}
 	QString downloadNewJASPUrl()	const	{ return _downloadNewJASPUrl;	}
 
-	static QString columnTypeToString(int columnType) { return _columnTypeMap[columnType]; }
-
-
-
 public slots:
 	void setImageBackgroundHandler(QString value);
 	void plotPPIChangedHandler(int ppi, bool wasUserAction);
@@ -259,7 +255,7 @@ private:
 	QSettings						_settings;
 
 	int								_progressBarProgress,	//Runs from 0 to 100
-									_screenPPI		= 1;
+									_screenPPI				= 1;
 
 	QString							_openOnLoadFilename,
 									_fatalError				= "The engine crashed...",
@@ -287,7 +283,6 @@ private:
 	static QMap<QString, QVariant>	_iconFiles,
 									_iconInactiveFiles,
 									_iconDisabledFiles;
-	static QMap<int, QString>		_columnTypeMap; //Should this be in Column ?
 };
 
 #endif // MAINWIDGET_H

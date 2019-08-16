@@ -122,7 +122,7 @@ public:
 				bool				isColumnInvalidated(size_t colIndex)	const;
 				std::string			getComputedColumnError(size_t colIndex) const;
 
-				void				removeColumn(std::string name)		{ _computedColumns.removeComputedColumn(name);	}
+
 				void				informComputedColumnsOfPackage()	{ _computedColumns.setPackage(this); }
 
 				ComputedColumns	*	computedColumnsPointer();
@@ -144,7 +144,7 @@ public:
 				size_t				addColumnToDataSet();
 				int					columnsFilteredCount();
 
-				bool				setColumnType(int columnIndex, Column::ColumnType newColumnType);
+				bool				setColumnType(int columnIndex, columnType newColumnType);
 
 				void				beginLoadingData();
 				void				endLoadingData();
@@ -177,16 +177,16 @@ public:
 
 				void						renameColumn(std::string oldColumnName, std::string newColumnName);
 				void						writeDataSetToOStream(std::ostream & out, bool includeComputed);
-				std::string					getColumnTypeNameForJASPFile(Column::ColumnType columnType);
-				Column::ColumnType			parseColumnTypeForJASPFile(std::string name);
+				std::string					getColumnTypeNameForJASPFile(columnType columnType);
+				columnType					parseColumnTypeForJASPFile(std::string name);
 				Json::Value					columnToJsonForJASPFile(size_t columnIndex, Json::Value labelsData, size_t & dataSize);
 				void						columnLabelsFromJsonForJASPFile(Json::Value xData, Json::Value columnDesc, size_t columnIndex, std::map<std::string, std::map<int, int> > & mapNominalTextValues);
 
-				Column::ColumnType			columnType(std::string columnName)	const;
-				Column::ColumnType			columnType(size_t columnIndex)		const	{ return _dataSet ? _dataSet->column(columnIndex).columnType() : Column::ColumnTypeUnknown; }
-				std::string					getColumnName(size_t columnIndex)	const	{ return _dataSet ? _dataSet->column(columnIndex).name() : ""; }
-				int							getColumnIndex(std::string name)	const	{ return !_dataSet ? -1 : _dataSet->getColumnIndex(name); }
-				int							getColumnIndex(QString name)		const	{ return getColumnIndex(name.toStdString()); }
+				enum columnType				getColumnType(std::string columnName)	const;
+				enum columnType				getColumnType(size_t columnIndex)		const	{ return _dataSet ? _dataSet->column(columnIndex).columnType() : columnType::ColumnTypeUnknown; }
+				std::string					getColumnName(size_t columnIndex)		const	{ return _dataSet ? _dataSet->column(columnIndex).name() : ""; }
+				int							getColumnIndex(std::string name)		const	{ return !_dataSet ? -1 : _dataSet->getColumnIndex(name); }
+				int							getColumnIndex(QString name)			const	{ return getColumnIndex(name.toStdString()); }
 				std::vector<int>			getColumnDataInts(size_t columnIndex);
 				std::vector<double>			getColumnDataDbls(size_t columnIndex);
 				void						setColumnDataInts(size_t columnIndex, std::vector<int> ints);
@@ -204,8 +204,10 @@ public:
 				void						labelMoveRows(size_t column, std::vector<size_t> rows, bool up);
 				void						labelReverse(size_t column);
 
-				void						columnSetDefaultValues(std::string columnName, Column::ColumnType columnType = Column::ColumnTypeUnknown);
-				bool						createColumn(std::string name, Column::ColumnType columnType);
+				void						columnSetDefaultValues(std::string columnName, columnType colType = columnType::ColumnTypeUnknown);
+				bool						createColumn(std::string name, columnType colType);
+				void						removeColumn(std::string name);
+
 signals:
 				void				dataSynched(	QStringList				changedColumns,
 													QStringList				missingColumns,

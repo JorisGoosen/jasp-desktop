@@ -65,7 +65,7 @@ private:
 				void	invalidate(QString name);
 				void	invalidateDependents(std::string columnName);
 				void	checkForDependentColumnsToBeSent(std::string columnName, bool refreshMe = false);
-				void	emitSendComputeCode(QString columnName, QString code, Column::ColumnType colType);
+				void	emitSendComputeCode(QString columnName, QString code, columnType colType);
 
 signals:
 				void	datasetLoadedChanged();
@@ -75,7 +75,7 @@ signals:
 				void	refreshColumn(QString columnName);
 				void	computeColumnNameSelectedChanged();
 				void	headerDataChanged(Qt::Orientation orientation, int first, int last);
-				void	sendComputeCode(QString columnName, QString code, Column::ColumnType columnType);
+				void	sendComputeCode(QString columnName, QString code, columnType columnType);
 				void	computeColumnUsesRCodeChanged();
 				void	refreshData();
 				void	showAnalysisForm(Analysis *analysis);

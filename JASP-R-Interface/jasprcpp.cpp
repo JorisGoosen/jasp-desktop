@@ -694,7 +694,7 @@ void jaspRCPP_setColumnDataHelper_FactorsLevels(Rcpp::Vector<INTSXP> data, int *
 
 RBridgeColumnType* jaspRCPP_marshallSEXPs(SEXP columns, SEXP columnsAsNumeric, SEXP columnsAsOrdinal, SEXP columnsAsNominal, SEXP allColumns, size_t * colMax)
 {
-	std::map<std::string, ColumnType> columnsRequested;
+	std::map<std::string, columnType> columnsRequested;
 
 	if (Rf_isLogical(allColumns) && Rcpp::as<bool>(allColumns))
 	{
@@ -706,7 +706,7 @@ RBridgeColumnType* jaspRCPP_marshallSEXPs(SEXP columns, SEXP columnsAsNumeric, S
 		}
 	}
 
-	auto setTypeRequested = [&columnsRequested](SEXP cols, ColumnType SetThis)
+	auto setTypeRequested = [&columnsRequested](SEXP cols, columnType SetThis)
 	{
 		if(Rf_isString(cols))
 		{

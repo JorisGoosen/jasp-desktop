@@ -9,18 +9,19 @@ QVariant ColumnsModel::data(const QModelIndex &index, int role) const
 	case NameRole:			return _tableModel->columnTitle(index.row());
 	case TypeRole:			return "column";
 	case IconSourceRole:
-		switch(_tableModel->columnType(index.row()))
+		switch(_tableModel->getColumnType(index.row()))
 		{
-		case Column::ColumnType::ColumnTypeScale:		return "qrc:/icons/variable-scale.svg";
-		case Column::ColumnType::ColumnTypeOrdinal:		return "qrc:/icons/variable-ordinal.svg";
-		case Column::ColumnType::ColumnTypeNominal:		return "qrc:/icons/variable-nominal.svg";
-		case Column::ColumnType::ColumnTypeNominalText:	return "qrc:/icons/variable-nominal-text.svg";
+		case columnType::ColumnTypeScale:		return "qrc:/icons/variable-scale.svg";
+		case columnType::ColumnTypeOrdinal:		return "qrc:/icons/variable-ordinal.svg";
+		case columnType::ColumnTypeNominal:		return "qrc:/icons/variable-nominal.svg";
+		case columnType::ColumnTypeNominalText:	return "qrc:/icons/variable-nominal-text.svg";
 		default:										return "";
 		}
 	case ToolTipRole:
 	{
-		Column::ColumnType colType = _tableModel->columnType(index.row());
-		QString usedIn = colType == Column::ColumnType::ColumnTypeScale ? "which can be used in numerical comparisons" : colType == Column::ColumnType::ColumnTypeOrdinal ? "which can only be used in (in)equivalence, greater and lesser than comparisons" : "which can only be used in (in)equivalence comparisons";
+		columnType	colType = _tableModel->getColumnType(index.row());
+		QString		usedIn	= colType == columnType::ColumnTypeScale ? "which can be used in numerical comparisons" : colType == columnType::ColumnTypeOrdinal ? "which can only be used in (in)equivalence, greater and lesser than comparisons" : "which can only be used in (in)equivalence comparisons";
+
 		return "The '" + _tableModel->columnTitle(index.row()).toString() + "'-column " + usedIn;
 	}
 	}

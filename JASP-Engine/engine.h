@@ -68,7 +68,7 @@ private: // Methods:
 	void receiveLogCfg(					const Json::Value & jsonRequest);
 
 	void runAnalysis();
-	void runComputeColumn(	const std::string & computeColumnName,	const std::string & computeColumnCode,	Column::ColumnType computeColumnType);
+	void runComputeColumn(	const std::string & computeColumnName,	const std::string & computeColumnCode,	columnType computeColumnType);
 	void runFilter(			const std::string & filter,				const std::string & generatedFilter,	int filterRequestId);
 	void runRCode(			const std::string & rCode,				int rCodeRequestId,						bool whiteListed);
 

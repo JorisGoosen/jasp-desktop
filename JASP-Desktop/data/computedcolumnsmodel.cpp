@@ -127,7 +127,7 @@ bool ComputedColumnsModel::areLoopDependenciesOk(std::string columnName, std::st
 	return true;
 }
 
-void ComputedColumnsModel::emitSendComputeCode(QString columnName, QString code, Column::ColumnType colType)
+void ComputedColumnsModel::emitSendComputeCode(QString columnName, QString code, columnType colType)
 {
 	if(areLoopDependenciesOk(columnName.toStdString(), code.toStdString()))
 		emit sendComputeCode(columnName, code, colType);
@@ -148,7 +148,7 @@ void ComputedColumnsModel::sendCode(QString code)
 {
 	std::string columnName = _currentlySelectedName.toStdString();
 	setComputeColumnRCode(code);
-	emitSendComputeCode(_currentlySelectedName, computeColumnRCodeCommentStripped(), _package->columnType(columnName));
+	emitSendComputeCode(_currentlySelectedName, computeColumnRCodeCommentStripped(), _package->getColumnType(columnName));
 }
 
 void ComputedColumnsModel::validate(QString columnName)
@@ -256,7 +256,7 @@ void ComputedColumnsModel::checkForDependentColumnsToBeSent(std::string columnNa
 		if(	col->codeType() != ComputedColumn::computedType::analysis				&&
 			col->codeType() != ComputedColumn::computedType::analysisNotComputed	&&
 			col->iShouldBeSentAgain() )
-			emitSendComputeCode(QString::fromStdString(col->name()), QString::fromStdString(col->rCodeCommentStripped()), _package->columnType(columnName));
+			emitSendComputeCode(QString::fromStdString(col->name()), QString::fromStdString(col->rCodeCommentStripped()), _package->getColumnType(columnName));
 
 	checkForDependentAnalyses(columnName);
 }
@@ -353,12 +353,12 @@ void ComputedColumnsModel::packageSynchronized(const std::vector<std::string> & 
 		col->findDependencies(); //columnNames might have changed right? so check it again
 
 		if(col->iShouldBeSentAgain())
-			emitSendComputeCode(QString::fromStdString(col->name()), QString::fromStdString(col->rCodeCommentStripped()), _package->columnType(col->name()));
+			emitSendComputeCode(QString::fromStdString(col->name()), QString::fromStdString(col->rCodeCommentStripped()), _package->getColumnType(col->name()));
 	}
 }
 
 
-ComputedColumn * ComputedColumnsModel::createComputedColumn(QString name, int columnType, ComputedColumn::computedType computeType, Analysis * analysis)
+ComputedColumn * ComputedColumnsModel::createComputedColumn(QString name, int colType, ComputedColumn::computedType computeType, Analysis * analysis)
 {
 	bool success			= false;
 
@@ -369,11 +369,11 @@ ComputedColumn * ComputedColumnsModel::createComputedColumn(QString name, int co
 
 	if(createActualComputedColumn)
 	{
-		createdColumn = computedColumnsPointer()->createComputedColumn(name.toStdString(), (Column::ColumnType)columnType, computeType);
+		createdColumn = computedColumnsPointer()->createComputedColumn(name.toStdString(), columnType(colType), computeType);
 		createdColumn->setAnalysis(analysis);
 	}
 	else
-		computedColumnsPointer()->createColumn(name.toStdString(), (Column::ColumnType)columnType);
+		computedColumnsPointer()->createColumn(name.toStdString(), columnType(colType));
 
 	emit refreshData();
 
@@ -391,7 +391,7 @@ ComputedColumn *	ComputedColumnsModel::requestComputedColumnCreation(QString col
 	if(!_package->isColumnNameFree(columnName.toStdString()))
 		return nullptr;
 
-	return createComputedColumn(columnName, (int)Column::ColumnTypeScale, ComputedColumn::computedType::analysis, analysis);
+	return createComputedColumn(columnName, int(columnType::ColumnTypeScale), ComputedColumn::computedType::analysis, analysis);
 }
 
 void ComputedColumnsModel::requestColumnCreation(QString columnName, Analysis * analysis, int columnType)

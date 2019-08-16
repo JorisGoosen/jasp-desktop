@@ -161,7 +161,7 @@ int DataSetPackage::rowCount(const QModelIndex & parent) const
 		if(parent.column() >= _dataSet->columnCount()) return 0;
 
 		Column & col = _dataSet->columns()[parent.column()];
-		if(col.columnType() == Column::ColumnTypeScale)
+		if(col.columnType() == columnType::ColumnTypeScale)
 			return 0;
 
 		int labelSize = col.labels().size();
@@ -220,7 +220,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		case Qt::DisplayRole:						return tq(_dataSet->column(index.column())[index.row()]);
 		case int(specialRoles::value):				return tq(_dataSet->column(index.column()).getOriginalValue(index.row()));
 		case int(specialRoles::filter):				return getRowFilter(index.row());
-		case int(specialRoles::columnType):			return _dataSet->columns()[index.column()].columnType();
+		case int(specialRoles::columnType):			return int(_dataSet->columns()[index.column()].columnType());
 		case int(specialRoles::lines):
 		{
 			bool	iAmActive		= getRowFilter(index.row()),
@@ -627,7 +627,7 @@ QVariant DataSetPackage::columnTitle(int column) const
 QVariant DataSetPackage::columnIcon(int column) const
 {
 	if(_dataSet != nullptr && column >= 0 && size_t(column) < _dataSet->columnCount())
-		return QVariant(_dataSet->column(column).columnType());
+		return QVariant(int(_dataSet->column(column).columnType()));
 
 	return QVariant(-1);
 }
@@ -664,7 +664,7 @@ void DataSetPackage::resetAllFilters()
 	emit headerDataChanged(Qt::Horizontal, 0, columnCount());
 }
 
-bool DataSetPackage::setColumnType(int columnIndex, Column::ColumnType newColumnType)
+bool DataSetPackage::setColumnType(int columnIndex, columnType newColumnType)
 {
 	if (_dataSet == nullptr)
 		return true;
@@ -698,7 +698,7 @@ void DataSetPackage::columnWasOverwritten(std::string columnName, std::string po
 
 int DataSetPackage::setColumnTypeFromQML(int columnIndex, int newColumnType)
 {
-	bool changed = setColumnType(columnIndex, Column::ColumnType(newColumnType));
+	bool changed = setColumnType(columnIndex, getColumnType(newColumnType));
 
 	if (changed)
 	{
@@ -706,7 +706,7 @@ int DataSetPackage::setColumnTypeFromQML(int columnIndex, int newColumnType)
 		emit columnDataTypeChanged(_dataSet->column(columnIndex).name());
 	}
 
-	return columnType(columnIndex);
+	return int(getColumnType(columnIndex));
 }
 
 void DataSetPackage::beginSynchingData()
@@ -968,25 +968,25 @@ void DataSetPackage::writeDataSetToOStream(std::ostream & out, bool includeCompu
 		}
 }
 
-std::string DataSetPackage::getColumnTypeNameForJASPFile(Column::ColumnType columnType)
+std::string DataSetPackage::getColumnTypeNameForJASPFile(columnType columnType)
 {
 	switch(columnType)
 	{
-	case Column::ColumnTypeNominal:			return "Nominal";
-	case Column::ColumnTypeNominalText:		return "NominalText";
-	case Column::ColumnTypeOrdinal:			return "Ordinal";
-	case Column::ColumnTypeScale:			return "Continuous";
-	default:								return "Unknown";
+	case columnType::ColumnTypeNominal:			return "Nominal";
+	case columnType::ColumnTypeNominalText:		return "NominalText";
+	case columnType::ColumnTypeOrdinal:			return "Ordinal";
+	case columnType::ColumnTypeScale:			return "Continuous";
+	default:									return "Unknown";
 	}
 }
 
-Column::ColumnType DataSetPackage::parseColumnTypeForJASPFile(std::string name)
+columnType DataSetPackage::parseColumnTypeForJASPFile(std::string name)
 {
-	if (name == "Nominal")				return  Column::ColumnTypeNominal;
-	else if (name == "NominalText")		return  Column::ColumnTypeNominalText;
-	else if (name == "Ordinal")			return  Column::ColumnTypeOrdinal;
-	else if (name == "Continuous")		return  Column::ColumnTypeScale;
-	else								return  Column::ColumnTypeUnknown;
+	if (name == "Nominal")				return  columnType::ColumnTypeNominal;
+	else if (name == "NominalText")		return  columnType::ColumnTypeNominalText;
+	else if (name == "Ordinal")			return  columnType::ColumnTypeOrdinal;
+	else if (name == "Continuous")		return  columnType::ColumnTypeScale;
+	else								return  columnType::ColumnTypeUnknown;
 }
 
 Json::Value DataSetPackage::columnToJsonForJASPFile(size_t columnIndex, Json::Value labelsData, size_t & dataSize)
@@ -997,7 +997,7 @@ Json::Value DataSetPackage::columnToJsonForJASPFile(size_t columnIndex, Json::Va
 	columnMetaData["name"]			= Json::Value(name);
 	columnMetaData["measureType"]	= Json::Value(getColumnTypeNameForJASPFile(column.columnType()));
 
-	if (column.columnType()			!= Column::ColumnTypeScale)
+	if (column.columnType()			!= columnType::ColumnTypeScale)
 	{
 		columnMetaData["type"] = Json::Value("integer");
 		dataSize += sizeof(int) * rowCount();
@@ -1009,7 +1009,7 @@ Json::Value DataSetPackage::columnToJsonForJASPFile(size_t columnIndex, Json::Va
 	}
 
 
-	if (column.columnType() != Column::ColumnTypeScale)
+	if (column.columnType() != columnType::ColumnTypeScale)
 	{
 		Labels &labels = column.labels();
 		if (labels.size() > 0)
@@ -1066,7 +1066,7 @@ void DataSetPackage::columnLabelsFromJsonForJASPFile(Json::Value xData, Json::Va
 	enlargeDataSetIfNecessary([&]()
 	{
 		Column &column = _dataSet->column(columnIndex);
-		Column::ColumnType columnType = parseColumnTypeForJASPFile(columnDesc["measureType"].asString());
+		columnType columnType = parseColumnTypeForJASPFile(columnDesc["measureType"].asString());
 
 		column.setName(name);
 		column.setColumnType(columnType);
@@ -1083,13 +1083,13 @@ void DataSetPackage::columnLabelsFromJsonForJASPFile(Json::Value xData, Json::Va
 			bool fil		= keyValueFilterTrip.get(2,			true).asBool();
 			int labelValue	= key;
 
-			if (columnType == Column::ColumnTypeNominalText)
+			if (columnType == columnType::ColumnTypeNominalText)
 			{
 				labelValue		= index;
 				mapValues[key]	= labelValue;
 			}
 
-			labels.add(labelValue, val, fil, columnType == Column::ColumnTypeNominalText);
+			labels.add(labelValue, val, fil, columnType == columnType::ColumnTypeNominalText);
 
 			index++;
 		}
@@ -1147,7 +1147,7 @@ void DataSetPackage::setColumnDataInts(size_t columnIndex, std::vector<int> ints
 		catch (const labelNotFound &)
 		{
 			Log::log() << "Value '" << value << "' in column '" << col.name() << "' did not have a corresponding label, adding one now.\n";
-			lab.add(value, std::to_string(value), true, col.columnType() == Column::ColumnTypeNominalText);
+			lab.add(value, std::to_string(value), true, col.columnType() == columnType::ColumnTypeNominalText);
 		}
 
 		col.setValue(r, value);
@@ -1195,12 +1195,12 @@ bool DataSetPackage::setFilterData(std::string filter, std::vector<bool> filterR
 	return someFilterValueChanged;
 }
 
-Column::ColumnType DataSetPackage::columnType(std::string columnName)	const
+columnType DataSetPackage::getColumnType(std::string columnName)	const
 {
 	int colIndex = getColumnIndex(columnName);
 
-	if(colIndex > -1)	return columnType(colIndex);
-	else				return Column::ColumnTypeUnknown;
+	if(colIndex > -1)	return getColumnType(colIndex);
+	else				return columnType::ColumnTypeUnknown;
 }
 
 QStringList DataSetPackage::getColumnLabelsAsStringList(std::string columnName)	const
@@ -1259,7 +1259,7 @@ void DataSetPackage::labelReverse(size_t column)
 	emit dataChanged(index(0, 0, p), index(rowCount(p), columnCount(p), p));
 }
 
-void DataSetPackage::columnSetDefaultValues(std::string columnName, Column::ColumnType columnType)
+void DataSetPackage::columnSetDefaultValues(std::string columnName, columnType columnType)
 {
 	if(!_dataSet) return;
 
@@ -1274,9 +1274,9 @@ void DataSetPackage::columnSetDefaultValues(std::string columnName, Column::Colu
 	}
 }
 
-bool DataSetPackage::createColumn(std::string name, Column::ColumnType columnType)
+bool DataSetPackage::createColumn(std::string name, columnType columnType)
 {
-	if(!_dataSet || getColumnIndex(name) >= 0) return false;
+	if(getColumnIndex(name) >= 0) return false;
 
 	size_t newColumnIndex	= columnCount();
 
@@ -1287,4 +1287,16 @@ bool DataSetPackage::createColumn(std::string name, Column::ColumnType columnTyp
 	endResetModel();
 
 	return true;
+}
+
+void DataSetPackage::removeColumn(std::string name)
+{
+	int colIndex = getColumnIndex(name);
+	if(colIndex == -1) return;
+
+	beginResetModel();
+	_dataSet->columns().removeColumn(name);
+	endResetModel();
+
+	if(isLoaded()) setModified(true);
 }

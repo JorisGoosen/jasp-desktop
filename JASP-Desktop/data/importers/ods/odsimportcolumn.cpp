@@ -36,7 +36,7 @@ using namespace ods;
 ODSImportColumn::ODSImportColumn(ODSImportDataSet* importDataSet, int columnNumber, string name)
 	: ImportColumn(importDataSet, name)
 	, _columnNumber(columnNumber)
-	, _columnType(Column::ColumnTypeUnknown)
+	, _columnType(columnType::ColumnTypeUnknown)
 {
 }
 

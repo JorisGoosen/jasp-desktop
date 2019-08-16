@@ -9,11 +9,11 @@ class ReadStatImportColumn : public ImportColumn
 {
 public:
 
-				ReadStatImportColumn(ImportDataSet* importDataSet, std::string name, std::string labelsID, Column::ColumnType columnType = Column::ColumnTypeUnknown);
+				ReadStatImportColumn(ImportDataSet* importDataSet, std::string name, std::string labelsID, columnType columnType = columnType::ColumnTypeUnknown);
 				~ReadStatImportColumn()							override;
 
 	size_t						size()									const	override;
-	Column::ColumnType			columnType()							const				{ return _type; }
+	columnType					getColumnType()							const				{ return _type; }
 	std::vector<std::string>	allValuesAsStrings()					const	override;
 	bool						hasLabels()								const				{ return _labelsID != ""; }
 	const std::string &			labelsID()								const				{ return  _labelsID;	}
@@ -38,7 +38,7 @@ public:
 
 private:
 	std::string					_labelsID;
-	Column::ColumnType			_type;
+	columnType			_type;
 	std::vector<int>			_ints;
 	std::vector<double>			_doubles;
 	std::vector<std::string>	_strings;

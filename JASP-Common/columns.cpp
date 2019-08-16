@@ -71,12 +71,7 @@ void Columns::setColumnCount(size_t columnCount)
 
 void Columns::removeColumn(size_t index)
 {
-	for (ColumnVector::iterator it = _columnStore.begin(); it != _columnStore.end(); ++it, --index)
-		if (index == 0)
-		{
-			_columnStore.erase(it);
-			return;
-		}
+	_columnStore.erase(_columnStore.begin() + index);
 }
 
 void Columns::removeColumn(std::string name)

@@ -129,7 +129,7 @@ bool Column::_resetEmptyValuesForNominal(std::map<int, string> &emptyValuesMap)
 
 	if (changeToNominalText)
 	{
-		setColumnType(Column::ColumnTypeNominalText);
+		setColumnType(columnType::ColumnTypeNominalText);
 		emptyValuesMap.clear();
 		emptyValuesMap.insert(emptyValuesMapOrg.begin(), emptyValuesMapOrg.end());
 		hasChanged = _resetEmptyValuesForNominalText(emptyValuesMap, false);
@@ -405,9 +405,9 @@ bool Column::resetEmptyValues(std::map<int, string> &emptyValuesMap)
 {
 	switch(_columnType)
 	{
-	case Column::ColumnTypeOrdinal:
-	case Column::ColumnTypeNominal:		return _resetEmptyValuesForNominal(emptyValuesMap);
-	case Column::ColumnTypeScale:		return _resetEmptyValuesForScale(emptyValuesMap);
+	case columnType::ColumnTypeOrdinal:
+	case columnType::ColumnTypeNominal:		return _resetEmptyValuesForNominal(emptyValuesMap);
+	case columnType::ColumnTypeScale:		return _resetEmptyValuesForScale(emptyValuesMap);
 	default:							return _resetEmptyValuesForNominalText(emptyValuesMap);
 	}
 }
@@ -418,19 +418,19 @@ void Column::setSharedMemory(managed_shared_memory *mem)
 	_labels.setSharedMemory(mem);
 }
 
-Column::ColumnType Column::columnType() const
+columnType Column::columnType() const
 {
 	return _columnType;
 }
 
-bool Column::_changeColumnToNominalOrOrdinal(ColumnType newColumnType)
+bool Column::_changeColumnToNominalOrOrdinal(enum columnType newColumnType)
 {
 	bool success = true;
-	if (_columnType == ColumnTypeNominal || _columnType == ColumnTypeOrdinal)
+	if (_columnType == columnType::ColumnTypeNominal || _columnType == columnType::ColumnTypeOrdinal)
 	{
 		_columnType = newColumnType;
 	}
-	else if (_columnType == ColumnTypeNominalText)
+	else if (_columnType == columnType::ColumnTypeNominalText)
 	{
 		vector<int> values;
 		set<int> uniqueIntValues;
@@ -465,15 +465,15 @@ bool Column::_changeColumnToNominalOrOrdinal(ColumnType newColumnType)
 		if (success)
 		{
 			_labels.clear();
-			setColumnAsNominalOrOrdinal(values, intLabels, newColumnType == ColumnType::ColumnTypeOrdinal);
+			setColumnAsNominalOrOrdinal(values, intLabels, newColumnType == columnType::ColumnTypeOrdinal);
 		}
-		else if (newColumnType == ColumnType::ColumnTypeNominal)
+		else if (newColumnType == columnType::ColumnTypeNominal)
 			// ColumnTypeNominalText to ColumnTypeNominal: we could not make the values as integers, but
 			// the column can still stay a NominalText, so it is not a failure.
 			success = true;
 
 	}
-	else if (_columnType == ColumnTypeScale)
+	else if (_columnType == columnType::ColumnTypeScale)
 	{
 		vector<int> values;
 		set<int> uniqueIntValues;
@@ -494,8 +494,8 @@ bool Column::_changeColumnToNominalOrOrdinal(ColumnType newColumnType)
 		}
 
 		if (success)
-			setColumnAsNominalOrOrdinal(values, uniqueIntValues, newColumnType == ColumnTypeOrdinal);
-		else if (newColumnType == ColumnType::ColumnTypeNominal)
+			setColumnAsNominalOrOrdinal(values, uniqueIntValues, newColumnType == columnType::ColumnTypeOrdinal);
+		else if (newColumnType == columnType::ColumnTypeNominal)
 		{
 			vector<string> values;
 			Doubles::iterator doubles = AsDoubles.begin();
@@ -528,7 +528,7 @@ bool Column::_changeColumnToScale()
 	Ints::iterator ints = AsInts.begin();
 	Ints::iterator end = AsInts.end();
 
-	if (_columnType == Column::ColumnTypeNominal || _columnType == Column::ColumnTypeOrdinal)
+	if (_columnType == columnType::ColumnTypeNominal || _columnType == columnType::ColumnTypeOrdinal)
 	{
 		for (; ints != end; ints++)
 		{
@@ -541,7 +541,7 @@ bool Column::_changeColumnToScale()
 			values.push_back(doubleValue);
 		}
 	}
-	else if (_columnType == ColumnTypeNominalText)
+	else if (_columnType == columnType::ColumnTypeNominalText)
 	{
 		for (; ints != end; ints++)
 		{
@@ -570,18 +570,11 @@ bool Column::_changeColumnToScale()
 	return success;
 }
 
-bool Column::changeColumnType(Column::ColumnType newColumnType)
+bool Column::changeColumnType(enum columnType newColumnType)
 {
-	if (newColumnType == _columnType)
-		return true;
-
-	bool success = true;
-	if (newColumnType == ColumnTypeScale)
-		success = _changeColumnToScale();
-	else
-		success = _changeColumnToNominalOrOrdinal(newColumnType);
-
-	return success;
+	if (newColumnType == _columnType)					return true;
+	if (newColumnType == columnType::ColumnTypeScale)	return _changeColumnToScale();
+														return _changeColumnToNominalOrOrdinal(newColumnType);
 }
 
 bool Column::overwriteDataWithScale(std::vector<double> scalarData)
@@ -672,18 +665,18 @@ bool Column::overwriteDataWithNominal(std::vector<std::string> nominalData)
 	return changedSomething;
 }
 
-void Column::setDefaultValues(Column::ColumnType columnType)
+void Column::setDefaultValues(enum columnType columnType)
 {
-	if(columnType == ColumnTypeUnknown)
+	if(columnType == columnType::ColumnTypeUnknown)
 		columnType = _columnType;
 
 	switch(columnType)
 	{
-	case ColumnTypeScale:		overwriteDataWithScale(std::vector<double>(rowCount(), static_cast<double>(std::nanf(""))));	break;
-	case ColumnTypeOrdinal:		overwriteDataWithOrdinal(std::vector<int>(rowCount(), INT_MIN));								break;
-	case ColumnTypeNominal:		overwriteDataWithNominal(std::vector<int>(rowCount(), INT_MIN));								break;
-	case ColumnTypeNominalText:	overwriteDataWithNominal(std::vector<std::string>(rowCount()));									break;
-	case ColumnTypeUnknown:		throw std::runtime_error("Trying to set default values of a column with unknown column type...");
+	case columnType::ColumnTypeScale:		overwriteDataWithScale(std::vector<double>(rowCount(), static_cast<double>(std::nanf(""))));	break;
+	case columnType::ColumnTypeOrdinal:		overwriteDataWithOrdinal(std::vector<int>(rowCount(), INT_MIN));								break;
+	case columnType::ColumnTypeNominal:		overwriteDataWithNominal(std::vector<int>(rowCount(), INT_MIN));								break;
+	case columnType::ColumnTypeNominalText:	overwriteDataWithNominal(std::vector<std::string>(rowCount()));									break;
+	case columnType::ColumnTypeUnknown:		throw std::runtime_error("Trying to set default values of a column with unknown column type...");
 	}
 	_labels.clear();
 }
@@ -740,7 +733,7 @@ bool Column::_setColumnAsNominalOrOrdinal(const vector<int> &values, bool is_ord
 		nb_values++;
 	}
 
-	setColumnType(is_ordinal ? Column::ColumnTypeOrdinal : Column::ColumnTypeNominal);
+	setColumnType(is_ordinal ? columnType::ColumnTypeOrdinal : columnType::ColumnTypeNominal);
 
 	return changedSomething;
 
@@ -764,7 +757,7 @@ bool Column::setColumnAsScale(const std::vector<double> &values)
 		doubleInputItr++;
 	}
 
-	setColumnType(Column::ColumnTypeScale);
+	setColumnType(columnType::ColumnTypeScale);
 
 	return changedSomething;
 }
@@ -831,7 +824,7 @@ std::map<int, std::string> Column::setColumnAsNominalText(const std::vector<std:
 		nb_values++;
 	}
 
-	setColumnType(Column::ColumnTypeNominalText);
+	setColumnType(columnType::ColumnTypeNominalText);
 
 	return emptyValuesMap;
 }
@@ -912,7 +905,7 @@ bool Column::isValueEqual(int row, double value)
 	if (row >= _rowCount)
 		return false;
 
-	if (_columnType == Column::ColumnTypeScale)
+	if (_columnType == columnType::ColumnTypeScale)
 	{
 		double d = AsDoubles[row];
 		if (Utils::isEmptyValue(value))
@@ -929,11 +922,11 @@ bool Column::isValueEqual(int row, int value)
 	if (row >= _rowCount)
 		return false;
 
-	if (_columnType == Column::ColumnTypeScale)
+	if (_columnType == columnType::ColumnTypeScale)
 		return AsDoubles[row] == value;
 
 	int intValue = AsInts[row];
-	if (_columnType == Column::ColumnTypeNominal || _columnType == Column::ColumnTypeOrdinal)
+	if (_columnType == columnType::ColumnTypeNominal || _columnType == columnType::ColumnTypeOrdinal)
 	{
 		bool result = (intValue == value);
 		if (!result)
@@ -969,7 +962,7 @@ bool Column::isValueEqual(int row, const string &value)
 	bool result = false;
 	switch (_columnType)
 	{
-		case Column::ColumnTypeScale:
+		case columnType::ColumnTypeScale:
 		{
 			double v = AsDoubles[row];
 			stringstream s;
@@ -979,8 +972,8 @@ bool Column::isValueEqual(int row, const string &value)
 			break;
 		}
 
-		case Column::ColumnTypeNominal:
-		case Column::ColumnTypeOrdinal:
+		case columnType::ColumnTypeNominal:
+		case columnType::ColumnTypeOrdinal:
 		{
 			int v = AsInts[row];
 			stringstream s;
@@ -1031,7 +1024,7 @@ string Column::getOriginalValue(int row)
 
 	if (row < _rowCount)
 	{
-		if (_columnType == Column::ColumnTypeScale)
+		if (_columnType == columnType::ColumnTypeScale)
 		{
 			result = _getScaleValue(row);
 		}
@@ -1055,7 +1048,7 @@ string Column::operator [](int row)
 
 	if (row < _rowCount)
 	{
-		if (_columnType == Column::ColumnTypeScale)
+		if (_columnType == columnType::ColumnTypeScale)
 		{
 			result = _getScaleValue(row);
 		}
@@ -1171,30 +1164,7 @@ void Column::truncate(int rows)
 	}
 }
 
-
-
-string Column::columnTypeToString(ColumnType type)
-{
-	switch (type)
-	{
-	case ColumnTypeScale:		return "ColumnTypeScale";
-	case ColumnTypeOrdinal:		return "ColumnTypeOrdinal";
-	case ColumnTypeNominal:		return "ColumnTypeNominal";
-	case ColumnTypeNominalText:	return "ColumnTypeNominalText";
-	default:					return "ColumnTypeUnknown";
-	}
-}
-
-Column::ColumnType Column::columnTypeFromString(std::string type)
-{
-	if(type == "ColumnTypeScale")				return ColumnTypeScale;
-	else if(type == "ColumnTypeOrdinal")		return ColumnTypeOrdinal;
-	else if(type == "ColumnTypeNominal")		return ColumnTypeNominal;
-	else if(type == "ColumnTypeNominalText")	return ColumnTypeNominalText;
-	else										return ColumnTypeUnknown;
-}
-
-void Column::setColumnType(Column::ColumnType columnType)
+void Column::setColumnType(enum columnType columnType)
 {
 	_columnType = columnType;
 }
@@ -1213,10 +1183,10 @@ Column::Ints::IntsStruct::IntsStruct()
 
 Column *Column::IntsStruct::getParent() const
 {
-	Column *column = (Column*) NULL;
-	char* intsAddress = (char*)&column->AsInts;
-	char* baseAddress = (char*)column;
-	char* thisAddress = (char*)this;
+	Column *column		= (Column*) NULL;
+	char* intsAddress	= (char*)&column->AsInts;
+	char* baseAddress	= (char*)column;
+	char* thisAddress	= (char*)this;
 
 	return (Column*)(thisAddress - intsAddress + baseAddress);
 }
@@ -1365,7 +1335,7 @@ bool Column::allLabelsPassFilter() const
 
 bool Column::hasFilter() const
 {
-	if(_columnType == ColumnTypeScale)	return false;
+	if(_columnType == columnType::ColumnTypeScale)	return false;
 	else								return !allLabelsPassFilter();
 }
 
@@ -1382,8 +1352,8 @@ bool Column::isColumnDifferentFromStringValues(std::vector<std::string> strVals)
 	for(int row = 0; row < strVals.size(); row++)
 		switch(columnType())
 		{
-		case Column::ColumnTypeOrdinal:
-		case Column::ColumnTypeNominal:
+		case columnType::ColumnTypeOrdinal:
+		case columnType::ColumnTypeNominal:
 		{
 			int intValue;
 			if (Utils::convertValueToIntForImport(strVals[row], intValue))
@@ -1392,7 +1362,7 @@ bool Column::isColumnDifferentFromStringValues(std::vector<std::string> strVals)
 			break;
 		}
 
-		case Column::ColumnTypeScale:
+		case columnType::ColumnTypeScale:
 		{
 			double doubleValue;
 			if (Utils::convertValueToDoubleForImport(strVals[row], doubleValue))
@@ -1401,7 +1371,7 @@ bool Column::isColumnDifferentFromStringValues(std::vector<std::string> strVals)
 			break;
 		}
 
-		case Column::ColumnTypeNominalText:
+		case columnType::ColumnTypeNominalText:
 			if(!isValueEqual(row, strVals[row]))
 				return true;
 			break;

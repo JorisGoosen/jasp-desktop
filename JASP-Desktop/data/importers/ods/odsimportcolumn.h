@@ -98,10 +98,10 @@ public:
 	 */
 	void postLoadProcess();
 
-	Column::ColumnType	columnType() const { return _columnType; }
+	columnType	getColumnType() const { return _columnType; }
 
 	// Getters.
-	Column::ColumnType getJASPColumnType() const { return _columnType; }
+	columnType getJASPColumnType() const { return _columnType; }
 
 	std::vector<std::string> getData() const;
 
@@ -113,7 +113,7 @@ private:
 	typedef std::map< int, size_t > CellIndex;
 	CellIndex			_index;		///< cell indexes indexed by row.
 	int					_columnNumber; //<- We know our own column number
-	Column::ColumnType	_columnType; // Our column type.
+	columnType	_columnType; // Our column type.
 
 	/**
 	 * @brief colNumberAsExcel Returns the column number as a string (base 26 A-Z).
