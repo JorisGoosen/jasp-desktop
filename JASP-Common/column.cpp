@@ -900,6 +900,7 @@ bool Column::isValueEqual(int row, double value)
 	if (_columnType == columnType::scale)
 	{
 		double d = AsDoubles[row];
+
 		if (Utils::isEmptyValue(value))
 			return Utils::isEmptyValue(d);
 		else
@@ -954,34 +955,17 @@ bool Column::isValueEqual(int row, const string &value)
 	bool result = false;
 	switch (_columnType)
 	{
-		case columnType::scale:
-		{
-			double v = AsDoubles[row];
-			stringstream s;
-			s << v;
-			string str = s.str();
-			result = (str == value);
-			break;
-		}
-
+		case columnType::scale:		return std::to_string(AsDoubles[row]) == value;
 		case columnType::nominal:
-		case columnType::ordinal:
-		{
-			int v = AsInts[row];
-			stringstream s;
-			s << v;
-			string str = s.str();
-			result = (str == value);
-			break;
-		}
+		case columnType::ordinal:	return std::to_string(AsInts[row]) == value;
 		default:
 		{
 			int key = AsInts[row];
-			result = key == INT_MIN ? Utils::isEmptyValue(value) : (value.substr(0, 128) == _labels.getValueFromKey(key));
+			return key == INT_MIN ? Utils::isEmptyValue(value) : (value.substr(0, 128) == _labels.getValueFromKey(key));
 		}
 	}
 
-	return result;
+	return false;
 }
 
 string Column::_getScaleValue(int row)
@@ -1328,7 +1312,7 @@ bool Column::allLabelsPassFilter() const
 bool Column::hasFilter() const
 {
 	if(_columnType == columnType::scale)	return false;
-	else								return !allLabelsPassFilter();
+	else									return !allLabelsPassFilter();
 }
 
 void Column::resetFilter()
@@ -1348,25 +1332,22 @@ bool Column::isColumnDifferentFromStringValues(std::vector<std::string> strVals)
 		case columnType::nominal:
 		{
 			int intValue;
-			if (Utils::convertValueToIntForImport(strVals[row], intValue))
-				if(!isValueEqual(row, intValue))
-					return true;
+			if(!Utils::convertValueToIntForImport(strVals[row], intValue) || !isValueEqual(row, intValue))
+				return true;
 			break;
 		}
 
 		case columnType::scale:
 		{
 			double doubleValue;
-			if (Utils::convertValueToDoubleForImport(strVals[row], doubleValue))
-				if(!isValueEqual(row, doubleValue))
-					return true;
+			if(!Utils::convertValueToDoubleForImport(	strVals[row], doubleValue) || !isValueEqual(row, doubleValue))
+				return true;
 			break;
 		}
 
 		case columnType::nominalText:
 			if(!isValueEqual(row, strVals[row]))
 				return true;
-			break;
 
 		default:
 			return true;
