@@ -515,9 +515,9 @@ int jaspRCPP_dataSetRowCount()
 	return dataSetRowCount();
 }
 
-ColumnType jaspRCPP_getColumnType(std::string columnName)
+columnType jaspRCPP_getColumnType(std::string columnName)
 {
-	return ColumnType(dataSetGetColumnType(columnName.c_str()));
+	return columnType(dataSetGetColumnType(columnName.c_str()));
 }
 
 bool jaspRCPP_setColumnDataAsScale(std::string columnName, Rcpp::RObject scalarData)

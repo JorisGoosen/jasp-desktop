@@ -17,20 +17,17 @@
 //
 
 import QtQuick			2.7
-import QtQuick.Controls 2.2 as New
+import QtQuick.Controls 2.13 as New
 import QtQuick.Controls 1.4 as OLD
 import QtQuick.Layouts	1.3
-
 import JASP.Theme		1.0
 
 FocusScope
 {
-	height:		calculatedMinimumHeight
-	visible:	opened
-	
-				property real calculatedMinimumHeight:	buttonColumnVariablesWindow.minimumHeight + columnNameVariablesWindow.height + 6 + (Theme.generalAnchorMargin * 2)
-	readonly	property bool opened:					labelModel.visible
-	
+	visible:						labelModel.visible
+
+	property real calculatedMinimumHeight:	buttonColumnVariablesWindow.minimumHeight + columnNameVariablesWindow.height + 6 + (Theme.generalAnchorMargin * 2)
+
 	Connections
 	{
 		target: labelModel
@@ -41,12 +38,20 @@ FocusScope
 			{
 				//to prevent the editText in the labelcolumn to get stuck and overwrite the next columns data... We have to remove activeFocus from it
 				levelsTableViewRectangle.focus = true //So we just put it somewhere
-				columnNameVariablesWindow.text = dataSetModel.columnTitle(labelModel.chosenColumn )
+				columnNameVariablesWindow.text = labelModel.columnName
 				levelsTableView.selection.clear()
 			}
 		}
 	}
 	
+	Rectangle
+	{
+		color:				Theme.uiBackground
+		border.color:		Theme.uiBorder
+		border.width:		1
+		anchors.fill:		parent
+	}
+
 	Item
 	{
 		id:					levelsTableViewRectangle
@@ -55,11 +60,11 @@ FocusScope
 		
 		Text
 		{
-			id: columnNameVariablesWindow
-			text: "Column Name/Title here"
-			font.bold: true
-			anchors.top: parent.top
-			anchors.left: parent.left
+			id:				columnNameVariablesWindow
+			text:			"Column Name/Title here"
+			font:			Theme.fontGroupTitle
+			anchors.top:	parent.top
+			anchors.left:	parent.left
 		}
 		
 		Item
@@ -172,31 +177,10 @@ FocusScope
 				function closeYourself() { labelModel.visible = false; }
 				
 				
-				OLD.TableViewColumn
-				{
-					id: levelsTableViewFilterColumn
-					title: qsTr("Filter")
-					width: 60
-					role: "filter"
-				}
-				
-				
-				OLD.TableViewColumn
-				{
-					id: levelsTableViewValueColumn
-					title: qsTr("Value")
-					role: "value"
-					width: 120
-					//width: levelsTableView.width - levelsTableViewLabelColumn.width - 20 - levelsTableViewFilterColumn.width
-				}
-				
-				OLD.TableViewColumn
-				{
-					id: levelsTableViewLabelColumn
-					title: qsTr("Label")
-					role: "display"
-					width: levelsTableView.width - levelsTableViewValueColumn.width - 20 - levelsTableViewFilterColumn.width
-				}
+				OLD.TableViewColumn	{ id: levelsTableViewFilterColumn;	title: qsTr("Filter");	role: "filter";		width: 60 * preferencesModel.uiScale;				}
+				OLD.TableViewColumn { id: levelsTableViewValueColumn;	title: qsTr("Value");	role: "value";		width: 120 * preferencesModel.uiScale;				}
+				OLD.TableViewColumn { id: levelsTableViewLabelColumn;	title: qsTr("Label");	role: "display";	width:
+						levelsTableView.width - levelsTableViewValueColumn.width - (20 * preferencesModel.uiScale) - levelsTableViewFilterColumn.width;					}
 				
 				headerDelegate: Rectangle
 				{
@@ -224,9 +208,9 @@ FocusScope
 							text:	styleData.value
 							color:	Theme.textEnabled
 							font:	Theme.font
+							x:		Theme.itemPadding
 							
 							anchors.verticalCenter: parent.verticalCenter
-							x:  Theme.itemPadding
 						}
 					}
 				}
@@ -282,7 +266,7 @@ FocusScope
 						color:				Theme.textDisabled
 						text:				styleData.value
 						elide:				Text.ElideMiddle
-						font.pixelSize:		baseFontSize * preferencesModel.uiScale
+						font:				Theme.font
 						anchors.fill:		parent
 						verticalAlignment:	Text.AlignVCenter
 					}
@@ -294,7 +278,7 @@ FocusScope
 						color:			Theme.textEnabled
 						
 						text:			styleData.value
-						font.pixelSize: baseFontSize * preferencesModel.uiScale
+						font:			Theme.font
 						clip:			true
 						selectByMouse:	true
 						autoScroll:		true

@@ -10,6 +10,7 @@ Dialog
 					modal:		true
 					x:			(parent.width - width) / 2
 					y:			(parent.height - height) / 2
+					width:		mainWindowRoot.width / 2
 
 
 	signal			save();
@@ -30,12 +31,20 @@ Dialog
 		}
 	}
 
-	contentItem: Text
+	contentItem: Item
 	{
-		id:			contentText
-		text:		qsTr("There are unapplied changes; what would you like to do?")
-		font:		Theme.font
-		wrapMode:	Text.WrapAtWordBoundaryOrAnywhere
+		implicitWidth:	dialogRoot.width
+		implicitHeight:	contentText.height + (2 * Theme.generalAnchorMargin)
+
+		Text
+		{
+			id:						contentText
+			text:					qsTr("There are unapplied changes; what would you like to do?")
+			font:					Theme.font
+			wrapMode:				Text.WrapAtWordBoundaryOrAnywhere
+			horizontalAlignment:	Text.AlignHCenter
+			anchors.centerIn:		parent
+		}
 	}
 
 	footer: Item

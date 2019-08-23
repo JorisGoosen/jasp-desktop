@@ -3,6 +3,8 @@
 labelFilterGenerator::labelFilterGenerator(LabelModel *labelModel, QObject *parent)
 	: QObject(parent), _labelModel(labelModel)
 {
+	connect(_labelModel,	&LabelModel::labelFilterChanged,	this,	&labelFilterGenerator::labelFilterChanged	);
+	connect(_labelModel,	&LabelModel::allFiltersReset,		this,	&labelFilterGenerator::labelFilterChanged	);
 }
 
 std::string labelFilterGenerator::generateFilter()

@@ -48,8 +48,6 @@ public:
 				ComputedColumn*		createComputedColumn(QString name, int columnType, ComputedColumn::computedType computeType, Analysis * analysis = nullptr);
 	Q_INVOKABLE void				createComputedColumn(QString name, int columnType, bool jsonPlease)									{ createComputedColumn(name, columnType, jsonPlease ? ComputedColumn::computedType::constructorCode : ComputedColumn::computedType::rCode);	}
 
-				ComputedColumns*	computedColumnsPointer() { return _package->computedColumnsPointer(); }
-
 				bool				areLoopDependenciesOk(std::string columnName);
 				bool				areLoopDependenciesOk(std::string columnName, std::string code);
 
@@ -57,15 +55,17 @@ public:
 
 
 private:
-				void	validate(QString name);
-				void	setAnalyses(Analyses * analyses)				{ _analyses = analyses; }
-				void	emitHeaderDataChanged(QString name);
-				void	revertToDefaultInvalidatedColumns();
-				void	checkForDependentAnalyses(std::string columnName);
-				void	invalidate(QString name);
-				void	invalidateDependents(std::string columnName);
-				void	checkForDependentColumnsToBeSent(std::string columnName, bool refreshMe = false);
-				void	emitSendComputeCode(QString columnName, QString code, columnType colType);
+				void				validate(QString name);
+				void				setAnalyses(Analyses * analyses)				{ _analyses = analyses; }
+				void				emitHeaderDataChanged(QString name);
+				void				revertToDefaultInvalidatedColumns();
+				void				checkForDependentAnalyses(std::string columnName);
+				void				invalidate(QString name);
+				void				invalidateDependents(std::string columnName);
+				void				checkForDependentColumnsToBeSent(std::string columnName, bool refreshMe = false);
+				void				emitSendComputeCode(QString columnName, QString code, columnType colType);
+				ComputedColumns	*	computedColumns() { return _package->computedColumnsPointer(); }
+
 
 signals:
 				void	datasetLoadedChanged();
@@ -100,7 +100,6 @@ private:
 	QString					_currentlySelectedName	= "",
 							_lastCreatedColumn		= "",
 							_showThisColumn			= "";
-	ComputedColumns		*	_computedColumns		= nullptr;
 	DataSetPackage		*	_package				= nullptr;
 	Analyses			*	_analyses				= nullptr;
 };

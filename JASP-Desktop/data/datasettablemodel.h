@@ -33,19 +33,18 @@ public:
 
 	bool					filterAcceptsRow(int source_row, const QModelIndex & source_parent)	const override;
 
-				int			columnsFilteredCount()					const				{ return _package->columnsFilteredCount(); }
+				int			columnsFilteredCount()					const				{ return _package->columnsFilteredCount();								}
 	Q_INVOKABLE bool		isColumnNameFree(QString name)								{ return _package->isColumnNameFree(name);								}
-	Q_INVOKABLE bool		getRowFilter(int row)					const				{ return _package->getRowFilter(row);									}
-	Q_INVOKABLE	QVariant	columnTitle(int column)					const				{ return _package->columnTitle(column);									}
-	Q_INVOKABLE QVariant	columnIcon(int column)					const				{ return _package->columnIcon(column);									}
+	Q_INVOKABLE	QVariant	columnTitle(int column)					const				{ return _package->getColumnTitle(column);								}
+	Q_INVOKABLE QVariant	columnIcon(int column)					const				{ return _package->getColumnIcon(column);								}
 	Q_INVOKABLE QVariant	getColumnTypesWithCorrespondingIcon()	const				{ return _package->getColumnTypesWithCorrespondingIcon();				}
-	Q_INVOKABLE bool		columnHasFilter(int column)				const				{ return _package->columnHasFilter(column);								}
-	Q_INVOKABLE bool		columnUsedInEasyFilter(int column)		const				{ return _package->columnUsedInEasyFilter(column);						}
+	Q_INVOKABLE bool		columnHasFilter(int column)				const				{ return _package->getColumnHasFilter(column);							}
+	Q_INVOKABLE bool		columnUsedInEasyFilter(int column)		const				{ return _package->isColumnUsedInEasyFilter(column);					}
 	Q_INVOKABLE void		resetAllFilters()											{		 _package->resetAllFilters();									}
 	Q_INVOKABLE int			setColumnTypeFromQML(int columnIndex, int newColumnType)	{ return _package->setColumnTypeFromQML(columnIndex, newColumnType);	}
 
-	columnType				getColumnType(size_t column)			const				{ return _package->getColumnType(column);							}
-	std::string				getColumnName(size_t col)				const				{ return _package->getColumnName(col);								}
+	columnType				getColumnType(size_t column)			const				{ return _package->getColumnType(column);								}
+	std::string				getColumnName(size_t col)				const				{ return _package->getColumnName(col);									}
 				bool		showInactive()							const				{ return _showInactive;	}
 
 signals:

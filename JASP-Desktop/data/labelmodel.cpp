@@ -4,6 +4,10 @@ LabelModel::LabelModel(DataSetPackage * package) : DataSetTableProxy(package, pa
 {
 	connect(_package,	&DataSetPackage::filteredOutChanged,			this, &LabelModel::filteredOutChangedHandler);
 	connect(this,		&DataSetTableProxy::proxyParentColumnChanged,	this, &LabelModel::filteredOutChanged		);
+	connect(this,		&DataSetTableProxy::proxyParentColumnChanged,	this, &LabelModel::columnNameChanged		);
+	connect(_package,	&DataSetPackage::modelReset,					this, &LabelModel::columnNameChanged		);
+	connect(_package,	&DataSetPackage::allFiltersReset,				this, &LabelModel::allFiltersReset			);
+	connect(_package,	&DataSetPackage::labelFilterChanged,			this, &LabelModel::labelFilterChanged		);
 }
 
 bool LabelModel::labelNeedsFilter(size_t col)

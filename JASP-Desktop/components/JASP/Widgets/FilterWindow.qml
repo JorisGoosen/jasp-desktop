@@ -6,13 +6,12 @@ import "FilterConstructor"
 FocusScope
 {
 	id:							filterContainer
-	height:						rFilterFields.desiredMinimumHeight
-	SplitView.minimumHeight:	showEasyFilter ? easyFilterConstructor.desiredMinimumHeight : rFilterFields.desiredMinimumHeight
 	visible:					opened
 
 	property bool	opened:					false
 	property int	minimumHeightTextBoxes: 50 * preferencesModel.uiScale
 	property bool	showEasyFilter:			true
+	property int	desiredMinimumHeight:	showEasyFilter ? easyFilterConstructor.desiredMinimumHeight : rFilterFields.desiredMinimumHeight
 
 	onShowEasyFilterChanged:	if(!showEasyFilter) absorbModelRFilter()
 	onVisibleChanged:			if(!visible) filterWindow.close()
@@ -58,10 +57,20 @@ FocusScope
 
 	signal rCodeChanged(string rScript)
 
-	Item
+	Rectangle
 	{
 		anchors.fill:	parent
-		visible:		parent.showEasyFilter
+		color:			Theme.uiBackground
+		border.color:	Theme.uiBorder
+		border.width:	1
+	}
+
+	Item
+	{
+		anchors.fill:		parent
+		anchors.margins:	1
+		visible:			parent.showEasyFilter
+
 
 		FilterConstructor
 		{
@@ -202,6 +211,7 @@ FocusScope
 						id:						rFilterFields
 						visible:				!parent.showEasyFilter
 						anchors.fill:			parent
+						anchors.margins:		1
 		property real	desiredMinimumHeight:	filterButtons.height + (filterErrorScroll.visible ? filterErrorScroll.height : 0 ) + filterEditRectangle.desiredMinimumHeight
 
 		Rectangle

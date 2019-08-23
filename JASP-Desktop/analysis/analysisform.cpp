@@ -393,7 +393,7 @@ void AnalysisForm::_setAllAvailableVariablesModel(bool refreshAssigned)
 	if (_allAvailableVariablesModels.size() == 0)
 		return;
 
-	std::vector<std::string> columnNames = _package->columnNames();
+	std::vector<std::string> columnNames = _package->getColumnNames();
 
 
 	for (ListModelTermsAvailable* model : _allAvailableVariablesModels)

@@ -286,10 +286,10 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 
 		return dummyText;
 	}
-	case int(specialRoles::filter):							return columnHasFilter(section) || columnUsedInEasyFilter(section);
+	case int(specialRoles::filter):							return getColumnHasFilter(section) || isColumnUsedInEasyFilter(section);
 	case Qt::DisplayRole:									return orientation == Qt::Horizontal ? tq(_dataSet->column(section).name()) : QVariant(section);
 	case Qt::TextAlignmentRole:								return QVariant(Qt::AlignCenter);
-	case int(specialRoles::labelsHasFilter):				return columnHasFilter(section);
+	case int(specialRoles::labelsHasFilter):				return getColumnHasFilter(section);
 	case int(specialRoles::columnIsComputed):				return isColumnComputed(section);
 	case int(specialRoles::computedColumnError):			return tq(getComputedColumnError(section));
 	case int(specialRoles::computedColumnIsInvalidated):	return isColumnInvalidated(section);
@@ -576,7 +576,7 @@ void DataSetPackage::setColumnsUsedInEasyFilter(std::set<std::string> usedColumn
 }
 
 
-bool DataSetPackage::columnUsedInEasyFilter(int column) const
+bool DataSetPackage::isColumnUsedInEasyFilter(int column) const
 {
 	if(_dataSet != nullptr && size_t(column) < _dataSet->columnCount())
 	{
@@ -616,7 +616,7 @@ QVariant DataSetPackage::getColumnTypesWithCorrespondingIcon() const
 }
 
 
-QVariant DataSetPackage::columnTitle(int column) const
+QVariant DataSetPackage::getColumnTitle(int column) const
 {
 	if(_dataSet != nullptr && column >= 0 && size_t(column) < _dataSet->columnCount())
 		return tq(_dataSet->column(column).name());
@@ -624,7 +624,7 @@ QVariant DataSetPackage::columnTitle(int column) const
 	return QVariant();
 }
 
-QVariant DataSetPackage::columnIcon(int column) const
+QVariant DataSetPackage::getColumnIcon(int column) const
 {
 	if(_dataSet != nullptr && column >= 0 && size_t(column) < _dataSet->columnCount())
 		return QVariant(int(_dataSet->column(column).getColumnType()));
@@ -632,7 +632,7 @@ QVariant DataSetPackage::columnIcon(int column) const
 	return QVariant(-1);
 }
 
-bool DataSetPackage::columnHasFilter(int column) const
+bool DataSetPackage::getColumnHasFilter(int column) const
 {
 	if(_dataSet != nullptr && column >= 0 && size_t(column) < _dataSet->columnCount())
 		return _dataSet->column(column).hasFilter();
@@ -670,7 +670,12 @@ bool DataSetPackage::setColumnType(int columnIndex, columnType newColumnType)
 		return true;
 
 	bool changed = _dataSet->column(columnIndex).changeColumnType(newColumnType);
-	emit headerDataChanged(Qt::Horizontal, columnIndex, columnIndex);
+
+	if (changed)
+	{
+		emit headerDataChanged(Qt::Orientation::Horizontal, columnIndex, columnIndex);
+		emit columnDataTypeChanged(_dataSet->column(columnIndex).name());
+	}
 
 	return changed;
 }
@@ -698,14 +703,7 @@ void DataSetPackage::columnWasOverwritten(std::string columnName, std::string po
 
 int DataSetPackage::setColumnTypeFromQML(int columnIndex, int newColumnType)
 {
-	bool changed = setColumnType(columnIndex, columnType(newColumnType));
-
-	if (changed)
-	{
-		emit headerDataChanged(Qt::Orientation::Horizontal, columnIndex, columnIndex);
-		emit columnDataTypeChanged(_dataSet->column(columnIndex).name());
-	}
-
+	setColumnType(columnIndex, columnType(newColumnType));
 	return int(getColumnType(columnIndex));
 }
 
@@ -884,7 +882,7 @@ void DataSetPackage::enlargeDataSetIfNecessary(std::function<void()> tryThis, co
 	}
 }
 
-std::vector<std::string> DataSetPackage::columnNames(bool includeComputed)
+std::vector<std::string> DataSetPackage::getColumnNames(bool includeComputed)
 {
 	std::vector<std::string> names;
 

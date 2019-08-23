@@ -79,7 +79,7 @@ void Importer::syncDataSet(const std::string &locator, boost::function<void(cons
 	std::vector<std::pair<std::string, int> >	newColumns;
 	std::vector<std::pair<int, std::string> >	changedColumns; //import col index and original column name
 	std::map<std::string, std::string>			changeNameColumns; //origname -> newname
-	std::vector<std::string>					orgColumnNames(_packageData->columnNames(false)); //Non-computed
+	std::vector<std::string>					orgColumnNames(_packageData->getColumnNames(false)); //Non-computed
 	std::set<std::string>						missingColumns(orgColumnNames.begin(), orgColumnNames.end());
 
 	int syncColNo		= 0;

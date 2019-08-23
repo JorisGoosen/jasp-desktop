@@ -55,8 +55,9 @@ public:
 
 				Analyses(DataSetPackage * package, DynamicModules * dynamicModules) : QAbstractListModel(package), _package(package), _dynamicModules(dynamicModules)
 				{
-					connect(this,		&Analyses::requestComputedColumnDestruction,	this,	&Analyses::dataSetColumnsChanged	, Qt::QueuedConnection);
-					connect(_package,	&DataSetPackage::dataSetChanged,				this,	&Analyses::dataSetChanged			);
+					connect(this,		&Analyses::requestComputedColumnDestruction,	this,	&Analyses::dataSetColumnsChanged	, Qt::QueuedConnection	);
+					connect(_package,	&DataSetPackage::dataSetChanged,				this,	&Analyses::dataSetChanged									);
+					connect(_package,	&DataSetPackage::columnDataTypeChanged,			this,	&Analyses::dataSetColumnsChanged							);
 				}
 
 	Analysis*	createFromJaspFileEntry(Json::Value analysisData, RibbonModel* ribbonModel);

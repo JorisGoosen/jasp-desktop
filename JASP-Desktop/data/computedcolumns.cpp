@@ -139,7 +139,7 @@ std::string ComputedColumns::getError(std::string name)
 
 void ComputedColumns::findAllColumnNames()
 {
-	ComputedColumn::setAllColumnNames(_package->columnNames());
+	ComputedColumn::setAllColumnNames(_package->getColumnNames());
 }
 
 Json::Value	ComputedColumns::convertToJson()

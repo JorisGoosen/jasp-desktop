@@ -71,7 +71,8 @@ FocusScope
 
 			columnHeaderDelegate: Rectangle
 			{
-				id: headerRoot
+				id:		headerRoot
+				color:	Theme.uiBackground
 							property real	iconTextPadding:	10
 				readonly	property int	__iconDim:			baseBlockDim * preferencesModel.uiScale
 
@@ -190,15 +191,6 @@ FocusScope
 					anchors.verticalCenter:		headerRoot.verticalCenter
 				}
 
-
-				color:	Theme.uiBackground
-				//gradient: Gradient{	GradientStop { position: 0.0;	color: "#EEEEEE" }	GradientStop { position: 0.75;	color: "#EEEEEE" }
-				//					GradientStop { position: 0.77;	color: "#DDDDDD" }	GradientStop { position: 1.0;	color: "#DDDDDD" }	}
-
-
-
-
-
 				AnimatedImage
 				{
 					id:			colIsInvalidated
@@ -246,7 +238,6 @@ FocusScope
 
 				}
 
-
 				Image
 				{
 					id:						colFilterOn
@@ -263,8 +254,6 @@ FocusScope
 					anchors.verticalCenter:	parent.verticalCenter
 				}
 
-
-
 				MouseArea
 				{
 					anchors.left:	colIsComputed.right
@@ -273,12 +262,15 @@ FocusScope
 					anchors.right:	colHasError.left
 
 					onClicked:
-					{
 						if(columnIndex >= 0)
 						{
-							var changedIndex		= labelModel.chosenColumn	!= columnIndex
-							labelModel.chosenColumn	= columnIndex;
-							labelModel.visible		= changedIndex ? true : !labelModel.visible;
+
+							if(dataSetModel.columnIcon(columnIndex)  !== columnTypeScale)
+							{
+								var changedIndex		= labelModel.chosenColumn	!= columnIndex
+								labelModel.chosenColumn	= columnIndex;
+								labelModel.visible		= changedIndex ? true : !labelModel.visible;
+							}
 
 							if(dataSetModel.columnUsedInEasyFilter(columnIndex))
 							{
@@ -286,14 +278,13 @@ FocusScope
 								filterWindow.open()
 							}
 						}
-					}
 
 					hoverEnabled:		true
 					ToolTip.visible:	containsMouse && dataSetModel.columnIcon(columnIndex)  !== columnTypeScale
 					ToolTip.text:		"Click here to change labels" + (columnIsFiltered ? " or inspect filter" : "" )
 					ToolTip.timeout:	3000
 					ToolTip.delay:		500
-					cursorShape:		containsMouse && dataSetModel.columnIcon(columnIndex)  !== columnTypeScale ? Qt.PointingHandCursor : Qt.ArrowCursor
+					cursorShape:		dataSetModel.columnIcon(columnIndex)  !== columnTypeScale || dataSetModel.columnUsedInEasyFilter(columnIndex) ? Qt.PointingHandCursor : Qt.ArrowCursor
 				}
 			}
 		}
@@ -310,7 +301,7 @@ FocusScope
 			border.color:	"lightGrey"
 			border.width:	1
 
-			height:			datafiltertatusText.text.length > 0 ? datafiltertatusText.contentHeight + 16 : 0
+			height:			datafiltertatusText.text.length > 0 ? datafiltertatusText.contentHeight + (16 * preferencesModel.uiScale) : 0
 
 			Text
 			{
@@ -319,7 +310,7 @@ FocusScope
 				font:					dataTableView.font
 				anchors.left:			parent.left
 				anchors.verticalCenter:	parent.verticalCenter
-				anchors.leftMargin:		8
+				anchors.leftMargin:		8 * preferencesModel.uiScale
 			}
 		}
 	}
