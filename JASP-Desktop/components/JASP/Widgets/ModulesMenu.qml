@@ -109,25 +109,28 @@ FocusScope
 			
 			ToolSeparator
 			{
+				id:							modulesSeparator
 				orientation:				Qt.Horizontal
 				width:						modules.buttonWidth
 				anchors.horizontalCenter:	parent.horizontalCenter
 				visible:					preferencesModel.developerMode
 			}			
 
-			Repeater
+			ListView
 			{
 
-				model: ribbonModel
-
-				Rectangle
+				model:				ribbonModelUncommon
+				width:				parent.width
+				height:				parent.height - (preferencesModel.developerMode ? modulesSeparator.y + modulesSeparator.height : 0)
+				clip:				true
+				delegate:			Rectangle
 				{
-					visible:			!isCommon
+					//visible:			!isCommon
 					width:				modules.buttonWidth
 					height:				modules.buttonHeight
 					anchors.leftMargin: modules.buttonMargin
 					anchors.left:		parent.left
-					color:				!isDynamic || dynamicModule.status !== "error" ? "transparent" : Theme.red
+					color:				dynamicModule.status !== "error" ? "transparent" : Theme.red
 
 					CheckBox
 					{
@@ -135,15 +138,14 @@ FocusScope
 						label:				displayText
 						checked:			ribbonEnabled
 						onCheckedChanged:	ribbonModel.setModuleEnabled(index, checked)
-						enabled:			!isDynamic || !(dynamicModule.loading || dynamicModule.installing)
+						enabled:			!(dynamicModule.loading || dynamicModule.installing)
 						font:				Theme.fontRibbon
 
-						toolTip:			!isDynamic ? ""
-												: dynamicModule.installing ? "Installing:\n" + dynamicModule.installLog
-													: dynamicModule.loading ? "Loading:\n" + dynamicModule.loadLog
-														: dynamicModule.status === "readyForUse" ? "Loaded and ready for use!"
-															: dynamicModule.status === "error" ? "Error occurred!"
-																: "Not ready for use?"
+						toolTip:			dynamicModule.installing ? "Installing:\n" + dynamicModule.installLog
+												: dynamicModule.loading ? "Loading:\n" + dynamicModule.loadLog
+													: dynamicModule.status === "error" ? "Error occurred!"
+														: dynamicModule.status === "readyForUse" ? "Module " + displayText + " loaded and ready for use"
+															: "Not ready for use?"
 
 						//textColor:			ribbonEnabled ? Theme.black : hovered ? Theme.white : Theme.gray
 						//toolTip:			(ribbonEnabled ? "Disable" : "Enable") + " module " + displayText
@@ -153,6 +155,17 @@ FocusScope
 						anchors
 						{
 							left			: parent.left //minusButton.right //isDynamic ? minusButton.right : parent.left
+							right			: versionText.left
+							verticalCenter	: parent.verticalCenter
+						}
+					}
+
+					Label
+					{
+						id:		versionText
+						text:	moduleVersion
+						anchors
+						{
 							right			: minusButton.left
 							verticalCenter	: parent.verticalCenter
 						}
@@ -162,9 +175,9 @@ FocusScope
 					{
 						z:				1
 						id:				minusButton
-						visible:		isDynamic
+						visible:		!isBundled
 						iconSource:		hovered ? "qrc:/icons/delete_icon.png" : "qrc:/icons/delete_icon_gray.png"  // icon from https://icons8.com/icon/set/delete/material
-						width:			visible ? height : 0
+						width:			height
 						onClicked:		dynamicModules.uninstallJASPModule(moduleName)
 						toolTip:		"Uninstall module " + displayText
 						anchors

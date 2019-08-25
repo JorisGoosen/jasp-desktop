@@ -111,10 +111,9 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	_columnsModel			= new ColumnsModel(_datasetTableModel);
 	_computedColumnsModel	= new ComputedColumnsModel(_analyses, _package);
 	_filterModel			= new FilterModel(_package, _labelFilterGenerator);
-	_ribbonModel			= new RibbonModel(_dynamicModules, _preferences,
-									{ "Descriptives", "T-Tests", "ANOVA", "Regression", "Frequencies", "Factor" },
-									{ "Audit", "BAIN", "Network", "Machine Learning", "Meta Analysis", "SEM", "Summary Statistics" });
+	_ribbonModel			= new RibbonModel(_dynamicModules, _preferences);
 	_ribbonModelFiltered	= new RibbonModelFiltered(this, _ribbonModel);
+	_ribbonModelUncommon	= new RibbonModelUncommon(this, _ribbonModel);
 	_fileMenu				= new FileMenu(this, _package);
 	_helpModel				= new HelpModel(this);
 	_aboutModel				= new AboutModel(this);
@@ -132,7 +131,15 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	qmlRegisterType<JASPDoubleValidator>	("JASP", 1, 0, "JASPDoubleValidator");
 	qmlRegisterType<ResultsJsInterface>		("JASP", 1, 0, "ResultsJsInterface");
 
-	QTimer::singleShot(0, [&](){ loadQML(); });
+	QTimer::singleShot(0, [&]()
+	{
+		loadQML();
+		//Only load modules after showing gui to give the user something to look at ^^
+		_ribbonModel->loadModules(
+			{ "Descriptives", "T-Tests", "ANOVA", "Regression", "Frequencies", "Factor" },
+			{ "Audit", "BAIN", "Network", "MachineLearning", "MetaAnalysis", "SEM", "SummaryStatistics" }
+		);
+	});
 
 	QString missingvaluestring = _settings.value("MissingValueList", "").toString();
 	if (missingvaluestring != "")
@@ -269,6 +276,7 @@ void MainWindow::makeConnections()
 
 	connect(_dynamicModules,		&DynamicModules::dynamicModuleUnloadBegin,			_analyses,				&Analyses::removeAnalysesOfDynamicModule					);
 	connect(_dynamicModules,		&DynamicModules::dynamicModuleChanged,				_analyses,				&Analyses::refreshAnalysesOfDynamicModule					);
+	connect(_dynamicModules,		&DynamicModules::dynamicModuleReplaced,				_analyses,				&Analyses::replaceAnalysesOfDynamicModule					);
 	connect(_dynamicModules,		&DynamicModules::descriptionReloaded,				_analyses,				&Analyses::rescanAnalysisEntriesOfDynamicModule				);
 	connect(_dynamicModules,		&DynamicModules::reloadHelpPage,					_helpModel,				&HelpModel::reloadPage										);
 	connect(_dynamicModules,		&DynamicModules::moduleEnabledChanged,				_preferences,			&PreferencesModel::moduleEnabledChanged						);
@@ -292,6 +300,7 @@ void MainWindow::loadQML()
 	_qml->rootContext()->setContextProperty("resultsJsInterface",		_resultsJsInterface		);
 	_qml->rootContext()->setContextProperty("computedColumnsInterface",	_computedColumnsModel	);
 	_qml->rootContext()->setContextProperty("ribbonModelFiltered",		_ribbonModelFiltered	);
+	_qml->rootContext()->setContextProperty("ribbonModelUncommon",		_ribbonModelUncommon	);
 	_qml->rootContext()->setContextProperty("resultMenuModel",			_resultMenuModel		);
 	_qml->rootContext()->setContextProperty("fileMenuModel",			_fileMenu				);
 	_qml->rootContext()->setContextProperty("filterModel",				_filterModel			);

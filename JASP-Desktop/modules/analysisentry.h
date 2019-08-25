@@ -43,6 +43,7 @@ public:
 	bool			isAnalysis()			const { return _isAnalysis;			}
 	bool			isEnabled()				const { return _isEnabled;			}
 	bool			requiresData()			const { return _requiresData;		}
+	bool			shouldBeExposed()		const { return _isAnalysis && !_isSeparator && _function != "???"; }
 
 	DynamicModule*	dynamicModule()			const;
 	std::string		qmlFilePath()			const;

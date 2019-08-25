@@ -22,6 +22,11 @@ windows:TARGET = JASP
 
 DEPENDPATH = ..
 INCLUDEPATH += ../JASP-Common/
+QML_IMPORT_PATH +=  components/JASP/        \
+                    components/JASP/Theme/   \
+                    components/JASP/Widgets/  \
+                    components/JASP/Controls/
+
 
 #exists(/app/lib/*) should only be true when building flatpak
 exists(/app/lib/*)	{ target.path += /app/bin }
@@ -247,6 +252,7 @@ HEADERS += \
     engine/enginerepresentation.h \
     engine/enginesync.h \
     engine/rscriptstore.h \
+    modules/ribbonmodeluncommon.h \
     qquick/datasetview.h \
     modules/analysisentry.h \
     modules/dynamicmodule.h \
@@ -415,6 +421,7 @@ SOURCES += \
     data/fileevent.cpp \
     engine/enginerepresentation.cpp \
     engine/enginesync.cpp \
+    modules/ribbonmodeluncommon.cpp \
     qquick/datasetview.cpp \
     modules/analysisentry.cpp \
     modules/dynamicmodule.cpp \

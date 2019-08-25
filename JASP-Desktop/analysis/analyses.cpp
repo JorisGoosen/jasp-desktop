@@ -299,14 +299,31 @@ void Analyses::removeAnalysesOfDynamicModule(Modules::DynamicModule * module)
 
 void Analyses::refreshAnalysesOfDynamicModule(Modules::DynamicModule * module)
 {
+	Log::log() << "void RibbonModel::dynamicModuleChanged(" << module->toString() << ")" << std::endl;
+
+
 	for(auto & keyval : _analysisMap)
 		if(keyval.second->dynamicModule() == module)
 			keyval.second->refresh();
 }
 
+
+void Analyses::replaceAnalysesOfDynamicModule(Modules::DynamicModule * oldModule, Modules::DynamicModule * newModule)
+{
+	Log::log() << "void Analyses::replaceAnalysesOfDynamicModule(" << oldModule->toString() << ", " <<  newModule->toString() << ")" << std::endl;
+
+	for(auto & keyval : _analysisMap)
+	{
+		if(keyval.second->dynamicModule() != oldModule && keyval.second->dynamicModule()->name() == newModule->name())
+			Log::log() << "Replacing dynamic module of analyses but found one that uses same name but is not the old module..." << std::endl;
+
+		if(keyval.second->dynamicModule() == oldModule)
+			keyval.second->setDynamicModule(newModule);
+	}
+}
+
 void Analyses::rescanAnalysisEntriesOfDynamicModule(Modules::DynamicModule * module)
 {
-
 	std::set<int> removeIds;
 	for(auto & keyval : _analysisMap)
 		if(keyval.second->dynamicModule() == module  && !keyval.second->checkAnalysisEntry()) // Check if the analysisEntry this analysis is based still exists

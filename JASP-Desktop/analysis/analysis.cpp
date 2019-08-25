@@ -27,6 +27,7 @@
 #include "analyses.h"
 #include "analysisform.h"
 #include "utilities/qutils.h"
+#include "log.h"
 
 
 
@@ -410,4 +411,12 @@ QString	Analysis::fullHelpPath(QString helpFileName)
 DataSetPackage * Analysis::getDataSetPackage() const
 {
 	return _analyses->getDataSetPackage();
+}
+
+void Analysis::setDynamicModule(Modules::DynamicModule * module)
+{
+	Log::log() << "Replacing module connected to analysis " << title() << " (" << id() << ") for module " << module->name() << std::endl;
+	_dynamicModule = module;
+
+	checkAnalysisEntry();
 }

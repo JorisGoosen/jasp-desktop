@@ -39,31 +39,30 @@ public:
 		DisplayRole,
 		RibbonRole,
 		EnabledRole,
-		DynamicRole,
 		CommonRole,
 		ModuleNameRole,
 		ModuleTitleRole,
 		ModuleRole,
-		ActiveRole
+		ActiveRole,
+		BundledRole,
+		VersionRole
 	};
 
-	RibbonModel(DynamicModules * dynamicModules, PreferencesModel * preferences, std::vector<std::string> commonModulesToLoad = {}, std::vector<std::string> extraModulesToLoad = {});
+	RibbonModel(DynamicModules * dynamicModules, PreferencesModel * preferences);
 
 	int								rowCount(const QModelIndex & = QModelIndex())				const override	{	return int(_moduleNames.size());	}
 	QVariant						data(const QModelIndex &index, int role = Qt::DisplayRole)	const override;
 	virtual QHash<int, QByteArray>	roleNames()													const override;
 
-
-	void						addRibbonButtonModelFromModulePath(QFileInfo modulePath, bool isCommon);
+	void						loadModules(std::vector<std::string> commonModulesToLoad, std::vector<std::string> extraModulesToLoad);
 	void						addRibbonButtonModelFromDynamicModule(Modules::DynamicModule * module);
-
 	void						removeRibbonButtonModel(std::string moduleName);
 
 	bool						isModuleName(std::string name)						const	{ return _buttonModelsByName.count(name) > 0; }
 	QString						moduleName(size_t index)							const	{ return QString::fromStdString(_moduleNames[index]);}
 	RibbonButton*				ribbonButtonModelAt(size_t index)					const	{ return ribbonButtonModel(_moduleNames[index]); }
 	RibbonButton*				ribbonButtonModel(std::string moduleName)			const;
-	int							ribbonButtonModelIndex(RibbonButton * model)	const;
+	int							ribbonButtonModelIndex(RibbonButton * model)		const;
 
 	Q_INVOKABLE void			toggleModuleEnabled(int ribbonButtonModelIndex);
 	Q_INVOKABLE void			setModuleEnabled(int ribbonButtonModelIndex, bool enabled);
@@ -72,20 +71,22 @@ public:
 	Modules::AnalysisEntry*		getAnalysis(const std::string& moduleName, const std::string& analysisName);
 
 	QString						getModuleNameFromAnalysisName(const QString analysisName);
-	
+
 signals:
 				void currentButtonModelChanged();
 	Q_INVOKABLE void analysisClickedSignal(QString analysisFunction, QString analysisTitle, QString module);
 				void highlightedModuleIndexChanged(int highlightedModuleIndex);
 
 public slots:
-	void addDynamicRibbonButtonModel(Modules::DynamicModule * module)	{ addRibbonButtonModelFromDynamicModule(module);	}
+	void addDynamicRibbonButtonModel(Modules::DynamicModule * module)	{ addRibbonButtonModelFromDynamicModule(module);		}
 	void removeDynamicRibbonButtonModel(QString moduleName)				{ removeRibbonButtonModel(moduleName.toStdString());				}
 	void setHighlightedModuleIndex(int highlightedModuleIndex);
 	void moduleLoadingSucceeded(const QString & moduleName);
 
 private slots:
+	void dynamicModuleChanged(Modules::DynamicModule * module);
 	void ribbonButtonModelChanged(RibbonButton* model);
+	void dynamicModuleReplaced(Modules::DynamicModule * oldModule, Modules::DynamicModule * module);
 
 private: // functions
 	void addRibbonButtonModel(RibbonButton* model);

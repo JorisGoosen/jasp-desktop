@@ -1,0 +1,10 @@
+Package: DevelopmentModule
+Type: Package
+Title: Test Module Module for JASP
+Version: 2.0
+Date: 2019-09-04
+Author: Joris Goosen
+Website: 
+Maintainer: Joris Goosen <Joris@JorisGoosen.nl>
+Description: A module to test stuff with.
+License: Whatever

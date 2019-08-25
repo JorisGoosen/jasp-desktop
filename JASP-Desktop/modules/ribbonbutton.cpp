@@ -21,79 +21,51 @@
 #include "enginedefinitions.h"
 #include "modules/dynamicmodule.h"
 #include "modules/analysisentry.h"
-
-RibbonButton::RibbonButton(QObject *parent, Json::Value descriptionJson, bool isCommon)  : QObject(parent)
-{
-	_analysisMenuModel = new AnalysisMenuModel(this);
-	try
-	{
-		Json::Value & moduleDescription = descriptionJson["moduleDescription"];
-
-		setRequiresData(	moduleDescription.get("requiresData",		true).asBool()		);
-		setIsDynamic(		moduleDescription.get("dynamic",			false).asBool()		); //It should never be dynamic here right?
-		setIsCommon(		isCommon														);
-		setTitle(			moduleDescription.get("title",				"???").asString()	);
-		setModuleName(		moduleDescription.get("name",				title()).asString()	);
-		setIconSource(QString::fromStdString(moduleDescription.get("icon", "").asString()));
-
-		bool defaultRequiresDataset = _requiresData;
-
-		for(Json::Value & menuEntry : descriptionJson["menu"])
-		{
-#ifndef JASP_DEBUG
-			if (menuEntry.get("debug", false).asBool())
-				continue;
-#endif
-			Modules::AnalysisEntry * entry = new Modules::AnalysisEntry(menuEntry, nullptr, defaultRequiresDataset);
-			_menuEntries.push_back(entry);
-
-			if(!entry->requiresData())
-				setRequiresData(false);
-		}
-
-		setMenu(_menuEntries);
-	}
-	catch(std::exception e)
-	{
-		throw std::runtime_error("During the parsing of the description.json of the Module " + _title + " something went wrong: " + e.what());
-	}
-
-	if (isCommon)
-		setEnabled(true);
-
-	bindYourself();
-}
+#include "utilities/qutils.h"
+#include "log.h"
 
 RibbonButton::RibbonButton(QObject *parent, Modules::DynamicModule * module)  : QObject(parent), _module(module)
 {
-	_analysisMenuModel = new AnalysisMenuModel(this);
-	setMenu(			_module->menu()	);
-	setTitle(			_module->title()			);
-	setRequiresData(	_module->requiresData()	);
-	setIsDynamic(		true						);
-	setIsCommon(		false						);
-	setModuleName(		_module->name()				);
-	setIconSource(QString::fromStdString(_module->iconFilePath()));
-
+	setTitle(			_module->title()					);
+	setRequiresData(	_module->requiresData()				);
+	setIsCommon(		_module->isCommon()					);
+	setModuleName(		_module->name()						);
+	setIconSource(tq(	_module->iconFilePath())			);
 
 	bindYourself();
 
-	connect(_module, &Modules::DynamicModule::DynamicModule::descriptionReloaded, this, &RibbonButton::descriptionReloaded);
+	_analysisMenuModel = new AnalysisMenuModel(this, _module);
+
+	setDynamicModule(_module);
 }
 
 
-void RibbonButton::descriptionReloaded(Modules::DynamicModule * dynMod)
+void RibbonButton::reloadDynamicModule(Modules::DynamicModule * dynMod)
 {
-	setMenu(			_module->menu()	);
-	setTitle(			_module->title()			);
+	bool dynamicModuleChanged = _module != dynMod;
+
+	if(dynamicModuleChanged)
+		setDynamicModule(dynMod);
+
+	setTitle(			_module->title()		);
 	setRequiresData(	_module->requiresData()	);
+	setIconSource(tq(	_module->iconFilePath()));
+
+	//if(dynamicModuleChanged)
+	emit iChanged(this);
+}
+
+void RibbonButton::setDynamicModule(Modules::DynamicModule * module)
+{
+	_module = module;
+	connect(_module, &Modules::DynamicModule::descriptionReloaded, this, &RibbonButton::reloadDynamicModule, Qt::QueuedConnection);
+	_analysisMenuModel->setDynamicModule(_module);
 }
 
 void RibbonButton::bindYourself()
 {
 	connect(this, &RibbonButton::enabledChanged,		this, &RibbonButton::somePropertyChanged);
 	connect(this, &RibbonButton::titleChanged,			this, &RibbonButton::somePropertyChanged);
-	connect(this, &RibbonButton::isDynamicChanged,		this, &RibbonButton::somePropertyChanged);
 	connect(this, &RibbonButton::titleChanged,			this, &RibbonButton::somePropertyChanged);
 	connect(this, &RibbonButton::moduleNameChanged,		this, &RibbonButton::somePropertyChanged);
 	connect(this, &RibbonButton::dataLoadedChanged,		this, &RibbonButton::somePropertyChanged);
@@ -103,13 +75,6 @@ void RibbonButton::bindYourself()
 	connect(this, &RibbonButton::enabledChanged,		this, &RibbonButton::activeChanged);
 	connect(this, &RibbonButton::dataLoadedChanged,		this, &RibbonButton::activeChanged);
 	connect(this, &RibbonButton::requiresDataChanged,	this, &RibbonButton::activeChanged);
-}
-
-void RibbonButton::setMenu(const Modules::AnalysisEntries& entries)
-{
-	_analysisMenuModel->setAnalysisEntries(entries);
-
-	emit analysisMenuChanged();
 }
 
 void RibbonButton::setRequiresData(bool requiresDataset)
@@ -132,8 +97,7 @@ void RibbonButton::setTitle(std::string title)
 
 void RibbonButton::setIconSource(QString iconSource)
 {
-	if(_iconSource == iconSource)
-		return;
+	Log::log() << "Iconsource ribbonbutton changed to: " << iconSource.toStdString() << std::endl;
 
 	_iconSource = iconSource;
 	emit iconSourceChanged();
@@ -149,25 +113,11 @@ void RibbonButton::setEnabled(bool enabled)
 
 	if(_dynamicModules != nullptr)
 	{
-
-		if(isDynamic())
-		{
-			if(enabled)	_dynamicModules->loadModule(moduleName());
-			else		_dynamicModules->unloadModule(moduleName());
-
-		}
+		if(enabled)	_dynamicModules->loadModule(moduleName());
+		else		_dynamicModules->unloadModule(moduleName());
 
 		emit _dynamicModules->moduleEnabledChanged(moduleNameQ(), enabled);
 	}
-}
-
-void RibbonButton::setIsDynamic(bool isDynamic)
-{
-	if (_isDynamicModule == isDynamic)
-		return;
-
-	_isDynamicModule = isDynamic;
-	emit isDynamicChanged();
 }
 
 void RibbonButton::setIsCommon(bool isCommon)
@@ -188,9 +138,9 @@ void RibbonButton::setModuleName(std::string moduleName)
 	emit moduleNameChanged();
 }
 
-Modules::DynamicModule * RibbonButton::myDynamicModule()
+Modules::DynamicModule * RibbonButton::dynamicModule()
 {
-	return !isDynamic() ? nullptr : _dynamicModules->dynamicModule(_moduleName);
+	return _dynamicModules->dynamicModule(_moduleName);
 }
 
 Modules::AnalysisEntry *RibbonButton::getAnalysis(const std::string &name)
@@ -204,11 +154,9 @@ Modules::AnalysisEntry *RibbonButton::getAnalysis(const std::string &name)
 std::vector<std::string> RibbonButton::getAllAnalysisNames() const
 {
 	std::vector<std::string> allAnalyses;
-	for (Modules::AnalysisEntry* menuEntry : _menuEntries)
-	{
+	for (Modules::AnalysisEntry* menuEntry : _module->menu())
 		if (menuEntry->isAnalysis())
 			allAnalyses.push_back(menuEntry->function());
-	}
 
 	return allAnalyses;
 }

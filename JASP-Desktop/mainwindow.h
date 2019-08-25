@@ -42,6 +42,7 @@
 #include "modules/ribbonmodel.h"
 #include "modules/ribbonbutton.h"
 #include "modules/ribbonmodelfiltered.h"
+#include "modules/ribbonmodeluncommon.h"
 #include "gui/preferencesmodel.h"
 #include "results/resultmenumodel.h"
 #include "utilities/resultsjsinterface.h"
@@ -244,6 +245,7 @@ private:
 	DynamicModules				*	_dynamicModules			= nullptr;
 	RibbonModel					*	_ribbonModel			= nullptr;
 	RibbonModelFiltered			*	_ribbonModelFiltered	= nullptr;
+	RibbonModelUncommon			*	_ribbonModelUncommon	= nullptr;
 	QApplication				*	_application 			= nullptr;
 	FileMenu					*	_fileMenu				= nullptr;
 	HelpModel					*	_helpModel				= nullptr;

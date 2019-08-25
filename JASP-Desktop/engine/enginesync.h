@@ -109,7 +109,7 @@ private slots:
 	void	subprocessFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
 	void	moduleLoadingFailedHandler(		const QString & moduleName, const QString & errorMessage, int channelID);
-	void	moduleLoadingSucceededHandler(		const QString & moduleName, int channelID);
+	void	moduleLoadingSucceededHandler(	const QString & moduleName, int channelID);
 	void	moduleUnloadingFinishedHandler(	const QString & moduleName, int channelID);
 
 	void	restartEngines();

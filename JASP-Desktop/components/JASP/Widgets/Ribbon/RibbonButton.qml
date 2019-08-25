@@ -16,10 +16,10 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import QtQuick 2.11
-import QtQuick.Controls 2.4
-import QtGraphicalEffects 1.12
-import JASP.Theme 1.0
+import QtQuick				2.11
+import QtQuick.Controls		2.4
+import QtGraphicalEffects	1.12
+import JASP.Theme			1.0
 
 
 Rectangle
@@ -90,6 +90,8 @@ Rectangle
 			mipmap:		true
 			fillMode:	Image.PreserveAspectFit
 
+			onSourceChanged: console.log("backgroundImage RibbonButton changed to: " + source)
+
 			anchors
 			{
 				top				: parent.top
@@ -101,7 +103,7 @@ Rectangle
 
 		Image
 		{
-			id: menuIndicator
+			id:					menuIndicator
 
 			anchors.left:		backgroundImage.right
 			anchors.leftMargin: 5   * preferencesModel.uiScale
@@ -115,7 +117,7 @@ Rectangle
 
 		Text
 		{
-			id	: innerText
+			id							: innerText
 
 			anchors.horizontalCenter	: backgroundImage.horizontalCenter
 			anchors.top					: backgroundImage.bottom
@@ -155,7 +157,8 @@ Rectangle
 						customMenu.hide();
 					}
 
-					var props = {
+					var props =
+					{
 						"model"			: ribbonButton.menu,
 						"functionCall"	: functionCall,
 						"hasIcons"		: ribbonButton.menu.hasIcons()

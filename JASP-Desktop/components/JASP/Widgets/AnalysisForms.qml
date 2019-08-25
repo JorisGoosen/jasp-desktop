@@ -29,8 +29,6 @@ FocusScope
 
 		function getOffset(formIndex) { return formIndex < 0 ? 0 : formIndex * singleButtonHeight; }
 
-
-
 		function scrollToForm(formIndex)
 		{
 			if(formIndex < 0) return;

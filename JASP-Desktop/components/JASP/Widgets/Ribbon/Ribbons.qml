@@ -51,12 +51,12 @@ Item
 
 		delegate: RibbonButton
 		{
-			text:			model.moduleTitle
-			moduleName:		model.moduleName
-			source:			model.ribbonButton ? ((model.isDynamic ? "file:" : "qrc:/icons/") + model.ribbonButton.iconSource) : ""
-			menu:			model.ribbonButton ? model.ribbonButton.analysisMenu : undefined
-			enabled:		model.ribbonButton ? model.active : false
-			visible:		model.ribbonButton ? true : false
+			text:			 model.moduleTitle
+			moduleName:		 model.moduleName
+			source:			!model.ribbonButton ? "" : model.ribbonButton.iconSource !== "" ? "file:" + model.ribbonButton.iconSource : "qrc:/icons/loading.gif"
+			menu:			 model.ribbonButton ? model.ribbonButton.analysisMenu : undefined
+			enabled:		 model.ribbonButton ? model.active : false
+			visible:		 model.ribbonButton ? true : false
 		}
 	}
 

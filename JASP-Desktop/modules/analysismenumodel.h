@@ -23,9 +23,9 @@
 #include <QStringList>
 
 #include "modules/analysisentry.h"
+#include "modules/dynamicmodule.h"
 
 class RibbonButton;
-
 
 class AnalysisMenuModel : public QAbstractListModel
 {
@@ -41,26 +41,29 @@ public:
 		IsEnabledRole
 	};
 
-	AnalysisMenuModel(RibbonButton *parent);
+	AnalysisMenuModel(RibbonButton * parent, Modules::DynamicModule * module);
 
-	int										rowCount(const QModelIndex &parent = QModelIndex())			const override	{	return _analysisEntries.size();	}
+	int										rowCount(const QModelIndex &parent = QModelIndex())			const override	{	return analysisEntries().size();	}
 	QVariant								data(const QModelIndex &index, int role = Qt::DisplayRole)	const override;
-	virtual QHash<int, QByteArray>			roleNames()													const override;
+	QHash<int, QByteArray>					roleNames()													const override;
 
-	void 									setAnalysisEntries(const std::vector<Modules::AnalysisEntry*> &analysisEntries);
-	std::vector<Modules::AnalysisEntry*>	getAnalysisEntries()														{	return _analysisEntries;			}
+
+	const	std::vector<Modules::AnalysisEntry*> &	analysisEntries() const;
+
 	Modules::AnalysisEntry*					getAnalysisEntry(const std::string& name);
 
-	Q_INVOKABLE QString						getFirstAnalysisFunction()													{	return QString::fromStdString(_analysisEntries.at(0)->function());	}
-	Q_INVOKABLE QString						getFirstAnalysisTitle()														{	return QString::fromStdString(_analysisEntries.at(0)->title());	}
-	Q_INVOKABLE QString						getAnalysisFunction(int index)								const			{	return QString::fromStdString(_analysisEntries.at(index)->function());	}
-	Q_INVOKABLE QString						getAnalysisTitle(int index)									const			{	return QString::fromStdString(_analysisEntries.at(index)->title());	}
+	void									setDynamicModule(Modules::DynamicModule * module)							{ beginResetModel(); _module = module; endResetModel(); }
+
+	Q_INVOKABLE QString						getFirstAnalysisFunction()													{	return QString::fromStdString(analysisEntries().at(0)->function());	}
+	Q_INVOKABLE QString						getFirstAnalysisTitle()														{	return QString::fromStdString(analysisEntries().at(0)->title());	}
+	Q_INVOKABLE QString						getAnalysisFunction(int index)								const			{	return QString::fromStdString(analysisEntries().at(index)->function());	}
+	Q_INVOKABLE QString						getAnalysisTitle(int index)									const			{	return QString::fromStdString(analysisEntries().at(index)->title());	}
 	Q_INVOKABLE bool						hasIcons()													const			{	return _hasIcons; }
 
 private:
-	Modules::AnalysisEntries	_analysisEntries;
-	RibbonButton*				_ribbonButton;
-	bool						_hasIcons = false;
+	RibbonButton			*	_ribbonButton	= nullptr;
+	Modules::DynamicModule	*	_module			= nullptr;
+	bool						_hasIcons		= false;
 };
 
 #endif

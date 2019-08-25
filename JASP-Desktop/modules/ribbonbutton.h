@@ -32,7 +32,6 @@ class RibbonButton : public QObject
 	Q_OBJECT
 	Q_PROPERTY(bool		enabled			READ enabled			WRITE setEnabled			NOTIFY enabledChanged		)
 	Q_PROPERTY(bool		requiresData	READ requiresData		WRITE setRequiresData		NOTIFY requiresDataChanged	)
-	Q_PROPERTY(bool		isDynamic		READ isDynamic			WRITE setIsDynamic			NOTIFY isDynamicChanged		)
 	Q_PROPERTY(bool		isCommon		READ isCommon			WRITE setIsCommon			NOTIFY isCommonChanged		)
 	Q_PROPERTY(QString	title			READ titleQ				WRITE setTitleQ				NOTIFY titleChanged			)
 	Q_PROPERTY(QString	moduleName		READ moduleNameQ									NOTIFY moduleNameChanged	)
@@ -44,11 +43,9 @@ class RibbonButton : public QObject
 
 public:
 
-	RibbonButton(QObject *parent, Json::Value description, bool isCommon);
 	RibbonButton(QObject *parent, Modules::DynamicModule * module);
 
 	bool							requiresData()												const			{ return _requiresData;									}
-	bool							isDynamic()													const			{ return _isDynamicModule;								}
 	bool							isCommon()													const			{ return _isCommonModule;								}
 	std::string						title()														const			{ return _title;										}
 	QString							titleQ()													const			{ return QString::fromStdString(_title);				}
@@ -56,17 +53,18 @@ public:
 	bool							enabled()													const			{ return _enabled;										}
 	std::string						moduleName()												const			{ return _moduleName;									}
 	QString							moduleNameQ()												const			{ return QString::fromStdString(_moduleName);			}
-	void							setMenu(const Modules::AnalysisEntries& ribbonEntries);
-	Modules::DynamicModule*			myDynamicModule();
+	Modules::DynamicModule*			dynamicModule();
+	void							setDynamicModule(Modules::DynamicModule * module);
 	Modules::AnalysisEntry*			getAnalysis(const std::string& name);
 	QVariant						analysisMenu()												const			{ return QVariant::fromValue(_analysisMenuModel); }
 	std::vector<std::string>		getAllAnalysisNames()										const;
 	bool							dataLoaded()												const			{ return _dynamicModules && _dynamicModules->dataLoaded();	}
-	bool							active()													const			{ return _enabled && (!requiresData() || dataLoaded());	}
+	bool							active()													const			{ return _enabled && (!requiresData() || dataLoaded());		}
+	bool							isBundled()													const			{ return _module && _module->isBundled();					}
+	QString							version()													const			{ return !_module ? "?" : _module->versionQ();				}
 
 public slots:
 	void setRequiresData(bool requiresData);
-	void setIsDynamic(bool isDynamicModule);
 	void setIsCommon(bool isCommonModule);
 	void setTitle(std::string title);
 	void setIconSource(QString iconSource);
@@ -76,31 +74,26 @@ public slots:
 	void setModuleNameQ(QString moduleName)							{ setModuleName(moduleName.toStdString()); }
 	void somePropertyChanged()										{ emit iChanged(this); }
 	void setDynamicModules(DynamicModules * dynamicModules);
-	void descriptionReloaded(Modules::DynamicModule * dynMod);
+	void reloadDynamicModule(Modules::DynamicModule * dynMod);
 
 signals:
 	void enabledChanged();
 	void requiresDataChanged();
-	void isDynamicChanged();
 	void isCommonChanged();
 	void titleChanged();
 	void moduleNameChanged();
 	void iChanged(RibbonButton * me);
 	void iconSourceChanged();
-	void analysisMenuChanged();
 	void dataLoadedChanged();
 	void activeChanged();
-
+	void analysisMenuChanged();
 
 private:
 	void bindYourself();
 
 private:
-	AnalysisMenuModel*				_analysisMenuModel;
-	Modules::AnalysisEntries		_menuEntries;
-
-	bool							_requiresData	= true,
-									_isDynamicModule	= true,
+	AnalysisMenuModel			*	_analysisMenuModel  = nullptr;
+	bool							_requiresData		= true,
 									_isCommonModule		= false,
 									_enabled			= false;
 	std::string						_title				= "",

@@ -35,25 +35,14 @@
         <file>icons/bookcase.png</file>
         <file>icons/accessories-text-editor.png</file>
         <file>icons/accessories-calculator.png</file>
-        <file>icons/analysis-descriptives.svg</file>
         <file>icons/variable-scale.svg</file>
         <file>icons/variable-ordinal.svg</file>
         <file>icons/variable-nominal.svg</file>
-        <file>icons/analysis-classical-regression.svg</file>
-        <file>icons/analysis-classical-anova.svg</file>
-        <file>icons/analysis-classical-ttest.svg</file>
-        <file>icons/analysis-bayesian-ttest.svg</file>
-        <file>icons/analysis-bayesian-anova.svg</file>
-        <file>icons/analysis-bayesian-crosstabs.svg</file>
-        <file>icons/analysis-classical-crosstabs.svg</file>
-        <file>icons/analysis-bayesian-regression.svg</file>
-        <file>icons/analysis-network.svg</file>
         <file>icons/toolbutton-menu-indicator.svg</file>
         <file>icons/variable-scale-inactive.svg</file>
         <file>icons/variable-ordinal-inactive.svg</file>
         <file>icons/variable-nominal-inactive.svg</file>
         <file>icons/variable-nominal-text.svg</file>
-        <file>icons/analysis-classical-sem.svg</file>
         <file>icons/copy.png</file>
         <file>icons/cite.png</file>
         <file>icons/code-icon.png</file>
@@ -117,22 +106,9 @@
         <file>icons/variable-ordinal-disabled.svg</file>
         <file>icons/variable-scale-disabled.svg</file>
         <file>icons/large-arrow-right.png</file>
-        <file>icons/meta-analysis.svg</file>
-        <file>icons/sem-latreg.svg</file>
         <file>icons/edit-pencil.png</file>
-        <file>icons/analysis-bain-anova.svg</file>
-        <file>icons/analysis-bain-regression.svg</file>
-        <file>icons/analysis-bain-ttest.svg</file>
-        <file>icons/bain-module.svg</file>
-        <file>icons/audit-module.svg</file>
-        <file>icons/audit-workflow.svg</file>
-        <file>icons/audit-planning.svg</file>
         <file>icons/sort-az.png</file>
         <file>icons/sort-za.png</file>
-        <file>icons/analysis-ml-classification.svg</file>
-        <file>icons/analysis-ml-regression.svg</file>
-        <file>icons/analysis-ml-clustering.svg</file>
-        <file>icons/analysis-ml-ribbon.svg</file>
         <file>icons/eyeClosed.png</file>
         <file>icons/eyeOpen.png</file>
     </qresource>

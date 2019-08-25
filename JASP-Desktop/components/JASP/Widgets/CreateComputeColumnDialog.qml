@@ -46,6 +46,9 @@ Popup
 
 			function createComputedColumn()
 			{
+				if(!isNaN(nameEdit.text)) //Its a number!
+					nameEdit.text = 'V' + nameEdit.text
+
 				if(computedColumnsInterface.isColumnNameFree(nameEdit.text))
 				{
 					computedColumnsInterface.createComputedColumn(nameEdit.text, rootCreateComputedColumn.selectedColumnType, popupCreateComputedColumn.computeTypeIsJson)

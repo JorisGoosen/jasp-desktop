@@ -27,16 +27,7 @@ linux {
   DEFINES += 'R_HOME=\\\"$$_R_HOME\\\"'
 }
 
-macx {
-        isEmpty(_R_HOME):_R_HOME = $$OUT_PWD/../../Frameworks/R.framework/Versions/$$CURRENT_R_VERSION/Resources
-        R_EXE  = $$_R_HOME/bin/R
-}
-
-windows {
-        isEmpty(_R_HOME):_R_HOME = $$OUT_PWD/../R
-        R_EXE  = $$_R_HOME/bin/$$ARCH/R
-}
-
+include(R_INSTALL_CMDS.pri)
 
 INCLUDEPATH += \
     $$_R_HOME/library/Rcpp/include \

@@ -157,7 +157,7 @@ void ReadStatImportColumn::addMissingValue()
 	switch(_type)
 	{
 	case columnType::unknown:												return;
-	case columnType::scale:		_doubles.push_back(NAN);				return;
+	case columnType::scale:			_doubles.push_back(NAN);				return;
 	case columnType::ordinal:		[[clang::fallthrough]];
 	case columnType::nominal:		_ints.push_back(INT_MIN);				return;
 	case columnType::nominalText:	_strings.push_back(Utils::emptyValue);	return;

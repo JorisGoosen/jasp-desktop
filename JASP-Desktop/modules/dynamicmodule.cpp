@@ -39,26 +39,35 @@ const char * standardRIndent = "  ";
 std::string DynamicModule::_developmentModuleName = "?";
 
 ///This constructor takes the path to an installed jasp-module as path (aka a directory that contains a library of R packages, one of which is the actual module with QML etc)
-DynamicModule::DynamicModule(QString moduleDirectory, QObject *parent) : QObject(parent), _moduleFolder(moduleDirectory)
+DynamicModule::DynamicModule(QString moduleDirectory, QObject *parent, bool bundled, bool isCommon)
+	: QObject(parent), _moduleFolder(moduleDirectory), _bundled(bundled), _isCommon(isCommon)
 {
 	QDir moduleDir(_moduleFolder.absoluteDir());
-	_name = stringUtils::stripNonAlphaNum(moduleDir.dirName().toStdString());
+	if(!moduleDir.exists()) throw std::runtime_error("Module folder '" + moduleDir.absolutePath().toStdString() + "' does not exist so cannot load from there!");
+
+	_name		= stringUtils::stripNonAlphaNum(moduleDir.dirName().toStdString());
+
+	parseDescriptionFile(getDescriptionJsonFromFolder(fq(moduleDir.absolutePath())));
+
 	setInstalled(true);
 }
 
 ///This constructor takes the path to an R-package as first argument, this R-package must also be a jasp-module and will be installed to the app-directory for the particular OS it runs on.
-DynamicModule::DynamicModule(std::string modulePackageFile, QObject *parent) : QObject(parent), _modulePackage(modulePackageFile)
+DynamicModule::DynamicModule(std::string modulePackageFile, QObject *parent, bool unpack) : QObject(parent), _modulePackage(modulePackageFile)
 {
 	_name			= extractPackageNameFromArchive(modulePackageFile);
 	_moduleFolder	= QFileInfo(AppDirs::modulesDir() + QString::fromStdString(_name) + "/");
-	unpackage();
+
+	parseDescriptionFile(getDescriptionJsonFromArchive(modulePackageFile));
+
+	if(unpack)
+		unpackage();
 }
 
 QFileInfo DynamicModule::developmentModuleFolder()
 {
 	return QFileInfo(AppDirs::modulesDir() + QString::fromStdString(defaultDevelopmentModuleName()) + "/");
 }
-
 
 void DynamicModule::developmentModuleFolderCreate()
 {
@@ -146,7 +155,8 @@ void DynamicModule::parseDescriptionFile(std::string descriptionTxt)
 		auto jsonVer					= moduleDescription.get("version",			"0.0.0");
 		_version						= jsonVer.isString() ? jsonVer.asString() : "0.0.0";
 
-		setRequiredPackages(descriptionJson.get("requiredPackages", Json::arrayValue));
+		setRequiredPackages(descriptionJson	.get("requiredPackages",	Json::arrayValue));
+		setRequiredModules(descriptionJson	.get("requiredModules",		Json::arrayValue));
 
 		for(auto * menuEntry : _menuEntries)
 			delete menuEntry;
@@ -176,13 +186,13 @@ void DynamicModule::generateRPackageMetadata(QDir packageDir)
 	QFile	descriptionFile(packageDir.absoluteFilePath("DESCRIPTION")),
 			namespaceFile(	packageDir.absoluteFilePath("NAMESPACE"));
 
-	if(!descriptionFile.exists() || Settings::value(Settings::DEVELOPER_MODE_REGENERATE_DESCRIPTION_ETC).toBool())
+	if(!descriptionFile.exists() || (isDevMod() && Settings::value(Settings::DEVELOPER_MODE_REGENERATE_DESCRIPTION_ETC).toBool()))
 	{
 		descriptionFile.open(QFile::WriteOnly	| QFile::Truncate);
 		descriptionFile.write(generateDescriptionFileForRPackage().c_str());
 	}
 
-	if(!namespaceFile.exists() || Settings::value(Settings::DEVELOPER_MODE_REGENERATE_DESCRIPTION_ETC).toBool())
+	if(!namespaceFile.exists() || (isDevMod() && Settings::value(Settings::DEVELOPER_MODE_REGENERATE_DESCRIPTION_ETC).toBool()))
 	{
 		namespaceFile.open(QFile::WriteOnly		| QFile::Truncate);
 		namespaceFile.write(generateNamespaceFileForRPackage().c_str());
@@ -244,9 +254,8 @@ std::string DynamicModule::generateNamespaceFileForRPackage()
 {
 	std::stringstream out;
 
-	for(const AnalysisEntry * analysis : _menuEntries)
-		if(analysis->isAnalysis())
-			out << "export(" << analysis->function() << ")\n";
+	//Always export functions that have a full alpha name. This helps with dependencies of other modules
+	out << "exportPattern('^[[:alpha:]]+')\n";
 
 	try
 	{
@@ -323,6 +332,20 @@ void DynamicModule::unpackage()
 	_modulePackage = modDir;
 }
 
+std::string DynamicModule::getLibPathsToUse()
+{
+	std::string libPathsToUse = "c('" + moduleRLibrary().toStdString()	+ "'";
+
+	std::vector<std::string> requiredLibPaths = fq(requiredModulesLibPaths(tq(_name)));
+
+	for(const std::string & path : requiredLibPaths)
+		libPathsToUse += ", '" + path + "'";
+
+	libPathsToUse += ", .libPaths(.Library))";
+
+	return libPathsToUse;
+}
+
 std::string DynamicModule::generateModuleInstallingR(bool onlyModPkg)
 {
 	std::stringstream R;
@@ -352,14 +375,13 @@ std::string DynamicModule::generateModuleInstallingR(bool onlyModPkg)
 	setInstallLog("Installing module " + _name + ".\n");
 
 	std::string typeInstall = "'source'";
-//<< ".runSeparateR(\"{"
 
-	std::string libPathsToUse = "c('" + moduleRLibrary().toStdString()	+ "', .libPaths(.Library))";
+	const std::string libPathsToUse(getLibPathsToUse());
 
 	if(!onlyModPkg)	//First install dependencies:
-		R	<< standardRIndent <<								"withr::with_libpaths(new=" << libPathsToUse << ", devtools::install_deps(pkg= '"	<< _modulePackage << "',   lib='" << moduleRLibrary().toStdString() << "', upgrade=TRUE, repos='" << Settings::value(Settings::CRAN_REPO_URL).toString().toStdString() << "'));\n"
-		//And fix Mac OS libraries of dependencies:
-		<< standardRIndent << "postProcessModuleInstall(\"" << moduleRLibrary().toStdString() << "\");\n";
+		R	<< standardRIndent <<								"withr::with_libpaths(new=" << libPathsToUse << ", remotes::install_deps(pkg= '"	<< _modulePackage << "',   lib='" << moduleRLibrary().toStdString() << "', upgrade=TRUE, repos='" << Settings::value(Settings::CRAN_REPO_URL).toString().toStdString() << "'));\n"
+					//And fix Mac OS libraries of dependencies:
+			<< standardRIndent << "postProcessModuleInstall(\"" << moduleRLibrary().toStdString() << "\");\n";
 
 		//Remove old copy of library (because we might be reinstalling and want the find.package check on the end to fail if something went wrong)
 	R	<< standardRIndent << "tryCatch(expr={"				"withr::with_libpaths(new=" << libPathsToUse << ", { find.package(package='" << _name << "'); remove.packages(pkg='"	<< _name << "', lib='" << moduleRLibrary().toStdString() << "');})}, error=function(e) {});\n"
@@ -367,11 +389,11 @@ std::string DynamicModule::generateModuleInstallingR(bool onlyModPkg)
 		//Install module
 		<< standardRIndent << "loadLog <- .runSeparateR(\""	"withr::with_libpaths(new=" << libPathsToUse << ", install.packages(pkgs='"			<< _modulePackage << "/.', lib='" << moduleRLibrary().toStdString() << "', type=" << typeInstall << ", repos=NULL))\");\n" //Running in separate R because otherwise we cannot capture output :s
 
-		//Check if install worked and through loadlog as error otherwise
-		<< standardRIndent << "tryCatch(expr={"				"withr::with_libpaths(new=" << libPathsToUse << ", find.package(package='" << _name << "')); return('" << succesResultString() << "');}, error=function(e) { .setLog(loadLog); return('fail'); });\n";
+		//Check if install worked and through loadlog as error otherwise. We check this by looking for the pkg in it's own library
+		<< standardRIndent << "tryCatch(expr={"				"withr::with_libpaths(new='" << moduleRLibrary().toStdString() << "', find.package(package='" << _name << "')); return('" << succesResultString() << "');}, error=function(e) { .setLog(loadLog); return('fail'); });\n";
 
 
-	Log::log() << "DynamicModule(" << _name << ")::generateModuleInstallingR() generated:\n" << R.str() << std::endl;
+	//Log::log() << "DynamicModule(" << _name << ")::generateModuleInstallingR() generated:\n" << R.str() << std::endl;
 
 	return R.str();
 }
@@ -382,12 +404,15 @@ std::string DynamicModule::generateModuleLoadingR(bool shouldReturnSucces)
 
 	setLoadLog("Module " + _name + " is being loaded from " + _moduleFolder.absolutePath().toStdString() + "\n");
 
-	R << _name << " <- module({\n" << standardRIndent << ".libPaths('" << moduleRLibrary().toStdString() << "');\n";
+	R << _name << "Module <- module({\n" << standardRIndent << ".libPaths("  << getLibPathsToUse() << ");\n\n";
+
+	for(const std::string & reqMod : _requiredModules)
+		R << standardRIndent << "import('" << reqMod << "');\n";
 	R << standardRIndent << "import('" << _name << "');\n\n";
 
 	size_t maxL = 0;
 	for(const AnalysisEntry * analysis : _menuEntries)
-		if(analysis->isAnalysis())
+		if(analysis->shouldBeExposed())
 			maxL = std::max(analysis->function().size(), maxL);
 
 	auto filler = [](size_t spaces)
@@ -399,14 +424,14 @@ std::string DynamicModule::generateModuleLoadingR(bool shouldReturnSucces)
 	};
 
 	for(const AnalysisEntry * analysis : _menuEntries)
-		if(analysis->isAnalysis())
+		if(analysis->shouldBeExposed())
 			R << standardRIndent << analysis->function() << _exposedPostFix << filler(maxL - analysis->function().size()) << " <- function(...) " << analysis->function() << "(...)\n";
 	R << "})\n";
 
 	if(shouldReturnSucces)
 		R << "return('"+succesResultString()+"')";
 
-	Log::log() << "DynamicModule(" << _name << ")::generateModuleLoadingR() generated:\n" << R.str() << std::endl;
+	//Log::log() << "DynamicModule(" << _name << ")::generateModuleLoadingR() generated:\n" << R.str() << std::endl;
 
 	return R.str();
 }
@@ -417,7 +442,7 @@ std::string DynamicModule::generateModuleUnloadingR()
 
 	out << _name << " <- NULL; gc(); return('"+succesResultString()+"')";
 
-	Log::log() << "DynamicModule(" << _name << ")::generateModuleUnloadingR() generated:\n" << out.str() << std::endl;
+	//Log::log() << "DynamicModule(" << _name << ")::generateModuleUnloadingR() generated:\n" << out.str() << std::endl;
 
 	return out.str();
 }
@@ -460,6 +485,8 @@ std::string DynamicModule::iconFolder() const
 
 std::string	DynamicModule::iconFilePath(std::string whichIcon)	const
 {
+	if(!installed()) return "";
+
 	return iconFolder() + (whichIcon == "" ? _icon : whichIcon);
 }
 
@@ -538,10 +565,8 @@ void DynamicModule::setInstalled(bool installed)
 	if(_installed != installed)
 	{
 		_installed = installed;
-
 		emit installedChanged(_installed);
 	}
-
 
 	if(installing())
 		setInstalling(false);
@@ -655,11 +680,8 @@ void DynamicModule::reloadDescription()
 
 std::string DynamicModule::getDESCRIPTIONFromArchive(const std::string &  filepath)
 {
-	try {
-		return ExtractArchive::extractSingleTextFileFromArchive(filepath, "DESCRIPTION");
-	} catch (...) {
-		return "";
-	}
+	try {			return ExtractArchive::extractSingleTextFileFromArchive(filepath, "DESCRIPTION"); }
+	catch (...) {	return "";	}
 }
 
 std::string DynamicModule::getDESCRIPTIONFromFolder(const std::string & filepath)
@@ -669,11 +691,8 @@ std::string DynamicModule::getDESCRIPTIONFromFolder(const std::string & filepath
 
 std::string DynamicModule::getDescriptionJsonFromArchive(const std::string &  filepath)
 {
-	try {
-		return ExtractArchive::extractSingleTextFileFromArchive(filepath, "description.json");
-	} catch (...) {
-		return "";
-	}
+	try {			return ExtractArchive::extractSingleTextFileFromArchive(filepath, "description.json");	}
+	catch (...) {	return "";	}
 }
 
 std::string DynamicModule::getDescriptionJsonFromFolder(const std::string &  filepath)
@@ -829,6 +848,55 @@ bool DynamicModule::requiresData() const
 			return false;
 
 	return true;
+}
+
+
+void DynamicModule::setBundled(bool bundled)
+{
+	if (_bundled == bundled)
+		return;
+
+	_bundled = bundled;
+	emit bundledChanged(_bundled);
+}
+
+std::string DynamicModule::toString()
+{
+	std::stringstream out;
+	out << "DynamicModule " << _name << "(0x" << std::hex << std::to_string(size_t(static_cast<void *>(this))) << ")" ;
+	return out.str();
+}
+
+QStringList DynamicModule::requiredModulesQ() const {	return tql(_requiredModules);					}
+
+void DynamicModule::setRequiredModules(Json::Value requiredModules)
+{
+	stringset newModules;
+
+	switch(requiredModules.type())
+	{
+	case Json::stringValue:			newModules.insert(requiredModules.asString());																																	break;
+	case Json::arrayValue:			for(const Json::Value & entry		: requiredModules)					if(entry.isString())						newModules.insert(entry.asString());						break;
+	case Json::objectValue:			for(const std::string & memberName	: requiredModules.getMemberNames())	if(requiredModules[memberName].isString())	newModules.insert(requiredModules[memberName].asString());	break;
+	default:																																																		break;
+	}
+
+	bool ditto = newModules.size() == _requiredModules.size();
+
+	if(ditto)
+		for(const std::string & mod : newModules)
+			if(_requiredModules.count(mod) == 0)
+			{
+				ditto = false;
+				break;
+			}
+
+	if(ditto)
+		return;
+
+	_requiredModules = newModules;
+
+	emit requiredModulesChanged();
 }
 
 }
