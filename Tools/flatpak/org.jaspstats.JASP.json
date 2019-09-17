@@ -3714,8 +3714,8 @@
 			"sources":[
 				{
 					"type":	"git",
-					"tag":	"v0.10.2.0",
-					"url": 	"https://github.com/jasp-stats/jasp-desktop"
+					"branch":	"fixingBrowseFileLinux",
+					"url": 	"https://github.com/JorisGoosen/jasp-desktop"
 				},
 				{
 					"type": "shell",
