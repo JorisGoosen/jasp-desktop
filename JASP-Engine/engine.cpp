@@ -30,6 +30,7 @@
 #include "rbridge.h"
 #include "timers.h"
 #include "log.h"
+#include "columnencoder.h"
 
 void SendFunctionForJaspresults(const char * msg) { Engine::theEngine()->sendString(msg); }
 bool PollMessagesFunctionForJaspResults()
@@ -395,7 +396,6 @@ void Engine::receiveAnalysisMessage(const Json::Value & jsonRequest)
 		_analysisName			= jsonRequest.get("name",				Json::nullValue).asString();
 		_analysisTitle			= jsonRequest.get("title",				Json::nullValue).asString();
 		_analysisDataKey		= jsonRequest.get("dataKey",			Json::nullValue).toStyledString();
-		_analysisOptions		= jsonRequest.get("options",			Json::nullValue).toStyledString();
 		_analysisResultsMeta	= jsonRequest.get("resultsMeta",		Json::nullValue).toStyledString();
 		_analysisStateKey		= jsonRequest.get("stateKey",			Json::nullValue).toStyledString();
 		_analysisRevision		= jsonRequest.get("revision",			-1).asInt();
@@ -408,7 +408,36 @@ void Engine::receiveAnalysisMessage(const Json::Value & jsonRequest)
 		_analysisDeveloperMode	= jsonRequest.get("developerMode",		false).asBool();
 		_analysisJaspResults	= _dynamicModuleCall != "" || jsonRequest.get("jaspResults",	false).asBool();
 		_engineState			= engineState::analysis;
+
+		Json::Value optionsEnc	= jsonRequest.get("options",			Json::nullValue);
+		encodeColumnNamesinJson(optionsEnc);
+		_analysisOptions		= optionsEnc.toStyledString();
 	}
+}
+
+
+void Engine::encodeColumnNamesinJson(Json::Value & options)
+{
+	ColumnEncoder::encodeJson(options);
+}
+
+void Engine::sendString(std::string message)
+{
+	Json::Value msgJson;
+
+	if(Json::Reader().parse(message, msgJson)) //If everything is converted to jaspResults maybe we can do this there?
+	{
+		decodeColumnNamesinJson(msgJson); // decode all columnnames as far as you can
+
+		_channel->send(msgJson.toStyledString());
+	}
+	else
+		_channel->send(message);
+}
+
+void Engine::decodeColumnNamesinJson(Json::Value & options)
+{
+	ColumnEncoder::decodeJson(options);
 }
 
 void Engine::runAnalysis()
@@ -735,6 +764,8 @@ void Engine::sendEngineStopped()
 
 void Engine::pauseEngine()
 {
+	Log::log() << "Engine paused" << std::endl;
+
 	switch(_engineState)
 	{
 	default:							/* everything not mentioned is fine */	break;
@@ -752,8 +783,6 @@ void Engine::pauseEngine()
 
 void Engine::sendEnginePaused()
 {
-	Log::log() << "Engine paused" << std::endl;
-
 	Json::Value rCodeResponse		= Json::objectValue;
 	rCodeResponse["typeRequest"]	= engineStateToString(engineState::paused);
 
@@ -762,13 +791,16 @@ void Engine::sendEnginePaused()
 
 void Engine::resumeEngine()
 {
+	Log::log() << "Engine resuming, rescanning columnNames for en/decoding" << std::endl;
+	//Any changes to the data that engine needs to know about are accompanied by pause + resume I think.
+	ColumnEncoder::setCurrentColumnNames(provideDataSet() == nullptr ? std::vector<std::string>({}) : provideDataSet()->getColumnNames());
+
 	_engineState = engineState::idle;
 	sendEngineResumed();
 }
 
 void Engine::sendEngineResumed()
 {
-	Log::log() << "Engine resuming" << std::endl;
 
 	Json::Value rCodeResponse		= Json::objectValue;
 	rCodeResponse["typeRequest"]	= engineStateToString(engineState::resuming);

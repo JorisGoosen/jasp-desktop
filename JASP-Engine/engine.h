@@ -38,7 +38,8 @@ public:
 	void run();
 	bool receiveMessages(int timeout = 0);
 	void setSlaveNo(int no);
-	void sendString(std::string message) { _channel->send(message); }
+	void sendString(std::string message);
+
 
 	typedef engineAnalysisStatus Status;
 	Status getAnalysisStatus() { return _analysisStatus; }
@@ -100,6 +101,9 @@ private: // Methods:
 	void provideTempFileName(		const std::string &extension,	std::string &root,			std::string &relativePath);
 	void provideStateFileName(		std::string &root,				std::string &relativePath);
 	void provideJaspResultsFileName(std::string &root,				std::string &relativePath);
+
+	void encodeColumnNamesinJson(Json::Value & options);
+	void decodeColumnNamesinJson(Json::Value & options);
 
 private: // Data:
 	static Engine * _EngineInstance;
