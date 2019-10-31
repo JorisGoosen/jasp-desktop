@@ -44,14 +44,14 @@ void EngineRepresentation::sendString(std::string str)
 
 void EngineRepresentation::jaspEngineProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-	Log::log() << "jaspEngine for channel " << engineChannelID() << " finished!" << std::endl;
+	Log::log() << "jaspEngine for channel " << channelNumber() << " finished!" << std::endl;
 
 	_slaveProcess = nullptr;
 }
 
 void EngineRepresentation::clearAnalysisInProgress()
 {
-	Log::log() << "Engine " << _channel->channelNumber() << " clears current analysis in progress (" << (_analysisInProgress ? _analysisInProgress->name() : "???" ) << ")" << std::endl;
+	Log::log() << "Engine " << channelNumber() << " clears current analysis in progress (" << (_analysisInProgress ? _analysisInProgress->name() : "???" ) << ")" << std::endl;
 
 	_analysisInProgress = nullptr;
 	_engineState		= engineState::idle;
@@ -112,7 +112,6 @@ void EngineRepresentation::process()
 		}
 	}
 }
-
 
 void EngineRepresentation::runScriptOnProcess(RFilterStore * filterStore)
 {
@@ -604,4 +603,35 @@ void EngineRepresentation::processLogCfgReply()
 	_engineState = engineState::idle;
 
 	emit logCfgReplyReceived(channelNumber());
+}
+
+std::string EngineRepresentation::currentState() const
+{
+	try {
+		std::stringstream out;
+
+		out << "Engine #" << channelNumber() << " process ";
+
+		if(!_slaveProcess)
+			out << "does not exist";
+		else
+			switch(_slaveProcess->state())
+			{
+			case QProcess::ProcessState::NotRunning:	out << " is not running";		break;
+			case QProcess::ProcessState::Running:		out << " is running";			break;
+			case QProcess::ProcessState::Starting:		out << " is starting";			break;
+			}
+
+		out << " and it's state is " << engineStateToString(_engineState);
+
+		if(_engineState == engineState::analysis)
+			try			{	out << " (" << (_analysisInProgress ? (_analysisInProgress->name() + " with status " + Analysis::statusToString(_analysisInProgress->status())) : "???") << ")"; }
+			catch(...)	{	out << " (something is wrong with the analysis)"; }
+
+		return out.str();
+	}
+	catch (...)
+	{
+		return "EngineRepresentation::currentState() didn't work...";
+	}
 }

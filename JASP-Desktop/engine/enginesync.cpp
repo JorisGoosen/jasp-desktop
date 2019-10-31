@@ -744,3 +744,22 @@ void EngineSync::cleanUpAfterClose()
 
 	//restartEngines();
 }
+
+std::string	EngineSync::currentState() const
+{
+	try
+	{
+		std::stringstream out;
+
+		for(size_t i=0; i<_engines.size(); i++)
+			try			{ out << _engines[i]->currentState() << "\n"; }
+			catch(...)	{ out << "Something is wrong with engine " << i << "...\n"; }
+
+		return out.str();
+	}
+	catch(...)
+	{
+		return "EngineSync::currentState() did not work...\n";
+	}
+
+}

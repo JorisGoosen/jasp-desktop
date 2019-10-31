@@ -48,18 +48,18 @@ public:
 	bool allEnginesInitializing();
 
 public slots:
-	int		sendFilter(		const QString & generatedFilter,	const QString & filter);
-	void	sendRCode(		const QString & rCode,				int requestId,					bool whiteListedVersion);
-	void	computeColumn(	const QString & columnName,			const QString & computeCode,	columnType columnType);
-	void	pause();
-	void	resume();
-	void	refreshAllPlots();
-	void	stopEngines();
-	void	logCfgRequest();
-	void	logToFileChanged(bool) { logCfgRequest(); }
-	void	cleanUpAfterClose();
-	void	filterDone(int requestID);
-
+	int			sendFilter(		const QString & generatedFilter,	const QString & filter);
+	void		sendRCode(		const QString & rCode,				int requestId,					bool whiteListedVersion);
+	void		computeColumn(	const QString & columnName,			const QString & computeCode,	columnType columnType);
+	void		pause();
+	void		resume();
+	void		refreshAllPlots();
+	void		stopEngines();
+	void		logCfgRequest();
+	void		logToFileChanged(bool) { logCfgRequest(); }
+	void		cleanUpAfterClose();
+	void		filterDone(int requestID);
+	std::string	currentState() const;
 	
 signals:
 	void	processNewFilterResult(const std::vector<bool> & filterResult, int requestID);

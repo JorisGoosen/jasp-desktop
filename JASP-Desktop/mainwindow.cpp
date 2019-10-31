@@ -1082,6 +1082,30 @@ void MainWindow::_openFile()
     _openOnLoadFilename = "";
 }
 
+void MainWindow::openGitHubBugReport() const
+{
+	std::stringstream fillIt;
+
+	fillIt	<<	"* JASP version: "			<< AppInfo::version.asString()						<< std::endl
+			<<	"* OS name and version: "	<< QSysInfo::prettyProductName().toStdString()		<< std::endl
+			<<	"<!--- If possible please attach your data and/or JASP file to the issue -->"
+				"<!--- Note that github requires you to zip the file  -->\n\n"
+				"<!--- Please fill in the following fields: -->\n"
+				"* Analysis: \n"
+				"* Bug description:\n"
+				"* Expected behaviour:\n"
+				"* Steps to reproduce:\n"
+				"1. Go to '...'\n"
+				"2. Click on '....'\n"
+				"3. Scroll down to '....'\n"
+				"4. See error" << std::endl;
+
+	ok see: https://www.qtcentre.org/threads/67182-Convert-to-html-percent-encoding
+
+			also it would be nice to do the twee trapsraket maar dan met een setting die onthoudt of de gebruiker een github account had of niet. zodat ie de volgende keer direct dat ding opent
+
+//https://github.com/jasp-stats/jasp-issues/issues/new?labels=bug&title=New+bug+report&body=%3C!---%20Include%20as%20many%20relevant%20details%20about%20the%20environment%20you%20experienced%20the%20bug%20in%20--%3E%3Cbr/%3E%3C!---%20If%20possible%20please%20attach%20your%20data%20and/or%20JASP%20file%20to%20the%20issue%20--%3E%3Cbr/%3E%3C!---%20Note%20that%20github%20requires%20you%20to%20zip%20the%20file%20%20--%3E%3Cbr/%3E*%20JASP%20version:*%20OS%20name%20and%20version:*%20Analysis:*%20Bug%20description:*%20Add%20JASP%20files%20as%20a%20zip:*%20Screenshot:*%20Expected%20behaviour:*%20Steps%20to%20reproduce:1.%20Go%20to%20%27...%272.%20Click%20on%20%27....%273.%20Scroll%20down%20to%20%27....%274.%20See%20error
+}
 
 void MainWindow::fatalError()
 {

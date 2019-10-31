@@ -62,11 +62,11 @@ public:
 	void processEngineResumedReply();
 	void processLogCfgReply();
 
-	size_t	channelNumber()		{ return _channel->channelNumber(); }
-	int		engineChannelID()	{ return _channel->channelNumber(); }
+	size_t	channelNumber()		const { return _channel->channelNumber(); }
 
 	void sendString(std::string str);
 
+	std::string currentState() const;
 
 public slots:
 	void ppiChanged(int newPPI);
