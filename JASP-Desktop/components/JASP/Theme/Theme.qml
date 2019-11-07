@@ -125,39 +125,39 @@ QtObject
 	property string jaspFont: "SansSerif"
 
 	property font font
-	font.bold:			false
-	font.underline:		false
+	//font.bold:			false
+	//font.underline:		false
 	font.pixelSize:		12 * uiScale
 	font.family:		jaspFont
-	font.weight:		Font.Normal
+//	font.weight:		Font.Normal
 
 	property font fontLabel
 	fontLabel.bold:			true
-	fontLabel.underline:	false
+	//fontLabel.underline:	false
 	fontLabel.pixelSize:	18 * uiScale
-	fontLabel.family:		jaspFont
-	fontLabel.weight:		Font.Bold
+	fontLabel.family:		jaspFont + " Bold"
+	//fontLabel.weight:		Font.Bold
 
 	property font fontRibbon
 	fontRibbon.bold:		false
-	fontRibbon.underline:	false
+	//fontRibbon.underline:	false
 	fontRibbon.pixelSize:	14 * uiScale
 	fontRibbon.family:		jaspFont
-	fontRibbon.weight:		Font.Normal
+	//fontRibbon.weight:		Font.Normal
 
 	property font fontGroupTitle
 	fontGroupTitle.bold:		true
-	fontGroupTitle.underline:	false
+	//fontGroupTitle.underline:	false
 	fontGroupTitle.pixelSize:	14 * uiScale
 	fontGroupTitle.family:		jaspFont
-	fontGroupTitle.weight:		Font.Bold
+	//fontGroupTitle.weight:		Font.Bold
 
 	property font fontPrefOptionsGroupTitle
 	fontPrefOptionsGroupTitle.bold:			true
-	fontPrefOptionsGroupTitle.underline:	false
+	//fontPrefOptionsGroupTitle.underline:	false
 	fontPrefOptionsGroupTitle.pixelSize:	13 * uiScale
-	fontPrefOptionsGroupTitle.family:		jaspFont
-	fontPrefOptionsGroupTitle.weight:		Font.Bold
+	fontPrefOptionsGroupTitle.family:		jaspFont + " Bold"
+	//fontPrefOptionsGroupTitle.weight:		Font.Bold
 
 	readonly property color borderColor:					gray
 	readonly property color focusBorderColor:				blueLighter

@@ -118,5 +118,6 @@
         <file>components/JASP/Widgets/JagsTableView.qml</file>
         <file>components/JASP/Widgets/PlotEditor.qml</file>
         <file>components/JASP/Widgets/CustomContrastsTableView.qml</file>
+        <file>resources/fonts/FreeSans.ttf</file>
     </qresource>
 </RCC>
