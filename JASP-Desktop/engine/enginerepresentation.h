@@ -72,7 +72,8 @@ public slots:
 	void ppiChanged(int newPPI);
 	void imageBackgroundChanged(QString value);
 	void analysisRemoved(Analysis * analysis);
-	void jaspEngineProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
+	void processFinished(int exitCode, QProcess::ExitStatus exitStatus);
+	void processError(QProcess::ProcessError error);
 
 signals:
 	void engineTerminated();
@@ -96,6 +97,7 @@ signals:
 
 	void logCfgReplyReceived(int channelNr);
 	void plotEditorRefresh();
+	void requestEngineRestart(int channelNr);
 
 private:
 	void sendPauseEngine();
@@ -104,6 +106,7 @@ private:
 	void setChannel(IPCChannel * channel)			{ _channel = channel; }
 	void setSlaveProcess(QProcess * slaveProcess);
 	void checkForComputedColumns(const Json::Value & results);
+	void shouldRestartAfterCrash();
 
 private:
 	Analysis::Status analysisResultStatusToAnalysStatus(analysisResultStatus result, Analysis * analysis);

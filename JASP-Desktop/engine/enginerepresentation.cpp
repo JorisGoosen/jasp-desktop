@@ -18,7 +18,8 @@ void EngineRepresentation::setSlaveProcess(QProcess * slaveProcess)
 	_slaveProcess = slaveProcess;
 	_slaveProcess->setParent(this);
 
-	connect(_slaveProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),	this,	&EngineRepresentation::jaspEngineProcessFinished);
+	connect(_slaveProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),	this, &EngineRepresentation::processFinished);
+	connect(_slaveProcess, &QProcess::errorOccurred,										this, &EngineRepresentation::processError	);
 }
 
 EngineRepresentation::~EngineRepresentation()
@@ -27,7 +28,6 @@ EngineRepresentation::~EngineRepresentation()
 
 	if(_slaveProcess != nullptr)
 	{
-
 		_slaveProcess->terminate();
 		_slaveProcess->kill();
 	}
@@ -44,12 +44,51 @@ void EngineRepresentation::sendString(std::string str)
 	_channel->send(str);
 }
 
-void EngineRepresentation::jaspEngineProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
+void EngineRepresentation::processFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-	Log::log() << "jaspEngine for channel " << channelNumber() << " finished " << (exitStatus == QProcess::ExitStatus::NormalExit ? "normally" : "crashing") << " and with exitCode " << exitCode << "!" << std::endl;
+	Log::log() << "Engine # " << channelNumber() << " finished " << (exitStatus == QProcess::ExitStatus::NormalExit ? "normally" : "crashing") << " and with exitCode " << exitCode << "!" << std::endl;
 
-	_slaveCrashed = exitStatus == QProcess::ExitStatus::CrashExit;
+	_slaveProcess->deleteLater();
 	_slaveProcess = nullptr;
+	_slaveCrashed = exitStatus == QProcess::ExitStatus::CrashExit;
+
+	if(exitCode != 0 || _slaveCrashed)
+		shouldRestartAfterCrash();
+}
+
+void EngineRepresentation::processError(QProcess::ProcessError error)
+{
+	Log::log() << "Engine # " << channelNumber() << " had error: " << QProcessErrorToString(error) << std::endl;
+
+	/* We do not need to clean up here because processFinished will also be called after this is done.
+	   _slaveProcess->deleteLater();
+	_slaveProcess = nullptr;
+	_slaveCrashed = true;
+
+	shouldRestartAfterCrash();*/
+}
+
+void EngineRepresentation::shouldRestartAfterCrash()
+{
+	if(!MessageForwarder::showYesNo("Engine Crashed",
+		currentState() + "\n\n"
+		"Would you like to restart it and continue?\n\n"
+		"It is likely it will crash again if you repeat your actions but it gives you the chance to save your data or do something else.",
+		"Restart", "Quit"))
+	{
+		emit engineTerminated();
+		return;
+	}
+
+	if(_analysisInProgress)
+	{
+		_analysisInProgress->setStatus(Analysis::Status::FatalError);
+		clearAnalysisInProgress();
+	}
+
+	_engineState = engineState::initializing;
+
+	emit requestEngineRestart(channelNumber());
 }
 
 void EngineRepresentation::clearAnalysisInProgress()
@@ -458,7 +497,7 @@ void EngineRepresentation::restartEngine(QProcess * jaspEngineProcess)
 	if(_slaveProcess != nullptr && _slaveProcess != jaspEngineProcess)
 	{
 		_slaveProcess->kill();
-		delete _slaveProcess;
+		_slaveProcess->deleteLater();
 		Log::log() << "EngineRepresentation::restartEngine says: Engine already has jaspEngine process!" << std::endl;
 	}
 

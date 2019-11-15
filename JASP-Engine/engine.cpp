@@ -157,7 +157,7 @@ bool Engine::receiveMessages(int timeout)
 		engineState typeRequest = engineStateFromString(jsonRequest.get("typeRequest", Json::nullValue).asString());
 
 #ifdef PRINT_ENGINE_MESSAGES
-		Log::log() << "received " << engineStateToString(typeRequest) <<" message" << std::endl;
+		Log::log() << "Engine received " << engineStateToString(typeRequest) <<" message" << std::endl;
 #endif
 		switch(typeRequest)
 		{
@@ -414,6 +414,8 @@ void Engine::receiveAnalysisMessage(const Json::Value & jsonRequest)
 void Engine::runAnalysis()
 {
 	Log::log() << "Engine::runAnalysis() " << _analysisTitle << " (" << _analysisId << ") revision: " << _analysisRevision << std::endl;
+
+	throw std::runtime_error("Just crashing for the hell of it ;)");
 
 	if(_analysisStatus == Status::saveImg)		{ saveImage();		return; }
 	if(_analysisStatus == Status::editImg)		{ editImage();		return; }
