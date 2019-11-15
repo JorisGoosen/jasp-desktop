@@ -58,7 +58,8 @@ void EngineRepresentation::processFinished(int exitCode, QProcess::ExitStatus ex
 
 void EngineRepresentation::processError(QProcess::ProcessError error)
 {
-	Log::log() << "Engine # " << channelNumber() << " had error: " << QProcessErrorToString(error) << std::endl;
+	//We can also check if there was a crash in processFinished
+	//Log::log() << "Engine # " << channelNumber() << " had error: " << QProcessErrorToString(error) << std::endl;
 
 	/* We do not need to clean up here because processFinished will also be called after this is done.
 	   _slaveProcess->deleteLater();

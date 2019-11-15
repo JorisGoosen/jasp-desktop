@@ -140,6 +140,9 @@ void Engine::run()
 		if(_engineState != engineState::idle)
 			Log::log() << "current Engine state == "<< engineStateToString(_engineState) << std::endl;
 	}
+
+	if(_engineState == engineState::stopped)
+		Log::log() << "Engine leaving mainloop after having been asked to stop." << std::endl;
 }
 
 
@@ -415,7 +418,8 @@ void Engine::runAnalysis()
 {
 	Log::log() << "Engine::runAnalysis() " << _analysisTitle << " (" << _analysisId << ") revision: " << _analysisRevision << std::endl;
 
-	throw std::runtime_error("Just crashing for the hell of it ;)");
+	if(_analysisTitle == "Descriptive Statistics")
+		throw std::runtime_error("Just crashing for the hell of it ;)");
 
 	if(_analysisStatus == Status::saveImg)		{ saveImage();		return; }
 	if(_analysisStatus == Status::editImg)		{ editImage();		return; }
