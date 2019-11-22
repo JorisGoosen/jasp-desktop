@@ -4,21 +4,16 @@
 }
 
 body {
-	font-family: sans-serif ;
-	margin: 0 ;
-	cursor: default;
-}
-
-body:not(.windows) {
-	font-size: 12px ;
-}
-
-body.windows {
-	font-size: 12px ;
+        font-family:  sans-serif ;
+        margin:       0 ;
+        cursor:       default;
+        color:        #000;
+        font-size:    12px ;
 }
 
 body.selected {
         background-color: #ECECEC ; /*grayMuchLighter*/
+        color:            #999;
 }
 
 h1, .h1-toolbar .jasp-menu {
@@ -219,6 +214,18 @@ tbody tr:nth-last-child(2) th {
 	background: #FFF
 }
 
+
+.jasp-analysis.unselected:not(.jasp-menu-selected) {
+
+        background-color: #E8E8E8 ;
+}
+
+.jasp-analysis.selected:not(.jasp-menu-selected) {
+
+        background-color: white ;
+        color:            #000;
+}
+
 td.text {
 	text-align: left ;
 }
@@ -295,16 +302,6 @@ svg > text
 	margin: .7em ;
 	padding: 1em ;
 	/*display: inline-block ;*/
-}
-
-.jasp-analysis.unselected:not(.jasp-menu-selected) {
-
-	background-color: #E8E8E8 ;
-}
-
-.jasp-analysis.selected:not(.jasp-menu-selected) {
-
-	background-color: white ;
 }
 
 div.toolbar {

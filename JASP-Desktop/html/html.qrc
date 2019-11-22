@@ -68,6 +68,11 @@
         <file>js/column.js</file>
         <file>css/darkTheme-jasp.css</file>
         <file>css/lightTheme-jasp.css</file>
+        <file>css/images/empty-plotDark.png</file>
+        <file>css/images/waiting-largeDark.png</file>
+        <file>css/images/runningDark.gif</file>
+        <file>css/images/running-largeDark.gif</file>
+        <file>css/images/waitingDark.gif</file>
     </qresource>
     <qresource prefix="/"/>
 </RCC>
