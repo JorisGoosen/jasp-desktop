@@ -208,7 +208,7 @@ Form {
 		height: 			downloadReportEstimation.height
 		Layout.fillWidth: 	true
 
-		Button 
+		RectangularButton 
 		{
 			id: 			downloadReportEstimation
 			enabled: 		populationSize.value != 0 && populationValue.value != 0 && auditValues.count > 0 && bookValues.count > 0

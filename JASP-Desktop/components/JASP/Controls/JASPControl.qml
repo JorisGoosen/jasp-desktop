@@ -36,6 +36,7 @@ JASPControlBase
 	property bool	isDependency:			false
 	property var	dependencyMustContain:	[] //Will be filled with QStringList when necessary
 	property bool	shouldShowFocus:		activeFocus && focusOnTab && !childControlHasFocus
+	property bool	shouldStealHover:		true
 
 	L.Layout.leftMargin: indent ? aspTheme.indentationLength : 0
 
@@ -160,7 +161,7 @@ JASPControlBase
 		z:					5
 		anchors.fill:		useControlMouseArea ? parent : undefined
 		id:					controlMouseArea
-		hoverEnabled:		true
+		hoverEnabled:		jaspControl.shouldStealHover
 		acceptedButtons:	Qt.NoButton
 		cursorShape:		Qt.PointingHandCursor
 	}

@@ -333,7 +333,7 @@ Form
 			Layout.fillWidth: 	true
 			enabled:			!pasteVariables.checked
 
-			Button
+			RectangularButton
 			{
 				id: 			downloadReportPlanning;
 				anchors.right: 	samplingChecked.left;
@@ -350,12 +350,12 @@ Form
 				id: 			samplingChecked
 				name: 			"samplingChecked"
 				anchors.right:	toSampling.left
-				width:			height
+				width:			0
 				visible: 		false
 				checked: 		false
 			}
 
-			Button
+			RectangularButton
 			{
 				id: 			toSampling
 				anchors.right: 	parent.right
@@ -583,14 +583,14 @@ Form
 			Layout.fillWidth: 	true
 			enabled:			!pasteVariables.checked
 
-			Button
+			RectangularButton
 			{
 				anchors.left: 	parent.left
 				text: 			qsTr("<b>Reset Workflow</b>")
 				onClicked: 		form.reset()
 			}
 
-			Button
+			RectangularButton
 			{
 				id: 			downloadReportSelection
 				enabled: 		materialityRelative.checked ? (materialityPercentage.value == "0" ? false : true) : (materialityValue.value == "0" ? false : true)
@@ -603,13 +603,13 @@ Form
 			{
 				id: 				executionChecked
 				anchors.right: 		toExecution.left
-				width: 				height
+				width: 				0
 				visible: 			false
 				name: 				"executionChecked"
 				checked: 			false
 			}
 
-			Button
+			RectangularButton
 			{
 				id: 				toExecution
 				anchors.right: 		parent.right
@@ -741,7 +741,7 @@ Form
 					checked: 			false
 				}
 
-				Button
+				RectangularButton
 				{
 					id: 			pasteButton
 					text: 			qsTr("<b>Fill Variables</b>")
@@ -796,7 +796,7 @@ Form
 			Layout.fillWidth: 	true
 			enabled:			!evaluationChecked.checked
 
-			Button
+			RectangularButton
 			{
 				anchors.left: 	parent.left
 				text: 			qsTr("<b>Reset Workflow</b>");
@@ -813,7 +813,7 @@ Form
 				checked: 		false
 			}
 
-			Button
+			RectangularButton
 			{
 				id: 			toEvaluation
 				enabled: 		pasteVariables.checked
@@ -953,7 +953,7 @@ Form
 			height: 			toInterpretation.height
 			Layout.fillWidth: 	true
 
-			Button
+			RectangularButton
 			{
 				id: 			toInterpretation
 				anchors.right:	parent.right

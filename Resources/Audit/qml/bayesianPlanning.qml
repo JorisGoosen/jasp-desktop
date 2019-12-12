@@ -407,7 +407,7 @@ Form {
 		height: 			downloadReportPlanning.height
 		Layout.fillWidth: 	true
 
-		Button 
+		RectangularButton 
 		{
 			id: 				downloadReportPlanning
 			enabled: 			materialityRelative.checked ? (populationSize.value != 0 && materialityPercentage.value != 0) : (populationSize.value != 0 && materialityValue.value != 0 && populationValue.value != 0)

@@ -102,7 +102,7 @@ JASPControl
             anchors.right:  parent.right
             spacing:        10
 
-            Button 
+            RectangularButton 
             { 
                 name: "add"; 
                 text: qsTr("+")
@@ -110,7 +110,7 @@ JASPControl
                 width: control.width
 				onClicked: factorsForm.model.addFactor()
             }
-            Button 
+            RectangularButton 
             { 
                 name: "remove"; 
                 text: qsTr("-") 

@@ -36,6 +36,7 @@ JASPControl
 	height:				implicitHeight
 	implicitWidth:		400
 	implicitHeight:		400
+	shouldStealHover:	false
 
 	property var	source
 	property string factorsSource	: ""

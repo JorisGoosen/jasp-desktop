@@ -38,53 +38,54 @@ Item
 	property	string	itemType			: "double"
 	property	int		maxNumHypotheses	: 10
 
-	RowLayout
-	{
-		id: layout
 
-		TableView
+	TableView
+	{
+		id				: tableView
+		width			: chi2TestTableView.width * 3 / 4 - buttonColumn.anchors.leftMargin
+		height			: chi2TestTableView.height
+		modelType		: "MultinomialChi2Model"
+		itemType		: chi2TestTableView.itemType
+		tableType		: chi2TestTableView.tableType
+	}
+
+	Column
+	{
+		id					: buttonColumn
+		anchors.left		: tableView.right
+		anchors.leftMargin	: jaspTheme.generalAnchorMargin
+		width				: chi2TestTableView.width * 1 / 4
+		height				: chi2TestTableView.height
+		spacing				: jaspTheme.columnGroupSpacing
+
+		RectangularButton
 		{
-			id				: tableView
-			implicitWidth	: chi2TestTableView.width * 3 / 4 - layout.spacing
-			implicitHeight	: chi2TestTableView.height
-			modelType		: "MultinomialChi2Model"
-			itemType		: chi2TestTableView.itemType
-			tableType		: chi2TestTableView.tableType
+			id				: addButton
+			text			: qsTr("Add Column")
+			//name			: "addButton"
+			width			: chi2TestTableView.width * 1 / 4
+			onClicked		: tableView.addColumn()
+			enabled			: (tableView.columnCount > 0 && tableView.columnCount < maxNumHypotheses)
 		}
 
-		Group
+		RectangularButton
 		{
-			implicitWidth	: chi2TestTableView.width * 1 / 4
-			implicitHeight	: chi2TestTableView.height
+			id				: deleteButton
+			text			: qsTr("Delete Column")
+			//name			: "deleteButton"
+			width			: chi2TestTableView.width * 1 / 4
+			onClicked		: tableView.removeAColumn()
+			enabled			: tableView.columnCount > 1
+		}
 
-			RectangularButton
-			{
-				id				: addButton
-				text			: qsTr("Add Column")
-				//name			: "addButton"
-				width			: chi2TestTableView.width * 1 / 4
-				onClicked		: tableView.addColumn()
-				enabled			: (tableView.columnCount > 0 && tableView.columnCount < maxNumHypotheses)
-			}
-
-			RectangularButton
-			{
-				id				: deleteButton
-				text			: qsTr("Delete Column")
-				//name			: "deleteButton"
-				width			: chi2TestTableView.width * 1 / 4
-				onClicked		: tableView.removeAColumn()
-				enabled			: tableView.columnCount > 1
-			}
-
-			Button
-			{
-				text			: qsTr("Reset")
-				//name			: "resetButton"
-				width			: chi2TestTableView.width * 1 / 4
-				onClicked		: tableView.reset()
-				enabled			: tableView.columnCount > 0
-			}
+		RectangularButton
+		{
+			text			: qsTr("Reset")
+			//name			: "resetButton"
+			width			: chi2TestTableView.width * 1 / 4
+			onClicked		: tableView.reset()
+			enabled			: tableView.columnCount > 0
 		}
 	}
+
 }

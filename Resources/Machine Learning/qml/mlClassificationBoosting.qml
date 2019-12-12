@@ -251,7 +251,7 @@ Form {
 
         }
 
-        Button 
+        RectangularButton 
         {
             id: 			saveModel
             anchors.right: 	parent.right
