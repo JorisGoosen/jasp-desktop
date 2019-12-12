@@ -57,22 +57,22 @@ Item
 			implicitWidth	: chi2TestTableView.width * 1 / 4
 			implicitHeight	: chi2TestTableView.height
 
-			Button
+			RectangularButton
 			{
 				id				: addButton
 				text			: qsTr("Add Column")
-				name			: "addButton"
-				control.width	: chi2TestTableView.width * 1 / 4
+				//name			: "addButton"
+				width			: chi2TestTableView.width * 1 / 4
 				onClicked		: tableView.addColumn()
 				enabled			: (tableView.columnCount > 0 && tableView.columnCount < maxNumHypotheses)
 			}
 
-			Button
+			RectangularButton
 			{
 				id				: deleteButton
 				text			: qsTr("Delete Column")
-				name			: "deleteButton"
-				control.width	: chi2TestTableView.width * 1 / 4
+				//name			: "deleteButton"
+				width			: chi2TestTableView.width * 1 / 4
 				onClicked		: tableView.removeAColumn()
 				enabled			: tableView.columnCount > 1
 			}
@@ -80,8 +80,8 @@ Item
 			Button
 			{
 				text			: qsTr("Reset")
-				name			: "resetButton"
-				control.width	: chi2TestTableView.width * 1 / 4
+				//name			: "resetButton"
+				width			: chi2TestTableView.width * 1 / 4
 				onClicked		: tableView.reset()
 				enabled			: tableView.columnCount > 0
 			}
