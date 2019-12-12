@@ -235,7 +235,7 @@ void DataSetView::determineCurrentViewPortIndices()
 	}
 
 	if(_currentViewportColMax == -1)
-		_currentViewportColMax = _model->columnCount();
+		_currentViewportColMax = _model->columnCount() - 1;
 
 	_currentViewportColMin = std::max(0,										_currentViewportColMin - _viewportMargin);
 	_currentViewportColMax = std::max(0, std::min(_model->columnCount(),		_currentViewportColMax + _viewportMargin));
@@ -258,7 +258,7 @@ void DataSetView::storeOutOfViewItems()
 	int maxRows = _model->rowCount(), maxCols = _model->columnCount();
 	if(
 			_previousViewportRowMin >= 0		&& _previousViewportRowMax >= 0			&& _previousViewportColMin >= 0			&& _previousViewportColMax >= 0 &&
-			_previousViewportRowMin < maxRows	&& _previousViewportRowMax < maxRows	&& _previousViewportColMin < maxCols	&& _previousViewportColMax < maxCols
+			_previousViewportRowMin < maxRows	&& _previousViewportRowMax <= maxRows	&& _previousViewportColMin < maxCols	&& _previousViewportColMax <= maxCols
 	)
 	{
 		for(int col=_previousViewportColMin; col<_previousViewportColMax; col++)
@@ -325,10 +325,10 @@ void DataSetView::buildNewLinesAndCreateNewItems()
 	for(int col=_currentViewportColMin; col<_currentViewportColMax; col++)
 		for(int row=_currentViewportRowMin; row<_currentViewportRowMax; row++)
 		{
-			float	pos0x(_colXPositions[col]),
-					pos0y(_dataRowsMaxHeight + row * _dataRowsMaxHeight),
-					pos1x(pos0x + _dataColsMaxWidth[col]),
-					pos1y(pos0y + _dataRowsMaxHeight);
+			float	pos0x(				_colXPositions[col]		),
+					pos0y((1 + row) *	_dataRowsMaxHeight		),
+					pos1x(pos0x +		_dataColsMaxWidth[col]	),
+					pos1y((2 + row) *	_dataRowsMaxHeight		);
 
 			JASPTIMER_RESUME(buildNewLinesAndCreateNewItems_GRID_DATA);
 			if(_storedLineFlags.count(row) == 0 || _storedLineFlags[row].count(col) == 0)
@@ -438,7 +438,10 @@ void DataSetView::buildNewLinesAndCreateNewItems()
 QQuickItem * DataSetView::createTextItem(int row, int col)
 {
 	JASPTIMER_RESUME(createTextItem);
-	//Log::log() << "createTextItem("<<row<<", "<<col<<") called!\n" << std::flush;
+
+#ifdef DATASETVIEW_DEBUG_CREATION
+	Log::log() << "createTextItem(\t"<<row<<",\t"<<col<<") called!\titemStore contains #"<< _textItemStorage.size() << "\n" << std::flush;
+#endif
 
 	if((_cellTextItems.count(col) == 0 && _cellTextItems[col].count(row) == 0) || _cellTextItems[col][row] == nullptr)
 	{
@@ -446,7 +449,7 @@ QQuickItem * DataSetView::createTextItem(int row, int col)
 		if(_itemDelegate == nullptr)
 		{
 			_itemDelegate = new QQmlComponent(qmlEngine(this));
-			_itemDelegate->setData("import QtQuick 2.9\nText { text: itemText; color: itemActive ? 'black' : 'grey'; font: dataFont }", QUrl());
+			_itemDelegate->setData("import QtQuick 2.9\nText { text: itemText; color: itemActive ? 'black' : 'grey'; font: dataFont; verticalAlignment: Text.AlignVCenter; }", QUrl());
 		}
 
 		QQuickItem			* textItem	= nullptr;
@@ -491,16 +494,12 @@ QQuickItem * DataSetView::createTextItem(int row, int col)
 
 		JASPTIMER_RESUME(createTextItem setValues);
 
-		QString		name		= QString(textItem->metaObject()->className());
-		bool		isTextItem	= name == "QQuickText";
-		
-		if (!isTextItem)
-		{
-			textItem->setHeight(_dataRowsMaxHeight);
-			textItem->setWidth(_dataColsMaxWidth[col]);
-		}
-		textItem->setX(_colXPositions[col] + _itemHorizontalPadding);
-		textItem->setY((isTextItem ? (-2 + _itemVerticalPadding) : 0) + (row + 1) * _dataRowsMaxHeight);
+		textItem->setHeight(_dataRowsMaxHeight		- (2 * _itemVerticalPadding));
+		textItem->setWidth(_dataColsMaxWidth[col]	- (2 * _itemHorizontalPadding));
+
+		textItem->setX(_colXPositions[col]				+ _itemHorizontalPadding);
+		textItem->setY(((row + 1) * _dataRowsMaxHeight)	+ _itemVerticalPadding);
+
 		textItem->setZ(-4);
 		textItem->setVisible(true);
 
@@ -516,11 +515,11 @@ QQuickItem * DataSetView::createTextItem(int row, int col)
 
 void DataSetView::storeTextItem(int row, int col, bool cleanUp)
 {
+	if((_cellTextItems.count(col) == 0 && _cellTextItems[col].count(row) == 0) || _cellTextItems[col][row] == nullptr) return;
 
 #ifdef DATASETVIEW_DEBUG_CREATION
 	Log::log() << "storeTextItem("<<row<<", "<<col<<") in storage!\n" << std::flush;
 #endif
-	if((_cellTextItems.count(col) == 0 && _cellTextItems[col].count(row) == 0) || _cellTextItems[col][row] == nullptr) return;
 
 	JASPTIMER_RESUME(storeTextItem);
 
@@ -613,11 +612,11 @@ QQuickItem * DataSetView::createRowNumber(int row)
 
 void DataSetView::storeRowNumber(int row)
 {
+	if(_rowNumberItems.count(row) == 0  || _rowNumberItems[row] == nullptr) return;
+
 #ifdef DATASETVIEW_DEBUG_CREATION
 	Log::log() << "storeRowNumber("<<row<<") in storage!\n" << std::flush;
 #endif
-
-	if(_rowNumberItems.count(row) == 0  || _rowNumberItems[row] == nullptr) return;
 
 	ItemContextualized * rowNumber = _rowNumberItems[row];
 	_rowNumberItems[row] = nullptr;
@@ -709,11 +708,11 @@ QQuickItem * DataSetView::createColumnHeader(int col)
 
 void DataSetView::storeColumnHeader(int col)
 {
+	if(_columnHeaderItems.count(col) == 0  || _columnHeaderItems[col] == nullptr) return;
+
 #ifdef DATASETVIEW_DEBUG_CREATION
 	Log::log() << "storeColumnHeader("<<col<<") in storage!\n" << std::flush;
 #endif
-
-	if(_columnHeaderItems.count(col) == 0  || _columnHeaderItems[col] == nullptr) return;
 
 	ItemContextualized * columnHeader = _columnHeaderItems[col];
 	_columnHeaderItems[col] = nullptr;
