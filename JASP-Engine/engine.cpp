@@ -140,8 +140,11 @@ void Engine::run()
 
 		freeRBridgeColumns();
 
-		if(_engineState != engineState::idle)
+		static engineState previousState = engineState::idle;
+
+		if(previousState != _engineState)
 			Log::log() << "current Engine state == "<< engineStateToString(_engineState) << std::endl;
+		previousState = _engineState;
 	}
 
 	if(_engineState == engineState::stopped)
