@@ -123,9 +123,10 @@ Window
 			}
 		}
 
-		MainPage
+		Loader
 		{
-			id:			mainpage
+			sourceComponent: mainWindow.welcomePageVisible ? undefined : mainPageComp;
+
 			z:			0
 			visible:	!mainWindow.welcomePageVisible
 
@@ -136,9 +137,9 @@ Window
 				right:	parent.right
 				bottom:	parent.bottom
 			}
+
+			Component { id: mainPageComp; MainPage {} }
 		}
-
-
 
 		MouseArea
 		{
@@ -199,6 +200,7 @@ Window
 
 		CreateComputeColumnDialog	{ id: createComputeDialog	}
 		ModuleInstaller				{ id: moduleInstallerDialog	}
+
 		Loader
 		{
 			id:					plotEditingDialog
