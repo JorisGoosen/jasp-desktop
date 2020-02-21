@@ -1341,7 +1341,7 @@ msgstr "<geen keuze>"
 #, qt-format
 msgctxt "TextField|"
 msgid "Restoring last correct value: %1"
-msgstr "Herstel laatste correcte waarde: %l"
+msgstr "Herstel laatste correcte waarde: %1"
 
 #: /Users/fransmeerhoff/JASP/Develop/jasp-desktop/JASP-Desktop/components/JASP/Widgets/AboutWindow.qml:104
 msgctxt "AboutWindow|"
