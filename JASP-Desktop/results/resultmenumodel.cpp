@@ -59,6 +59,8 @@ QHash<int, QByteArray> ResultMenuModel::roleNames() const
 
 void ResultMenuModel::setOptions(QString options, QStringList selected)
 {
+	auto defMap = ResultMenuEntry::AllResultEntries();
+
 	Json::Value menuOptions;
 	Json::Reader parser;
 	parser.parse(options.toStdString(), menuOptions);
@@ -76,7 +78,7 @@ void ResultMenuModel::setOptions(QString options, QStringList selected)
 		if (!selected.contains(key))
 			continue;
 
-		ResultMenuEntry entry = ResultMenuEntry::AllResultEntries.find(key)->second;
+		ResultMenuEntry entry = defMap.find(key)->second;
 
 		if (key == "hasNotes")
 		{

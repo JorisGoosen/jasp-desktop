@@ -1,6 +1,6 @@
 QT += webengine webchannel svg network printsupport xml qml quick quickwidgets quickcontrols2
 DEFINES += JASP_USES_QT_HERE
-GENERATE_LANGUAGE_FILES = 0
+GENERATE_LANGUAGE_FILES=false
 
 QTQUICK_COMPILER_SKIPPED_RESOURCES += html/html.qrc
 
@@ -95,31 +95,31 @@ exists(/app/lib/*) {
 
 #Lets create a nice shellscript that tells us which version of JASP and R we are building/using!
 unix {
-    SCRIPTFILENAME=$${OUT_PWD}/../versionScript.sh
+  SCRIPTFILENAME=$${OUT_PWD}/../versionScript.sh
 
-    createVersionScript.commands += echo \"$${LITERAL_HASH}!/bin/sh\"                                                                               >          $$SCRIPTFILENAME ;
-    createVersionScript.commands += echo \"JASP_VERSION_MAJOR=$$JASP_VERSION_MAJOR\"                                                                  >>       $$SCRIPTFILENAME ;
-    createVersionScript.commands += echo \"JASP_VERSION_MINOR=$$JASP_VERSION_MINOR\"                                                                    >>     $$SCRIPTFILENAME ;
-    createVersionScript.commands += echo \"JASP_VERSION_REVISION=$$JASP_VERSION_REVISION\"                                                                >>   $$SCRIPTFILENAME ;
-    createVersionScript.commands += echo \"JASP_VERSION_BUILD=$$JASP_VERSION_BUILD\n\"                                                                      >> $$SCRIPTFILENAME ;
-    createVersionScript.commands += echo \"JASP_VERSION=$${JASP_VERSION_MAJOR}.$${JASP_VERSION_MINOR}.$${JASP_VERSION_REVISION}.$${JASP_VERSION_BUILD}\n\"  >> $$SCRIPTFILENAME ;
-    createVersionScript.commands += echo \"CURRENT_R_VERSION=$$CURRENT_R_VERSION\"                                                                          >> $$SCRIPTFILENAME ;
+  createVersionScript.commands += echo \"$${LITERAL_HASH}!/bin/sh\"                                                                               >          $$SCRIPTFILENAME ;
+  createVersionScript.commands += echo \"JASP_VERSION_MAJOR=$$JASP_VERSION_MAJOR\"                                                                  >>       $$SCRIPTFILENAME ;
+  createVersionScript.commands += echo \"JASP_VERSION_MINOR=$$JASP_VERSION_MINOR\"                                                                    >>     $$SCRIPTFILENAME ;
+  createVersionScript.commands += echo \"JASP_VERSION_REVISION=$$JASP_VERSION_REVISION\"                                                                >>   $$SCRIPTFILENAME ;
+  createVersionScript.commands += echo \"JASP_VERSION_BUILD=$$JASP_VERSION_BUILD\n\"                                                                      >> $$SCRIPTFILENAME ;
+  createVersionScript.commands += echo \"JASP_VERSION=$${JASP_VERSION_MAJOR}.$${JASP_VERSION_MINOR}.$${JASP_VERSION_REVISION}.$${JASP_VERSION_BUILD}\n\"  >> $$SCRIPTFILENAME ;
+  createVersionScript.commands += echo \"CURRENT_R_VERSION=$$CURRENT_R_VERSION\"                                                                          >> $$SCRIPTFILENAME ;
 
-    QMAKE_EXTRA_TARGETS += createVersionScript
-    POST_TARGETDEPS     += createVersionScript
+  QMAKE_EXTRA_TARGETS += createVersionScript
+  POST_TARGETDEPS     += createVersionScript
 }
 
 #And of course also a version description to include in the Windows installer
 windows {
-        WIXFILENAME=$${OUT_PWD}/../jasp.wxi
-        createVersionWix.commands += $$quote(echo ^<?xml version=\"1.0\" encoding=\"utf-8\"?^>^<Include^>          >  $${WIXFILENAME})  &&
-        createVersionWix.commands += $$quote(echo ^<?define MajorVersion=\"$${JASP_VERSION_MAJOR}\" ?^>            >>  $${WIXFILENAME}) &&
-        createVersionWix.commands += $$quote(echo ^<?define MinorVersion=\"$${JASP_VERSION_MINOR}\" ?^>            >>  $${WIXFILENAME}) &&
-        createVersionWix.commands += $$quote(echo ^<?define BuildVersion=\"$${JASP_VERSION_BUILD}\" ?^>            >>  $${WIXFILENAME}) &&
-        createVersionWix.commands += $$quote(echo ^<?define Revision=\"$${JASP_VERSION_REVISION}\" ?^>^</Include^> >>  $${WIXFILENAME})
+  WIXFILENAME=$${OUT_PWD}/../jasp.wxi
+  createVersionWix.commands += $$quote(echo ^<?xml version=\"1.0\" encoding=\"utf-8\"?^>^<Include^>          >  $${WIXFILENAME})  &&
+  createVersionWix.commands += $$quote(echo ^<?define MajorVersion=\"$${JASP_VERSION_MAJOR}\" ?^>            >>  $${WIXFILENAME}) &&
+  createVersionWix.commands += $$quote(echo ^<?define MinorVersion=\"$${JASP_VERSION_MINOR}\" ?^>            >>  $${WIXFILENAME}) &&
+  createVersionWix.commands += $$quote(echo ^<?define BuildVersion=\"$${JASP_VERSION_BUILD}\" ?^>            >>  $${WIXFILENAME}) &&
+  createVersionWix.commands += $$quote(echo ^<?define Revision=\"$${JASP_VERSION_REVISION}\" ?^>^</Include^> >>  $${WIXFILENAME})
 
-        QMAKE_EXTRA_TARGETS += createVersionWix
-        POST_TARGETDEPS     += createVersionWix
+  QMAKE_EXTRA_TARGETS += createVersionWix
+  POST_TARGETDEPS     += createVersionWix
 }
 #ENVIRONMENT_CRYPTKEY="$(SIMPLECRYPTKEY)"
 #message("ENVIRONMENT_CRYPTKEY: '$$[ENVIRONMENT_CRYPTKEY]'")
@@ -149,14 +149,14 @@ win32 {
   delres.commands	= $$quote(IF exist \"$$RESOURCES_PATH_DEST\" (rd /s /q \"$$RESOURCES_PATH_DEST\";); )
   copyres.commands	= $$quote(cmd /c xcopy /S /I /Y $${RESOURCES_PATH} $${RESOURCES_PATH_DEST})
 
-  equals(GENERATE_LANGUAGE_FILES,1) {
-  maketranslations.commands += $$quote($${QTBIN}lupdate.exe -extensions $${EXTENSIONS} -recursive $${WINPWD} -ts $${WINPWD}\jasp.po) &&
-  maketranslations.commands += $$quote($${QTBIN}lupdate.exe -extensions $${EXTENSIONS} -source-language dutch -recursive $${WINPWD} -ts $${WINPWD}\jasp_nl.po) &&
-  maketranslations.commands += $$quote($${QTBIN}lrelease.exe $${WINPWD}\jasp_nl.po -qm $${WINPWD}\Resources\Translations\jasp_nl.qm) &&
-  maketranslations.commands += $$quote(del $${RESOURCES_PATH_DEST}\Translations\*.qm ) &&
-  maketranslations.commands += $$quote(copy $${RESOURCES_PATH}\Translations\*.qm $${RESOURCES_PATH_DEST}\Translations\ )
+  $$GENERATE_LANGUAGE_FILES {
+    maketranslations.commands += $$quote($${QTBIN}lupdate.exe -locations none -extensions $${EXTENSIONS} -recursive $${WINPWD} -ts $${WINPWD}\jasp.po) &&
+    maketranslations.commands += $$quote($${QTBIN}lupdate.exe -locations none -extensions $${EXTENSIONS} -source-language dutch -recursive $${WINPWD} -ts $${WINPWD}\jasp_nl.po) &&
+    maketranslations.commands += $$quote($${QTBIN}lrelease.exe $${WINPWD}\jasp_nl.po -qm $${WINPWD}\Resources\Translations\jasp_nl.qm) &&
+    maketranslations.commands += $$quote(del $${RESOURCES_PATH_DEST}\Translations\*.qm ) &&
+    maketranslations.commands += $$quote(copy $${RESOURCES_PATH}\Translations\*.qm $${RESOURCES_PATH_DEST}\Translations\ )
 
-  maketranslations.depends  = copyres
+    maketranslations.depends  = copyres
   }
 }
 
@@ -168,14 +168,14 @@ unix {
   copyres.commands += cp -R $$RESOURCES_PATH/* $$RESOURCES_PATH_DEST ;
 
 
-  equals(GENERATE_LANGUAGE_FILES,1) {
-  maketranslations.commands += lupdate -locations none -extensions cpp,qml -recursive $$PWD/.. -ts $$PWD/../jasp.po ;
-  maketranslations.commands += lupdate -locations none -extensions cpp,qml -target-language Dutch -recursive $$PWD/.. -ts $$PWD/../jasp_nl.po ;
-  maketranslations.commands += lrelease $$PWD/../jasp_nl.po -qm $$PWD/../Resources/Translations/jasp_nl.qm ;
-  maketranslations.commands += rm $$RESOURCES_PATH_DEST/Translations/*.qm ;
-  maketranslations.commands += cp $$RESOURCES_PATH/Translations/*.qm $$RESOURCES_PATH_DEST/Translations/ ;
+  $$GENERATE_LANGUAGE_FILES {
+    maketranslations.commands += lupdate -locations none -extensions cpp,qml -recursive $$PWD/.. -ts $$PWD/../jasp.po ;
+    maketranslations.commands += lupdate -locations none -extensions cpp,qml -target-language Dutch -recursive $$PWD/.. -ts $$PWD/../jasp_nl.po ;
+    maketranslations.commands += lrelease $$PWD/../jasp_nl.po -qm $$PWD/../Resources/Translations/jasp_nl.qm ;
+    maketranslations.commands += rm $$RESOURCES_PATH_DEST/Translations/*.qm ;
+    maketranslations.commands += cp $$RESOURCES_PATH/Translations/*.qm $$RESOURCES_PATH_DEST/Translations/ ;
 
-  maketranslations.depends  = copyres
+    maketranslations.depends  = copyres
   }
 }
 

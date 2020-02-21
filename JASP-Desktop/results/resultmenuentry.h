@@ -23,12 +23,14 @@
 #include <map>
 #include <QString>
 #include <QStringList>
-
+#include <QCoreApplication>
 
 class ResultMenuEntry
 {
+		Q_DECLARE_TR_FUNCTIONS(ResultMenuEntry)
+
 public:
-	static std::map<QString, ResultMenuEntry> AllResultEntries;
+	static std::map<QString, ResultMenuEntry> AllResultEntries();
 	static QStringList EntriesOrder;
 
 	ResultMenuEntry(QString displayText,
