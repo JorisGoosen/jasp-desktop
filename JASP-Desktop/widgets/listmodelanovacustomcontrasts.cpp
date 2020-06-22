@@ -58,6 +58,7 @@ void ListModelANOVACustomContrasts::setup()
 {
 	connect(_tableView->form(), &AnalysisForm::dataSetChanged, this, &ListModelANOVACustomContrasts::dataSetChangedHandler,	Qt::QueuedConnection	);
 	QString factorsSourceName = _tableView->getItemProperty("factorsSource").toString();
+
 	if (!factorsSourceName.isEmpty())
 	{
 		ListModelRepeatedMeasuresFactors* factorsSourceModel = dynamic_cast<ListModelRepeatedMeasuresFactors*>(_tableView->form()->getModel(factorsSourceName));
