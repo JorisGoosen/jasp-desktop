@@ -25,6 +25,12 @@
 #include "timers.h"
 #include "r_functionwhitelist.h"
 
+#include <boost/nowide/fstream.hpp>
+#include <boost/nowide/cstdio.hpp>
+
+typedef boost::nowide::ofstream bofstream; //Use this to work around problems on Windows with utf8 conversion
+typedef boost::nowide::ifstream bifstream;
+
 DataSet						*	rbridge_dataSet		= nullptr;
 RCallback						rbridge_callback	= NULL;
 std::set<std::string>			filterColumnsUsed;
@@ -99,7 +105,10 @@ void rbridge_init(sendFuncDef sendToDesktopFunction, pollMessagesFuncDef pollMes
 					sendToDesktopFunction,
 					pollMessagesFunction,
 					[](){ Log::log(false).flush(); return 0;},
-					_logWriteFunction
+					_logWriteFunction,
+					rbridge_prepareForWriting,
+					rbridge_finishWriting,
+					rbridge_lastWriteWorked
 	);
 	JASPTIMER_STOP(jaspRCPP_init);
 	
@@ -938,4 +947,81 @@ bool rbridge_rCodeSafe(const char * rCode)
 void rbridge_setLANG(const std::string & lang)
 {
 	jaspRCPP_evalRCode(("Sys.setenv(LANG='" + lang + "');\nSys.setenv(LANGUAGE='" + lang + "');\nprint(Sys.getlocale());").c_str());
+}
+
+
+
+extern "C" void rbridge_prepareForWriting(const char * path)
+{
+	//Remove the seal if it is there or not doesnt matter
+	boost::nowide::remove(path);
+}
+
+extern "C" void rbridge_finishWriting(const char * path)
+{
+	//Let us write a small file that tells us writing stuff went well ( https://github.com/jasp-stats/INTERNAL-jasp/issues/884 )
+	bofstream sealMe(path, std::ios_base::trunc);
+
+	sealMe << "Writing state, plot and jaspResults.json seems to have been successful!\n" << std::flush;
+
+	sealMe.close();
+
+	Log::log() << "Created Write Seal for jaspResults at: '" << path << "' ";
+}
+
+extern "C" bool rbridge_lastWriteWorked(const char * path)
+{
+	//Let us write a small file that tells us writing stuff went well ( https://github.com/jasp-stats/INTERNAL-jasp/issues/884 )
+	bifstream seal(path, std::ios_base::in);
+
+	if(!seal.is_open()) return false;
+
+	//std::cout << "Opened Write Seal for jaspResults to check if the last write worked from: '" << (_writeSealRoot + _writeSealRelative) << "' worked!" << std::endl;
+
+	std::stringstream wholeSeal;
+
+	wholeSeal << seal.rdbuf();
+
+	seal.close();
+
+	return wholeSeal.str().size() > 0;
+}
+
+extern "C" const char * rbridge_readTextFile(const char * filePath)
+{
+	static std::string returnStr;
+
+	returnStr = "";
+
+	bifstream loadThis(filePath);
+
+	if(loadThis.is_open() && loadThis.good())
+	{
+
+		std::stringstream out;
+
+		if(loadThis)
+		{
+			out << loadThis.rdbuf();
+			loadThis.close();
+		}
+
+		returnStr = out.str();
+	}
+
+	return returnStr.c_str();
+}
+
+extern "C" bool rbridge_saveTextFile(const char * filePath, const char * text)
+{
+	bofstream saveHere(filePath, std::ios_base::trunc);
+
+	if(!saveHere.good())
+		return false;
+
+	saveHere << text;
+
+	saveHere.close();
+
+	return true;
 }

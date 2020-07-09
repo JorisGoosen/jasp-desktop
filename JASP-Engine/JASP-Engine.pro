@@ -20,13 +20,11 @@ INSTALLS += target
 
 DEPENDPATH = ..
 PRE_TARGETDEPS += ../JASP-Common
-
-unix: PRE_TARGETDEPS += ../JASP-Common
 LIBS += -L.. -l$$JASP_R_INTERFACE_NAME -lJASP-Common
 
 include(../R_HOME.pri) #needed to build r-packages
 
-windows: LIBS += -llibboost_filesystem$$BOOST_POSTFIX -llibboost_system$$BOOST_POSTFIX  -llibboost_date_time$$BOOST_POSTFIX -larchive.dll
+windows: LIBS += -llibboost_filesystem$$BOOST_POSTFIX -llibboost_system$$BOOST_POSTFIX -llibboost_date_time$$BOOST_POSTFIX -llibboost_nowide$$BOOST_POSTFIX -larchive.dll
 macx:   LIBS += -lboost_filesystem-mt -lboost_system-mt -larchive -lz
 
 linux {

@@ -66,6 +66,11 @@ extern "C" {
 	const char *				STDCALL rbridge_decodeColumnName(		const char * in);
 	const char *				STDCALL rbridge_encodeAllColumnNames(	const char * in);
 	const char *				STDCALL rbridge_decodeAllColumnNames(	const char * in);
+	void						STDCALL rbridge_prepareForWriting(		const char * sealPath);
+	void						STDCALL rbridge_finishWriting(			const char * sealPath);
+	bool						STDCALL rbridge_lastWriteWorked(		const char * sealPath);
+	const char *				STDCALL rbridge_readTextFile(			const char * filePath);
+	bool						STDCALL rbridge_saveTextFile(			const char * filePath, const char * text);
 }
 
 	typedef boost::function<std::string (const std::string &, int progress)> RCallback;

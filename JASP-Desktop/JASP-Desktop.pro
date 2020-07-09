@@ -47,8 +47,8 @@ INSTALLS += target
 
 LIBS += -L.. -lJASP-Common
 
-windows:	LIBS += -llibboost_filesystem$$BOOST_POSTFIX -llibboost_system$$BOOST_POSTFIX -llibboost_date_time$$BOOST_POSTFIX -larchive.dll -llibreadstat -lole32 -loleaut32
-macx:   	LIBS += -lboost_filesystem-mt -lboost_system-mt -larchive -lz -lreadstat -liconv
+windows:	LIBS += -llibboost_filesystem$$BOOST_POSTFIX -llibboost_system$$BOOST_POSTFIX -llibboost_date_time$$BOOST_POSTFIX -llibboost_nowide$$BOOST_POSTFIX -larchive.dll -llibreadstat -lole32 -loleaut32
+macx:   	LIBS += -lboost_filesystem-mt -lboost_system-mt -lboost_system-mt -larchive -lz -lreadstat -liconv
 
 linux {
     LIBS += -larchive

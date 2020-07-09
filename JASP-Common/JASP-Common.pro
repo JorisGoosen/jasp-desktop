@@ -46,18 +46,6 @@ SOURCES += \
 
 HEADERS += \
 	appinfo.h \
-	boost/nowide/args.hpp \
-	boost/nowide/cenv.hpp \
-	boost/nowide/config.hpp \
-	boost/nowide/convert.hpp \
-	boost/nowide/cstdio.hpp \
-	boost/nowide/cstdlib.hpp \
-	boost/nowide/filebuf.hpp \
-	boost/nowide/fstream.hpp \
-	boost/nowide/iostream.hpp \
-	boost/nowide/stackstring.hpp \
-	boost/nowide/system.hpp \
-	boost/nowide/windows.hpp \
 	column.h \
   columnencoder.h \
 	columns.h \

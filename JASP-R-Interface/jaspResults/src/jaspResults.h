@@ -21,6 +21,8 @@ public:
 	static void			setSaveLocation(const std::string & root, const std::string & relativePath);
 	static void			setWriteSealLocation(const std::string & root, const std::string & relativePath);
 	static void			setBaseCitation(std::string baseCitation);
+	static void			setSealFuncs(sealFuncDef prepareForWrite, sealFuncDef finishWrite, sealCheckFuncDef lastWriteOk);
+	static void			setTextFuncs(loadTextFileFuncDef loadTextFunc, saveTextFileFuncDef saveTextFunc);
 	static void			setInsideJASP();
 	static bool			isInsideJASP() { return _insideJASP; }
 	static const char *	writeSealFilename() { return "jaspResultsFinishedWriting.txt"; }
@@ -79,6 +81,11 @@ private:
 	static Json::Value					_response;
 	static sendFuncDef					_ipccSendFunc;
 	static pollMessagesFuncDef			_ipccPollFunc;
+	static sealFuncDef					_prepareWrite,
+										_finishWrite;
+	static loadTextFileFuncDef			_loadTextFunc;
+	static saveTextFileFuncDef			_saveTextFunc;
+	static sealCheckFuncDef				_lastWriteWorked;
 	static std::string					_saveResultsHere,
 										_saveResultsRoot,
 										_baseCitation,

@@ -56,23 +56,42 @@ EnDecodeDef					encodeColumnName,
 							encodeAllColumnNames,
 							decodeAllColumnNames;
 
-static logFlushDef			_logFlushFunction		= nullptr;
-static logWriteDef			_logWriteFunction		= nullptr;
-static sendFuncDef			_sendToDesktop			= nullptr;
+static logFlushDef			_logFlushFunction	= nullptr;
+static logWriteDef			_logWriteFunction	= nullptr;
+static sendFuncDef			_sendToDesktop		= nullptr;
+
+
+static sealFuncDef			_prepareForWriting	= nullptr;
+static sealFuncDef			_finishWriting		= nullptr;
+static sealCheckFuncDef		_lastWriteWorked	= nullptr;
+
+static loadTextFileFuncDef	_loadTextFile		= nullptr;
+static saveTextFileFuncDef	_saveTextFile		= nullptr;
 
 static std::string			_R_HOME = "";
 
 bool shouldCrashSoon = false; //Simply here to allow a developer to force a crash
 
 extern "C" {
-void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCallBacks* callbacks,
+void STDCALL jaspRCPP_init(const char* buildYear, const char* version,
+	RBridgeCallBacks* callbacks,
 	sendFuncDef sendToDesktopFunction, pollMessagesFuncDef pollMessagesFunction,
-	logFlushDef logFlushFunction, logWriteDef logWriteFunction)
+	logFlushDef logFlushFunction, logWriteDef logWriteFunction,
+	sealFuncDef prepareSealFunc, sealFuncDef finishWriteSealFunc, sealCheckFuncDef checkSealFunc,
+	loadTextFileFuncDef loadTextFunc, saveTextFileFuncDef saveTextFunc)
 {
+
+	_sendToDesktop			= sendToDesktopFunction;
 
 	_logFlushFunction		= logFlushFunction;
 	_logWriteFunction		= logWriteFunction;
-	_sendToDesktop			= sendToDesktopFunction;
+
+	_prepareForWriting		= prepareSealFunc;
+	_finishWriting			= finishWriteSealFunc;
+	_lastWriteWorked		= checkSealFunc;
+
+	_loadTextFile			= loadTextFunc;
+	_saveTextFile			= saveTextFunc;
 
 	rinside = new RInside();
 
@@ -145,6 +164,8 @@ void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCa
 
 	jaspResults::setSendFunc(sendToDesktopFunction);
 	jaspResults::setPollMessagesFunc(pollMessagesFunction);
+	jaspResults::setSealFuncs(_prepareForWriting, _finishWriting, _lastWriteWorked);
+	jaspResults::setTextFuncs(_loadTextFile, _saveTextFile);
 	jaspResults::setBaseCitation(baseCitation);
 	jaspResults::setInsideJASP();
 
@@ -1137,6 +1158,8 @@ std::string _jaspRCPP_System(std::string cmd)
 #endif
 
 	system(cmd.c_str());
+
+	replace me by call to rbridge. and look for all other instances of ifstream in jasp-r-intfc
 
 	std::ifstream readLog(path);
 	std::stringstream out;

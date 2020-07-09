@@ -112,10 +112,20 @@ typedef void			(*sendFuncDef)			(const char *);
 typedef bool			(*pollMessagesFuncDef)	();
 typedef int				(*logFlushDef)			();
 typedef size_t			(*logWriteDef)			(const void * buf, size_t len);
-
+//So we have the following annoying defines because windows only started supporting utf-8 recently and we need to use boost::nowide to work around that. It can't be statically linked to JASP-R-Inter
+typedef void			(*sealFuncDef)			(const char * sealPath);
+typedef bool			(*sealCheckFuncDef)		(const char * sealPath);
+typedef const char *	(*loadTextFileFuncDef)	(const char * filePath);
+typedef bool			(*saveTextFileFuncDef)	(const char * filePath, const char * text);
 
 // Calls from rbridge to jaspRCPP
-RBRIDGE_TO_JASP_INTERFACE void			STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCallBacks *calbacks, sendFuncDef sendToDesktopFunction, pollMessagesFuncDef pollMessagesFunction, logFlushDef logFlushFunction, logWriteDef logWriteFunction);
+RBRIDGE_TO_JASP_INTERFACE void			STDCALL jaspRCPP_init(
+		const char* buildYear, const char* version,
+		RBridgeCallBacks *calbacks,
+		sendFuncDef sendToDesktopFunction, pollMessagesFuncDef pollMessagesFunction,
+		logFlushDef logFlushFunction, logWriteDef logWriteFunction,
+		sealFuncDef prepareSealFunc, sealFuncDef finishWriteSealFunc, sealCheckFuncDef checkSealFunc,
+		loadTextFileFuncDef loadTextFunc, saveTextFileFuncDef saveTextFunc);
 
 RBRIDGE_TO_JASP_INTERFACE const char*	STDCALL jaspRCPP_run(const char* name, const char* title, const char* rfile, bool requiresInit, const char* dataKey, const char* options, const char* resultsMeta, const char* stateKey, const char* perform, int ppi, int analysisID, int analysisRevision, bool usesJaspResults, const char* imageBackground, bool developerMode);
 RBRIDGE_TO_JASP_INTERFACE const char*	STDCALL jaspRCPP_check();

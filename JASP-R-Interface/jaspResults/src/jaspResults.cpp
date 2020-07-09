@@ -1,11 +1,6 @@
 #include "jaspModuleRegistration.h"
 #include <fstream>
 #include <cmath>
-#include "boost/nowide/fstream.hpp"
-#include "boost/nowide/cstdio.hpp"
-
-typedef boost::nowide::ofstream bofstream; //Use this to work around problems on Windows with utf8 conversion
-typedef boost::nowide::ifstream bifstream;
 
 sendFuncDef			jaspResults::_ipccSendFunc		= nullptr;
 pollMessagesFuncDef jaspResults::_ipccPollFunc		= nullptr;
@@ -17,6 +12,23 @@ std::string			jaspResults::_baseCitation		= "";
 Rcpp::Environment*	jaspResults::_RStorageEnv		= nullptr;
 bool				jaspResults::_insideJASP		= false;
 jaspResults*		jaspResults::_jaspResults		= nullptr;
+sealFuncDef			jaspResults::_prepareWrite		= nullptr;
+sealFuncDef			jaspResults::_finishWrite		= nullptr;
+sealCheckFuncDef	jaspResults::_lastWriteWorked	= nullptr;
+
+//We need these for R to keep functioning
+const char * defaultLoadTextFunc(const char * file)
+{
+
+}
+
+bool defaultSaveTextFunc(const char * file, const char * text)
+{
+
+}
+
+loadTextFileFuncDef jaspResults::_loadTextFunc		= defaultLoadTextFunc;
+saveTextFileFuncDef jaspResults::_saveTextFunc		= defaultSaveTextFunc;
 
 void jaspResults::setSendFunc(sendFuncDef sendFunc)
 {
@@ -31,6 +43,20 @@ void jaspResults::setPollMessagesFunc(pollMessagesFuncDef pollFunc)
 void jaspResults::setBaseCitation(std::string baseCitation)
 {
 	_baseCitation = baseCitation;
+}
+
+
+void jaspResults::setSealFuncs(sealFuncDef prepareForWrite, sealFuncDef finishWrite, sealCheckFuncDef lastWriteOk)
+{
+	_prepareWrite		= prepareForWrite;
+	_finishWrite		= finishWrite;
+	_lastWriteWorked	= lastWriteOk;
+}
+
+void jaspResults::setTextFuncs(loadTextFileFuncDef loadTextFunc, saveTextFileFuncDef saveTextFunc)
+{
+	_loadTextFunc		= loadTextFunc;
+	_saveTextFunc		= saveTextFunc;
 }
 
 void jaspResults::setResponseData(int analysisID, int revision)
@@ -110,40 +136,26 @@ std::string jaspResults::getStatus()
 	return _response["status"].asString();
 }
 
+//If the _prepareWrite, _finishWrite and _lastWriteWorked are nullptr we are probably in R and then we won't be checking if writes worked or not.
 void jaspResults::prepareForWriting()
 {
-	//Remove the seal if it is there or not doesnt matter
-	boost::nowide::remove((_writeSealRoot + _writeSealRelative).c_str());
+	if(_prepareWrite)
+		_prepareWrite((_writeSealRoot + _writeSealRelative).c_str());
 }
 
 void jaspResults::finishWriting()
 {
-	//Let us write a small file that tells us writing stuff went well ( https://github.com/jasp-stats/INTERNAL-jasp/issues/884 )
-	bofstream sealMe((_writeSealRoot + _writeSealRelative).c_str(), std::ios_base::trunc);
-
-	sealMe << "Writing state, plot and jaspResults.json seems to have been successful!\n" << std::flush;
-
-	sealMe.close();
-
-	jaspPrint("Created Write Seal for jaspResults at: '" + _writeSealRoot + _writeSealRelative + "' ");
+	if(_finishWrite)
+		_finishWrite((_writeSealRoot + _writeSealRelative).c_str());
 }
 
 bool jaspResults::lastWriteWorked() const
 {
-	//Let us write a small file that tells us writing stuff went well ( https://github.com/jasp-stats/INTERNAL-jasp/issues/884 )
-	bifstream seal((_writeSealRoot + _writeSealRelative).c_str(), std::ios_base::in);
+	if(!_lastWriteWorked)
+		return true;
 
-	if(!seal.is_open()) return false;
+	return _lastWriteWorked((_writeSealRoot + _writeSealRelative).c_str());
 
-	//std::cout << "Opened Write Seal for jaspResults to check if the last write worked from: '" << (_writeSealRoot + _writeSealRelative) << "' worked!" << std::endl;
-
-	std::stringstream wholeSeal;
-
-	wholeSeal << seal.rdbuf();
-
-	seal.close();
-
-	return wholeSeal.str().size() > 0;
 }
 
 
