@@ -72,8 +72,8 @@ HEADERS += \
     jaspResults/src/jaspState.h \
     jaspResults/src/jaspColumn.h
 
-macx: INCLUDEPATH += ../../boost_1_71_0
-windows: INCLUDEPATH += ../../boost_1_71_0
+macx: INCLUDEPATH += ../../boost_1_73_0
+windows: INCLUDEPATH += ../../boost_1_73_0
 
 
 windows{
