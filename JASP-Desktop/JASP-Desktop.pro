@@ -38,6 +38,11 @@ linux {
 
 DEPENDPATH = ..
 INCLUDEPATH += ../JASP-Common/
+QML_IMPORT_PATH +=  components/JASP/        \
+                    components/JASP/Theme/   \
+                    components/JASP/Widgets/  \
+                    components/JASP/Controls/
+
 
 #exists(/app/lib/*) should only be true when building flatpak
 exists(/app/lib/*)	{ target.path += /app/bin }
@@ -321,11 +326,13 @@ HEADERS += \
     modules/description/description.h \
     modules/description/descriptionchildbase.h \
     modules/description/entrybase.h \
+    modules/description/requiredmodule.h \
     modules/description/requiredpackage.h \
     modules/upgrader/upgradechange.h \
     modules/upgrader/upgrader.h \
     modules/upgrader/upgradestep.h \
     modules/upgrader/version.h \
+    modules/ribbonmodeluncommon.h \
     qquick/datasetview.h \
     modules/analysisentry.h \
     modules/dynamicmodule.h \
@@ -514,11 +521,13 @@ SOURCES += \
     modules/description/description.cpp \
     modules/description/descriptionchildbase.cpp \
     modules/description/entrybase.cpp \
+    modules/description/requiredmodule.cpp \
     modules/description/requiredpackage.cpp \
     modules/upgrader/upgradechange.cpp \
     modules/upgrader/upgrader.cpp \
     modules/upgrader/upgradestep.cpp \
     modules/upgrader/version.cpp \
+    modules/ribbonmodeluncommon.cpp \
     qquick/datasetview.cpp \
     modules/analysisentry.cpp \
     modules/dynamicmodule.cpp \

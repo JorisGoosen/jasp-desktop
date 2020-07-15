@@ -57,44 +57,41 @@ Analysis* Analyses::createFromJaspFileEntry(Json::Value analysisData, RibbonMode
 
 	if(_nextId <= id) _nextId = id + 1;
 
-	Analysis				*	analysis = nullptr;
+	Analysis				*	analysis		= nullptr;
 	Modules::UpgradeMsgs		msgs;
-	bool						wasUpgraded = Upgrader::upgrader()->upgradeAnalysisData(analysisData, msgs);
-	Json::Value				&	optionsJson	= analysisData["options"];
+	bool						wasUpgraded		= Upgrader::upgrader()->upgradeAnalysisData(analysisData, msgs);
+	Json::Value				&	optionsJson		= analysisData["options"];
+	Modules::AnalysisEntry	*	analysisEntry	= nullptr;
 
-	if(analysisData.get("dynamicModule", Json::nullValue).isNull())
+	if(analysisData.get("dynamicModule", Json::nullValue).isNull()) //This used to be the code to load our "standard modules", seeing as how those are gone and the've become dynamic as well it should figure out somehow which one is meant
 	{
 		Json::Value	&	versionJson		= analysisData["version"];
 		Version			version			= versionJson.isNull() ? AppInfo::version : Version(versionJson.asString());
 
-		QString			name			= tq(analysisData["name"].asString()),
-						module			= analysisData["module"].asString() != "" ? tq(analysisData["module"].asString()) : "Common",
-						title			= tq(analysisData.get("title", "").asString());
-		auto		*	analysisEntry	= ribbonModel->getAnalysis(module.toStdString(), name.toStdString());
-		QString			qml				= analysisEntry ? tq(analysisEntry->qml()) : name + ".qml";
+		std::string		name			= analysisData["name"].asString(),
+						module			= analysisData["module"].asString() != "" ? analysisData["module"].asString() : "Common",
+						title			= analysisData.get("title", "").asString();
+						analysisEntry	= ribbonModel->getAnalysis(module, name);
+		QString			qml				= analysisEntry ? tq(analysisEntry->qml()) : tq(name + ".qml");
 
 
 		if(title == "")
-			title = analysisEntry ? tq(analysisEntry->title()) : name;
+			title = analysisEntry ? analysisEntry->title() : name;
 		
-		analysis = create(module, name, qml, title, id, version, &optionsJson, status, false);
-
-		analysis->loadExtraFromJSON(analysisData);
+		analysis = analysisEntry	? create(analysisEntry, id, status, false, title, "0.0.0", &optionsJson) //0.0.0 as module version to be sure we show the "made with old version"
+									: create(tq(module), tq(name), qml, tq(title), id, version, &optionsJson, status, false);
 	}
 	else
 	{
 		std::string title			= analysisData.get("title", "").asString();
-		auto *	analysisEntry		= DynamicModules::dynMods()->retrieveCorrespondingAnalysisEntry(analysisData["dynamicModule"]);
+				analysisEntry		= DynamicModules::dynMods()->retrieveCorrespondingAnalysisEntry(analysisData["dynamicModule"]);
 				analysis			= create(analysisEntry, id, status, false, title, analysisData["dynamicModule"]["moduleVersion"].asString(), &optionsJson);
-		auto *	dynMod				= analysisEntry->dynamicModule();
-
-		if(!dynMod->loaded())
-			dynMod->setLoadingNeeded();
-
 	}
 
-	analysis->setUserData(analysisData["userdata"]);
-	analysis->setResults(analysisData["results"], status);
+	analysis->loadExtraFromJSON(analysisData);
+
+	if(analysisEntry && analysisEntry->dynamicModule() && !analysisEntry->dynamicModule()->loaded())
+		analysisEntry->dynamicModule()->setLoadingNeeded();
 
 	if(wasUpgraded)
 		analysis->setUpgradeMsgs(msgs);
@@ -304,14 +301,31 @@ void Analyses::removeAnalysesOfDynamicModule(Modules::DynamicModule * module)
 
 void Analyses::refreshAnalysesOfDynamicModule(Modules::DynamicModule * module)
 {
+	Log::log() << "void RibbonModel::dynamicModuleChanged(" << module->toString() << ")" << std::endl;
+
+
 	for(auto & keyval : _analysisMap)
 		if(keyval.second->dynamicModule() == module)
 			keyval.second->refresh();
 }
 
+
+void Analyses::replaceAnalysesOfDynamicModule(Modules::DynamicModule * oldModule, Modules::DynamicModule * newModule)
+{
+	Log::log() << "void Analyses::replaceAnalysesOfDynamicModule(" << oldModule->toString() << ", " <<  newModule->toString() << ")" << std::endl;
+
+	for(auto & keyval : _analysisMap)
+	{
+		if(keyval.second->dynamicModule() != oldModule && keyval.second->dynamicModule()->name() == newModule->name())
+			Log::log() << "Replacing dynamic module of analyses but found one that uses same name but is not the old module..." << std::endl;
+
+		if(keyval.second->dynamicModule() == oldModule)
+			keyval.second->setDynamicModule(newModule);
+	}
+}
+
 void Analyses::rescanAnalysisEntriesOfDynamicModule(Modules::DynamicModule * module)
 {
-
 	std::set<int> removeIds;
 	for(auto & keyval : _analysisMap)
 		if(keyval.second->dynamicModule() == module  && !keyval.second->checkAnalysisEntry()) // Check if the analysisEntry this analysis is based still exists
