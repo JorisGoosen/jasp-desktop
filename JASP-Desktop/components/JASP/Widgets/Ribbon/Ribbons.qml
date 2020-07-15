@@ -68,7 +68,7 @@ Item
 		{
 			text:			model.moduleTitle
 			moduleName:		model.moduleName
-			source:			model.ribbonButton ? ((model.isDynamic ? "file:" : "qrc:/icons/") + model.ribbonButton.iconSource) : ""
+			source:			model.ribbonButton ? ((!model.ribbonButton.special ? "file:" : "qrc:/icons/") + model.ribbonButton.iconSource) : ""
 			menu:			model.ribbonButton ? model.ribbonButton.analysisMenu : undefined
 			toolTip:		model.ribbonButton ? model.ribbonButton.toolTip : undefined
 			enabled:		model.ribbonButton ? model.active : false
