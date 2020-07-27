@@ -582,7 +582,7 @@ std::string DynamicModule::generateModuleInstallingR(bool onlyModPkg)
 
 
 		//Check if install worked and through loadlog as error otherwise
-	R << standardRIndent << "tryCatch(expr={ withr::with_libpaths(new=" << moduleRLibrary().toStdString() << ", find.package(package='" << _name << "')); return('" << succesResultString() << "');}, error=function(e) { .setLog(loadLog); return('fail'); });\n";
+	R << standardRIndent << "tryCatch(expr={ withr::with_libpaths(new='" << moduleRLibrary().toStdString() << "', find.package(package='" << _name << "')); return('" << succesResultString() << "');}, error=function(e) { .setLog(loadLog); return('fail'); });\n";
 
 
 	//Log::log() << "DynamicModule(" << _name << ")::generateModuleInstallingR() generated:\n" << R.str() << std::endl;
@@ -862,7 +862,7 @@ void DynamicModule::reloadDescription()
 	}
 	catch(std::runtime_error e) { return; } //If it doesnt work then never mind.
 
-	if(_requiredPackages != _previousReqPkgs)
+	if(_requiredPackages.toStyledString() != _previousReqPkgs.toStyledString())
 	{
 		Log::log() << "Required packages of module '" << _name << "' changed, installing again" << std::endl;
 		setStatus(moduleStatus::installNeeded);
@@ -1143,13 +1143,14 @@ void DynamicModule::setRequiredModules(stringset requiredModules)
 				break;
 			}
 
-	if(ditto)
-		return;
+	if(!ditto)
+	{
+		Log::log() << "Required Modules for module '" << name() << "' changed!" << std::endl;
 
-	_requiredModules = requiredModules;
+		_requiredModules = requiredModules;
 
-	emit requiredModulesChanged();
-
+		emit requiredModulesChanged();
+	}
 }
 
 }

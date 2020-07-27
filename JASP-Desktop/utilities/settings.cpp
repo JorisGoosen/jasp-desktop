@@ -41,7 +41,8 @@ const Settings::Setting Settings::Values[] = {
 	{"themeName",					"lightTheme"},
 	{"useNativeFileDialog",			true},
 	{"disableAnimations",			false},
-	{"generateMarkdownHelp",		false}
+	{"generateMarkdownHelp",		false},
+	{"maxEngineCount",				4} //In debug always 1
 };
 
 QVariant Settings::value(Settings::Type key)

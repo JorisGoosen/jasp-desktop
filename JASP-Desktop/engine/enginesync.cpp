@@ -392,8 +392,6 @@ QProcess * EngineSync::startSlaveProcess(int no)
 	env.insert("TMPDIR", tq(TempFiles::createTmpFolder()));
 	env.insert("R_REMOTES_NO_ERRORS_FROM_WARNINGS", "true"); //Otherwise installing dependencies for modules can crap out on ridiculous warnings
 
-
-
 #ifdef _WIN32
 	QString rHomePath = programDir.absoluteFilePath("R");
 #elif defined(__APPLE__)

@@ -45,6 +45,7 @@ class PreferencesModel : public QObject
 	Q_PROPERTY(bool			disableAnimations		READ disableAnimations			WRITE setDisableAnimations			NOTIFY disableAnimationsChanged			)
 	Q_PROPERTY(bool			animationsOn			READ animationsOn													NOTIFY animationsOnChanged				)
 	Q_PROPERTY(bool			generateMarkdown		READ generateMarkdown			WRITE setGenerateMarkdown			NOTIFY generateMarkdownChanged			)
+	Q_PROPERTY(int			maxEngines				READ maxEngines					WRITE setMaxEngines					NOTIFY maxEnginesChanged				)
 
 public:
 	static PreferencesModel * prefs() { return _singleton; }
@@ -87,10 +88,12 @@ public:
 	bool		disableAnimations()			const;
 	bool		animationsOn()				const { return !disableAnimations() && !safeGraphics(); }
 	bool		generateMarkdown()			const;
+	int			maxEngines()				const;
 
 	void		zoomIn();
 	void		zoomOut();
 	void		zoomReset();
+
 
 
 public slots:
@@ -134,8 +137,10 @@ public slots:
 	void setUseNativeFileDialog(		bool		useNativeFileDialog);
 	void setDisableAnimations(			bool		disableAnimations);
 	void setGenerateMarkdown(			bool		generateMarkdown);
+	void setMaxEngines(					int			maxEngines);
 
 	void onCurrentThemeNameChanged(QString newThemeName);
+
 
 
 signals:
@@ -174,8 +179,10 @@ signals:
 	void useNativeFileDialogChanged(	bool		useNativeFileDialog);
 	void disableAnimationsChanged(		bool		disableAnimations);
 	void generateMarkdownChanged(		bool		generateMarkdown);
+	void maxEnginesChanged(				int			maxEngines);
 
 	void animationsOnChanged();
+
 
 
 private:
