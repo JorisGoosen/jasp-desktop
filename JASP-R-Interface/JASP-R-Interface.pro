@@ -72,9 +72,8 @@ HEADERS += \
     jaspResults/src/jaspState.h \
     jaspResults/src/jaspColumn.h
 
-macx: INCLUDEPATH += ../../boost_1_71_0
-windows: INCLUDEPATH += ../../boost_1_71_0
-
+macx:		INCLUDEPATH += ../../boost_1_71_0
+windows:	INCLUDEPATH += ../../boost_1_71_0
 
 windows{
   QMAKE_CXXFLAGS += -Og #for big object files

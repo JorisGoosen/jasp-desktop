@@ -22,6 +22,7 @@
 #include <boost/nowide/args.hpp>
 #include <boost/filesystem.hpp>
 #include <codecvt>
+#include "otoolstuff.h"
 
 #ifdef _WIN32
 void openConsoleOutput(unsigned long slaveNo, unsigned parentPID)
@@ -47,6 +48,7 @@ void openConsoleOutput(unsigned long slaveNo, unsigned parentPID)
 int main(int argc, char *argv[])
 {
 	boost::nowide::args a(argc,argv);
+
 	if(argc > 4)
 	{
 		unsigned long	slaveNo			= strtoul(argv[1], NULL, 10),
@@ -88,6 +90,14 @@ int main(int argc, char *argv[])
 		JASPTIMER_PRINTALL();
 
 		Log::log() << "jaspEngine " << slaveNo << " child of " << parentPID << " stops." << std::endl;
+		exit(0);
+	}
+	else if(argc == 2)
+	{
+		std::cout << "Engine started in R (Module) Library Fixer mode because it received a single argument: '" << argv[1] << "'." << std::endl;
+
+		_moduleLibraryFixer(argv[1], true);
+
 		exit(0);
 	}
 
