@@ -7,7 +7,9 @@ macx {
 
 windows {
         isEmpty(_R_HOME):_R_HOME = $${JASP_BUILDROOT_DIR}/R
-        R_EXE  = $$_R_HOME/bin/$$ARCH/R
+        R_BIN  = $$_R_HOME/bin/$$ARCH
+		R_BIN ~= s,/,\\,g        
+		R_EXE  = $$R_BIN\\R
 }
 
 exists(/app/lib/*) {  #for flatpak we can should use R's own library as it is contained anyway

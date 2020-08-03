@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 
 		_moduleLibraryFixer(argv[1], true);
 
-		exit(0);
+		//exit(0);
 	}
 
 	std::cout << "Engine started in testing mode because it didn't receive 4 arguments." << std::endl;
