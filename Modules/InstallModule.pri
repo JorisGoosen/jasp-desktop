@@ -1,6 +1,8 @@
 # This is part of https://github.com/jasp-stats/INTERNAL-jasp/issues/996 and works, but requires me to install V8 because of stupid dependency resolution based on CRAN
 # So ive turned it off for now, but if you'd like to use it you can!
-R_MODULES_INSTALL_DEPENDENCIES = false
+isEmpty(R_MODULES_INSTALL_DEPENDENCIES) { 
+	R_MODULES_INSTALL_DEPENDENCIES = false
+}
 
 isEmpty(MODULE_NAME) {
     message(You must specify MODULE_NAME to use InstallModule.pri!)
@@ -11,7 +13,9 @@ isEmpty(MODULE_NAME) {
 	include(../R_INSTALL_CMDS.pri)
 	#First we remove the installed module to make sure it gets properly update. We leave the library dir to avoid having to install the dependencies all the time.
 	#This will just have to get cleaned up by "clean"
-	Install$${MODULE_NAME}.commands        =  rm -rf $$JASP_LIBRARY_DIR/$${MODULE_NAME} && mkdir $$JASP_LIBRARY_DIR;
+
+	unix:	Install$${MODULE_NAME}.commands        =  rm -rf   $$JASP_LIBRARY_DIR/$${MODULE_NAME} && ( [ -d $$JASP_LIBRARY_DIR ] ||  mkdir $$JASP_LIBRARY_DIR ) ;
+	win32:	Install$${MODULE_NAME}.commands        =  rd /s /q $$JASP_LIBRARY_DIR/$${MODULE_NAME} && ( IF NOT EXIST \"$$JASP_LIBRARY_DIR\"  ( mkdir \"$$JASP_LIBRARY_DIR\") ) ;
 
     #Then, if we so desire, we install all dependencies (that are missing anyhow)
 	$$R_MODULES_INSTALL_DEPENDENCIES: Install$${MODULE_NAME}.commands       +=  $${INSTALL_R_PKG_DEPS_CMD_PREFIX}$${MODULE_DIR}/$${MODULE_NAME}$${INSTALL_R_PKG_DEPS_CMD_POSTFIX};

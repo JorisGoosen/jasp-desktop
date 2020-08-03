@@ -20,8 +20,11 @@ include(../InstallModule.pri)
 MODULE_NAME = SEM
 include(../InstallModule.pri)
 
+R_MODULES_INSTALL_DEPENDENCIES = true
 MODULE_NAME = MachineLearning
 include(../InstallModule.pri)
+
+R_MODULES_INSTALL_DEPENDENCIES = false
 
 MODULE_NAME = SummaryStatistics
 include(../InstallModule.pri)
