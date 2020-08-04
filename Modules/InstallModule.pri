@@ -33,13 +33,24 @@ isEmpty(MODULE_NAME) {
 	win32 {	
 		JASP_BUILDROOT_DIR_FIX				  = $$JASP_BUILDROOT_DIR
 		JASP_BUILDROOT_DIR_FIX				 ~= s,/,\\,g
-		Install$${MODULE_NAME}.commands		 +=  PATH=$${R_BIN};%PATH% 
-		Install$${MODULE_NAME}.commands      +=  $${JASP_BUILDROOT_DIR_FIX}\\JASPEngine.exe \"$$JASP_LIBRARY_DIR\" ;	$$escape_expand(\\n)
+		#PostInstallFix$${MODULE_NAME}.commands		 +=  PUSHD \"$${R_BIN}\" ; $$escape_expand(\\n)
+		PostInstallFix$${MODULE_NAME}.commands		 +=  PATH=\"$${R_BIN};%PATH%\" 
+		PostInstallFix$${MODULE_NAME}.commands      +=  $${JASP_BUILDROOT_DIR_FIX}\\JASPEngine.exe \"$$JASP_LIBRARY_DIR\" &&
+# ;	$$escape_expand(\\n)
+		PostInstallFix$${MODULE_NAME}.commands      +=  echo \"I managed to actually run jaspengine probably?\";			$$escape_expand(\\n)
+		#PostInstallFix$${MODULE_NAME}.commands		 +=  POPD ; $$escape_expand(\\n)
 	}
-	unix:  Install$${MODULE_NAME}.commands       +=  $${JASP_BUILDROOT_DIR}/JASPEngine $$JASP_LIBRARY_DIR ;				$$escape_expand(\\n)
+	unix:  PostInstallFix$${MODULE_NAME}.commands       +=  $${JASP_BUILDROOT_DIR}/JASPEngine $$JASP_LIBRARY_DIR ;				$$escape_expand(\\n)
+
+	PostInstallFix$${MODULE_NAME}.depends = Install$${MODULE_NAME}
 
     QMAKE_EXTRA_TARGETS += Install$${MODULE_NAME}
 	POST_TARGETDEPS     += Install$${MODULE_NAME}
+
+    QMAKE_EXTRA_TARGETS += PostInstallFix$${MODULE_NAME}
+	POST_TARGETDEPS     += PostInstallFix$${MODULE_NAME}
+    
+
 
     #See this: https://www.qtcentre.org/threads/9287-How-do-I-get-QMAKE_CLEAN-to-delete-a-directory
 	#The windows one still ought to be tested though
