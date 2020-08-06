@@ -59,11 +59,12 @@ void _moduleLibraryFixer(const std::string & moduleLibraryPath, bool printStuff)
 	for(recIt dir(modLibpath); dir != recIt(); dir++)
 	{
 		filesystem::path path = dir->path();
+	
 
 		//We only want files that have dylib or so as extension and don't have dSYM anywhere in the path (because those are some kind of debugsymbols)
 		if(	! (	filesystem::is_regular_file(path)							&&
-				(path.extension() == "dylib" || path.extension() == "so")	&&
-				path.string().find("dSYM") != std::string::npos				))
+				(path.extension() == ".dylib" || path.extension() == ".so")	&&
+				path.string().find("dSYM") == std::string::npos				))
 			continue;
 
 		if(printStuff)

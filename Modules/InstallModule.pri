@@ -18,16 +18,16 @@ isEmpty(MODULE_NAME) {
 	#First we remove the installed module to make sure it gets properly update. We leave the library dir to avoid having to install the dependencies all the time.
 	#This will just have to get cleaned up by "clean"
 
-	unix:	Install$${MODULE_NAME}.commands        =  rm -rf   $$JASP_LIBRARY_DIR/$${MODULE_NAME} && ( [ -d $$JASP_LIBRARY_DIR ] ||  mkdir $$JASP_LIBRARY_DIR ) ;	$$escape_expand(\\n)
-	win32:	Install$${MODULE_NAME}.commands        = IF EXIST $$JASP_LIBARY_DIR_FIX\\$${MODULE_NAME}	( rd /s /q $$JASP_LIBARY_DIR_FIX\\$${MODULE_NAME} );		$$escape_expand(\\n)
-	win32:  Install$${MODULE_NAME}.commands       += IF NOT EXIST \"$$JASP_LIBARY_DIR_FIX\"				( mkdir \"$$JASP_LIBARY_DIR_FIX\") ;						$$escape_expand(\\n)
+	unix:	Install$${MODULE_NAME}.commands        =  rm -rf   $$JASP_LIBRARY_DIR/$${MODULE_NAME} && ( [ -d $$JASP_LIBRARY_DIR ] ||  mkdir $$JASP_LIBRARY_DIR ) ;	$$escape_expand(\\n\\t)
+	win32:	Install$${MODULE_NAME}.commands        = IF EXIST $$JASP_LIBARY_DIR_FIX\\$${MODULE_NAME}	( rd /s /q $$JASP_LIBARY_DIR_FIX\\$${MODULE_NAME} );		$$escape_expand(\\n\\t)
+	win32:  Install$${MODULE_NAME}.commands       += IF NOT EXIST \"$$JASP_LIBARY_DIR_FIX\"				( mkdir \"$$JASP_LIBARY_DIR_FIX\") ;						$$escape_expand(\\n\\t)
 
     #Then, if we so desire, we install all dependencies (that are missing anyhow)
-	$$R_MODULES_INSTALL_DEPENDENCIES:		Install$${MODULE_NAME}.commands		+= $${INSTALL_R_PKG_DEPS_CMD_PREFIX}$${MODULE_DIR}/$${MODULE_NAME}$${INSTALL_R_PKG_DEPS_CMD_POSTFIX} $$escape_expand(\\n) 
+	$$R_MODULES_INSTALL_DEPENDENCIES:		Install$${MODULE_NAME}.commands		+= $${INSTALL_R_PKG_DEPS_CMD_PREFIX}$${MODULE_DIR}/$${MODULE_NAME}$${INSTALL_R_PKG_DEPS_CMD_POSTFIX} $$escape_expand(\\n\\t) 
 	
 
     #Install the actual module package
-	Install$${MODULE_NAME}.commands     +=  $${INSTALL_R_PKG_CMD_PREFIX}$${MODULE_DIR}/$${MODULE_NAME}$${INSTALL_R_PKG_CMD_POSTFIX}; $$escape_expand(\\n)
+	Install$${MODULE_NAME}.commands     +=  $${INSTALL_R_PKG_CMD_PREFIX}$${MODULE_DIR}/$${MODULE_NAME}$${INSTALL_R_PKG_CMD_POSTFIX}; $$escape_expand(\\n\\t)
 
     #And lastly we do some postprocessing (on mac this includes fixing any and all necessary paths in dylib's and so's)
 	win32 {	
@@ -37,10 +37,10 @@ isEmpty(MODULE_NAME) {
 		PostInstallFix$${MODULE_NAME}.commands		 +=  PATH=\"$${R_BIN};%PATH%\" 
 		PostInstallFix$${MODULE_NAME}.commands      +=  $${JASP_BUILDROOT_DIR_FIX}\\JASPEngine.exe \"$$JASP_LIBRARY_DIR\" &&
 # ;	$$escape_expand(\\n)
-		PostInstallFix$${MODULE_NAME}.commands      +=  echo \"I managed to actually run jaspengine probably?\";			$$escape_expand(\\n)
+		PostInstallFix$${MODULE_NAME}.commands      +=  echo \"I managed to actually run jaspengine probably?\";			$$escape_expand(\\n\\t)
 		#PostInstallFix$${MODULE_NAME}.commands		 +=  POPD ; $$escape_expand(\\n)
 	}
-	unix:  PostInstallFix$${MODULE_NAME}.commands       +=  $${JASP_BUILDROOT_DIR}/JASPEngine $$JASP_LIBRARY_DIR ;				$$escape_expand(\\n)
+	unix:  PostInstallFix$${MODULE_NAME}.commands       +=  $${JASP_BUILDROOT_DIR}/JASPEngine $$JASP_LIBRARY_DIR ;				$$escape_expand(\\n\\t)
 
 	PostInstallFix$${MODULE_NAME}.depends = Install$${MODULE_NAME}
 

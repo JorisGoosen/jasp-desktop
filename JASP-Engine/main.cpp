@@ -95,10 +95,12 @@ int main(int argc, char *argv[])
 	else if(argc == 2)
 	{
 		std::cout << "Engine started in R (Module) Library Fixer mode because it received a single argument: '" << argv[1] << "'." << std::endl;
-
+		
+		Engine e(0, 0); //It needs to start to make sure rbridge functions work
+		
 		_moduleLibraryFixer(argv[1], true);
 
-		//exit(0);
+		exit(0);
 	}
 
 	std::cout << "Engine started in testing mode because it didn't receive 4 arguments." << std::endl;
