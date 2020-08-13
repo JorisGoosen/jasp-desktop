@@ -67,10 +67,20 @@ void LanguageModel::initialize()
 	//loc.nativeLanguageName(); //American English
 
 	findQmFiles(_qmlocation);
+	
+	Log::log() << "probeer preferred language te laden"<< std::endl;
 
 	QLocale::Language prefLanguage = static_cast<QLocale::Language>(Settings::value(Settings::PREFERRED_LANGUAGE).toInt());
+	
+	Log::log() << "misschien verneukt die integer om een taal mee op te slaan van frans hier de boel wel?"<< std::endl;
+	
 	LanguageInfo & li = _languagesInfo[prefLanguage];
+	
+	Log::log() << "nope!"<< std::endl;
+	
 	_currentLanguageInfo = li;
+	
+	Log::log() << "Dit dan?"<< std::endl;
 
 	if (prefLanguage == 0 || prefLanguage == QLocale::English) // No preferred language yet set or native JASP language English
 	{
@@ -79,13 +89,19 @@ void LanguageModel::initialize()
 	}
 	else
 	{
+		Log::log() << "setcurrentindex"<< std::endl;
 		setCurrentIndex(_languages.indexOf(prefLanguage)); //Update the PrefAdvanced info
 
+		Log::log() << "loadqmfiles"<< std::endl;
 		// Load all translated language files for specific language
 		loadQmFilesForLanguage(li.language);
-
+		
+		
+Log::log() << "retranslate"<< std::endl;
 		_qml->retranslate();
 	}
+	
+	Log::log() << "taalshit laden klaar"<< std::endl;
 
 }
 
@@ -289,6 +305,7 @@ void LanguageModel::findQmFiles(QString qmlocation)
 
 	while (qdi.hasNext())
 	{
+		Log::log() << "volgende loopje"<< std::endl;
 		qdi.next();
 
 		QFileInfo fi = qdi.fileInfo();
@@ -310,7 +327,9 @@ void LanguageModel::findQmFiles(QString qmlocation)
 			Log::log() << "Language (" << loc.language() << ") not registered in LanguageModel, adding it now" << std::endl;
 
 			_languages.push_back(loc.language());
+			Log::log() << "pushback worked"<< std::endl;
 			_languagesInfo.insert(loc.language(), LanguageInfo(loc.language(), QLocale::languageToString(loc.language()), loc.nativeLanguageName(), localname, fi.filePath(), qmlocation));
+			Log::log() << "insert worked"<< std::endl;
 		}
 		else
 		{
@@ -318,6 +337,8 @@ void LanguageModel::findQmFiles(QString qmlocation)
 			_languagesInfo[loc.language()].qmFilenames.push_back(fi.filePath());
 		}
 	}
+	
+	Log::log() << "findQmFiles klaar"<< std::endl;
 
 }
 
