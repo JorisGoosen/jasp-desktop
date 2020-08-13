@@ -51,15 +51,18 @@ LanguageModel::LanguageModel(QApplication *app, QQmlApplicationEngine *qml, QObj
 
 void LanguageModel::initialize()
 {
+Log::log() << "debug debug debug "<< std::endl;
 
 	//Support English as native JASP language
 	_languages.push_back(QLocale::English);  // 31
 	QLocale loc(QLocale::English);
 
+	Log::log() << "debug debug debug ??? "<< std::endl;
 	// No language file needed for English (only to show in dropdown in preferences languages)
 	//_languagesInfo[QLocale::English] = LanguageInfo (QLocale::English, "English", "English", loc.name(), "", _qmlocation);
 	_languagesInfo[QLocale::English] = LanguageInfo (QLocale::English, "English", "English", "en", "", _qmlocation);
 
+	Log::log() << "Wat de hell "<< std::endl;
 
 	//Default values are now:
 	//loc.name();				//en_US
