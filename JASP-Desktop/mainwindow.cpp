@@ -111,14 +111,23 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	//The order of these constructors is deliberate (up to some extent anyway). If you change the order you might find that stuff explodes randomly (although most likely during startup)
 	_qml					= new QQmlApplicationEngine(this);
 	_languageModel			= new LanguageModel(application, _qml, this);
+	Log::log() << "AsyncLoader"<< std::endl;
 	_loader					= new AsyncLoader(nullptr);
+	Log::log() << "PreferencesModel"<< std::endl;
 	_preferences			= new PreferencesModel(this);
+	Log::log() << "DataSetPackage"<< std::endl;
 	_package				= new DataSetPackage(this);
+	Log::log() << "DynamicModules"<< std::endl;
 	_dynamicModules			= new DynamicModules(this);
+	Log::log() << "Upgrader"<< std::endl;
 	_upgrader				= new Upgrader(this);
+	Log::log() << "Analyses"<< std::endl;
 	_analyses				= new Analyses();
+	Log::log() << "EngineSync"<< std::endl;
 	_engineSync				= new EngineSync(this);
+	Log::log() << "DataSetTableModel"<< std::endl;
 	_datasetTableModel		= new DataSetTableModel();
+	Log::log() << "LabelModel"<< std::endl;
 	_labelModel				= new LabelModel();
 	
 	initLog(); //initLog needs _preferences and _engineSync!
@@ -139,7 +148,8 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	_resultMenuModel		= new ResultMenuModel(this);
 	_plotEditorModel		= new PlotEditorModel();
 	_columnTypesModel		= new ColumnTypesModel(this);
-
+	
+	Log::log() << "MessageForwarder"<< std::endl;
 	new MessageForwarder(this); //We do not need to store this
 
 	startOnlineDataManager();
@@ -147,6 +157,8 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	makeConnections();
 
 	//loadDefaultFont(); //Maybe later?
+	
+	Log::log() << "qmlRegisterType"<< std::endl;
 
 	qmlRegisterUncreatableType<JASPControlBase>					("JASP",		1, 0 ,"JASP",				"Impossible to create JASP Object"	); //This is here to keep JASP.enum short I guess?
 	qmlRegisterUncreatableType<MessageForwarder>				("JASP",		1, 0, "MessageForwarder",	"You can't touch this"				);
@@ -184,6 +196,8 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	connect(jaspVersionChecker, &JASPVersionChecker::showDownloadButton, this, &MainWindow::setDownloadNewJASPUrl);
 
 	JASPTIMER_FINISH(MainWindowConstructor);
+	
+	Log::log() << "MainWindowConstructorklaar"<< std::endl;
 }
 
 MainWindow::~MainWindow()
