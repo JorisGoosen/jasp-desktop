@@ -123,7 +123,19 @@ bool Analysis::checkAnalysisEntry()
 	try
 	{
 		if(_codedReferenceToAnalysisEntry != "" && _dynamicModule != nullptr)
+		{
 			_moduleData = _dynamicModule->retrieveCorrespondingAnalysisEntry(_codedReferenceToAnalysisEntry);
+			
+			if(_moduleData->title() != _titleDefault)
+			{
+				bool	replaceTitleToo = _titleDefault == _title;
+						_titleDefault	= _moduleData->title();
+						_title			= replaceTitleToo ? _titleDefault : _title;
+						
+				if(replaceTitleToo) 
+					emit titleChanged();
+			}
+		}
 		return true;
 	}
 	catch (Modules::ModuleException & e)

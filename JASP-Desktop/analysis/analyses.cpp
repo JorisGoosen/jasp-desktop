@@ -831,6 +831,7 @@ void Analyses::languageChangedHandler()
 	refreshAllAnalyses();
 	applyToAll([&](Analysis * a)
 	{
+		a->checkAnalysisEntry(); //For titledefault etc
 		emit a->form()->languageChanged();
 	});
 
