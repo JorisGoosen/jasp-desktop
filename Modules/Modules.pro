@@ -15,6 +15,8 @@ MODULE_DIR  = $$PWD
 MODULE_NAME = jaspDescriptives
 include(InstallModule.pri)
 
+#hacky multiline comment
+isEmpty(MODULE_DIR): {
 MODULE_NAME = jaspAnova
 MODULE_DEPS = jaspDescriptives jaspTTests
 include(InstallModule.pri)
@@ -85,7 +87,7 @@ R_MODULES_INSTALL_DEPENDENCIES = true
 MODULE_NAME = jaspProcessControl
 MODULE_DEPS = jaspDescriptives
 include(InstallModule.pri)
-
+}
 
 #see https://stackoverflow.com/questions/29853832/adding-custom-commands-to-existing-targets-in-qmake
 win32 {

@@ -262,7 +262,7 @@ const char* STDCALL jaspRCPP_runModuleCall(const char* name, const char* title, 
 
 const char* STDCALL jaspRCPP_check()
 {
-	SEXP result = rinside->parseEvalNT("checkPackages()");
+	SEXP result = rinside->parseEvalNT("jaspBase:::checkPackages()");
 	static std::string staticResult;
 
 	staticResult = Rf_isString(result) ? Rcpp::as<std::string>(result) : NullString;
