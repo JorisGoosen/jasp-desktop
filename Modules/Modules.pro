@@ -15,8 +15,9 @@ MODULE_DIR  = $$PWD
 MODULE_NAME = jaspDescriptives
 include(InstallModule.pri)
 
-#hacky multiline comment
-isEmpty(MODULE_DIR): {
+MODULE_NAME = jaspTTests
+include(InstallModule.pri)
+
 MODULE_NAME = jaspAnova
 MODULE_DEPS = jaspDescriptives jaspTTests
 include(InstallModule.pri)
@@ -31,8 +32,8 @@ MODULE_NAME = jaspRegression
 MODULE_DEPS = jaspDescriptives jaspAnova
 include(InstallModule.pri)
 
-MODULE_NAME = jaspTTests
-include(InstallModule.pri)
+#hacky multiline comment
+isEmpty(MODULE_DIR): {
 
 #R_MODULES_INSTALL_DEPENDENCIES = true
 MODULE_NAME = jaspMixedModels
