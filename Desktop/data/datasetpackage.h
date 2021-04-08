@@ -224,6 +224,7 @@ public:
 
 				void						labelMoveRows(size_t column, std::vector<size_t> rows, bool up);
 				void						labelReverse(size_t column);
+				bool						labelAddValue(size_t column, QString newValue);
 
 				std::vector<bool>			filterVector();
 				void						setFilterVectorWithoutModelUpdate(std::vector<bool> newFilterVector) { if(_dataSet) _dataSet->setFilterVector(newFilterVector); }

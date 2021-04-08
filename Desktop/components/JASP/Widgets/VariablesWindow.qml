@@ -19,7 +19,7 @@
 import QtQuick			2.15
 import JASP				1.0
 import JASP.Widgets		1.0
-import JASP.Controls	1.0
+import JASP.Controls	1.0 as JASPC
 import QtQuick.Controls 2.15
 import QtQuick.Layouts	1.15
 import "."
@@ -339,13 +339,12 @@ FocusScope
 				anchors.bottom:		tableBackground.bottom
 				spacing:			Math.max(1, 2 * preferencesModel.uiScale)
 
-				property int	shownButtons:		4 + (eraseFiltersOnThisColumn.visible ? 1 : 0) + (eraseFiltersOnAllColumns.visible ? 1 : 0)
-				property real	minimumHeight:		(buttonHeight + spacing) * shownButtons + (3 * spacing)
+				property int	shownButtons:		5 + (eraseFiltersOnThisColumn.visible ? 1 : 0) + (eraseFiltersOnAllColumns.visible ? 1 : 0)
+				property real	minimumHeight:		(buttonHeight + spacing) * shownButtons + (4 * spacing)
 				property real	buttonHeight:		32 * preferencesModel.uiScale
 
 				RectangularButton
 				{
-					//text: "UP"
 					iconSource:		jaspTheme.iconPath + "arrow-up.png"
 
 					onClicked:		labelModel.moveSelectionUp()
@@ -358,7 +357,6 @@ FocusScope
 
 				RectangularButton
 				{
-					//text: "DOWN"
 					iconSource:		jaspTheme.iconPath + "arrow-down.png"
 
 					onClicked:		labelModel.moveSelectionDown()
@@ -371,11 +369,22 @@ FocusScope
 
 				RectangularButton
 				{
-					//text: "REVERSE"
 					iconSource:		jaspTheme.iconPath + "arrow-reverse.png"
 					onClicked:		labelModel.reverse()
 
 					toolTip:		qsTr("Reverse order of all labels")
+
+					height:			buttonColumnVariablesWindow.buttonHeight
+					implicitHeight: buttonColumnVariablesWindow.buttonHeight
+					width:			height
+				}
+				
+				RectangularButton
+				{
+					iconSource:		jaspTheme.iconPath + "addition-sign.svg"
+					onClicked:		addValue.open()
+
+					toolTip:		qsTr("Add value")
 
 					height:			buttonColumnVariablesWindow.buttonHeight
 					implicitHeight: buttonColumnVariablesWindow.buttonHeight
@@ -430,5 +439,36 @@ FocusScope
 
 		}
 
+		Popup
+		{
+			id:			addValue	
+			onOpened:	newValue.text = ""
+			background: Rectangle
+			{
+				color:			jaspTheme.uiBackground
+				border.color:	jaspTheme.uiBorder
+				border.width:	1
+			}
+			
+			JASPC.ColumnLayout
+			{
+				JASPC.TextField
+				{
+					id:			newValue
+					//Doesnt do anything for us apparently: inputType:	labelModel.valueAreInts ? "integer" : "string"		
+					validator:	labelModel.valueAreInts ? JASPDoubleValidator { id: intValidator; bottom: 0; top: Number.MAX_SAFE_INTEGER; decimals: 0 } : undefined
+				}
+				
+				RectangularButton
+				{
+					id:				addValueButton
+					text:			qsTr("Add new value")
+					onClicked:		if(labelModel.addValue(newValue.value))	addValue.close();
+					anchors.left:	newValue.left
+					anchors.right:	newValue.right
+				}
+			}
+		}
+	
 	}
 }

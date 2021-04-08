@@ -16,6 +16,7 @@ class LabelModel : public DataSetTableProxy
 	Q_PROPERTY(double	rowWidth		READ rowWidth			WRITE setRowWidth			NOTIFY rowWidthChanged			)
 	Q_PROPERTY(double	valueMaxWidth	READ valueMaxWidth									NOTIFY valueMaxWidthChanged		)
 	Q_PROPERTY(double	labelMaxWidth	READ labelMaxWidth									NOTIFY labelMaxWidthChanged		)
+	Q_PROPERTY(bool		valueAreInts	READ valueAreInts		WRITE setValueAreInts		NOTIFY valueAreIntsChanged		) //If they arent they are strings
 
 public:
 				LabelModel();
@@ -42,10 +43,11 @@ public:
 	std::vector<bool>			filterAllows(size_t col);
 	std::vector<std::string>	labels(size_t col);
 
-	double rowWidth()			const	{ return _rowWidth;			}
-	double valueMaxWidth()		const	{ return _valueMaxWidth;	}
-	double labelMaxWidth()		const	{ return _labelMaxWidth;	}
-
+	double	rowWidth()			const	{ return _rowWidth;			}
+	double	valueMaxWidth()		const	{ return _valueMaxWidth;	}
+	double	labelMaxWidth()		const	{ return _labelMaxWidth;	}
+	bool	valueAreInts()		const	{ return _valueAreInts;		}
+	
 public slots:
 	void filteredOutChangedHandler(int col);
 	void setVisible(bool visible);
@@ -56,7 +58,9 @@ public slots:
 	void setRowWidth(double len);
 	void onChosenColumnChanged();
 	void refresh();
-
+	void setValueAreInts(bool valueAreInts);
+	bool addValue(QString newValue);
+	
 signals:
 	void visibleChanged(bool visible);
 	void filteredOutChanged();
@@ -66,14 +70,16 @@ signals:
 	void rowWidthChanged();
 	void valueMaxWidthChanged();
 	void labelMaxWidthChanged();
-
+	void valueAreIntsChanged(bool valueAreInts);
+	
 private:
 	std::vector<size_t> getSortedSelection()					const;
 	void				setValueMaxWidth();
 	void				setLabelMaxWidth();
 
 private:
-	bool				_visible		= false;
+	bool				_visible		= false,
+						_valueAreInts	= true;
 	double				_valueMaxWidth	= 10,
 						_labelMaxWidth	= 10,
 						_rowWidth		= 60;

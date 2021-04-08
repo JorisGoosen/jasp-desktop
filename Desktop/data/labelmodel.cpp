@@ -186,6 +186,8 @@ void LabelModel::columnAboutToBeRemoved(int column)
 void LabelModel::columnDataTypeChanged(const QString & colName)
 {
 	int colIndex = DataSetPackage::pkg()->getColumnIndex(colName);
+	
+	setValueAreInts(DataSetPackage::pkg()->getColumnType(colIndex) != columnType::nominalText);
 
 	if(colIndex == proxyParentColumn())
 		invalidate();
@@ -222,6 +224,7 @@ void LabelModel::onChosenColumnChanged()
 {
 	_selected.clear();
 	_lastSelected = -1;
+	setValueAreInts(DataSetPackage::pkg()->getColumnType(proxyParentColumn()) != columnType::nominalText);
 	setValueMaxWidth();
 	setLabelMaxWidth();
 	//dataChanged probably not needed 'cause we are in a reset
@@ -233,10 +236,29 @@ void LabelModel::refresh()
 	endResetModel();
 }
 
+void LabelModel::setValueAreInts(bool valueAreInts)
+{
+	if (_valueAreInts == valueAreInts)
+		return;
+	
+	_valueAreInts = valueAreInts;
+	emit valueAreIntsChanged(_valueAreInts);
+}
+
+bool LabelModel::addValue(QString newValue)
+{
+	for(size_t r=0; r<size_t(rowCount()); r++)
+		if(newValue == data(index(r, 0), int(DataSetPackage::specialRoles::value)).toString())
+			return false;
+	
+	return DataSetPackage::pkg()->labelAddValue(proxyParentColumn(), newValue);
+	
+}
+
 void LabelModel::removeAllSelected()
 {
 	QMap<QString, size_t> mapValueToRow;
-
+	
 	for(size_t r=0; r<size_t(rowCount()); r++)
 		mapValueToRow[data(index(r, 0), int(DataSetPackage::specialRoles::value)).toString()] = r;
 

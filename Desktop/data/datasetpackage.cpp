@@ -1375,6 +1375,28 @@ void DataSetPackage::labelReverse(size_t column)
 	emit labelsReordered(tq(getColumnName(column)));
 }
 
+bool DataSetPackage::labelAddValue(size_t column, QString newValue)
+{
+	bool expectingString	= getColumnType(column) == columnType::nominalText;
+	Labels		&	labels	= _dataSet->column(column).labels();
+	QModelIndex		p		= parentModelForType(parIdxType::label, column);
+	int				valInt  = -1;
+	
+	if(!expectingString && !Utils::convertValueToIntForImport(fq(newValue), valInt))
+		return false;
+	
+	beginInsertRows(p, labels.size(), labels.size() + 1);
+	enlargeDataSetIfNecessary([&]()
+	{
+		if(expectingString)	labels.add(fq(newValue));
+		else				labels.add(valInt);
+	},	"DataSetPackage::labelAddValue");
+	endInsertRows();
+	
+	emit labelsReordered(tq(getColumnName(column)));	
+	return true;
+}
+
 void DataSetPackage::columnSetDefaultValues(std::string columnName, columnType columnType)
 {
 	if(!_dataSet) return;
