@@ -454,16 +454,17 @@ FocusScope
 			{
 				JASPC.TextField
 				{
-					id:			newValue
+					id:				newValue
 					//Doesnt do anything for us apparently: inputType:	labelModel.valueAreInts ? "integer" : "string"		
-					validator:	labelModel.valueAreInts ? JASPDoubleValidator { id: intValidator; bottom: 0; top: Number.MAX_SAFE_INTEGER; decimals: 0 } : undefined
+					//validator:	labelModel.valueAreInts ? JASPDoubleValidator { id: intValidator; bottom: 0; top: Number.MAX_SAFE_INTEGER; decimals: 0 } : undefined
+					onTextChanged:	newValue.hasError = false 
 				}
 				
 				RectangularButton
 				{
 					id:				addValueButton
 					text:			qsTr("Add new value")
-					onClicked:		if(labelModel.addValue(newValue.value))	addValue.close();
+					onClicked:		if(labelModel.addValue(newValue.value))	addValue.close(); else newValue.hasError = true
 					anchors.left:	newValue.left
 					anchors.right:	newValue.right
 				}
