@@ -263,6 +263,11 @@ void EngineSync::process()
 		destroyEngine(engine);	
 
 	processSettingsChanged();
+
+	processDynamicModules(); //Try doing this as the first thing ever to minimize waiting on startup
+	if(amICastingAModuleRequestWide())
+		return;
+
 	processFilterScript();
 
 	if(_filterRunning) return; //Do not do anything else while waiting for a filter to return
