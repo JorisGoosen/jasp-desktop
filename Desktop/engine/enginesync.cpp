@@ -58,9 +58,11 @@ EngineSync::EngineSync(QObject *parent)
 	connect(this,						&EngineSync::moduleLoadingFailed,					DynamicModules::dynMods(),	&DynamicModules::loadingFailed					);
 	connect(this,						&EngineSync::moduleLoadingSucceeded,				DynamicModules::dynMods(),	&DynamicModules::loadingSucceeded				);
 	connect(this,						&EngineSync::moduleInstallationFailed,				DynamicModules::dynMods(),	&DynamicModules::installationPackagesFailed		);
-	connect(this,						&EngineSync::moduleInstallationSucceeded,			DynamicModules::dynMods(),	&DynamicModules::installationPackagesSucceeded	);
 	connect(DynamicModules::dynMods(),	&DynamicModules::stopEngines,						this,						&EngineSync::stopEngines						);
 	connect(DynamicModules::dynMods(),	&DynamicModules::restartEngines,					this,						&EngineSync::restartEngines						);
+	connect(this,						&EngineSync::moduleInstallationSucceeded,			this,						&EngineSync::stopEngines						);
+	connect(this,						&EngineSync::moduleInstallationSucceeded,			DynamicModules::dynMods(),	&DynamicModules::installationPackagesSucceeded,	Qt::QueuedConnection);
+	connect(this,						&EngineSync::moduleInstallationSucceeded,			this,						&EngineSync::restartEngines,					Qt::QueuedConnection);
 
 	connect(PreferencesModel::prefs(),	&PreferencesModel::plotPPIChanged,					this,						&EngineSync::settingsChanged					);
 	connect(PreferencesModel::prefs(),	&PreferencesModel::plotBackgroundChanged,			this,						&EngineSync::settingsChanged					);
