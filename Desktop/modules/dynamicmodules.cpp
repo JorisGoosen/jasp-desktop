@@ -74,10 +74,10 @@ void DynamicModules::initializeInstalledModules()
 		bool		askForCleanup	= false;
 
 		//Development Module should always be fresh!
-		if(name == defaultDevelopmentModuleName())	
+		if(name == defaultDevelopmentModuleName())
 			boost::filesystem::remove_all(itr->path());
-		
-		else if(name.size() > 0 && name[0] != '.' && QFileInfo(tq(path)).isDir())	
+
+		else if(name.size() > 0 && name[0] != '.' && QFileInfo(tq(path)).isDir())
 			try
 			{
 				if(!initializeModuleFromDir(path))
@@ -962,14 +962,14 @@ QStringList DynamicModules::requiredModulesLibPaths(QString moduleName)
 {
 	QStringList returnThis;
 
-	std::set<std::string> requiredModules = _modules[moduleName.toStdString()]->importsR();
+	//We should sort them to avoid some loading problems (for instance jaspAnova depends on jaspDescriptives and load earlier, but then the one renv put in its own library. Which would mess up loading a newer version of jaspDescriptives in the actual descriptives module.
+	stringvec requiredModules = _modules[moduleName.toStdString()]->reqModulesOrdered();
 	
 	Log::log() << "DynamicModules::requiredModulesLibPaths(" << moduleName << ") sees the following R-pkgs: ";
 	
 	for(const std::string & reqMod : requiredModules)
 		Log::log(false) << "'" << reqMod << "' ";
 	Log::log(false) << std::endl;
-	
 
 	for(const std::string & reqMod : requiredModules)
 		if(_modules.count(reqMod) > 0)

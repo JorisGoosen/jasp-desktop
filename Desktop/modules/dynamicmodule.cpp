@@ -469,16 +469,9 @@ void DynamicModule::unpackage()
 
 std::string DynamicModule::getLibPathsToUse()
 {
-	std::string libPathsToUse = "c('" + moduleRLibrary().toStdString()	+ "'";
-
-	std::vector<std::string> requiredLibPaths = fq(DynamicModules::dynMods()->requiredModulesLibPaths(tq(_name)));
-
-	for(const std::string & path : requiredLibPaths)
-		libPathsToUse += ", '" + path + "'";
-
-	libPathsToUse += ", .libPaths())";
-
-	return libPathsToUse;
+	QStringList requiredLibPaths = DynamicModules::dynMods()->requiredModulesLibPaths(tq(_name));
+	requiredLibPaths.append(moduleRLibrary());
+	return "c('" + fq(requiredLibPaths.join("', '")) + "', .libPaths())";
 }
 
 ///It would probably be better to move all of this code to jasp-r-pkg or something, but for now this works fine.
@@ -522,7 +515,7 @@ std::string DynamicModule::generateModuleLoadingR(bool shouldReturnSucces)
 
 	R << _name << _modulePostFix << " <- modules::module({\n" << standardRIndent << ".libPaths(" << getLibPathsToUse() <<");\n\n";
 
-	for(const std::string & reqMod : requiredModules())
+	for(const std::string & reqMod : reqModulesOrdered())
 		R << standardRIndent << "import('" << reqMod << "');\n";
 	R << standardRIndent << "import('" << _name << "');\n\n";
 
@@ -1045,14 +1038,62 @@ void DynamicModule::setImportsR(stringset importsR)
 	}
 }
 
-stringset DynamicModule::requiredModules() const 
+stringset DynamicModule::requiredModules() const
 {
 	stringset out;
-	
+
 	for(const std::string & pkg : _importsR)
 		if(DynamicModules::dynMods()->dynamicModule(pkg))
 			out.insert(pkg);
-	
+
+	return out;
+}
+
+stringset DynamicModule::requiredModulesAll() const
+{
+	stringset out = requiredModules();
+
+	for(size_t previousSize = 0; previousSize != out.size();)
+	{
+		previousSize = out.size();
+
+		stringset addThese;
+
+		for(const std::string & pkg : out)
+			if(DynamicModules::dynMods()->dynamicModule(pkg))
+				addThese.insert(pkg);
+
+		for(const auto & addMe : addThese)
+			out.insert(addMe);
+	}
+
+	return out;
+}
+
+stringvec DynamicModule::reqModulesOrdered() const
+{
+	std::vector<std::pair<stringset, std::string>> orderMe;
+
+	stringset reqs = requiredModulesAll();
+
+	for(const std::string & req : reqs)
+		orderMe.push_back(std::make_pair<stringset, std::string>(DynamicModules::dynMods()->dynamicModule(req)->requiredModulesAll(), std::string(req)));
+
+	std::sort(orderMe.begin(), orderMe.end(), [](const std::pair<stringset, std::string> & l, const std::pair<stringset, std::string> & r)
+	{
+		if(l.first.size() < r.first.size())	return true;
+		if(l.first.size() > r.first.size())	return false;
+
+		if(l.first.count(r.second) > 0)		return false;
+		if(r.first.count(l.second) > 0)		return true;
+
+		return l.second.size() < r.second.size();
+	});
+
+	stringvec out;
+	for(const auto & modReq : orderMe)
+		out.push_back(modReq.second);
+
 	return out;
 }
 

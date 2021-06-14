@@ -117,6 +117,8 @@ public:
 	const stringset &	importsR()			const { return _importsR;						}
 	QStringList			importsRQ()			const { return tql(_importsR);					}
 	stringset			requiredModules()	const;
+	stringset			requiredModulesAll()const;
+	stringvec			reqModulesOrdered() const;
 	
 	std::string			getLibPathsToUse();
 
