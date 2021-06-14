@@ -37,6 +37,9 @@ EngineRepresentation::~EngineRepresentation()
 
 void EngineRepresentation::cleanUpAfterClose()
 {
+	if(_dynModName != "")
+		emit unregisterForModule(this, _dynModName);
+
 	_analysisInProgress = nullptr;
 	_analysisAborted	= nullptr;
 	_idRemovedAnalysis	= -1;
@@ -48,6 +51,7 @@ void EngineRepresentation::cleanUpAfterClose()
 	_settingsChanged	= true;
 	_abortAndRestart	= false;
 	_lastCompColName	= "???";
+	_dynModName			= "";
 }
 
 void EngineRepresentation::sendString(std::string str)
@@ -139,14 +143,22 @@ void EngineRepresentation::setAnalysisInProgress(Analysis* analysis)
 {
 	if(_engineState == engineState::analysis)
 	{
-		if(_analysisInProgress == analysis)	return; //we are already busy with this analysis so everything is fine
-		else								throw std::runtime_error("Engine " + std::to_string(_channel->channelNumber()) + " is running another analysis. Yet you are trying to set an analysis in progress on it..");
+		if(_analysisInProgress == analysis)					return; //we are already busy with this analysis so everything is fine
+		else												throw std::runtime_error("Engine " + std::to_string(_channel->channelNumber()) + " is running another analysis. Yet you are trying to set an analysis in progress on it..");
 	}
 
-	if(_engineState != engineState::idle)	throw std::runtime_error("Engine " + std::to_string(_channel->channelNumber()) + " is not idle! Yet you are trying to set an analysis in progress on it..");
+	if(_engineState != engineState::idle)					throw std::runtime_error("Engine " + std::to_string(_channel->channelNumber()) + " is not idle! Yet you are trying to set an analysis in progress on it..");
+	if(_dynModName  != "" &&
+		_dynModName	!= analysis->dynamicModule()->name())	throw std::runtime_error("Engine " + std::to_string(_channel->channelNumber()) + " is assigned to module '" + _dynModName + "'! Yet you are trying to set an analysis from '" + analysis->dynamicModule()->name() + "' in progress on it..");
 
 	_analysisInProgress = analysis;
 	_engineState		= engineState::analysis;
+
+	if(_dynModName == "")
+	{
+		_dynModName			= analysis->dynamicModule()->name();
+		emit registerForModule(this, _dynModName);
+	}
 }
 
 void EngineRepresentation::processReplies()
@@ -601,7 +613,6 @@ void EngineRepresentation::restartEngine(QProcess * jaspEngineProcess)
 	sendString("");
 	setSlaveProcess(jaspEngineProcess);
 	cleanUpAfterClose();
-	loadAllActiveModules();
 
 	_engineState	 = engineState::initializing;
 }
@@ -831,6 +842,14 @@ void EngineRepresentation::setRunsRCmd(bool runsRCmd)
 	emit runsRCmdChanged(_runsRCmd);
 }
 
+void EngineRepresentation::setDynamicModule(const std::string & dynamicModule)
+{
+	if(!_runsAnalysis)
+		throw std::runtime_error("Cannot register engine " + std::to_string(channelNumber()) + " for dynamic module '" + dynamicModule + "' to engine not meant for analyses!");
+	else
+		_dynModName = dynamicModule;
+}
+
 void EngineRepresentation::sendSettings()
 {
 	Log::log() << "EngineRepresentation::sendSettings()" << std::endl;
@@ -875,8 +894,13 @@ bool EngineRepresentation::willProcessAnalysis(Analysis * analysis) const
 	if(!analysis || !idle() || !analysis->shouldRun())
 		return false;
 
-	return runsAnalysis() || (analysis->utilityRunAllowed() && runsUtility());
+	const std::string modName = analysis->dynamicModule()->name();
+
+	return	(	runsAnalysis()					&& (_dynModName == modName || (_dynModName == "" && !moduleHasEngine(modName)) ))
+			|| (analysis->utilityRunAllowed()	&& runsUtility());
 }
+
+void canIRegisterModule(const std::string & name);
 
 bool EngineRepresentation::idleSoon() const
 {

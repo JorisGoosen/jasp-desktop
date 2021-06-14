@@ -90,9 +90,10 @@ EngineSync::~EngineSync()
 			if(!engine->stopped())
 				engine->killEngine();
 
-		_workers.clear();
-		_rCmders.clear();
+		_moduleEngines.clear();
 		_engines.clear();
+
+		_rCmder  = nullptr;
 		
 		TempFiles::deleteAll();
 	}
@@ -107,19 +108,19 @@ size_t EngineSync::maxEngineCount() const
 
 void EngineSync::maxEngineCountChanged()
 {
-	Log::log() << "EngineSync::maxEngineCountChanged called and currently there are #" << _workers.size() << " while the max we want is: " << maxEngineCount() << std::endl;
+	Log::log() << "EngineSync::maxEngineCountChanged called and currently there are #" << _moduleEngines.size() << " while the max we want is: " << maxEngineCount() << std::endl;
 	
-	//We ignore the R-commander engine for the max count
-	while(_workers.size() > maxEngineCount())
+	//We ignore the R-commander and utility engine for the max count
+	while(_moduleEngines.size() > maxEngineCount())
 	{
 		//Pick first one by default
-		EngineRepresentation * engineToKill = *_workers.begin();
+		EngineRepresentation * engineToKill = _moduleEngines.begin()->second;
 		
-		for(EngineRepresentation * engine : _workers)
-			if(engine->idle())
+		for(const auto & moduleEngine : _moduleEngines)
+			if(moduleEngine.second->idle())
 			{
 				//But an idle one if possible
-				engineToKill = engine;
+				engineToKill = moduleEngine.second;
 				break;
 			}
 		
@@ -129,7 +130,7 @@ void EngineSync::maxEngineCountChanged()
 		
 }
 
-EngineRepresentation * EngineSync::createNewEngine()
+EngineRepresentation * EngineSync::createNewEngine(bool addToEngines)
 {
 	try
 	{
@@ -137,7 +138,8 @@ EngineRepresentation * EngineSync::createNewEngine()
 		EngineRepresentation * engine = new EngineRepresentation(new IPCChannel(_memoryName, freeChannel), startSlaveProcess(freeChannel), this);
 		freeChannel++;
 		
-		_engines.insert(engine);
+		if(addToEngines);
+			_engines.insert(engine);
 
 		connect(engine,						&EngineRepresentation::rCodeReturned,					Analyses::analyses(),	&Analyses::rCodeReturned												);
 		connect(engine,						&EngineRepresentation::engineTerminated,				this,					&EngineSync::engineTerminated											);
@@ -156,13 +158,13 @@ EngineRepresentation * EngineSync::createNewEngine()
 		connect(engine,						&EngineRepresentation::logCfgReplyReceived,				this,					&EngineSync::logCfgReplyReceived										);
 		connect(engine,						&EngineRepresentation::plotEditorRefresh,				this,					&EngineSync::plotEditorRefresh											);
 		connect(engine,						&EngineRepresentation::requestEngineRestart,			this,					&EngineSync::restartEngineAfterCrash									);
-		connect(engine,						&EngineRepresentation::loadAllActiveModules,			this,					&EngineSync::loadAllActiveModules										);
+		connect(engine,						&EngineRepresentation::registerForModule,				this,					&EngineSync::registerEngineForModule									);
+		connect(engine,						&EngineRepresentation::unregisterForModule,				this,					&EngineSync::unregisterEngineForModule									);
+		connect(engine,						&EngineRepresentation::moduleHasEngine,					this,					&EngineSync::moduleHasEngine											);
 		connect(this,						&EngineSync::settingsChanged,							engine,					&EngineRepresentation::settingsChanged									);
 		connect(Analyses::analyses(),		&Analyses::analysisRemoved,								engine,					&EngineRepresentation::analysisRemoved									);
 		connect(PreferencesModel::prefs(),	&PreferencesModel::maxEnginesChanged,					this,					&EngineSync::maxEngineCountChanged,				Qt::QueuedConnection	);
 
-		//On (re)starts this makes sure all modules are loaded. But on first startup (when JASP is loading) this will do nothing.
-		loadAllActiveModules();
 
 		return engine;
 
@@ -174,11 +176,6 @@ EngineRepresentation * EngineSync::createNewEngine()
 	}
 }
 
-void EngineSync::loadAllActiveModules()
-{
-	setModuleWideCastVars(Modules::DynamicModules::dynMods()->getJsonForReloadingActiveModules());
-}
-
 void EngineSync::start(int )
 {
 	JASPTIMER_SCOPE(EngineSync::start);
@@ -188,8 +185,9 @@ void EngineSync::start(int )
 
 	_engineStarted = true;
 
-	//We start with a single engine. Later we can start more if necessary and allowed by the user
-	_workers.insert(createNewEngine()); 
+	//We start with a single engine. Later we can start more if necessary and allowed by the user. This one engine can run filters etc and it can be assigned to a particular module.
+	//Once it is assigned to a module it won't be possible to use it for another module until it is restarted.
+	createNewEngine();
 
 	QTimer	*timerProcess	= new QTimer(this),
 			*timerBeat		= new QTimer(this);
@@ -248,9 +246,9 @@ void EngineSync::process()
 		engine->processReplies();
 		
 		if(
-			_workers.count(engine) > 0	&& 
+			_engines.count(engine) > 0	&&
 			engine->isBored()			&& 
-			_workers.size() - boredEngines.size()  > 1
+			_engines.size() - boredEngines.size()  > 1
 		)	
 		{
 		   Log::log() << "Engine #" << engine->channelNumber()  << " had nothing to do for so long it has decided to shutdown." << std::endl;
@@ -277,7 +275,7 @@ void EngineSync::process()
 	if(notEnoughIdles && !anEngineIdleSoon())	
 		startExtraEngine();
 	else
-		for (auto engine : _workers)
+		for (auto engine : _engines)
 			if(engine->idle())
 				engine->restartAbortedAnalysis();
 }
@@ -332,8 +330,8 @@ void EngineSync::processFilterScript()
 	{
 		try
 		{
-			for (auto *engine : _workers)
-				if (engine->idle())
+			for (auto *engine : _engines)
+				if (engine->idle()  && engine->runsUtility())
 				{
 					engine->runScriptOnProcess(_waitingFilter);
 					_waitingFilter = nullptr;
@@ -354,7 +352,7 @@ void EngineSync::filterDone(int requestID)
 
 void EngineSync::processSettingsChanged()
 {
-	for(auto * engine : _workers)
+	for(auto * engine : _engines)
 		if(engine->shouldSendSettings())
 			engine->sendSettings();
 }
@@ -363,9 +361,9 @@ bool EngineSync::processScriptQueue()
 {
 	try
 	{
-		for(auto * engine : _workers)
+		for(auto * engine : _engines)
 		{
-			if(engine->idle() && _waitingScripts.size() > 0)
+			if(engine->idle()  && engine->runsUtility() && _waitingScripts.size() > 0)
 			{
 				RScriptStore * waiting = _waitingScripts.front();
 
@@ -394,32 +392,23 @@ bool EngineSync::processScriptQueue()
 bool EngineSync::processDynamicModules()
 {
 	using namespace Modules;
-	
-	if(!amICastingAModuleRequestWide() && (DynamicModules::dynMods()->aModuleNeedsToBeLoadedInR() || DynamicModules::dynMods()->aModuleNeedsToBeUnloadedFromR()))
-	{
-		if(DynamicModules::dynMods()->aModuleNeedsToBeLoadedInR())			setModuleWideCastVars(DynamicModules::dynMods()->getJsonForPackageLoadingRequest());
-		else if(DynamicModules::dynMods()->aModuleNeedsToBeUnloadedFromR())	setModuleWideCastVars(DynamicModules::dynMods()->getJsonForPackageUnloadingRequest());
-	}
-
-	if	(!DynamicModules::dynMods()->aModuleNeedsPackagesInstalled() && _requestWideCastModuleJson.isNull())
-		return false;
-
 
 	try
 	{
-		bool wantToRunInstall = DynamicModules::dynMods()->aModuleNeedsPackagesInstalled(), foundIdle = false;
+		bool	wantToRunInstall	= DynamicModules::dynMods()->aModuleNeedsPackagesInstalled(),
+				foundIdle			= false;
 		
+		if(!wantToRunInstall)
+			return false;
+
 		for(auto engine : _engines)
-		{
-			if(engine->idle())
+			if(engine->idle() && engine->runsUtility()) //We don't care if the engine is meant for some module or other. We restart afterwards anyway
 			{
 				foundIdle = true;
-				if		(DynamicModules::dynMods()->aModuleNeedsPackagesInstalled())												engine->runModuleInstallRequestOnProcess(DynamicModules::dynMods()->getJsonForPackageInstallationRequest());
-				else if	(!_requestWideCastModuleJson.isNull() && _requestWideCastModuleResults.count(engine->channelNumber()) == 0)	engine->runModuleLoadRequestOnProcess(_requestWideCastModuleJson);
+				engine->runModuleInstallRequestOnProcess(DynamicModules::dynMods()->getJsonForPackageInstallationRequest());
 			}
-		}
 		
-		if(wantToRunInstall && !foundIdle)
+		if(!foundIdle)
 			return true;
 	}
 	catch(Modules::ModuleException & e)	{ Log::log() << "Exception thrown in processDynamicModules: " <<  e.what() << std::endl;	}
@@ -433,7 +422,7 @@ bool EngineSync::processAnalysisRequests()
 {	
 	bool couldntFindIdleEngine = false;
 	
-	for(auto engine : _workers)
+	for(auto engine : _engines)
 		engine->handleRunningAnalysisStatusChanges();
 
 	Analyses::analyses()->applyToAll([&](Analysis * analysis)
@@ -444,7 +433,7 @@ bool EngineSync::processAnalysisRequests()
 			{
 				bool anEngineIsRunningMe = false;
 				
-				for(auto engine : _workers)
+				for(auto engine : _engines)
 					if(engine->willProcessAnalysis(analysis))
 					{
 						engine->runAnalysisOnProcess(analysis);
@@ -466,7 +455,7 @@ bool EngineSync::processAnalysisRequests()
 ///Maybe no engines are idle, but if one is initializing or setting up some stuff it'll be so soon. So tell JASP to be patient then.
 bool EngineSync::anEngineIdleSoon()
 {
-	for(auto engine : _workers)
+	for(auto engine : _engines)
 		if(engine->idleSoon())
 			return true;
 	return false;
@@ -475,11 +464,11 @@ bool EngineSync::anEngineIdleSoon()
 void EngineSync::startExtraEngine()
 {
 	static int newEngineStartTime		= 0;
-	if(maxEngineCount() > _workers.size() && newEngineStartTime + ENGINE_EXTRA_INTERVAL < Utils::currentSeconds())
+	if(maxEngineCount() > _engines.size() && newEngineStartTime + ENGINE_EXTRA_INTERVAL < Utils::currentSeconds())
 	{
 		newEngineStartTime = Utils::currentSeconds();
 		Log::log() << "New engine requested, so starting it!" << std::endl;
-		_workers.insert(createNewEngine());
+		createNewEngine();
 	}
 }
 
@@ -714,6 +703,9 @@ void EngineSync::moduleLoadingFailedHandler(const QString & moduleName, const QS
 
 void EngineSync::moduleLoadingSucceededHandler(const QString & moduleName, int channelID)
 {
+
+	do we need this?
+
 	Log::log() << "Received EngineSync::moduleLoadingSucceededHandler(" << moduleName.toStdString() << ", " << channelID << ")" << std::endl;
 
 	if(_requestWideCastModuleName != moduleName.toStdString())
@@ -724,66 +716,11 @@ void EngineSync::moduleLoadingSucceededHandler(const QString & moduleName, int c
 	checkModuleWideCastDone();
 }
 
-void EngineSync::moduleUnloadingFinishedHandler(const QString & moduleName, int channelID)
-{
-	Log::log() << "Received EngineSync::moduleUnloadingFinishedHandler(" << moduleName.toStdString() << ", " << channelID << ")" << std::endl;
-
-	if(_requestWideCastModuleName != moduleName.toStdString())
-		throw std::runtime_error("Unexpected module received in EngineSync::moduleUnloadingFinishedHandler, expected: " + _requestWideCastModuleName + ", but got: " + moduleName.toStdString());
-
-	_requestWideCastModuleResults[channelID] = "I am an inconsequential message";
-
-	checkModuleWideCastDone();
-}
-
-
-void EngineSync::checkModuleWideCastDone()
-{
-	if(!_requestWideCastModuleJson.isNull() && _requestWideCastModuleResults.size() == _engines.size())
-	{
-		if(moduleStatusFromString(_requestWideCastModuleJson["moduleRequest"].asString()) == moduleStatus::loadingNeeded)
-		{
-			std::string compoundedError = "";
-			int failed = 0;
-
-			for(auto * engine : _engines)
-			{
-				auto res = _requestWideCastModuleResults[engine->channelNumber()];
-				if(res != "succes")
-				{
-					failed ++;
-					compoundedError += std::string(compoundedError != "" ? "\n" : "") + "engine " + std::to_string(engine->channelNumber()) + " reported error: " + res;
-				}
-			}
-
-
-			if(failed == 0)	emit moduleLoadingSucceeded(QString::fromStdString(_requestWideCastModuleName));
-			else			emit moduleLoadingFailed(QString::fromStdString(_requestWideCastModuleName), QString::fromStdString(compoundedError));
-		}
-
-		resetModuleWideCastVars();
-	}
-}
-
-void EngineSync::resetModuleWideCastVars()
-{
-	_requestWideCastModuleName			= "";
-	_requestWideCastModuleJson			= Json::nullValue;
-	_requestWideCastModuleResults.clear();
-}
-
-void EngineSync::setModuleWideCastVars(Json::Value newVars)
-{
-	resetModuleWideCastVars();
-
-	_requestWideCastModuleName			= newVars["moduleName"].asString();
-	_requestWideCastModuleJson			= newVars;
-}
 
 void EngineSync::refreshAllPlots()
 {
 	std::set<Analysis*> inProgress;
-	for(EngineRepresentation * engine : _workers)
+	for(EngineRepresentation * engine : _engines)
 		if(engine->analysisInProgress() != nullptr)
 			inProgress.insert(engine->analysisInProgress());
 
@@ -800,13 +737,31 @@ void EngineSync::refreshAllPlots()
 
 void EngineSync::logCfgRequest()
 {
-	for(EngineRepresentation * e : _workers)
+	for(EngineRepresentation * e : _engines)
 		_logCfgRequested.insert(e);
 }
 
 void EngineSync::logCfgReplyReceived(EngineRepresentation * engine)
 {
 	_logCfgRequested.erase(engine);
+}
+
+void EngineSync::registerEngineForModule(EngineRepresentation * engine, std::string modName)
+{
+	if(_moduleEngines.count(modName) > 0 && _moduleEngines[modName] != engine)
+		throw std::runtime_error("Trying to register module '" + modName + "' to engine #" +
+								 std::to_string(engine->channelNumber()) + " but it is already registered to " +
+								 std::to_string(_moduleEngines[modName]->channelNumber()));
+
+	_moduleEngines[modName] = engine;
+}
+
+void EngineSync::unregisterEngineForModule(EngineRepresentation * engine, std::string modName)
+{
+	if(_moduleEngines.count(modName) > 0 && _moduleEngines[modName] != engine)
+		return;
+
+	_moduleEngines.erase(modName); //We only erase it when it is the exact same engine + modName combo
 }
 
 void EngineSync::processLogCfgRequests()
@@ -875,23 +830,28 @@ std::string	EngineSync::currentStateForDebug() const
 
 EngineRepresentation *	EngineSync::createRCmdEngine()
 {
-	EngineRepresentation * rCmdEngine = createNewEngine();
-	
-	_rCmders.insert(rCmdEngine);
+	if(!_rCmder)
+	{
 
-	rCmdEngine->setRunsAnalysis(false);
-	rCmdEngine->setRunsUtility(	false);
-	rCmdEngine->setRunsRCmd(	true);
+		_rCmder = createNewEngine(false);
 
-	return rCmdEngine;
+
+		_rCmder->setRunsAnalysis(	false);
+		_rCmder->setRunsUtility(	false);
+		_rCmder->setRunsRCmd(		true);
+	}
+
+	return _rCmder;
 }
 
 void EngineSync::destroyEngine(EngineRepresentation * engine)
 {
 	if(!engine) return;
+
+	if(_rCmder  == engine)	_rCmder  = nullptr;
 	
-	_rCmders.erase(engine);
-	_workers.erase(engine);
+	_moduleEngines.erase(engine->dynamicModule());
+
 	_engines.erase(engine);
 
 	delete engine;

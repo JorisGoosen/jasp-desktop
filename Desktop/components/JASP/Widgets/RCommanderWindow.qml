@@ -306,7 +306,7 @@ Window
 				{
 					top:		parent.verticalCenter
 					left:		parent.left
-					bottom:	parent.bottom
+					bottom:		parent.bottom
 					margins:	jaspTheme.generalAnchorMargin
 					topMargin:	jaspTheme.generalAnchorMargin * 0.5
 				}

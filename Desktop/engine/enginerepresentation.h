@@ -61,6 +61,7 @@ public:
 	
 	///Start engine again in jaspEngineProcess
 	void restartEngine(QProcess * jaspEngineProcess);
+
 	bool resumed()				const { return _engineState != engineState::resuming && !paused() && !initializing();	}
 	bool paused()				const { return _engineState == engineState::paused || initializing();					}
 	bool initializing()			const { return _engineState == engineState::initializing;								}
@@ -72,7 +73,8 @@ public:
 	bool runsAnalysis()			const { return _runsAnalysis;															}
 	bool runsUtility()			const { return _runsUtility;															}
 	bool runsRCmd()				const { return _runsRCmd;																}
-	bool isBored()			const;
+	bool isBored()				const;
+
 
 	bool jaspEngineStillRunning() { return  _slaveProcess != nullptr && !killed(); }
 
@@ -83,7 +85,8 @@ public:
 
 	size_t	channelNumber()		const { return _channel->channelNumber(); }
 
-	std::string currentStateForDebug() const;	
+	std::string currentStateForDebug()	const;
+	std::string dynamicModule()			const { return _dynModName; }
 	
 protected:
 	void processRCodeReply(			Json::Value & json);
@@ -107,8 +110,9 @@ public slots:
 	void setRunsUtility(	bool runsUtility);
 	void setRunsRCmd(		bool runsRCmd);
 
+	void setDynamicModule(const std::string & dynamicModule);
+
 signals:
-	void loadAllActiveModules();
 	void engineTerminated();
 	void filterDone(															int requestID);
 	void processFilterErrorMsg(			const QString & error,					int requestId = -1);
@@ -131,10 +135,14 @@ signals:
 
 	void logCfgReplyReceived(	EngineRepresentation * engine);
 	void requestEngineRestart(	EngineRepresentation * engine);
+	void registerForModule(		EngineRepresentation * engine, std::string modName);
+	void unregisterForModule(	EngineRepresentation * engine, std::string modName);
 	void plotEditorRefresh();
 	void runsAnalysisChanged(	bool runsAnalysis);
 	void runsUtilityChanged(	bool runsUtility);
 	void runsRCmdChanged(		bool runsRCmd);
+
+	bool moduleHasEngine(const std::string & name) const;
 
 private:
 	void sendPauseEngine();
@@ -145,6 +153,7 @@ private:
 	void handleEngineCrash();
 	void abortAnalysisInProgress(bool restartAfterwards);
 	void addSettingsToJson(Json::Value & msg);
+
 
 private:
 	static Analysis::Status analysisResultStatusToAnalysStatus(analysisResultStatus result);
@@ -167,7 +176,8 @@ private:
 					_runsUtility		= true,		//is this engine meant for running filters, installing modules or running R Code (not the r prompt though)
 					_runsRCmd			= false,	//is this engine meant for the R prompt?
 					_removeEngine		= false;
-	std::string		_lastCompColName	= "???";
+	std::string		_lastCompColName	= "???",
+					_dynModName			= "";		//If filled: refers to the particular dynamic module this engine was meant for.
 
 	QMetaObject::Connection	_slaveFinishedConnection;
 

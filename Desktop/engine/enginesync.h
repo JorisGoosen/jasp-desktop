@@ -49,7 +49,7 @@ public:
 
 	static EngineSync * singleton() { return _singleton; }
 
-	EngineRepresentation *	createNewEngine();
+	EngineRepresentation *	createNewEngine(bool addToEngines = true);
 	EngineRepresentation *	createRCmdEngine();
 
 public slots:
@@ -65,7 +65,6 @@ public slots:
 	void		logCfgRequest();
 	void		logToFileChanged(bool) { logCfgRequest(); }
 	void		cleanUpAfterClose();
-	void		loadAllActiveModules();
 	void		filterDone(int requestID);
 	std::string	currentStateForDebug() const;
 	void		haveYouTriedTurningItOffAndOnAgain() { stopEngines(); restartEngines(); } // https://www.youtube.com/watch?v=DPqdyoTpyEs
@@ -110,10 +109,6 @@ private:
 	void		fixPATHForWindows(QProcessEnvironment & env);
 #endif
 	
-	void		checkModuleWideCastDone();
-	void		resetModuleWideCastVars();
-	void		setModuleWideCastVars(Json::Value newVars);
-	bool		amICastingAModuleRequestWide()	{ return !_requestWideCastModuleJson.isNull(); }
 	size_t		maxEngineCount() const;
 
 private slots:
@@ -129,11 +124,14 @@ private slots:
 	void	restartEngineAfterCrash(EngineRepresentation * engine);
 	void	restartKilledEngines();
 
-	void	logCfgReplyReceived(EngineRepresentation * engine);
+	void	logCfgReplyReceived(		EngineRepresentation * engine);
+	void	registerEngineForModule(	EngineRepresentation * engine, std::string modName);
+	void	unregisterEngineForModule(	EngineRepresentation * engine, std::string modName);
 	
 	void	maxEngineCountChanged();
 	void	startExtraEngine();
 	bool	anEngineIdleSoon();
+	bool	moduleHasEngine(const std::string & name);
 
 private:
 	static EngineSync				*	_singleton;
@@ -143,15 +141,16 @@ private:
 										_filterRunning					= false;
 	int									_filterCurrentRequestID			= 0;
 	std::string							_memoryName,
-										_engineInfo,
-										_requestWideCastModuleName		= "";
-	Json::Value							_requestWideCastModuleJson		= Json::nullValue;
-	std::map<int, std::string>			_requestWideCastModuleResults;
+										_engineInfo;
 
 	std::queue<RScriptStore*>			_waitingScripts;
-	std::set<EngineRepresentation*>		_workers,		//Your typical run of the mill engine, can do analyses and Rscript/filter stuff
-										_rCmders,		//For those special occassions where you just want to shout at R in a more personal manner
-										_engines,		//Keeping track of all those engines isn't easy...
+
+	EngineRepresentation			*	_rCmder;		//For those special occassions where you just want to shout at R in a more personal manner
+
+	std::map<std::string,
+		EngineRepresentation * >		_moduleEngines; //An engine per module active. Engines will be started and closed as needed.
+
+	std::set<EngineRepresentation*>		_engines,		//Keeping track of all those engines isn't easy...
 										_logCfgRequested;
 };
 
