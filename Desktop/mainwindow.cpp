@@ -172,6 +172,7 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	qmlRegisterType<ResultsJsInterface>							("JASP",		1, 0, "ResultsJsInterface"				);
 	qmlRegisterType<LabelModel>									("JASP",		1, 0, "LabelModel"						);
 
+
 	qmlRegisterUncreatableType<PlotEditor::AxisModel>			("JASP.PlotEditor",	1, 0, "AxisModel",					"Can't make it");
 	qmlRegisterUncreatableType<PlotEditor::PlotEditorModel>		("JASP.PlotEditor",	1, 0, "PlotEditorModel",			"Can't make it");
 
@@ -377,6 +378,7 @@ void MainWindow::makeConnections()
 	connect(_dynamicModules,		&DynamicModules::requestRootContext,				this,					&MainWindow::giveRootQmlContext,							Qt::UniqueConnection);
 	connect(_dynamicModules,		&DynamicModules::loadQmlData,						this,					&MainWindow::loadQmlData,									Qt::UniqueConnection);
 	connect(_dynamicModules,		&DynamicModules::reloadQmlImportPaths,				this,					&MainWindow::setQmlImportPaths,								Qt::QueuedConnection); //If this is queued this should make the loadingprocess of qml a bit less weird I think.
+	connect(_dynamicModules,		&DynamicModules::dynamicModuleUnloadBegin,			_engineSync,			&EngineSync::killModuleEngine								);
 
 	connect(_languageModel,			&LanguageModel::languageChanged,					_fileMenu,				&FileMenu::refresh											);
 	connect(_languageModel,			&LanguageModel::aboutToChangeLanguage,				_analyses,				&Analyses::prepareForLanguageChange							);
@@ -509,9 +511,6 @@ void MainWindow::loadQML()
 		{ 	"jaspDescriptives", "jaspTTests", "jaspAnova", "jaspMixedModels", "jaspRegression", "jaspFrequencies", "jaspFactor" },
 		{ 	"jaspAudit", "jaspBain", "jaspCircular", "jaspDistributions" , "jaspEquivalenceTTests", "jaspJags", "jaspLearnBayes", "jaspMachineLearning",
 			"jaspMetaAnalysis", "jaspNetwork", "jaspProcessControl", "jaspProphet", "jaspReliability", "jaspSem", "jaspSummaryStatistics", "jaspVisualModeling" });
-
-	_engineSync->loadAllActiveModules();
-	_dynamicModules->startUpCompleted();
 }
 
 void MainWindow::setQmlImportPaths()
@@ -569,8 +568,8 @@ void MainWindow::showRCommander()
 		Log::log() << "Loading RCommander"  << std::endl;
 		_qml		-> load(QUrl("qrc:///components/JASP/Widgets/RCommanderWindow.qml"));
 
-		_resultsJsInterface->resetResults();//To reload page
-
+		//To reload page because of https://github.com/jasp-stats/INTERNAL-jasp/issues/1280
+		_resultsJsInterface->resetResults();
 		QTimer::singleShot(500, this, &MainWindow::resendResultsToWebEngine);
 	}
 }

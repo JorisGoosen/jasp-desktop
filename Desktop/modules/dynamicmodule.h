@@ -54,11 +54,8 @@ class DynamicModule : public QObject
 {
 	Q_OBJECT
 	Q_PROPERTY(QString		installLog			READ installLog										NOTIFY installLogChanged		)
-	Q_PROPERTY(QString		loadLog				READ loadLog										NOTIFY loadLogChanged			)
 	Q_PROPERTY(QString		status				READ status											NOTIFY statusChanged			)
-	Q_PROPERTY(bool			loaded				READ loaded				WRITE setLoaded				NOTIFY loadedChanged			)
 	Q_PROPERTY(bool			installed			READ installed			WRITE setInstalled			NOTIFY installedChanged			)
-	Q_PROPERTY(bool			loading				READ loading			WRITE setLoading			NOTIFY loadingChanged			)
 	Q_PROPERTY(bool			installing			READ installing			WRITE setInstalling			NOTIFY installingChanged		)
 	Q_PROPERTY(bool			initialized			READ initialized		WRITE setInitialized		NOTIFY initializedChanged		)
 	Q_PROPERTY(bool			isBundled			READ isBundled			WRITE setBundled			NOTIFY bundledChanged			)
@@ -112,7 +109,6 @@ public:
 	bool				error()				const { return _status == moduleStatus::error;			}
 	bool				readyForUse()		const { return _status == moduleStatus::readyForUse;	}
 	bool				installNeeded()		const { return _status == moduleStatus::installNeeded;	}
-	bool				loadingNeeded()		const { return _status == moduleStatus::loadingNeeded;	}
 	QString				moduleRLibrary()	const { return  _moduleFolder.absolutePath();			}
 	const stringset &	importsR()			const { return _importsR;						}
 	QStringList			importsRQ()			const { return tql(_importsR);					}
@@ -136,16 +132,11 @@ public:
 	std::string			generateModuleUninstallingR();
 
 	Json::Value			requestJsonForPackageLoadingRequest();
-	Json::Value			requestJsonForPackageUnloadingRequest();
 	Json::Value			requestJsonForPackageInstallationRequest(bool onlyModPkg);
 	Json::Value			requestJsonForPackageUninstallingRequest();
 
 	void				setInstalled(bool installed);
-	void				setLoaded(bool loaded);
-	void				setUnloaded();
-	void				setLoadingSucces(bool succes);
 	void				setInstallingSucces(bool succes);
-	void				setLoadingNeeded();
 	void				setReadyForUse();
 	void				setStatus(moduleStatus newStatus);
 
@@ -158,19 +149,16 @@ public:
 	static std::string	succesResultString() { return "succes!"; }
 
 	QString installLog()	const	{ return QString::fromStdString(_installLog);	}
-	QString loadLog()		const	{ return QString::fromStdString(_loadLog);		}
 	QString status()		const	{ return moduleStatusToQString(_status);		}
 
 	bool shouldUninstallPackagesInRForUninstall();
 
-	bool loaded()		const { return _loaded;			}
 	bool installed()	const { return _installed;		}
-	bool loading()		const { return _loading;		}
 	bool installing()	const { return _installing;		}
 	bool initialized()	const { return _initialized;	}
 	bool isBundled()	const { return _bundled;		}
 
-	void initialize(); //returns true if install of package(s) should be done
+	void initialize();
 	void loadDescriptionQml(const QString		& descriptionTxt,	const QUrl		& url);
 	void loadUpgradesQML(	const QString		& upgradesTxt,		const QUrl		& url);
 	bool hasUpgradesToApply(const std::string	& function,			const Version	& version);
@@ -205,12 +193,10 @@ public:
 
 public slots:
 	void reloadDescription();
-	void setLoading(			bool		loading);
 	void setInstalling(			bool		installing);
 	void setInitialized(		bool		initialized);
 	void setBundled(			bool		isBundled);
 	void setInstallLog(			std::string installLog);
-	void setLoadLog(			std::string loadLog);
 	void setImportsR(			stringset	importsR);
 
 signals:
@@ -224,7 +210,6 @@ signals:
 	void		installingChanged(	bool installing);
 	void		initializedChanged(	bool initialized);
 	void		bundledChanged(		bool isBundled);
-	void		registerForLoading(				const std::string & moduleName);
 	void		registerForInstalling(			const std::string & moduleName);
 	void		registerForInstallingModPkg(	const std::string & moduleName);
 	void		descriptionReloaded(Modules::DynamicModule * dynMod);
@@ -240,7 +225,6 @@ private:
 						_author,
 						_website,
 						_license,
-						_loadLog			= "",
 						_installLog			= "",
 						_maintainer,
 						_descriptionTxt,
@@ -248,8 +232,6 @@ private:
 						_version;
 	bool				_installing			= false,
 						_installed			= false,
-						_loaded				= false,
-						_loading			= false,
 						_isDeveloperMod		= false,
 						_initialized		= false,
 						_bundled			= false,

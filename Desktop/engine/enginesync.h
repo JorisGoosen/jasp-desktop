@@ -68,7 +68,8 @@ public slots:
 	void		filterDone(int requestID);
 	std::string	currentStateForDebug() const;
 	void		haveYouTriedTurningItOffAndOnAgain() { stopEngines(); restartEngines(); } // https://www.youtube.com/watch?v=DPqdyoTpyEs
-	
+	void		killModuleEngine(Modules::DynamicModule * mod);
+
 signals:
 	void		processNewFilterResult(const std::vector<bool> & filterResult, int requestID);
 	void		processFilterErrorMsg(const QString & error, int requestID);
@@ -100,6 +101,7 @@ private:
 	void		processFilterScript();
 	void		processSettingsChanged();
 	
+	void		shutdownBoredEngines();
 	bool		allEnginesStopped();
 	bool		allEnginesPaused();
 	bool		allEnginesResumed();
@@ -119,7 +121,6 @@ private slots:
 
 	void	moduleLoadingFailedHandler(		const QString & moduleName, const QString & errorMessage, int channelID);
 	void	moduleLoadingSucceededHandler(	const QString & moduleName, int channelID);
-	void	moduleUnloadingFinishedHandler(	const QString & moduleName, int channelID);
 
 	void	restartEngineAfterCrash(EngineRepresentation * engine);
 	void	restartKilledEngines();
@@ -131,7 +132,7 @@ private slots:
 	void	maxEngineCountChanged();
 	void	startExtraEngine();
 	bool	anEngineIdleSoon();
-	bool	moduleHasEngine(const std::string & name);
+	bool	moduleHasEngine(const std::string & name) { return _moduleEngines.count(name); }
 
 private:
 	static EngineSync				*	_singleton;
@@ -146,10 +147,8 @@ private:
 	std::queue<RScriptStore*>			_waitingScripts;
 
 	EngineRepresentation			*	_rCmder;		//For those special occassions where you just want to shout at R in a more personal manner
-
 	std::map<std::string,
 		EngineRepresentation * >		_moduleEngines; //An engine per module active. Engines will be started and closed as needed.
-
 	std::set<EngineRepresentation*>		_engines,		//Keeping track of all those engines isn't easy...
 										_logCfgRequested;
 };

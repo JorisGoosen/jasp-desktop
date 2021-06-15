@@ -161,6 +161,21 @@ void EngineRepresentation::setAnalysisInProgress(Analysis* analysis)
 	}
 }
 
+void EngineRepresentation::setDynamicModule(const std::string & name)
+{
+	if(!_runsAnalysis)
+		throw std::runtime_error("Cannot register engine " + std::to_string(channelNumber()) + " for dynamic module '" + name + "' to engine not meant for analyses!");
+
+	if(_dynModName != "")
+		throw std::runtime_error("Engine " + std::to_string(_channel->channelNumber()) + " is assigned to module '" + _dynModName + "'! Yet you are trying to assign it to '" + name + "'..");
+
+	_dynModName	= name;
+	emit registerForModule(this, _dynModName);
+
+
+	runModuleLoadRequestOnProcess(Modules::DynamicModules::dynMods()->dynamicModule(name)->requestJsonForPackageLoadingRequest());
+}
+
 void EngineRepresentation::processReplies()
 {
 	if (_engineState == engineState::idle)
@@ -357,6 +372,8 @@ void EngineRepresentation::runAnalysisOnProcess(Analysis *analysis)
 #ifdef PRINT_ENGINE_MESSAGES
 	Log::log() << "send request for analysis-id #" << analysis->id() << " to jaspEngine on channel #" << channelNumber() << std::endl;
 #endif
+
+	de volgende functie start het laden van de module maar vervolgens zenden we iets nieuws dus dat gebeurt niwt....
 
 	setAnalysisInProgress(analysis);
 
@@ -727,13 +744,9 @@ void EngineRepresentation::processModuleRequestReply(Json::Value & json)
 		else		emit moduleInstallationFailed(moduleName, getError());
 		break;
 
-	case moduleStatus::loadingNeeded:
-		if(succes)	emit moduleLoadingSucceeded(moduleName, channelNumber());
-		else		emit moduleLoadingFailed(moduleName, getError(), channelNumber());
-		break;
-
-	case moduleStatus::unloadingNeeded:
-		emit moduleUnloadingFinished(moduleName, channelNumber());
+	case moduleStatus::loading:
+		if(succes)	{ emit moduleLoadingSucceeded(moduleName, channelNumber());				_dynModName = fq(moduleName);					}
+		else		{ emit moduleLoadingFailed(moduleName, getError(), channelNumber());	_dynModName = "";	}
 		break;
 
 	default:
@@ -842,14 +855,6 @@ void EngineRepresentation::setRunsRCmd(bool runsRCmd)
 	emit runsRCmdChanged(_runsRCmd);
 }
 
-void EngineRepresentation::setDynamicModule(const std::string & dynamicModule)
-{
-	if(!_runsAnalysis)
-		throw std::runtime_error("Cannot register engine " + std::to_string(channelNumber()) + " for dynamic module '" + dynamicModule + "' to engine not meant for analyses!");
-	else
-		_dynModName = dynamicModule;
-}
-
 void EngineRepresentation::sendSettings()
 {
 	Log::log() << "EngineRepresentation::sendSettings()" << std::endl;
@@ -896,7 +901,7 @@ bool EngineRepresentation::willProcessAnalysis(Analysis * analysis) const
 
 	const std::string modName = analysis->dynamicModule()->name();
 
-	return	(	runsAnalysis()					&& (_dynModName == modName || (_dynModName == "" && !moduleHasEngine(modName)) ))
+	return	(	runsAnalysis()					&& (_dynModName == modName || (_dynModName == "" && emit !moduleHasEngine(modName)) ))
 			|| (analysis->utilityRunAllowed()	&& runsUtility());
 }
 

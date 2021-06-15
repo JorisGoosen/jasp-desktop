@@ -397,11 +397,6 @@ void DynamicModule::setReadyForUse()
 		setStatus(moduleStatus::readyForUse);
 }
 
-void DynamicModule::setLoadingNeeded()
-{
-	if(_status != moduleStatus::installNeeded)
-		setStatus(moduleStatus::loadingNeeded);
-}
 
 Json::Value	DynamicModule::requestJsonForPackageInstallationRequest(bool onlyModPkg)
 {
@@ -425,22 +420,9 @@ Json::Value	DynamicModule::requestJsonForPackageLoadingRequest()
 {
 	Json::Value requestJson(Json::objectValue);
 
-	requestJson["moduleRequest"]	= moduleStatusToString(moduleStatus::loadingNeeded);
+	requestJson["moduleRequest"]	= moduleStatusToString(moduleStatus::loading);
 	requestJson["moduleName"]		= _name;
 	requestJson["moduleCode"]		= generateModuleLoadingR();
-
-	setLoading(true);
-
-	return requestJson;
-}
-
-Json::Value	DynamicModule::requestJsonForPackageUnloadingRequest()
-{
-	Json::Value requestJson(Json::objectValue);
-
-	requestJson["moduleRequest"]	= moduleStatusToString(moduleStatus::unloadingNeeded);
-	requestJson["moduleName"]		= _name;
-	requestJson["moduleCode"]		= generateModuleUnloadingR();
 
 	return requestJson;
 }
@@ -471,10 +453,10 @@ std::string DynamicModule::getLibPathsToUse()
 {
 	std::string libPathsToUse = "c('" + moduleRLibrary().toStdString()	+ "'";
 
-	std::vector<std::string> requiredLibPaths = fq(DynamicModules::dynMods()->requiredModulesLibPaths(tq(_name)));
+	/*std::vector<std::string> requiredLibPaths = fq(DynamicModules::dynMods()->requiredModulesLibPaths(tq(_name)));
 
 	for(const std::string & path : requiredLibPaths)
-		libPathsToUse += ", '" + path + "'";
+		libPathsToUse += ", '" + path + "'";*/
 
 	libPathsToUse += ", .libPaths())";
 
@@ -515,15 +497,15 @@ std::string DynamicModule::generateModuleLoadingR(bool shouldReturnSucces)
 {
 	std::stringstream R;
 
-	setLoadLog("Module " + _name + " is loading from " + _moduleFolder.absolutePath().toStdString() + "\n");
+	//setLoadLog("Module " + _name + " is loading from " + _moduleFolder.absolutePath().toStdString() + "\n");
 
 	//Add the module name to the "do not remove from global env" list in R. See jaspRCPP_purgeGlobalEnvironment
 	R << "jaspBase:::.addModuleToDoNotRemove('" << _name << _modulePostFix << "');\n";
 
 	R << _name << _modulePostFix << " <- modules::module({\n" << standardRIndent << ".libPaths(" << getLibPathsToUse() <<");\n\n";
 
-	for(const std::string & reqMod : requiredModules())
-		R << standardRIndent << "import('" << reqMod << "');\n";
+	//for(const std::string & reqMod : requiredModules())
+	//	R << standardRIndent << "import('" << reqMod << "');\n";
 	R << standardRIndent << "import('" << _name << "');\n\n";
 
 	size_t maxL = 0;
@@ -671,15 +653,6 @@ void DynamicModule::setInstallLog(std::string installLog)
 	emit installLogChanged();
 }
 
-void DynamicModule::setLoadLog(std::string loadLog)
-{
-	if (_loadLog == loadLog)
-		return;
-
-	_loadLog = loadLog;
-	emit loadLogChanged();
-}
-
 void DynamicModule::setInstallingSucces(bool succes)
 {
 	if(!succes)
@@ -702,42 +675,9 @@ void DynamicModule::setInstalled(bool installed)
 
 	if(installing())
 		setInstalling(false);
-}
 
-void DynamicModule::setLoadingSucces(bool succes)
-{
-	setStatus(succes ? moduleStatus::readyForUse		: moduleStatus::error);
-	setLoadLog(loadLog().toStdString() + "Loading " + (succes ? "succeeded" : "failed") + "\n");
-
-	setLoaded(succes);
-	setLoading(false);
-}
-
-void DynamicModule::setUnloaded()
-{
-	setLoaded(false);
-	setLoading(false);
-}
-
-void DynamicModule::setLoaded(bool loaded)
-{
-	if(_loaded != loaded)
-	{
-		_loaded = loaded;
-
-		Log::log() << "DYNMOD " << _name << " changed loaded to " << (loaded ? "YES" : "NO") << std::endl;
-
-		emit loadedChanged(_loaded);
-	}
-}
-
-void DynamicModule::setLoading(bool loading)
-{
-	if (_loading == loading)
-		return;
-
-	_loading = loading;
-	emit loadingChanged(_loading);
+	if(installed)
+		setStatus(moduleStatus::readyForUse);
 }
 
 void DynamicModule::setInstalling(bool installing)
@@ -773,7 +713,6 @@ void DynamicModule::setStatus(moduleStatus newStatus)
 
 	switch(_status)
 	{
-	case moduleStatus::loadingNeeded:			emit registerForLoading(_name);				break;
 	case moduleStatus::installNeeded:			emit registerForInstalling(_name);			break;
 	case moduleStatus::installModPkgNeeded:		emit registerForInstallingModPkg(_name);	break;
 	case moduleStatus::error:
@@ -1036,12 +975,6 @@ void DynamicModule::setImportsR(stringset importsR)
 	{
 		_importsR = importsR;
 		emit importsRChanged();
-		
-		if(_status == moduleStatus::readyForUse || _status == moduleStatus::loadingNeeded)
-		{
-			Log::log() << "R Pkg imports for module '" << name() << "' changed!\nReinstalling module deps, just in case." << std::endl;
-			setStatus(moduleStatus::installModPkgNeeded);
-		}
 	}
 }
 

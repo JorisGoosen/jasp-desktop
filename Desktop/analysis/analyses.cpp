@@ -100,9 +100,6 @@ Analysis* Analyses::createFromJaspFileEntry(Json::Value analysisData, RibbonMode
 		analysis			= create(analysisData, analysisEntry, id, status, false, title, analysisData["dynamicModule"]["moduleVersion"].asString(), &optionsJson);
 	}
 
-	if(analysisEntry && analysisEntry->dynamicModule() && !analysisEntry->dynamicModule()->loaded())
-		analysisEntry->dynamicModule()->setLoadingNeeded();
-
 	if(wasUpgraded)
 		analysis->setUpgradeMsgs(msgs);
 

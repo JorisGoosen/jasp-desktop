@@ -6,7 +6,7 @@
 DECLARE_ENUM(engineState,			initializing, idle, analysis, filter, rCode, computeColumn, moduleInstallRequest, moduleLoadRequest, pauseRequested, paused, resuming, stopRequested, stopped, logCfg, settings, killed);
 DECLARE_ENUM(performType,			run, abort, saveImg, editImg, rewriteImgs);
 DECLARE_ENUM(analysisResultStatus,	validationError, fatalError, imageSaved, imageEdited, imagesRewritten, complete, running, changed, waiting);
-DECLARE_ENUM(moduleStatus,			initializing, installNeeded, installModPkgNeeded, loadingNeeded, unloadingNeeded, readyForUse, error);
+DECLARE_ENUM(moduleStatus,			initializing, installNeeded, loading, installModPkgNeeded, readyForUse, error);
 DECLARE_ENUM(engineAnalysisStatus,	empty, toRun, running, changed, complete, error, exception, aborted, stopped, saveImg, editImg, rewriteImgs, synchingData);
 DECLARE_ENUM(winLcCtypeSetting,		check, alwaysC, neverC);
 
@@ -27,8 +27,7 @@ struct unexpectedEngineReply  : public std::runtime_error
 #define ENGINE_EXTRA_INTERVAL 10
 
 ///After how many seconds is an engine allowed to shutdown due to boredom?
-/// SHOULD TOTALLY BE BIGGER THAN 6 in actual development! more like 600
-#define ENGINE_BORED_SHUTDOWN 600
+#define ENGINE_BORED_SHUTDOWN 60
 
 
 #endif // ENGINEDEFINITIONS_H

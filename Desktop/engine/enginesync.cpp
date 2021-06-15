@@ -55,12 +55,12 @@ EngineSync::EngineSync(QObject *parent)
 	using namespace Modules;
 
 	connect(Analyses::analyses(),		&Analyses::sendRScript,								this,						&EngineSync::sendRCode							);
-	connect(this,						&EngineSync::moduleLoadingFailed,					DynamicModules::dynMods(),	&DynamicModules::loadingFailed					);
-	connect(this,						&EngineSync::moduleLoadingSucceeded,				DynamicModules::dynMods(),	&DynamicModules::loadingSucceeded				);
 	connect(this,						&EngineSync::moduleInstallationFailed,				DynamicModules::dynMods(),	&DynamicModules::installationPackagesFailed		);
-	connect(this,						&EngineSync::moduleInstallationSucceeded,			DynamicModules::dynMods(),	&DynamicModules::installationPackagesSucceeded	);
 	connect(DynamicModules::dynMods(),	&DynamicModules::stopEngines,						this,						&EngineSync::stopEngines						);
 	connect(DynamicModules::dynMods(),	&DynamicModules::restartEngines,					this,						&EngineSync::restartEngines						);
+	connect(this,						&EngineSync::moduleInstallationSucceeded,			this,						&EngineSync::stopEngines						);
+	connect(this,						&EngineSync::moduleInstallationSucceeded,			DynamicModules::dynMods(),	&DynamicModules::installationPackagesSucceeded,	Qt::QueuedConnection);
+	connect(this,						&EngineSync::moduleInstallationSucceeded,			this,						&EngineSync::restartEngines,					Qt::QueuedConnection);
 
 	connect(PreferencesModel::prefs(),	&PreferencesModel::plotPPIChanged,					this,						&EngineSync::settingsChanged					);
 	connect(PreferencesModel::prefs(),	&PreferencesModel::plotBackgroundChanged,			this,						&EngineSync::settingsChanged					);
@@ -153,7 +153,6 @@ EngineRepresentation * EngineSync::createNewEngine(bool addToEngines)
 		connect(engine,						&EngineRepresentation::moduleLoadingSucceeded,			this,					&EngineSync::moduleLoadingSucceededHandler								);
 		connect(engine,						&EngineRepresentation::moduleInstallationFailed,		this,					&EngineSync::moduleInstallationFailed									);
 		connect(engine,						&EngineRepresentation::moduleInstallationSucceeded,		this,					&EngineSync::moduleInstallationSucceeded								);
-		connect(engine,						&EngineRepresentation::moduleUnloadingFinished,			this,					&EngineSync::moduleUnloadingFinishedHandler								);
 		connect(engine,						&EngineRepresentation::moduleUninstallingFinished,		this,					&EngineSync::moduleUninstallingFinished									);
 		connect(engine,						&EngineRepresentation::logCfgReplyReceived,				this,					&EngineSync::logCfgReplyReceived										);
 		connect(engine,						&EngineRepresentation::plotEditorRefresh,				this,					&EngineSync::plotEditorRefresh											);
@@ -236,30 +235,33 @@ void EngineSync::restartKilledEngines()
 		}
 }
 
-void EngineSync::process()
+void EngineSync::shutdownBoredEngines()
 {
-	restartKilledEngines();
-
 	std::vector<EngineRepresentation *> boredEngines;
 	for (auto engine : _engines)
 	{
 		engine->processReplies();
-		
+
 		if(
 			_engines.count(engine) > 0	&&
-			engine->isBored()			&& 
+			engine->isBored()			&&
 			_engines.size() - boredEngines.size()  > 1
-		)	
+		)
 		{
 		   Log::log() << "Engine #" << engine->channelNumber()  << " had nothing to do for so long it has decided to shutdown." << std::endl;
 		   engine->shutEngineDown();
 		   boredEngines.push_back(engine);
-		}			
+		}
 	}
-	
-	for(EngineRepresentation * engine : boredEngines)
-		destroyEngine(engine);	
 
+	for(EngineRepresentation * engine : boredEngines)
+		destroyEngine(engine);
+}
+
+void EngineSync::process()
+{
+	restartKilledEngines();
+	shutdownBoredEngines();
 	processSettingsChanged();
 	processFilterScript();
 
@@ -271,6 +273,9 @@ void EngineSync::process()
 			notEnoughIdlesForModule		=	processDynamicModules(),
 			notEnoughIdlesForAnalysis	=	processAnalysisRequests(),
 			notEnoughIdles				=	notEnoughIdlesForScript || notEnoughIdlesForModule || notEnoughIdlesForAnalysis;
+
+	if(notEnoughIdles)
+		Log::log() << "Not enough idle engines! Need " << (notEnoughIdlesForScript ? " one for script " : "") << (notEnoughIdlesForModule ? " one for modules " : "") <<  (notEnoughIdlesForAnalysis ? " one for analysis" : "") << std::endl;
 	
 	if(notEnoughIdles && !anEngineIdleSoon())	
 		startExtraEngine();
@@ -693,27 +698,14 @@ void EngineSync::moduleLoadingFailedHandler(const QString & moduleName, const QS
 {
 	Log::log() << "Received EngineSync::moduleLoadingFailedHandler(" << moduleName.toStdString() << ", " << errorMessage.toStdString() << ", " << channelID << ")" << std::endl;
 
-	if(_requestWideCastModuleName != moduleName.toStdString())
-		throw std::runtime_error("Unexpected module received in EngineSync::moduleLoadingFailed, expected: " + _requestWideCastModuleName + ", but got: " + moduleName.toStdString());
-
-	_requestWideCastModuleResults[channelID] = errorMessage.size() == 0 ? "error" : errorMessage.toStdString();
-
-	checkModuleWideCastDone();
+	throw std::runtime_error("EngineSync::moduleLoadingFailedHandler should probably have some functionality dont you think?");
 }
 
 void EngineSync::moduleLoadingSucceededHandler(const QString & moduleName, int channelID)
 {
-
-	do we need this?
-
 	Log::log() << "Received EngineSync::moduleLoadingSucceededHandler(" << moduleName.toStdString() << ", " << channelID << ")" << std::endl;
 
-	if(_requestWideCastModuleName != moduleName.toStdString())
-		throw std::runtime_error("Unexpected module received in EngineSync::moduleLoadingSucceeded, expected: " + _requestWideCastModuleName + ", but got: " + moduleName.toStdString());
-
-	_requestWideCastModuleResults[channelID] = "succes";
-
-	checkModuleWideCastDone();
+	throw std::runtime_error("EngineSync::moduleLoadingSucceededHandler should probably have some functionality dont you think?");
 }
 
 
@@ -762,6 +754,14 @@ void EngineSync::unregisterEngineForModule(EngineRepresentation * engine, std::s
 		return;
 
 	_moduleEngines.erase(modName); //We only erase it when it is the exact same engine + modName combo
+}
+
+void EngineSync::killModuleEngine(Modules::DynamicModule * mod)
+{
+	if(!_moduleEngines.count(mod->name()))
+		return;
+
+	destroyEngine(_moduleEngines[mod->name()]);
 }
 
 void EngineSync::processLogCfgRequests()

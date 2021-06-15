@@ -19,13 +19,13 @@
 
 LanguageInfo::LanguageInfo()
 {
-	Log::log() << "new LanguageInfo created: " << toString() << std::endl;
+	//Log::log() << "new LanguageInfo created: " << toString() << std::endl;
 }
 
 LanguageInfo::LanguageInfo(QLocale::Language language, QString languageName, QString nativeLanguageName, QString localName, QString qmFilename, QString qmFolder)
 	: language(language), languageName(languageName), nativeLanguageName(nativeLanguageName), localName(localName), qmFolder(qmFolder), qmFilenames({qmFilename})
 {
-	Log::log() << "new LanguageInfo created: " << toString() << std::endl;
+	//Log::log() << "new LanguageInfo created: " << toString() << std::endl;
 }
 
 QString LanguageInfo::toString()
@@ -247,7 +247,7 @@ void LanguageModel::setCurrentIndex(int currentIndex)
 
 void LanguageModel::loadModuleTranslationFiles(Modules::DynamicModule *dyn)
 {
-	Log::log() << "LanguageModel::loadModuleTranslationFile called for module: " << (dyn ? dyn->name() : "NULL") << std::endl;
+	//Log::log() << "LanguageModel::loadModuleTranslationFile called for module: " << (dyn ? dyn->name() : "NULL") << std::endl;
 
 	bool result;
 	QLocale loc;

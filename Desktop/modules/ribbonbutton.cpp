@@ -145,7 +145,7 @@ void RibbonButton::setTitle(std::string title)
 
 void RibbonButton::setIconSource(QString iconSource)
 {
-	Log::log() << "Iconsource ribbonbutton changed to: " << iconSource.toStdString() << std::endl;
+	//Log::log() << "Iconsource ribbonbutton changed to: " << iconSource.toStdString() << std::endl;
 
 	_iconSource = iconSource;
 	emit iconSourceChanged();
