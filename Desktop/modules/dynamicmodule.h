@@ -91,7 +91,7 @@ public:
 	static bool			isDescriptionFile(const std::string & filename);
 	static bool			isDescriptionFile(const QString		& filename);
 
-	std::string			name()				const { return _name;									}
+	const std::string &	name()				const { return _name;									}
 	QString				nameQ()				const { return QString::fromStdString(name());			}
 	std::string			title()				const { return (isDevMod() ? "Dev: " : "") + _title;	}
 	bool				requiresData()		const;

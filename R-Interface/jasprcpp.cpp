@@ -253,12 +253,21 @@ const char* STDCALL jaspRCPP_runModuleCall(const char* name, const char* title, 
 
 	_setJaspResultsInfo(analysisID, analysisRevision, developerMode);
 
-	SEXP results = jaspRCPP_parseEval("runJaspResults(name=name, title=title, dataKey=dataKey, options=options, stateKey=stateKey, functionCall=moduleCall)", true);
-
 	static std::string str;
-	if(results != NULL && Rcpp::is<std::string>(results))	str = Rcpp::as<std::string>(results);
-	else													str = "error!";
 
+	try
+	{
+		SEXP results = jaspRCPP_parseEval("runJaspResults(name=name, title=title, dataKey=dataKey, options=options, stateKey=stateKey, functionCall=moduleCall)", true);
+
+		if(results != NULL && Rcpp::is<std::string>(results))	str = Rcpp::as<std::string>(results);
+		else													str = "error!";
+	}
+	catch(std::runtime_error & e)
+	{
+		jaspResults errorResult(title, NULL);
+		errorResult.setErrorMessage(e.what(), "fatalError");
+		errorResult.send();
+	}
 
 #ifdef PRINT_ENGINE_MESSAGES
 	jaspRCPP_logString("result of runJaspResults:\n" + str + "\n");
@@ -1125,11 +1134,11 @@ RInside::Proxy jaspRCPP_parseEval(const std::string & code, bool setWd, bool pre
 	if(preface)	
 		jaspRCPP_parseEvalPreface(code);
 	
-	RInside::Proxy returnthis = rinside->parseEvalNT(__sinkMe(code)); //Not throwing is nice actually!
+	RInside::Proxy returnthis = rinside->parseEval(__sinkMe(code)); //Not throwing is nice actually! Well, unless you want to hear about missing modules etc...
 	jaspRCPP_logString("\n");
 
 	rinside->parseEvalQNT("sink();"); //back to normal!
-	
+
 	return returnthis;
 }
 

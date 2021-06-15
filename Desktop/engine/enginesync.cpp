@@ -436,21 +436,26 @@ bool EngineSync::processAnalysisRequests()
 		{
 			try
 			{
-				bool anEngineIsRunningMe = false;
-				
-				for(auto engine : _engines)
-					if(engine->willProcessAnalysis(analysis))
-					{
-						engine->runAnalysisOnProcess(analysis);
-						return;
-					}
-					else if (engine->analysisInProgress() == analysis)
-						anEngineIsRunningMe = true;
-					
-				
-				couldntFindIdleEngine = couldntFindIdleEngine || !anEngineIsRunningMe;
+				const std::string modName = analysis->dynamicModule()->name();
+
+				//First check if we already have an engine for this module
+				if(!moduleHasEngine(modName))
+				{
+					//If not we choose one of the idle analysisrunning engines for it.
+					for(auto * engine : _engines)
+						if(engine->dynamicModule() == "" && engine->idle() && engine->runsAnalysis())
+						{
+							registerEngineForModule(engine, modName);
+							return;
+						}
+
+					couldntFindIdleEngine = true;
+				}
+				//Otherwise we simply check of that one engine will process our analysis
+				else if(_moduleEngines[modName]->willProcessAnalysis(analysis))
+					_moduleEngines[modName]->runAnalysisOnProcess(analysis);
 			}
-			catch(...)	{ Log::log() << "Exception thrown in ProcessAnalysisRequests" << std::endl;	}
+			catch(...)	{ Log::log() << "Exception ... thrown in ProcessAnalysisRequests" << std::endl;	}
 		}
 	});
 	
@@ -746,6 +751,8 @@ void EngineSync::registerEngineForModule(EngineRepresentation * engine, std::str
 								 std::to_string(_moduleEngines[modName]->channelNumber()));
 
 	_moduleEngines[modName] = engine;
+
+	engine->setDynamicModule(modName);
 }
 
 void EngineSync::unregisterEngineForModule(EngineRepresentation * engine, std::string modName)

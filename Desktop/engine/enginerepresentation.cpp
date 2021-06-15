@@ -148,17 +148,10 @@ void EngineRepresentation::setAnalysisInProgress(Analysis* analysis)
 	}
 
 	if(_engineState != engineState::idle)					throw std::runtime_error("Engine " + std::to_string(_channel->channelNumber()) + " is not idle! Yet you are trying to set an analysis in progress on it..");
-	if(_dynModName  != "" &&
-		_dynModName	!= analysis->dynamicModule()->name())	throw std::runtime_error("Engine " + std::to_string(_channel->channelNumber()) + " is assigned to module '" + _dynModName + "'! Yet you are trying to set an analysis from '" + analysis->dynamicModule()->name() + "' in progress on it..");
+	if(_dynModName	!= analysis->dynamicModule()->name())	throw std::runtime_error("Engine " + std::to_string(_channel->channelNumber()) + " is assigned to module '" + _dynModName + "'! Yet you are trying to set an analysis from '" + analysis->dynamicModule()->name() + "' in progress on it..");
 
 	_analysisInProgress = analysis;
 	_engineState		= engineState::analysis;
-
-	if(_dynModName == "")
-	{
-		_dynModName			= analysis->dynamicModule()->name();
-		emit registerForModule(this, _dynModName);
-	}
 }
 
 void EngineRepresentation::setDynamicModule(const std::string & name)
@@ -171,7 +164,6 @@ void EngineRepresentation::setDynamicModule(const std::string & name)
 
 	_dynModName	= name;
 	emit registerForModule(this, _dynModName);
-
 
 	runModuleLoadRequestOnProcess(Modules::DynamicModules::dynMods()->dynamicModule(name)->requestJsonForPackageLoadingRequest());
 }
@@ -373,8 +365,6 @@ void EngineRepresentation::runAnalysisOnProcess(Analysis *analysis)
 	Log::log() << "send request for analysis-id #" << analysis->id() << " to jaspEngine on channel #" << channelNumber() << std::endl;
 #endif
 
-	de volgende functie start het laden van de module maar vervolgens zenden we iets nieuws dus dat gebeurt niwt....
-
 	setAnalysisInProgress(analysis);
 
 	Json::Value json(analysis->createAnalysisRequestJson());
@@ -422,7 +412,7 @@ void EngineRepresentation::processAnalysisReply(Json::Value & json)
 	Json::Value progress		= json.get("progress",	Json::nullValue);
 	Json::Value results			= json.get("results",	Json::nullValue);
 
-	analysisResultStatus status	= analysisResultStatusFromString(json.get("status", "error").asString());
+	analysisResultStatus status	= analysisResultStatusFromString(json.get("status", "???").asString());
 
 	if(_analysisInProgress == nullptr && id == _idRemovedAnalysis)
 	{
@@ -901,8 +891,8 @@ bool EngineRepresentation::willProcessAnalysis(Analysis * analysis) const
 
 	const std::string modName = analysis->dynamicModule()->name();
 
-	return	(	runsAnalysis()					&& (_dynModName == modName || (_dynModName == "" && emit !moduleHasEngine(modName)) ))
-			|| (analysis->utilityRunAllowed()	&& runsUtility());
+	return	(	runsAnalysis()					&& _dynModName == modName)
+			|| (analysis->utilityRunAllowed()	&& runsUtility()		 );
 }
 
 void canIRegisterModule(const std::string & name);
