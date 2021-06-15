@@ -119,9 +119,6 @@ private slots:
 
 	void	process();
 
-	void	moduleLoadingFailedHandler(		const QString & moduleName, const QString & errorMessage, int channelID);
-	void	moduleLoadingSucceededHandler(	const QString & moduleName, int channelID);
-
 	void	restartEngineAfterCrash(EngineRepresentation * engine);
 	void	restartKilledEngines();
 

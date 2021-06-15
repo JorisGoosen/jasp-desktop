@@ -284,7 +284,7 @@ void MainWindow::makeConnections()
 	connect(_engineSync,			&EngineSync::processNewFilterResult,				_filterModel,			&FilterModel::processFilterResult							);
 	connect(_engineSync,			&EngineSync::processFilterErrorMsg,					_filterModel,			&FilterModel::processFilterErrorMsg							);
 	connect(_engineSync,			&EngineSync::computeColumnSucceeded,				_filterModel,			&FilterModel::computeColumnSucceeded						);
-	connect(_engineSync,			&EngineSync::moduleLoadingSucceeded,				_ribbonModel,			&RibbonModel::moduleLoadingSucceeded						);
+	//connect(_engineSync,			&EngineSync::moduleLoadingSucceeded,				_ribbonModel,			&RibbonModel::moduleLoadingSucceeded						);
 	connect(_engineSync,			&EngineSync::plotEditorRefresh,						_plotEditorModel,		&PlotEditorModel::refresh									);
 
 	qRegisterMetaType<columnType>();

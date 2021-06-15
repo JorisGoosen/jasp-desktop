@@ -37,9 +37,6 @@ EngineRepresentation::~EngineRepresentation()
 
 void EngineRepresentation::cleanUpAfterClose()
 {
-	if(_dynModName != "")
-		emit unregisterForModule(this, _dynModName);
-
 	_analysisInProgress = nullptr;
 	_analysisAborted	= nullptr;
 	_idRemovedAnalysis	= -1;
@@ -163,7 +160,6 @@ void EngineRepresentation::setDynamicModule(const std::string & name)
 		throw std::runtime_error("Engine " + std::to_string(_channel->channelNumber()) + " is assigned to module '" + _dynModName + "'! Yet you are trying to assign it to '" + name + "'..");
 
 	_dynModName	= name;
-	emit registerForModule(this, _dynModName);
 
 	runModuleLoadRequestOnProcess(Modules::DynamicModules::dynMods()->dynamicModule(name)->requestJsonForPackageLoadingRequest());
 }

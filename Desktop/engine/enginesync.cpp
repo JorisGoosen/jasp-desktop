@@ -149,8 +149,6 @@ EngineRepresentation * EngineSync::createNewEngine(bool addToEngines)
 		connect(engine,						&EngineRepresentation::columnDataTypeChanged,			this,					&EngineSync::columnDataTypeChanged,				Qt::QueuedConnection	);
 		connect(engine,						&EngineRepresentation::computeColumnSucceeded,			this,					&EngineSync::computeColumnSucceeded,			Qt::QueuedConnection	);
 		connect(engine,						&EngineRepresentation::computeColumnFailed,				this,					&EngineSync::computeColumnFailed,				Qt::QueuedConnection	);
-		connect(engine,						&EngineRepresentation::moduleLoadingFailed,				this,					&EngineSync::moduleLoadingFailedHandler									);
-		connect(engine,						&EngineRepresentation::moduleLoadingSucceeded,			this,					&EngineSync::moduleLoadingSucceededHandler								);
 		connect(engine,						&EngineRepresentation::moduleInstallationFailed,		this,					&EngineSync::moduleInstallationFailed									);
 		connect(engine,						&EngineRepresentation::moduleInstallationSucceeded,		this,					&EngineSync::moduleInstallationSucceeded								);
 		connect(engine,						&EngineRepresentation::moduleUninstallingFinished,		this,					&EngineSync::moduleUninstallingFinished									);
@@ -208,7 +206,7 @@ void EngineSync::restartEngines()
 	for(auto * engine : _engines)
 	{
 		engine->restartEngine(startSlaveProcess(engine->channelNumber()));
-		Log::log() << "restarted engine " << engine->channelNumber() << " but should still reload any active (dynamic) modules!"<< std::endl;
+		Log::log() << "restarted engine " << engine->channelNumber() << std::endl;
 	}
 
 	logCfgRequest();
@@ -277,7 +275,7 @@ void EngineSync::process()
 	if(notEnoughIdles)
 		Log::log() << "Not enough idle engines! Need " << (notEnoughIdlesForScript ? " one for script " : "") << (notEnoughIdlesForModule ? " one for modules " : "") <<  (notEnoughIdlesForAnalysis ? " one for analysis" : "") << std::endl;
 	
-	if(notEnoughIdles && !anEngineIdleSoon())	
+	if(notEnoughIdles && (!anEngineIdleSoon() || notEnoughIdlesForAnalysis)) //Because that means there is no engine for this particular module. So better hurry up
 		startExtraEngine();
 	else
 		for (auto engine : _engines)
@@ -699,21 +697,6 @@ bool EngineSync::allEnginesInitializing()
 	return true;
 }
 
-void EngineSync::moduleLoadingFailedHandler(const QString & moduleName, const QString & errorMessage, int channelID)
-{
-	Log::log() << "Received EngineSync::moduleLoadingFailedHandler(" << moduleName.toStdString() << ", " << errorMessage.toStdString() << ", " << channelID << ")" << std::endl;
-
-	throw std::runtime_error("EngineSync::moduleLoadingFailedHandler should probably have some functionality dont you think?");
-}
-
-void EngineSync::moduleLoadingSucceededHandler(const QString & moduleName, int channelID)
-{
-	Log::log() << "Received EngineSync::moduleLoadingSucceededHandler(" << moduleName.toStdString() << ", " << channelID << ")" << std::endl;
-
-	throw std::runtime_error("EngineSync::moduleLoadingSucceededHandler should probably have some functionality dont you think?");
-}
-
-
 void EngineSync::refreshAllPlots()
 {
 	std::set<Analysis*> inProgress;
@@ -750,6 +733,8 @@ void EngineSync::registerEngineForModule(EngineRepresentation * engine, std::str
 								 std::to_string(engine->channelNumber()) + " but it is already registered to " +
 								 std::to_string(_moduleEngines[modName]->channelNumber()));
 
+	Log::log() << "Registering engine #" << engine->channelNumber() << " for module '" << modName << "'" << std::endl;
+
 	_moduleEngines[modName] = engine;
 
 	engine->setDynamicModule(modName);
@@ -760,7 +745,10 @@ void EngineSync::unregisterEngineForModule(EngineRepresentation * engine, std::s
 	if(_moduleEngines.count(modName) > 0 && _moduleEngines[modName] != engine)
 		return;
 
+	Log::log() << "Unregistering engine #" << engine->channelNumber() << " for module '" << modName << "'" << std::endl;
 	_moduleEngines.erase(modName); //We only erase it when it is the exact same engine + modName combo
+
+	engine->shutEngineDown();
 }
 
 void EngineSync::killModuleEngine(Modules::DynamicModule * mod)
@@ -768,7 +756,7 @@ void EngineSync::killModuleEngine(Modules::DynamicModule * mod)
 	if(!_moduleEngines.count(mod->name()))
 		return;
 
-	destroyEngine(_moduleEngines[mod->name()]);
+	_moduleEngines[mod->name()]->killEngine();
 }
 
 void EngineSync::processLogCfgRequests()

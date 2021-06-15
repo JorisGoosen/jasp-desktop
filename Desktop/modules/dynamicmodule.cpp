@@ -93,6 +93,8 @@ DynamicModule::DynamicModule(QObject * parent) : QObject(parent), _isDeveloperMo
 	Log::log() << "Development Module is constructed with name: '" << _name << "' and will be installed to '" << _moduleFolder.absoluteFilePath().toStdString() << "' from source dir: '" << _modulePackage << "'" << std::endl;
 
 	_developmentModuleName = _name;
+
+	loadDescriptionFromFolder(_modulePackage);
 }
 
 

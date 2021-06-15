@@ -24,7 +24,7 @@ struct unexpectedEngineReply  : public std::runtime_error
 #define ENGINE_KILLTIME 2
 
 ///How many seconds should there be at minimum between two attempts to start an extra idle engine?
-#define ENGINE_EXTRA_INTERVAL 10
+#define ENGINE_EXTRA_INTERVAL 2
 
 ///After how many seconds is an engine allowed to shutdown due to boredom?
 #define ENGINE_BORED_SHUTDOWN 60
