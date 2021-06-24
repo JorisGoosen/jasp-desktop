@@ -18,7 +18,15 @@
 #ifndef SHAREDMEMORY_H
 #define SHAREDMEMORY_H
 
+#ifdef _WIN32
+#include <boost/interprocess/windows_shared_memory.hpp>
+#define sharedMemClass boost::interprocess::windows_shared_memory
+#else
 #include <boost/interprocess/managed_shared_memory.hpp>
+#define sharedMemClass boost::interprocess::managed_shared_memory
+#endif
+
+
 #include "dataset.h"
 
 /*
@@ -46,7 +54,7 @@ public:
 private:
 
 	static std::string _memoryName;
-	static boost::interprocess::managed_shared_memory *_memory;
+	static sharedMemClass *_memory;
 
 };
 

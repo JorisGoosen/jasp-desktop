@@ -27,7 +27,7 @@
 using namespace std;
 using namespace boost;
 
-interprocess::managed_shared_memory *SharedMemory::_memory = NULL;
+sharedMemClass *SharedMemory::_memory = NULL;
 string SharedMemory::_memoryName;
 
 DataSet *SharedMemory::createDataSet()
@@ -44,7 +44,7 @@ DataSet *SharedMemory::createDataSet()
 		TempFiles::addShmemFileName(_memoryName);
 
 		interprocess::shared_memory_object::remove(_memoryName.c_str());
-		_memory = new interprocess::managed_shared_memory(interprocess::create_only, _memoryName.c_str(), 6 * 1024 * 1024);
+		_memory = new sharedMemClass(interprocess::create_only, _memoryName.c_str(), 6 * 1024 * 1024);
 		Log::log() << "Created shared mem with name " << _memoryName << std::endl;
 	}
 
@@ -66,7 +66,7 @@ DataSet *SharedMemory::retrieveDataSet(unsigned long parentPID)
 				parentPID = ProcessInfo::parentPID();
 
 			_memoryName = "JASP-DATA-" + std::to_string(parentPID);
-			_memory		= new interprocess::managed_shared_memory(interprocess::open_only, _memoryName.c_str());
+			_memory		= new sharedMemClass(interprocess::open_only, _memoryName.c_str());
 			Log::log() << "Opened shared mem with name " << _memoryName << std::endl;
 		}
 
@@ -92,8 +92,8 @@ DataSet *SharedMemory::enlargeDataSet(DataSet *)
 
 	delete _memory;
 
-	interprocess::managed_shared_memory::grow(_memoryName.c_str(), extraSize);
-	_memory = new interprocess::managed_shared_memory(interprocess::open_only, _memoryName.c_str());
+	sharedMemClass::grow(_memoryName.c_str(), extraSize);
+	_memory = new sharedMemClass(interprocess::open_only, _memoryName.c_str());
 
 	DataSet *dataSet = retrieveDataSet();
 	dataSet->setSharedMemory(_memory);

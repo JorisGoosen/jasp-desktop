@@ -352,26 +352,15 @@ void TempFiles::deleteList(const vector<string> &files)
 	}
 }
 
+///This function seems kind of pointless, as at least on linux it doesnt make any sense and Im guessing it won't on windows either...
+///The files it is "remembering" to not destroy aren't there at all.
 void TempFiles::addShmemFileName(std::string &name)
 {
 	_shmemNames.push_back(Dirs::tempDir()+ "/" + name);
 
-	Log::log() << "TempFiles::addShmemFileName(" << name << ") called, whole list is now: " ;
 	int c=0;
 	for(const auto & n : _shmemNames)
 		Log::log(false) << ( c++ > 0 ? ", " : "") << "'" << n << "'";
 	Log::log(false) << std::endl;
 
-	Log::log() << "The folder '" << Dirs::tempDir() << "' contains:\n";
-	filesystem::path path = Utils::osPath(Dirs::tempDir());
-	system::error_code error;
-
-	for (filesystem::directory_iterator itr(path, error); !error && itr != filesystem::directory_iterator(); itr++)
-	{
-		filesystem::path pad = itr->path();
-		string absPath = pad.generic_string();
-
-		Log::log() << "\t" << absPath << "\n";
-		Log::log() << std::endl;
-	}
 }
