@@ -361,4 +361,17 @@ void TempFiles::addShmemFileName(std::string &name)
 	for(const auto & n : _shmemNames)
 		Log::log(false) << ( c++ > 0 ? ", " : "") << "'" << n << "'";
 	Log::log(false) << std::endl;
+
+	Log::log() << "The folder '" << Dirs::tempDir() << "' contains:\n";
+	filesystem::path path = Utils::osPath(Dirs::tempDir());
+	system::error_code error;
+
+	for (filesystem::directory_iterator itr(path, error); !error && itr != filesystem::directory_iterator(); itr++)
+	{
+		filesystem::path pad = itr->path();
+		string absPath = pad.generic_string();
+
+		Log::log() << "\t" << absPath << "\n";
+		Log::log() << std::endl;
+	}
 }
