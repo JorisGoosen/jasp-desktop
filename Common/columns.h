@@ -18,14 +18,18 @@
 #ifndef COLUMNS_H
 #define COLUMNS_H
 
+#include "sharedmemory.h"
 #include "column.h"
 
-#include <boost/interprocess/managed_shared_memory.hpp>
 
 #include <boost/iterator/iterator_facade.hpp>
+#include <boost/range.hpp>
 
+#include <boost/container/map.hpp>
 #include <boost/container/string.hpp>
 #include <boost/container/vector.hpp>
+
+
 
 struct columnNotFound : public std::runtime_error
 {
@@ -33,8 +37,9 @@ struct columnNotFound : public std::runtime_error
 	const char* what() const noexcept override;
 };
 
-typedef boost::interprocess::allocator<Column, boost::interprocess::managed_shared_memory::segment_manager> ColumnAllocator;
+typedef boost::interprocess::allocator<Column, sharedMemClass::segment_manager> ColumnAllocator;
 typedef boost::container::vector<Column, ColumnAllocator> ColumnVector;
+
 
 class Columns
 {
@@ -43,7 +48,7 @@ class Columns
 
 public:
 
-	Columns(boost::interprocess::managed_shared_memory *mem) : _columnStore(mem->get_segment_manager()), _mem(mem) { }
+	Columns(sharedMemClass *mem) : _columnStore(mem->get_segment_manager()), _mem(mem) { }
 
 			size_t	findIndexByName(std::string name) const;
 			Column& at(size_t index)							{ return _columnStore.at(index); }
@@ -78,9 +83,9 @@ public:
 	std::vector<std::string> getColumnNames();
 
 private:
-	void setSharedMemory(boost::interprocess::managed_shared_memory *mem);
+	void setSharedMemory(sharedMemClass *mem);
 
-	boost::interprocess::managed_shared_memory *_mem;
+	sharedMemClass *_mem;
 
 
 	void setRowCount(size_t rowCount);

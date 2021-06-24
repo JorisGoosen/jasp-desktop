@@ -44,7 +44,7 @@ void DataSet::setColumnCount(size_t newColumnCount)
 	}
 }
 
-void DataSet::setSharedMemory(boost::interprocess::managed_shared_memory *mem)
+void DataSet::setSharedMemory(sharedMemClass *mem)
 {
 	_mem = mem;
 	_columns.setSharedMemory(mem);

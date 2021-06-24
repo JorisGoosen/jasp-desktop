@@ -35,13 +35,13 @@ IPCChannel::IPCChannel(std::string name, size_t channelNumber, bool isSlave)
 	  _channelNumber(	channelNumber								),
 	  _isSlave(			isSlave										)
 {
-	_memoryControl			= new interprocess::managed_shared_memory(interprocess::open_or_create, _baseName.c_str(), 4096);
+	_memoryControl			= new sharedMemClass(interprocess::open_or_create, _baseName.c_str(), 4096);
 
-	_sizeMtoS				= _memoryControl->find_or_construct<size_t>("sizeMasterToSlave")(1024 * 1024 * 8);
-	_sizeStoM				= _memoryControl->find_or_construct<size_t>("sizeSlaveToMaster")(1024 * 1024 * 8);
+	_sizeMtoS				= _memoryControl->find_or_construct<size_t>("sizeMasterToSlave")(1024 * 1024 * 32);
+	_sizeStoM				= _memoryControl->find_or_construct<size_t>("sizeSlaveToMaster")(1024 * 1024 * 32);
 
-	_memoryMasterToSlave	= new interprocess::managed_shared_memory(interprocess::open_or_create, _nameMtS.c_str(), *_sizeMtoS);
-	_memorySlaveToMaster	= new interprocess::managed_shared_memory(interprocess::open_or_create, _nameStM.c_str(), *_sizeStoM);
+	_memoryMasterToSlave	= new sharedMemClass(interprocess::open_or_create, _nameMtS.c_str(), *_sizeMtoS);
+	_memorySlaveToMaster	= new sharedMemClass(interprocess::open_or_create, _nameStM.c_str(), *_sizeStoM);
 
 	TempFiles::addShmemFileName(_baseName);
 	TempFiles::addShmemFileName(_nameMtS);
@@ -130,10 +130,13 @@ IPCChannel::~IPCChannel()
 	_memoryControl			= nullptr;
 	_memoryMasterToSlave	= nullptr;
 	_memorySlaveToMaster	= nullptr;
-
+#ifdef _WIN32
+	//??
+#else
 	interprocess::shared_memory_object::remove(_baseName.c_str());
 	interprocess::shared_memory_object::remove(_nameMtS.c_str());
 	interprocess::shared_memory_object::remove(_nameStM.c_str());
+#endif
 }
 
 void IPCChannel::generateNames()
@@ -166,7 +169,7 @@ void IPCChannel::rebindMemoryInIfSizeChanged()
 
 		delete _memoryIn;
 		_previousSizeIn = *_sizeIn;
-		_memoryIn		= new interprocess::managed_shared_memory(interprocess::open_only, _isSlave ? _nameMtS.c_str() : _nameStM.c_str());
+		_memoryIn		= new sharedMemClass(interprocess::open_only, _isSlave ? _nameMtS.c_str() : _nameStM.c_str());
 
 		if(_isSlave)	_memoryMasterToSlave	= _memoryIn;
 		else			_memorySlaveToMaster	= _memoryIn;
@@ -177,16 +180,19 @@ void IPCChannel::rebindMemoryInIfSizeChanged()
 
 void IPCChannel::doubleMemoryOut()
 {
+#ifdef _WIN32
+	throw std::runtime_error("growin shared mem doesnt work on windows anymore");
+#else
 	Log::log() << "IPCChannel::doubleMemoryOut is called and new memsize: ";
 
 	std::string memOutName = _isSlave ? _nameStM : _nameMtS;
 
 	_memoryOut->destroy<String>(_dataOutName.c_str());
 
-	if(!interprocess::managed_shared_memory::grow(memOutName.c_str(), *_sizeOut))
+	if(!sharedMemClass::grow(memOutName.c_str(), *_sizeOut))
 		throw std::runtime_error("Growing IPCChannel failed!");
 
-	_memoryOut = new interprocess::managed_shared_memory(interprocess::open_only, memOutName.c_str());
+	_memoryOut = new sharedMemClass(interprocess::open_only, memOutName.c_str());
 
 	if(_isSlave)	_memorySlaveToMaster = _memoryOut;
 	else			_memoryMasterToSlave = _memoryOut;
@@ -195,6 +201,7 @@ void IPCChannel::doubleMemoryOut()
 	*_sizeOut	= _memoryOut->get_size();
 
 	Log::log() << *_sizeOut << "\n" << std::flush;
+#endif
 }
 
 void IPCChannel::send(string &&data, bool alreadyLockedMutex)

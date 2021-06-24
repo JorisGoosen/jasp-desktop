@@ -438,7 +438,7 @@ bool Column::resetEmptyValues(std::map<int, string> &emptyValuesMap)
 	}
 }
 
-void Column::setSharedMemory(managed_shared_memory *mem)
+void Column::setSharedMemory(sharedMemClass *mem)
 {
 	_mem = mem;
 	_labels.setSharedMemory(mem);

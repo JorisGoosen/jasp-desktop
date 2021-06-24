@@ -33,7 +33,7 @@ int Labels::_counter = 0;
 
 typedef unsigned int uint;
 
-Labels::Labels(boost::interprocess::managed_shared_memory *mem)
+Labels::Labels(sharedMemClass *mem)
 	: _labels(mem->get_segment_manager())
 {
 	 _id = ++Labels::_counter;
@@ -408,7 +408,7 @@ Labels &Labels::operator=(const Labels &labels)
 	return *this;
 }
 
-void Labels::setSharedMemory(boost::interprocess::managed_shared_memory *mem)
+void Labels::setSharedMemory(sharedMemClass *mem)
 {
 	_mem = mem;
 }

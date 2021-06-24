@@ -22,7 +22,7 @@
 
 #include "columns.h"
 
-typedef boost::interprocess::allocator<bool, boost::interprocess::managed_shared_memory::segment_manager> BoolAllocator;
+typedef boost::interprocess::allocator<bool, sharedMemClass::segment_manager> BoolAllocator;
 typedef boost::container::vector<bool, BoolAllocator> BoolVector;
 
 class DataSet
@@ -31,7 +31,7 @@ class DataSet
 
 public:
 
-	DataSet(boost::interprocess::managed_shared_memory *mem) : _columns(mem), _filterVector(mem->get_segment_manager()), _mem(mem) { }
+	DataSet(sharedMemClass *mem) : _columns(mem), _filterVector(mem->get_segment_manager()), _mem(mem) { }
 	~DataSet() {}
 
 	size_t minRowCount()	const	{ return _columns.minRowCount(); }
@@ -50,7 +50,7 @@ public:
 	void setRowCount(size_t rowCount);
 	void setColumnCount(size_t columnCount);
 
-	void setSharedMemory(boost::interprocess::managed_shared_memory *mem);
+	void setSharedMemory(sharedMemClass *mem);
 
 	std::string toString();
 	std::map<std::string, std::map<int, std::string> > resetEmptyValues(const emptyValsType& emptyValuesMap);
@@ -69,7 +69,7 @@ private:
 	int				_filteredRowCount = 0;
 	BoolVector		_filterVector;
 
-	boost::interprocess::managed_shared_memory *_mem;
+	sharedMemClass *_mem;
 };
 
 #endif // DATASET_H

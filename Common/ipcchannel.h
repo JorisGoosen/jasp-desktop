@@ -34,12 +34,12 @@
 #include <boost/interprocess/sync/named_semaphore.hpp>
 #endif
 
-#include <boost/interprocess/managed_shared_memory.hpp>
+#include "sharedmemory.h"
 #include <boost/container/string.hpp>
 
-typedef boost::interprocess::allocator<char,	boost::interprocess::managed_shared_memory::segment_manager	> CharAllocator;
+typedef boost::interprocess::allocator<char,	sharedMemClass::segment_manager	> CharAllocator;
 typedef boost::container::basic_string<char,	std::char_traits<char>, CharAllocator						> String;
-typedef boost::interprocess::allocator<String,	boost::interprocess::managed_shared_memory::segment_manager	> StringAllocator;
+typedef boost::interprocess::allocator<String,	sharedMemClass::segment_manager	> StringAllocator;
 
 class IPCChannel
 {
@@ -68,7 +68,7 @@ private:
 													_nameStM;
 	size_t											_channelNumber;
 	bool											_isSlave;
-	boost::interprocess::managed_shared_memory	*	_memoryControl			= nullptr,
+	sharedMemClass								*	_memoryControl			= nullptr,
 												*	_memoryMasterToSlave	= nullptr,
 												*	_memorySlaveToMaster	= nullptr,
 												*	_memoryIn				= nullptr,

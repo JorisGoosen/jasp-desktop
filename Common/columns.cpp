@@ -17,10 +17,6 @@
 
 #include "columns.h"
 
-
-
-#include "sharedmemory.h"
-
 using namespace std;
 using boost::interprocess::offset_ptr;
 
@@ -85,7 +81,7 @@ void Columns::removeColumn(std::string name)
 }
 
 
-void Columns::setSharedMemory(boost::interprocess::managed_shared_memory *mem)
+void Columns::setSharedMemory(sharedMemClass *mem)
 {
 	_mem = mem;
 

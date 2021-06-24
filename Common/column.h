@@ -18,6 +18,8 @@
 #ifndef COLUMN_H
 #define COLUMN_H
 
+#include "sharedmemory.h"
+
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/range.hpp>
 
@@ -40,14 +42,14 @@ class Column
 	friend class boost::iterator_core_access;
 
 	typedef unsigned long long ull;
-	typedef boost::interprocess::allocator<boost::interprocess::offset_ptr<DataBlock>, boost::interprocess::managed_shared_memory::segment_manager> BlockAllocator;
+	typedef boost::interprocess::allocator<boost::interprocess::offset_ptr<DataBlock>, sharedMemClass::segment_manager> BlockAllocator;
 	typedef boost::container::map<ull, boost::interprocess::offset_ptr<DataBlock>, BlockAllocator>::value_type BlockEntry;
-	typedef boost::interprocess::allocator<BlockEntry, boost::interprocess::managed_shared_memory::segment_manager> BlockEntryAllocator;
+	typedef boost::interprocess::allocator<BlockEntry, sharedMemClass::segment_manager> BlockEntryAllocator;
 	typedef boost::container::map<ull, boost::interprocess::offset_ptr<DataBlock>, std::less<ull>, BlockEntryAllocator> BlockMap;
 
-	typedef boost::interprocess::allocator<char, boost::interprocess::managed_shared_memory::segment_manager> CharAllocator;
+	typedef boost::interprocess::allocator<char, sharedMemClass::segment_manager> CharAllocator;
 	typedef boost::container::basic_string<char, std::char_traits<char>, CharAllocator> String;
-	typedef boost::interprocess::allocator<String, boost::interprocess::managed_shared_memory::segment_manager> StringAllocator;
+	typedef boost::interprocess::allocator<String, sharedMemClass::segment_manager> StringAllocator;
 
 public:
 	///ColumnType is set up to be used as bitflags in places such as assignedVariablesModel and such
@@ -137,7 +139,7 @@ public:
 
 	} Doubles;
 
-	Column(boost::interprocess::managed_shared_memory *mem)  : _mem(mem), _name(mem->get_segment_manager()), _columnType(columnType::nominal), _rowCount(0), _blocks(std::less<ull>(), mem->get_segment_manager()), _labels(mem)
+	Column(sharedMemClass *mem)  : _mem(mem), _name(mem->get_segment_manager()), _columnType(columnType::nominal), _rowCount(0), _blocks(std::less<ull>(), mem->get_segment_manager()), _labels(mem)
 	{
 		_id = ++count;
 	}
@@ -192,7 +194,7 @@ public:
 
 	Column &operator=(const Column &columns);
 
-	void setSharedMemory(boost::interprocess::managed_shared_memory *mem);
+	void setSharedMemory(sharedMemClass *mem);
 
 	bool						setColumnAsScale(const std::vector<double> &values);
 
@@ -228,7 +230,7 @@ private:
 	columnTypeChangeResult	_changeColumnToScale();
 
 private:
-	boost::interprocess::managed_shared_memory * _mem = nullptr;
+	sharedMemClass * _mem = nullptr;
 
 	String			_name;
 	enum columnType _columnType;
@@ -246,6 +248,5 @@ namespace boost
 	template <> struct range_const_iterator< Column::Ints >		{ typedef Column::Ints::iterator type;		};
 	template <> struct range_const_iterator< Column::Doubles >	{ typedef Column::Doubles::iterator type;	};
 }
-
 
 #endif // COLUMN_H

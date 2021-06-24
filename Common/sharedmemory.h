@@ -19,10 +19,14 @@
 #define SHAREDMEMORY_H
 
 #ifdef _WIN32
-#include <boost/interprocess/windows_shared_memory.hpp>
-#define sharedMemClass boost::interprocess::windows_shared_memory
+#include <boost/interprocess/managed_windows_shared_memory.hpp>
 #else
 #include <boost/interprocess/managed_shared_memory.hpp>
+#endif
+
+#ifdef _WIN32
+#define sharedMemClass boost::interprocess::managed_windows_shared_memory
+#else
 #define sharedMemClass boost::interprocess::managed_shared_memory
 #endif
 

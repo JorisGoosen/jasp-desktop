@@ -42,9 +42,12 @@ DataSet *SharedMemory::createDataSet()
 		_memoryName = ss.str();
 
 		TempFiles::addShmemFileName(_memoryName);
-
+#ifdef _WIN32
+		//? Do we need to do something here?
+#else
 		interprocess::shared_memory_object::remove(_memoryName.c_str());
-		_memory = new sharedMemClass(interprocess::create_only, _memoryName.c_str(), 6 * 1024 * 1024);
+#endif
+		_memory = new sharedMemClass(interprocess::create_only, _memoryName.c_str(), 1024 * 1024 * 1024);
 		Log::log() << "Created shared mem with name " << _memoryName << std::endl;
 	}
 
@@ -84,17 +87,21 @@ DataSet *SharedMemory::retrieveDataSet(unsigned long parentPID)
 	return data;
 }
 
-DataSet *SharedMemory::enlargeDataSet(DataSet *)
+DataSet *SharedMemory::enlargeDataSet(DataSet * old)
 {
 	size_t extraSize = _memory->get_size();
 
 	Log::log() << "SharedMemory::enlargeDataSet(" << _memoryName << ") to " << extraSize << std::endl;
 
-	delete _memory;
+	
 
+#ifdef _WIN32
+	throw std::runtime_error("CANNOT GROW SHARED MEMORY ON WINDOWS!");
+#else
+	delete _memory;
 	sharedMemClass::grow(_memoryName.c_str(), extraSize);
 	_memory = new sharedMemClass(interprocess::open_only, _memoryName.c_str());
-
+#endif
 	DataSet *dataSet = retrieveDataSet();
 	dataSet->setSharedMemory(_memory);
 

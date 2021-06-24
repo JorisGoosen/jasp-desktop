@@ -24,8 +24,7 @@
 #include <QDir>
 
 
-#include <boost/interprocess/shared_memory_object.hpp>
-#include <boost/interprocess/mapped_region.hpp>
+#include "sharedmemory.h"
 
 #include "jsonredirect.h"
 #include "processinfo.h"

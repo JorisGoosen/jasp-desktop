@@ -26,10 +26,9 @@
 #include <boost/container/vector.hpp>
 #include <boost/container/map.hpp>
 
-#include <boost/interprocess/managed_shared_memory.hpp>
-#include <boost/interprocess/segment_manager.hpp>
+#include "sharedmemory.h"
 
-typedef boost::interprocess::allocator<Label, boost::interprocess::managed_shared_memory::segment_manager> LabelAllocator;
+typedef boost::interprocess::allocator<Label, sharedMemClass::segment_manager> LabelAllocator;
 typedef boost::container::vector<Label, LabelAllocator> LabelVector;
 
 #include <boost/iterator/iterator_facade.hpp>
@@ -46,7 +45,7 @@ struct labelNotFound : public std::runtime_error
 class Labels
 {
 public:
-			Labels(boost::interprocess::managed_shared_memory *mem);
+			Labels(sharedMemClass *mem);
 	virtual ~Labels();
 
 	void	clear();
@@ -66,7 +65,7 @@ public:
 	Labels	& operator=(const Labels& labels);
 	Label	& operator[](size_t index);
 
-	void setSharedMemory(boost::interprocess::managed_shared_memory *mem);
+	void setSharedMemory(sharedMemClass *mem);
 	typedef LabelVector::const_iterator const_iterator;
 
 	const_iterator begin() const;
@@ -96,7 +95,7 @@ private:
 	std::string					_getOrgValueFromLabel(const Label &label) const;
 	std::map<std::string, int>	_resetLabelValues(int &maxValue);
 
-	boost::interprocess::managed_shared_memory * _mem = nullptr;
+	sharedMemClass * _mem = nullptr;
 
 	LabelVector		_labels;
 	int				_id;
