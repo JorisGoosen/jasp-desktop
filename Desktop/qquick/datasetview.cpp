@@ -1192,6 +1192,44 @@ QModelIndex DataSetView::selectionTopLeft() const
 	return _model->index(r, c);
 }
 
+
+void DataSetView::columnSelect(){
+haha ga hier maar verder
+}
+
+void DataSetView::columnInsertBefore()
+{
+
+}
+
+void DataSetView::columnInsertAfter()
+{
+
+}
+
+void DataSetView::columnDelete()
+{
+
+}
+
+void DataSetView::rowSelect()
+{
+
+}
+
+void DataSetView::rowInsertBefore()
+{
+
+}
+
+void DataSetView::rowInsertAfter()
+{
+
+}
+
+void DataSetView::rowDelete(){}
+
+
 void DataSetView::setEditDelegate(QQmlComponent *editDelegate)
 {
 	if (_editDelegate == editDelegate)

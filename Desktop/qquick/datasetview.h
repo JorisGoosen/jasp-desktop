@@ -174,10 +174,22 @@ public slots:
 	void		setEditing(bool shiftSelectActive);
 	bool		relaxForSelectScroll();
 	QModelIndex selectionTopLeft() const;
+
 	void		cut(	bool includeHeader = false) { _copy(includeHeader, true);  }
 	void		copy(	bool includeHeader = false) { _copy(includeHeader, false); }
 	void		paste(	bool includeHeader = false);
+
+	void		columnSelect();
+	void		columnInsertBefore();
+	void		columnInsertAfter();
+	void		columnDelete();
+	void		rowSelect();
+	void		rowInsertBefore();
+	void		rowInsertAfter();
+	void		rowDelete();
+
 	void		selectAll();
+
 	void		edit(QModelIndex here);
 	void		destroyEditItem();
 	void		editFinished(QModelIndex here, QVariant  editedValue);
