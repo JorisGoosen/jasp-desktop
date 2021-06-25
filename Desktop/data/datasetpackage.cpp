@@ -1591,7 +1591,7 @@ void DataSetPackage::pasteSpreadsheet(size_t row, size_t col, const std::vector<
 	{
 		int							dataCol = c +  col;
 		std::vector<std::string>	colVals = getColumnDataStrs(dataCol);
-		
+
 		for(int r=0; r<rowMax; r++)
 		{
 			std::string cellVal = fq(cells[c][r]);
@@ -1603,7 +1603,7 @@ void DataSetPackage::pasteSpreadsheet(size_t row, size_t col, const std::vector<
 		
 		initColumnWithStrings(dataCol, newName, colVals);
 
-		if(colName != "")
+		if(newName != "")
 			changed.push_back(newName);
 
 	}
@@ -1624,9 +1624,95 @@ void DataSetPackage::pasteSpreadsheet(size_t row, size_t col, const std::vector<
 	std::vector<std::string>				missingColumns;
 
 
-   endSynchingData(changed, missingColumns, changeNameColumns, colCountChanged, false);
+   endSynchingData(changed, missingColumns, changeNameColumns, rowCountChanged, colCountChanged, false);
 
 	if(isLoaded()) setModified(true);
+}
+
+void DataSetPackage::insertColumn(size_t column)
+{
+	setSynchingExternally(false); //Don't synch with external file after editing
+	beginSynchingData(false);
+
+	_dataSet->columns().insertColumn(column);
+	setColumnName(column, freeNewColumnName(column));
+
+	stringvec changed({getColumnName(column)});
+	endSynchingDataChangedColumns(changed, true, false);
+}
+
+void DataSetPackage::deleteColumn(size_t column)
+{
+	setSynchingExternally(false); //Don't synch with external file after editing
+	beginSynchingData(false);
+
+	std::vector<std::string>				changed;
+	std::map<std::string, std::string>		changeNameColumns;
+	std::vector<std::string>				missingColumns({getColumnName(column)});
+
+	_dataSet->columns().removeColumn(column);
+
+	endSynchingData(changed, missingColumns, changeNameColumns, false, true, false);
+}
+
+void DataSetPackage::insertRow(size_t row)
+{
+	setSynchingExternally(false); //Don't synch with external file after editing
+	beginSynchingData(false);
+	stringvec changed;
+
+	setDataSetSize(columnCount(), rowCount()+1);
+
+	for(int c=0; c<columnCount(); c++)
+	{
+		const std::string name = getColumnName(c);
+		changed.push_back(name);
+
+		std::vector<std::string>	colVals = getColumnDataStrs(c);
+
+		colVals.insert(colVals.begin() + row, "");
+
+		if(int(colVals.size()) > rowCount())
+		{
+			Log::log() << "ASSUMPTION CORRECT! I guess?" << std::endl;
+			colVals.resize(rowCount());
+		}
+		initColumnWithStrings(c, name, colVals);
+	}
+
+	std::map<std::string, std::string>		changeNameColumns;
+	std::vector<std::string>				missingColumns;
+
+	endSynchingData(changed, missingColumns, changeNameColumns, true, false, false);
+}
+
+
+
+void DataSetPackage::deleteRow(size_t row)
+{
+	setSynchingExternally(false); //Don't synch with external file after editing
+	beginSynchingData(false);
+	stringvec changed;
+
+	for(int c=0; c<columnCount(); c++)
+	{
+		const std::string name = getColumnName(c);
+		changed.push_back(name);
+
+		std::vector<std::string>	colVals = getColumnDataStrs(c);
+
+		colVals.erase(colVals.begin() + row);
+		colVals.push_back("");
+
+		initColumnWithStrings(c, name, colVals);
+	}
+
+	setDataSetSize(columnCount(), rowCount()-1);
+
+	std::map<std::string, std::string>		changeNameColumns;
+	std::vector<std::string>				missingColumns;
+
+	endSynchingData(changed, missingColumns, changeNameColumns, true, false, false);
 }
 
 bool DataSetPackage::createColumn(std::string name, columnType columnType)

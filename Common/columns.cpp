@@ -90,6 +90,11 @@ void Columns::removeColumn(std::string name)
 		}
 }
 
+void Columns::insertColumn(size_t index)
+{
+	_columnStore.insert(_columnStore.begin() + index, Column(_mem));
+}
+
 
 void Columns::setSharedMemory(boost::interprocess::managed_shared_memory *mem)
 {

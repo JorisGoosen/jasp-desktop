@@ -180,6 +180,10 @@ public:
 				std::map<int, std::string>	initColumnAsNominalText(		QVariant colID,			std::string newName, const std::vector<std::string>	& values,	const std::map<std::string, std::string> & labels = std::map<std::string, std::string>());
 				
 				void						pasteSpreadsheet(size_t row, size_t column, const std::vector<std::vector<QString>> & cells, QStringList newColNames = QStringList());
+				void						insertColumn(	size_t column	);
+				void						deleteColumn(	size_t column	);
+				void						insertRow(		size_t row		);
+				void						deleteRow(		size_t row		);
 
 				void						columnSetDefaultValues(std::string columnName, columnType colType = columnType::unknown);
 				bool						createColumn(std::string name, columnType colType);
