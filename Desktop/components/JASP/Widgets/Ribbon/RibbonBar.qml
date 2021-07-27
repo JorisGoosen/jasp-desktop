@@ -65,8 +65,14 @@ FocusScope
 
 	Keys.onPressed:
 	{
-		if      (event.key === Qt.Key_Left)
+		event.accepted = true;		
+		switch(event.key)
 		{
+		default:
+			event.accepted = false;
+			break;
+			
+		case  Qt.Key_Left:
 			if (modulesPlusButton.focus)
 			{
 				modulesPlusButton.focus        = false;
@@ -80,9 +86,9 @@ FocusScope
 				isFileMenuPressed        = false;
 				showModulesMenuPressed();
 			}
-		}
-		else if (event.key === Qt.Key_Right)
-		{
+			break;
+
+		case Qt.Key_Right:
 			if (modulesPlusButton.focus)
 			{
 				modulesPlusButton.focus       = false;
@@ -96,9 +102,11 @@ FocusScope
 				ribbonMenu.focus         = true;
 				ribbonMenu.setCurrentIndex('first')
 			}
-		}
-		else if (event.key === Qt.Key_Return || event.key === Qt.Key_Space || event.key === Qt.Key_Down)
-		{
+			break;
+			
+		case Qt.Key_Return:
+		case Qt.Key_Space:
+		case Qt.Key_Down:
 			if (modulesPlusButton.focus)
 				modulesMenu.opened = true;
 			else if (fileMenuOpenButton.focus)
@@ -106,9 +114,10 @@ FocusScope
 				fileMenuModel.visible = true;
 				isFileMenuPressed     = false;
 			}
-		}
-		else if (event.key === Qt.Key_Escape)
-		{
+			break;
+			
+		case Qt.Key_Escape:
+		
 			if      (modulesPlusButton.focus)
 			{
 				modulesMenu.opened            = false;
@@ -123,8 +132,11 @@ FocusScope
 			}
 			else
 				ribbonMenu.focusOut();
+			
 			ribbonBar.focus = false;
-		}
+			break;
+		}	
+		
 	}
 
 	function showModulesMenuPressed()

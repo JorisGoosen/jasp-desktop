@@ -55,25 +55,41 @@ Rectangle
 	
 	Keys.onPressed:
 	{
-		if (event.key === Qt.Key_Escape)
+		event.accepted = true;
+		
+		switch(event.key)
 		{
+		default:
+			event.accepted = false;
+			break;
+			
+		case Qt.Key_Escape:
 			customMenu.hide();
-		}
-		else if (event.key === Qt.Key_Return || event.key === Qt.Key_Space)
-		{
+			break;
+		
+		
+		case Qt.Key_Return:
+		case Qt.Key_Space:
 			if (ribbonButton.enabled)
 			{
-				if (ribbonButton.menu.rowCount() > 1) {
+				if(ribbonButton.menu.rowCount() > 1)
 					ribbonButton.showMyMenu();
-					event.accepted = true;
-				}
 			}
-		}
-		else if (event.key === Qt.Key_Down)
-		{
-			if (ribbonButton.enabled && ribbonButton.menu.rowCount() > 1)
-				ribbonButton.showMyMenu();
-			event.accepted = true;
+			else
+				event.accepted = false;
+			
+			break;
+			
+		case Qt.Key_Down:
+			if (ribbonButton.enabled)
+			{
+				if(ribbonButton.menu.rowCount() > 1)
+					ribbonButton.showMyMenu();
+			}
+			else
+				event.accepted = false;
+			
+			break;
 		}
 	}
 

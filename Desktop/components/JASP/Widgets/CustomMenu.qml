@@ -47,29 +47,30 @@ FocusScope
 
 	Keys.onPressed:
 	{
-		if (event.key === Qt.Key_Up)
+		event.accepted = true;
+		
+		switch(event.key)
 		{
-			if (menu.props["navigateFunc"] === undefined || typeof(menu.props["navigateFunc"]) === "undefined")
-				menu.currentIndex = mod(menu.currentIndex - 1, repeater.count)
-			else
-				menu.currentIndex = menu.props["navigateFunc"](currentIndex, -1);
-		}
-		else if (event.key === Qt.Key_Down)
-		{
-			if (menu.props["navigateFunc"] === undefined || typeof(menu.props["navigateFunc"]) === "undefined")
-				menu.currentIndex = mod(menu.currentIndex + 1, repeater.count)
-			else
-				menu.currentIndex = menu.props["navigateFunc"](currentIndex, 1);
-		}
-		else if (event.key === Qt.Key_Return || event.key === Qt.Key_Space)
-		{
+		case Qt.Key_Up:
+			if (menu.props["navigateFunc"] === undefined || typeof(menu.props["navigateFunc"]) === "undefined")		menu.currentIndex = mod(menu.currentIndex - 1, repeater.count)
+			else																									menu.currentIndex = menu.props["navigateFunc"](currentIndex, -1);
+			break;
+		
+		case Qt.Key_Down:
+			if (menu.props["navigateFunc"] === undefined || typeof(menu.props["navigateFunc"]) === "undefined")		menu.currentIndex = mod(menu.currentIndex + 1, repeater.count)
+			else																									menu.currentIndex = menu.props["navigateFunc"](currentIndex, 1);
+			break;
+			
+		case Qt.Key_Return:
+		case Qt.Key_Space:
 			if (currentIndex > -1)
 			{
 				menu.props['functionCall'](currentIndex)
 				menu.currentIndex = -1;
 			}
-		}
-		else if (event.key === Qt.Key_Escape)
+			break;
+
+		case Qt.Key_Escape:
 		{
 			menu.currentIndex = -1;
 			if (menu.sourceItem !== null)
@@ -79,6 +80,11 @@ FocusScope
 					menu.sourceItem.myMenuOpen = true;
 			}
 			menu.hide();
+			break;
+		}
+		
+		default:
+			event.accepted = false;
 		}
 	}
 

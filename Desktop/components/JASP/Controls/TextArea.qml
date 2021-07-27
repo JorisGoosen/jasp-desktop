@@ -73,23 +73,28 @@ TextAreaBase
 				wrapMode:			TextArea.Wrap
 
 				Keys.onPressed:
-				{
-					if (event.modifiers & Qt.ControlModifier)
+					switch(event.key)
 					{
-						if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+					case Qt.Key_Return:
+					case Qt.Key_Enter:
+						if (event.modifiers & Qt.ControlModifier)
+						{
 							userEnteredInput();
-					}
-					else if ( event.key === Qt.Key_Tab)
-					{
+							event.accepted = true;
+						}
+						break;
+					
+					case Qt.Key_Tab:
 						control.insert(control.cursorPosition, "  ")
 						event.accepted = true;
-					}
-					else
-					{
+						break;
+					
+					default:
 						infoText.text = textArea.applyScriptInfo;
 						textArea.hasScriptError = false;
+						event.accepted = false;
+						break;
 					}
-				}
 			}
 
 			ScrollBar.vertical: ScrollBar { }

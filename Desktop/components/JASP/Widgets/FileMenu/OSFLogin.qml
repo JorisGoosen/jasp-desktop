@@ -206,8 +206,6 @@ FocusScope
 				onTextChanged:	fileMenuModel.osf.password = text;
 				onAccepted:		fileMenuModel.osf.loginRequested(fileMenuModel.osf.username, fileMenuModel.osf.password)
 
-				KeyNavigation.up		: usernameText
-				KeyNavigation.backtab	: usernameText
 				KeyNavigation.down		: loginButton
 				KeyNavigation.tab		: loginButton
 
@@ -236,8 +234,6 @@ FocusScope
 
 			onClicked:			fileMenuModel.osf.loginRequested(fileMenuModel.osf.username, fileMenuModel.osf.password)
 
-			KeyNavigation.up		: passwordText
-			KeyNavigation.backtab	: passwordText
 			KeyNavigation.down		: idRememberMe
 			KeyNavigation.tab		: idRememberMe
 		}
@@ -258,9 +254,6 @@ FocusScope
 			anchors.topMargin   : 10 * preferencesModel.uiScale
 
 			onCheckedChanged:	fileMenuModel.osf.rememberme = checked
-
-			KeyNavigation.up		: loginButton
-			KeyNavigation.backtab	: loginButton
 		}
 	}
 

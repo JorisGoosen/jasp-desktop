@@ -54,12 +54,12 @@ QVariant AnalysisForm::requestInfo(const Term &term, VariableInfo::InfoType info
 		QModelIndex index = colModel->index(i, 0);
 		switch(info)
 		{
-		case VariableInfo::VariableType:			return colModel->data(index, ColumnsModel::ColumnTypeRole);
-		case VariableInfo::VariableTypeName:		return columnTypeToQString(columnType((colModel->data(index, ColumnsModel::ColumnTypeRole)).toInt()));
-		case VariableInfo::VariableTypeIcon:		return colModel->data(index, ColumnsModel::IconSourceRole);
-		case VariableInfo::VariableTypeDisabledIcon: return colModel->data(index, ColumnsModel::DisabledIconSourceRole);
-		case VariableInfo::VariableTypeInactiveIcon: return colModel->data(index, ColumnsModel::InactiveIconSourceRole);
-		case VariableInfo::Labels:					return	colModel->data(index, ColumnsModel::LabelsRole);
+		case VariableInfo::VariableTypeName:			return columnTypeToQString(columnType((	colModel->data(index, ColumnsModel::ColumnTypeRole			)).toInt()));
+		case VariableInfo::VariableType:				return									colModel->data(index, ColumnsModel::ColumnTypeRole			);
+		case VariableInfo::VariableTypeIcon:			return									colModel->data(index, ColumnsModel::IconSourceRole			);
+		case VariableInfo::VariableTypeDisabledIcon:	return									colModel->data(index, ColumnsModel::DisabledIconSourceRole	);
+		case VariableInfo::VariableTypeInactiveIcon:	return									colModel->data(index, ColumnsModel::InactiveIconSourceRole	);
+		case VariableInfo::Labels:						return									colModel->data(index, ColumnsModel::LabelsRole				);
 		}
 	}
 	catch(columnNotFound & e) {} //just return an empty QVariant right?

@@ -30,8 +30,9 @@ FocusScope
 
 	Keys.onPressed:
 	{
-		if (event.key === Qt.Key_Down)
+		switch(event.key)
 		{
+		case Qt.Key_Down:
 			if (preferencesModel.developerMode)
 			{
 				let nextIndex  = currentIndex + 1;
@@ -41,9 +42,12 @@ FocusScope
 			}
 			else
 				currentIndex   = mod(currentIndex + 1, repeater.count);
-		}
-		else if (event.key === Qt.Key_Up)
-		{
+			
+			event.accepted = true;
+			break;
+
+		
+		case Qt.Key_Up:
 			if (preferencesModel.developerMode)
 			{
 				let nextIndex   = currentIndex - 1;
@@ -53,6 +57,13 @@ FocusScope
 			}
 			else
 				currentIndex = mod(currentIndex - 1, repeater.count);
+			
+			event.accepted = true;
+			break;
+		
+		default: 
+			event.accepted = false;
+			break;
 		}
 	}
 

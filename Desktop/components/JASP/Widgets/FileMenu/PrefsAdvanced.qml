@@ -133,8 +133,8 @@ ScrollView
 				checked:			preferencesModel.githubPatUseDefault
 				onCheckedChanged:	preferencesModel.githubPatUseDefault = checked
 				toolTip:			qsTr("Either use the bundled GITHUB_PAT or, if available, use the one set in environment variables.")
-				KeyNavigation.tab:	githubPatCustomToken
-				KeyNavigation.down:	githubPatCustomToken
+				KeyNavigation.tab:	githubPatCustomToken.textInput
+				KeyNavigation.down:	githubPatCustomToken.textInput
 			}
 			
 
