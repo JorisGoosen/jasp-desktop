@@ -809,7 +809,7 @@ std::map<int, std::string> Column::setColumnAsNominalText(const std::vector<std:
 
 	sortedCases.erase(std::remove_if(sortedCases.begin(),	sortedCases.end(), [](std::string x){	return Utils::isEmptyValue(x);}), sortedCases.end());
 
-	std::map<std::string, int> map = _labels.syncStrings(sortedCases, labels, changedSomething);
+	std::map<std::string, int> map = _labels.syncStrings(sortedCases, labels, changedSomething, true);
 
 	auto	intInputItr = AsInts.begin();
 	int		nb_values	= 0;

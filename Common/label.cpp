@@ -19,13 +19,18 @@
 
 #include <sstream>
 #include <cstring>
+#include <codecvt>
+#include <algorithm>
 
 void Label::_setLabel(const std::string &label) {
-    _stringLength = label.length();
-    if (sizeof(_stringValue) < label.length())
-        _stringLength = sizeof(_stringValue);
-
-    std::memcpy(_stringValue, label.c_str(), _stringLength);
+	
+	static std::wstring_convert<std::codecvt_utf8_utf16<char32_t>, char32_t> cvt;
+	
+	std::u32string tmp(cvt.from_bytes(label));
+	
+    _stringLength = std::min(int(tmp.length()), MAX_LABEL_LENGTH);
+    
+    std::memcpy(_stringValue, tmp.c_str(), _stringLength);
 }
 
 Label::Label(const std::string &label, int value, bool filterAllows, bool isText)
@@ -50,7 +55,8 @@ Label::Label()
 
 std::string Label::text() const
 {
-	return std::string(_stringValue, _stringLength);
+	static std::wstring_convert<std::codecvt_utf8_utf16<char32_t>, char32_t> cvt;
+	return cvt.to_bytes(std::u32string(_stringValue, _stringLength));
 }
 
 bool Label::hasIntValue() const
@@ -71,9 +77,8 @@ void Label::setValue(int value, bool labelIsInt)
 {
 	if (labelIsInt)
 	{
-		std::stringstream ss;
-		ss << value;
-		std::string asString = ss.str();
+		static std::wstring_convert<std::codecvt_utf8_utf16<char32_t>, char32_t> cvt;
+		std::u32string asString = cvt.from_bytes(std::to_string(value));
 
 		std::memcpy(_stringValue, asString.c_str(), asString.length());
 		_stringLength = asString.length();

@@ -49,15 +49,13 @@ public:
 	void setFilterAllows(bool allowFilter) { _filterAllow = allowFilter; }
 
 private:
+	void		_setLabel(const std::string &label);
 
-	bool _hasIntValue;
-	int _intValue;
-	char _stringValue[MAX_LABEL_LENGTH];
-	int  _stringLength;
-
-    void _setLabel(const std::string &label);
-
-	bool _filterAllow = true;
+	bool		_hasIntValue,
+				_filterAllow = true;
+	int			_intValue,
+				_stringLength;
+	char32_t	_stringValue[MAX_LABEL_LENGTH];
 };
 
 #endif // LABEL_H

@@ -58,7 +58,7 @@ public:
 
 	bool						syncInts(const std::set<int>				& values);
 	bool						syncInts(const std::map<int, std::string>	& values);
-	std::map<std::string, int>	syncStrings(const std::vector<std::string>	& new_values, const std::map<std::string, std::string> &new_labels, bool *changedSomething);
+	std::map<std::string, int>	syncStrings(const std::vector<std::string>	& new_values, const std::map<std::string, std::string> &new_labels, bool *changedSomething, bool isInit = false);
 
 	void	set(std::vector<Label> &labels);
 	size_t	size() const;

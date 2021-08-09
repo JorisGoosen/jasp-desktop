@@ -1188,6 +1188,8 @@ void DataSetPackage::columnLabelsFromJsonForJASPFile(Json::Value xData, Json::Va
 				mapValues[key]	= labelValue;
 			}
 
+			Log::log() << "Getting label '" << val << "' and it works???" << std::endl;
+			
 			labels.add(labelValue, val, fil, columnType == columnType::nominalText);
 
 			index++;
