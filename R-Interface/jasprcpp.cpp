@@ -20,9 +20,10 @@
 #include <fstream>
 #include "boost/nowide/system.hpp"
 
+
 static const	std::string NullString			= "null";
 static			std::string lastErrorMessage	= "";
-static			cetype_t	Encoding			= CE_NATIVE;// CE_UTF8;
+static			cetype_t	Encoding			= CE_UTF8;
 
 //Ok so CSTRING_TO_R could actually be replaced by std::string and everything would keep functioning regardless as far as I can see. But, in case later we want to change the encoding more drastically this gives an issue startpoint. In that case one should also do something about jaspRCPP_parseEval & jaspRCPP_parseEvalQNT (which will lead to horrible looking code ;) )
 #define CSTRING_TO_R_CHARSXP(constchar) Rf_mkCharCE(constchar, Encoding)
@@ -1013,23 +1014,124 @@ Rcpp::DataFrame jaspRCPP_readDataSetHeaderSEXP(SEXP columns, SEXP columnsAsNumer
 
 }
 
+std::string jaspRCPP_convertUTF8ToEscapedUnicode(const	std::string & in)
+//This code has been heavily inspired by a nice text I read at https://en.wikipedia.org/wiki/UTF-8
+//probably not the most efficient way of doing this but this can all be thrown away once https://svn.r-project.org/R-dev-web/trunk/WindowsBuilds/winutf8/winutf8.html has been fully implemented and all is well in the world
+{
+	std::stringstream escaped;
+	
+	for(size_t i=0; i<in.size(); i++)
+	{
+		unsigned char first = static_cast<unsigned char>(in[i]);
+		if(first < 128)
+			escaped << in[i];
+		else //it is some kind of utf8 encoded character
+		{
+			bool	twoBytes	= (first & 0b11100000) == 0b11000000,
+					threeBytes	= (first & 0b11110000) == 0b11100000,
+					fourBytes	= (first & 0b11111000) == 0b11110000;
+			
+			unsigned char	second	=				in[i+1],
+							third	= !twoBytes	?	in[i+2] : '\0',
+							fourth	= fourBytes ?	in[i+3]	: '\0';
+			
+			std::stringstream hexOut;
+			hexOut << (fourBytes ? "<U+1" : "<U+") << std::setfill('0') << std::setw(4) << std::right << std::hex;
+			
+			//if(!(twoBytes || threeBytes || fourBytes)) //? Then what? Crash & burn? //I will just assume for now that this, uhm, never occurs
+		
+			if(twoBytes)
+			{
+				first		&=	0b00011111; //Lose the utf8 enc stuff
+				second		&=	0b00111111; //Should we maybe check if those two bits I dropped are actually 0b10 ? 
+				first		<<= 3;
+				second		<<= 2;
+				
+				uint16_t	first16		= first,
+							second16	= second,
+							codepoint	= (first16 >> 5) ^ (second16 >> 10);
+				
+				hexOut  << codepoint ;
+				i++;				
+			}
+			else if(threeBytes)
+			{
+				first		&=	0b00001111;
+				second		&=	0b00111111;
+				third		&=	0b00111111;
+				first		<<= 4;
+				second		<<= 2;
+				third		<<= 2;
+				
+				uint16_t	first16		= first,
+							second16	= second,
+							third16		= third,
+							codepoint	= first16 ^ (second16 >> 4) ^ (third16 >> 10);
+				
+				hexOut  << codepoint ;
+				i += 2;
+			}
+			else if(fourBytes)
+			{
+				first		&=	0b00000111;
+				second		&=	0b00111111;
+				third		&=	0b00111111;
+				fourth		&=	0b00111111;
+				first		<<= 5;
+				second		<<= 2;
+				third		<<= 2;
+				fourth		<<= 2;
+				
+				uint16_t	//first16		= first,
+							second16	= second,
+							third16		= third,
+							fourth16	= fourth,
+							codepoint	= (second16 << 2) ^ (third16 >> 4) ^ (fourth16 >> 10); //Here we lose some info from first16 and second16 (but Im going to assume that it comes down to a 1) and also that this won't matter for "normal" use during the timewindow that we wait for R to start supporting utf8 on windows...
+				
+				//so we assume there should be a 1 and then the other 4 as we actually extracted from the character
+				hexOut << codepoint ;
+				i += 3;
+			}
+			
+			escaped << hexOut.str() << ">";
+		}
+	}
+		
+	return escaped.str();
+}
+
 Rcpp::IntegerVector jaspRCPP_makeFactor(Rcpp::IntegerVector v, char** levels, int nbLevels, bool ordinal)
 {
-/*#ifdef JASP_DEBUG
-	std::cout << "jaspRCPP_makeFactor:\n\tlevels:\n\t\tnum: " << nbLevels << "\n\t\tstrs:\n";
+//#ifdef JASP_DEBUG
+	jaspPrint("jaspRCPP_makeFactor:\n\tlevels:\n\t\tnum: " + std::to_string(nbLevels) + "\n\t\tstrs:");
 	for(int i=0; i<nbLevels; i++)
-		std::cout << "\t\t\t'" << levels[i] << "'\n";
-	std::cout << "intVec: ";
+		jaspPrint(std::string("\t\t\t'") + levels[i] + "'");
 
+	std::stringstream ss;
+	ss<<"intVec: ";
 	for(int i=0; i<v.size(); i++)
-		std::cout << v[i] << (i < v.size() - 1 ? ", " : "" );
-	std::cout << std::endl;
-#endif*/
+		ss << v[i] << (i < v.size() - 1 ? ", " : "" );
+	ss << std::endl;
+	jaspPrint(ss.str());
+//#endif
 
-	Rcpp::CharacterVector labels(nbLevels);
+	Rcpp::CharacterVector labels(nbLevels);	
+	
 	for (int i = 0; i < nbLevels; i++)
-		labels[i] = CSTRING_TO_R_CHARSXP(levels[i]);
-
+		labels[i] = CSTRING_TO_R_CHARSXP_UTF8(levels[i]); //jaspRCPP_convertUTF8ToEscapedUnicode(levels[i]).c_str());
+	
+	static Rcpp::Function print("print");
+	
+	/*print("Encoding of labels during makefactors is:");
+	static Rcpp::Function Encoding("Encoding");
+	print(Encoding(Rcpp::_["x"]=labels));*/
+	
+	//static Rcpp::Function enc2native("enc2native");
+	//labels = enc2native(Rcpp::_["x"]=labels);
+	
+	print("labels:");
+	print(labels);
+	
 	v.attr("levels") = labels;
 
 	std::vector<std::string> rClass;
@@ -1038,7 +1140,11 @@ Rcpp::IntegerVector jaspRCPP_makeFactor(Rcpp::IntegerVector v, char** levels, in
 	rClass.push_back("factor");
 
 	v.attr("class") = rClass;
+	
 
+	print(Rcpp::_["x"] = "makefactors gives:");
+	print(Rcpp::_["x"] = v);
+	
 	if(v.size() == 0)
 		return v;
 

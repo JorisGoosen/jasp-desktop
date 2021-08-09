@@ -419,15 +419,15 @@ std::string Utils::_convertEscapedUnicodeToUTF8(std::string hex)
 	static std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> conv;
 #endif
 	// Read the 4 hexadecimals as bytes, and convert these bytes into UTF8.
-	if (iss >> std::hex >> bytes) hex = conv.to_bytes(char32_t(bytes));
-
+	if (iss >> std::hex >> bytes) hex = conv.to_bytes(char32_t(bytes)); 
+	
 	return hex;
 }
 
 // Replace all <U+FFFF> in str by their UT8 characters.
 void Utils::convertEscapedUnicodeToUTF8(std::string& inputStr)
 {
-	static const std::regex unicodeExpression ("<U\\+([0-9a-fA-F]{4})>");
+	static const std::regex unicodeExpression ("<U\\+([0-9a-fA-F]{4})>"); // This will fail (rarely) because: U+10348 exists, see the wikipedia page linked at the inverse function
 
 	std::smatch match;
 	auto begin	= inputStr.cbegin();
@@ -441,6 +441,7 @@ void Utils::convertEscapedUnicodeToUTF8(std::string& inputStr)
 		begin = inputStr.begin() + pos;
 	}
 }
+
 
 #ifdef _WIN32
 std::wstring Utils::getShortPathWin(const std::wstring & longPath) 
@@ -464,7 +465,10 @@ std::wstring Utils::getShortPathWin(const std::wstring & longPath)
 
     length = GetShortPathName(longPath.c_str(), buffer, length);
     if (length == 0)
+	{	
+		delete [] buffer;
 		return longPath;
+	}
 
 	std::wstring shortPath(buffer, length);
     

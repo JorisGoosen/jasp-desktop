@@ -510,6 +510,18 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSet(RBridgeColumnType* colHead
 				resultCol.labels = rbridge_getLabels(labels, resultCol.nbLabels);
 			}
 		}
+		
+		
+		
+		if(resultCol.hasLabels)
+		{
+			Log::log() << "labels are the following in rbridge for col " << resultCol.name << " :\n";
+			for(size_t i=0; i<resultCol.nbLabels; i++)
+				Log::log() << "\t" <<  resultCol.labels[i] << ",\n";
+			Log::log() << std::endl;
+		}
+		else
+			Log::log() << "rbridge didnt do labels..."<< std::endl;
 	}
 
 	return datasetStatic;
@@ -623,7 +635,6 @@ extern "C" RBridgeColumnDescription* STDCALL rbridge_readDataSetDescription(RBri
 				resultCol.labels = rbridge_getLabels(labels, resultCol.nbLabels);
 
 			}
-
 		}
 	}
 
@@ -748,7 +759,10 @@ char** rbridge_getLabels(const Labels &levels, size_t &nbLevels)
 		results = (char**)calloc(levels.size(), sizeof(char*));
 		int i = 0;
 		for (const Label &level: levels)
+		{
+			Log::log() << "Loading a level for a label got " << level.text() << std::endl;
 			results[i++] = strdup(level.text().c_str());
+		}
 		nbLevels = i;
 	}
 
