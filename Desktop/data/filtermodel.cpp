@@ -1,6 +1,7 @@
 #include "filtermodel.h"
 #include "utilities/jsonutilities.h"
 #include "columnencoder.h"
+#include "log.h"
 
 FilterModel::FilterModel(labelFilterGenerator * labelFilterGenerator)
 	: QObject(DataSetPackage::pkg()), _labelFilterGenerator(labelFilterGenerator)
@@ -140,6 +141,8 @@ void FilterModel::sendGeneratedAndRFilter()
 {
 	setFilterErrorMsg("");
 	_lastSentRequestId = emit sendFilter(_generatedFilter, _rFilter);
+
+	Log::log() << "compute column crash debug #10" << std::endl;
 }
 
 void FilterModel::updateStatusBar()
@@ -167,8 +170,10 @@ void FilterModel::rescanRFilterForColumns()
 
 void FilterModel::computeColumnSucceeded(QString columnName, QString, bool dataChanged)
 {
+	Log::log() << "compute column crash debug #20" << std::endl;
 	if(dataChanged && (_columnsUsedInConstructedFilter.count(columnName.toStdString()) > 0 || _columnsUsedInRFilter.count(columnName.toStdString()) > 0))
 		sendGeneratedAndRFilter();
+	Log::log() << "compute column crash debug #21" << std::endl;
 }
 
 void FilterModel::datasetChanged(	QStringList             changedColumns,

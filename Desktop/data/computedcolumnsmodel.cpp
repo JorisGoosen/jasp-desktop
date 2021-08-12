@@ -206,6 +206,7 @@ void ComputedColumnsModel::revertToDefaultInvalidatedColumns()
 
 void ComputedColumnsModel::computeColumnSucceeded(QString columnNameQ, QString warningQ, bool dataChanged)
 {
+	Log::log() << "compute column crash debug #00" << std::endl;
 	std::string columnName	= columnNameQ.toStdString(),
 				warning		= warningQ.toStdString();
 
@@ -214,13 +215,21 @@ void ComputedColumnsModel::computeColumnSucceeded(QString columnNameQ, QString w
 	if(computedColumns()->setError(columnName, warning) && shouldNotifyQML)
 		emit computeColumnErrorChanged();
 
+	Log::log() << "compute column crash debug #01" << std::endl;
+
 	if(dataChanged)
 			emit refreshColumn(tq(columnName));
 
+	Log::log() << "compute column crash debug #02" << std::endl;
+
 	validate(QString::fromStdString(columnName));
+
+	Log::log() << "compute column crash debug #03" << std::endl;
 
 	if(dataChanged)
 		checkForDependentColumnsToBeSent(columnName);
+
+	Log::log() << "compute column crash debug #04" << std::endl;
 }
 
 void ComputedColumnsModel::computeColumnFailed(QString columnNameQ, QString errorQ)
@@ -271,31 +280,43 @@ void ComputedColumnsModel::checkForDependentColumnsToBeSent(std::string columnNa
 			) )
 			invalidate(QString::fromStdString(col->name()));
 
+	Log::log() << "compute column crash debug #80" << std::endl;
+
 	for(ComputedColumn * col : *computedColumns())
 		if(	col->codeType() != ComputedColumn::computedType::analysis				&&
 			col->codeType() != ComputedColumn::computedType::analysisNotComputed	&&
 			col->iShouldBeSentAgain() )
 			emitSendComputeCode(QString::fromStdString(col->name()), QString::fromStdString(col->rCodeCommentStripped()), DataSetPackage::pkg()->getColumnType(columnName));
 
+	Log::log() << "compute column crash debug #81" << std::endl;
+
 	checkForDependentAnalyses(columnName);
+
+	Log::log() << "compute column crash debug #82" << std::endl;
 }
 
 void ComputedColumnsModel::checkForDependentAnalyses(std::string columnName)
 {
+	Log::log() << "compute column crash debug #50" << std::endl;
 	Analyses::analyses()->applyToAll([&](Analysis * analysis)
 		{
 			std::set<std::string> usedCols = analysis->usedVariables();
 
+			Log::log() << "compute column crash debug #51" << std::endl;
 			if(usedCols.count(columnName) > 0)
 			{
 				bool allColsValidated = true;
 
+				Log::log() << "compute column crash debug #52" << std::endl;
 				for(ComputedColumn * col : *computedColumns())
 					if(usedCols.count(col->name()) > 0 && col->isInvalidated())
 						allColsValidated = false;
 
+				Log::log() << "compute column crash debug #53" << std::endl;
 				if(allColsValidated)
 					analysis->refresh();
+
+				Log::log() << "compute column crash debug #54" << std::endl;
 			}
 		});
 }

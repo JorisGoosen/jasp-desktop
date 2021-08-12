@@ -330,14 +330,19 @@ void EngineRepresentation::processComputeColumnReply(Json::Value & json)
 
 	_engineState = engineState::idle;
 
+	Log::log() << "compute column crash debug #30" << std::endl;
 
 	std::string result		= json.get("result", "some string that is not 'TRUE' or 'FALSE'").asString();
 	std::string error		= json.get("error", "").asString();
 	std::string columnName	= json.get("columnName", "").asString();
 
+	Log::log() << json.toStyledString() << std::endl;
+
 	if(result == "TRUE")		emit computeColumnSucceeded(QString::fromStdString(columnName), QString::fromStdString(error), true);
 	else if(result == "FALSE")	emit computeColumnSucceeded(QString::fromStdString(columnName), QString::fromStdString(error), false);
 	else						emit computeColumnFailed(	QString::fromStdString(columnName), QString::fromStdString(error == "" ? "Unknown Error" : error));
+
+	Log::log() << "compute column crash debug #31" << std::endl;
 }
 
 void EngineRepresentation::runAnalysisOnProcess(Analysis *analysis)
