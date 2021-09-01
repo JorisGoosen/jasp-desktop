@@ -7,11 +7,17 @@
 # - you MUST set a GITHUB_PAT, otherwise you'll get an error. Do not commit that to this file because then GitHub will invalidate it.
 # - you can call this from cmd via Rscript R/testme.R.
 
-# TODO: look at https://github.com/andrie/miniCRAN/issues/50#issuecomment-374624319
-# it would be nice to be able to outsource this to miniCRAN which has a method for adding local pkgs to a repository
-# the only downside is that it looks like miniCRAN is not actively maintained anymore.
+# TODO:
+#
+# - look at https://github.com/andrie/miniCRAN/issues/50#issuecomment-374624319
+#   it would be nice to be able to outsource this to miniCRAN which has a method for adding local pkgs to a repository
+#   the only downside is that it looks like miniCRAN is not actively maintained anymore.
+#
+# - there is some rudimentary support for caching downloaded CRAN pkgs.
+#   this should be extended to GitHub packages as well, but it doesn't work because I delete all old files related to a particular
+#   github pkg if renv alreadyd downloaded it. So now we're downloading jaspBase 20 times.
 
-expectedDirs <- c("other_deps", "R", "renv")
+expectedDirs <- c("R", "renv")
 if (!all(expectedDirs %in% list.dirs(getwd(), recursive = FALSE, full.names = FALSE)))
   stop("Incorrect working directory! Expected these directories at the top level: ", paste(expectedDirs, collapse = ", "))
 
@@ -45,10 +51,12 @@ Sys.setenv("RENV_PATHS_ROOT"  = dirs["renv-root"])
 # this version uses the local checked-out versions -- but modules that are dependencies are still retrieved from github
 isJaspModule <- function(path) file.exists(file.path(path, "DESCRIPTION")) && file.exists(file.path(path, "inst", "Description.qml"))
 jaspModules <- Filter(isJaspModule, list.dirs(file.path(jaspDir, "Modules"), recursive = FALSE))
-
 names(jaspModules) <- basename(jaspModules)
 
-getModuleEnvironments(jaspModules["jaspDescriptives"])
+# | HERE | you can add modules to exclude
+jaspModules <- jaspModules[setdiff(names(jaspModules), c("jaspCircular"))]
+
+getModuleEnvironments(jaspModules)
 # system("beep_finished.sh")
 
 moveMissingTarBalls(dirs)

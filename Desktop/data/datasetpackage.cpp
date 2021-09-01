@@ -137,9 +137,6 @@ QModelIndex DataSetPackage::index(int row, int column, const QModelIndex &parent
 	}
 	else					pointer = static_cast<parIdxType*>(parent.internalPointer());
 
-	if (pointer == nullptr)
-		Log::log() << "pointer is a nullptr! this will probably crash now..." << std::endl;
-
 	Log::log() << "DataSetPackage::index is calling createIndex with row " << row << " , column " << column << " with pointer " << pointer << std::endl;
 	return createIndex(row, column, static_cast<void*>(pointer));
 }

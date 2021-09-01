@@ -45,18 +45,40 @@ download_override <- function(url, destfile, mode = "wb", quiet = FALSE, headers
 
     dirs <- getDirs()
 
-    if (!is.null(type) && type == "repository") {
+    if (!is.null(type)) {
+      if (type == "repository") {
 
-      # check if this pkg has been downloaded before
-      pkg <- basename(url)
-      if (pkg != "PACKAGES.rds") {
-        pkgName <- gsub("_.*", "", pkg)
-        localFile0 <- file.path(dirs["local-cran"], "src", "contrib", pkg)
-        localFile1 <- file.path(dirs["renv-root"], "source", "repository", pkgName, pkg)
-        if (file.exists(localFile0) && file.exists(localFile1)) {
-          ws <- strrep(" ", 35 - nchar(pkg)) # NetworkComparisonTest is the longest package name I encountered
-          maybecat(sprintf("Already downloaded %s%sreusing %s\n", pkg, ws, makePathRelative(localFile1, dirs["jasp-subdir"])))
-          return(localFile1)
+        # check if this pkg has been downloaded before
+        pkg <- basename(url)
+        if (pkg != "PACKAGES.rds") {
+          pkgName <- gsub("_.*", "", pkg)
+          localFile0 <- file.path(dirs["local-cran"], "src", "contrib", pkg)
+          localFile1 <- file.path(dirs["renv-root"], "source", "repository", pkgName, pkg)
+          if (file.exists(localFile1)) {
+            ws <- strrep(" ", 35 - nchar(pkg)) # NetworkComparisonTest is the longest package name I encountered
+            maybecat(sprintf("Already downloaded %s%sreusing %s\n", pkg, ws, makePathRelative(localFile1, dirs["jasp-subdir"])))
+            if (!file.exists(localFile0))
+              file.copy(from = localFile1, to = localFile0)
+            return(localFile1)
+          }
+        }
+      } else if (type == "github") {
+
+        if (grepl("/tarball/.+$", url)) {
+
+          pieces <- strsplit(url, "/", TRUE)[[1]]
+          pkgName <- pieces[6]
+          SHA     <- pieces[8]
+
+          localFile0 <- file.path(dirs["local-github"], stripUrl(url))
+          localFile1 <- file.path(dirs["renv-root"], "source", "github", pkgName, paste0(pkgName, "_", SHA, ".tar.gz"))
+          if (file.exists(localFile1)) {
+            ws <- strrep(" ", 35 - nchar(pkgName)) # NetworkComparisonTest is the longest package name I encountered
+            maybecat(sprintf("Already downloaded %s%sreusing %s\n", pkgName, ws, makePathRelative(localFile1, dirs["jasp-subdir"])))
+            if (!file.exists(localFile0))
+              file.copy(from = localFile1, to = localFile0)
+            return(localFile1)
+          }
         }
       }
     }
@@ -176,18 +198,20 @@ postProcessResults <- function() {
   resultsEnv$packages <- character(length(resultsEnv$url))
   resultsEnv$version  <- character(length(resultsEnv$url))
 
-  idx_cran <- grep("src/contrib/",    resultsEnv$url)
-  temp <- strsplit(basename(resultsEnv$url[idx_cran]), "_", fixed = TRUE)
+  idx_cran <- grep("src/contrib/", resultsEnv$url)
+  if (length(resultsEnv$url) > 0L) {
+    temp <- strsplit(basename(resultsEnv$url[idx_cran]), "_", fixed = TRUE)
 
-  resultsEnv$packages[idx_cran] <- vapply(temp, `[`, character(1L), 1L)
-  resultsEnv$version [idx_cran] <- sub(".tar.gz$", "", vapply(temp, `[`, character(1L), 2L))
-  resultsEnv$source  [idx_cran] <- "repository"
+    resultsEnv$packages[idx_cran] <- vapply(temp, `[`, character(1L), 1L)
+    resultsEnv$version [idx_cran] <- sub(".tar.gz$", "", vapply(temp, `[`, character(1L), 2L))
+    resultsEnv$source  [idx_cran] <- "repository"
 
-  idx_github <- grep("api.github.com/", resultsEnv$url)
+    idx_github <- grep("api.github.com/", resultsEnv$url)
 
-  resultsEnv$packages[idx_github] <- gsub(".*/(.+)/tarball/.*", "\\1", resultsEnv$url[idx_github])
-  resultsEnv$version [idx_github] <- basename(resultsEnv$url[idx_github]) # actually just the commit
-  resultsEnv$source  [idx_github] <- "github"
+    resultsEnv$packages[idx_github] <- gsub(".*/(.+)/tarball/.*", "\\1", resultsEnv$url[idx_github])
+    resultsEnv$version [idx_github] <- basename(resultsEnv$url[idx_github]) # actually just the commit
+    resultsEnv$source  [idx_github] <- "github"
+  }
 
   for (i in seq_along(resultsEnv$records))
     if (isGitHubRecord(resultsEnv$records[[i]]))
