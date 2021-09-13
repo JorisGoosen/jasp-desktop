@@ -22,8 +22,8 @@ if (!all(expectedDirs %in% list.dirs(getwd(), recursive = FALSE, full.names = FA
   stop("Incorrect working directory! Expected these directories at the top level: ", paste(expectedDirs, collapse = ", "))
 
 # | HERE | you may want to adjust the paths when running this file on a new computer
-jaspDir    <- normalizePath(file.path(getwd(), "..", "..", ".."))                                        # local clone of https://github.com/jasp-stats/jasp-desktop
-flatpakDir <- normalizePath(file.path(getwd(), "..", "..", "..", "..", "flatpak", "org.jaspstats.JASP")) # local clone of https://github.com/flathub/org.jaspstats.JASP
+jaspDir    <- normalizePath(file.path(getwd(), "..", "..", ".."))                             # local clone of https://github.com/jasp-stats/jasp-desktop
+flatpakDir <- normalizePath(file.path(getwd(), "..", "..", "..", "..", "org.jaspstats.JASP")) # local clone of https://github.com/flathub/org.jaspstats.JASP (Assumed to be next to jasp-desktop)
 
 renvProject <- file.path(jaspDir, "Tools", "flatpak", "setup-rpkgs")
 if (!identical(renv::project(), renvProject))
