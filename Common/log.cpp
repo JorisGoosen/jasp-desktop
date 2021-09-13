@@ -1,4 +1,5 @@
 #define ENUM_DECLARATION_CPP
+#include <sstream>
 #include "boost/nowide/cstdio.hpp"
 #include "log.h"
 #include <chrono>
@@ -11,6 +12,8 @@
 #include "boost/iostreams/device/null.hpp"
 #include "boost/nowide/fstream.hpp"
 #include <codecvt>
+#include <iomanip>
+
 
 typedef boost::nowide::ofstream bofstream; //Use this to work around problems on Windows with utf8 conversion
 
@@ -133,6 +136,7 @@ void Log::parseLogCfgMsg(const Json::Value & json)
 
 const char * Log::getTimestamp()
 {
+	static std::string buf;
 	static auto startTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 
 	std::chrono::milliseconds duration = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) - startTime;
@@ -144,13 +148,25 @@ const char * Log::getTimestamp()
 
 	int	milli	= durationMilli % 1000,
 		sec		= durationSec	% 60,
-		min		= durationMin	% 60,
+		minu	= durationMin	% 60,
 		hour	= durationHour	% 60;
 
-	static std::string stampBuf;
-	stampBuf = std::sprintf("%02u:%02u:%02u.%03u", hour, min, sec, milli);
+	buf = "";
 
-	return stampBuf.c_str();
+	//std::snprintf(buf, 13, "%02u:%02u:%02u.%03u", hour, min, sec, milli);
+
+	std::stringstream formatter;
+
+	formatter 	<< std::setfill('0')
+				<< std::setw(2) << hour << std::setw(1) << ':'
+				<< std::setw(2) << minu << std::setw(1) << ':'
+				<< std::setw(2) << sec  << std::setw(1) << '.'
+				<< std::setw(3) << milli;
+
+	
+	buf = formatter.str();
+
+	return buf.c_str();
 }
 
 std::ostream & Log::log(bool addTimestamp)
