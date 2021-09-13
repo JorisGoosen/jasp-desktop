@@ -1,6 +1,6 @@
 #define ENUM_DECLARATION_CPP
-#include "log.h"
 #include "boost/nowide/cstdio.hpp"
+#include "log.h"
 #include <chrono>
 #ifdef WIN32
 #include <io.h>
@@ -133,7 +133,6 @@ void Log::parseLogCfgMsg(const Json::Value & json)
 
 const char * Log::getTimestamp()
 {
-	static char buf[13];
 	static auto startTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 
 	std::chrono::milliseconds duration = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) - startTime;
@@ -148,9 +147,10 @@ const char * Log::getTimestamp()
 		min		= durationMin	% 60,
 		hour	= durationHour	% 60;
 
-	std::sprintf(buf, "%02u:%02u:%02u.%03u", hour, min, sec, milli);
+	static std::string stampBuf;
+	stampBuf = std::sprintf("%02u:%02u:%02u.%03u", hour, min, sec, milli);
 
-	return buf;
+	return stampBuf.c_str();
 }
 
 std::ostream & Log::log(bool addTimestamp)
