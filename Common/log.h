@@ -20,7 +20,8 @@ public:
 
 	static void			initRedirects();
 	static void			setLogFileName(const std::string & filePath);
-	static void			closeLogFile();
+	static void			createLogStream();
+	static void			closeLogStream();
 
 	static void			setDefaultDestination(logType newDestination);
 

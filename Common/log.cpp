@@ -14,7 +14,7 @@
 
 typedef boost::nowide::ofstream bofstream; //Use this to work around problems on Windows with utf8 conversion
 
-static bofstream _logFile;
+static bofstream * _logFile = nullptr;
 
 std::string Log::logFileNameBase	= "";
 
@@ -86,6 +86,7 @@ void Log::redirectStdOut()
 	switch(_where)
 	{
 	default:
+		closeLogStream();
 		break;
 
 	case logType::file:
@@ -101,9 +102,10 @@ void Log::redirectStdOut()
 		//_currentFile = freopen(_logFilePath.c_str(), "a", stdout);
 		//if(!_currentFile)
 
-		_logFile.open(_logFilePath.c_str(), std::ios_base::app | std::ios_base::out);
+		if(!_logFile)	_logFile = new bofstream(	_logFilePath.c_str(), std::ios_base::app | std::ios_base::out);
+		else			_logFile->open(				_logFilePath.c_str(), std::ios_base::app | std::ios_base::out);
 
-		if(_logFile.fail())
+		if(_logFile->fail())
 		{
 			_logError	= logError::fileNotOpen;
 			_where		= _default;
@@ -117,10 +119,16 @@ void Log::redirectStdOut()
 	_logError = logError::noProblem;
 }
 
-void Log::closeLogFile()
+void Log::closeLogStream()
 {
-	if(_logFile.is_open())
-		_logFile.close();
+	if(_logFile)
+	{
+		if(_logFile->is_open())
+			_logFile->close();
+
+		delete _logFile;
+		_logFile = nullptr;
+	}
 }
 
 Json::Value	Log::createLogCfgMsg()
@@ -161,6 +169,8 @@ const char * Log::getTimestamp()
 
 std::ostream & Log::log(bool addTimestamp)
 {
+	static boost::iostreams::stream<boost::iostreams::null_sink> nullstream((boost::iostreams::null_sink())); //https://stackoverflow.com/questions/8243743/is-there-a-null-stdostream-implementation-in-c-or-libraries
+
 	switch(_where)
 	{
 #ifndef __clang__
@@ -173,14 +183,17 @@ std::ostream & Log::log(bool addTimestamp)
 		if (addTimestamp) std::cout << ( _engineNo < 0 ? std::string("Desktop:\t") : "Engine#" + std::to_string(_engineNo) + ":\t");
 		return std::cout;
 	}
-	case logType::null:
-	{
-		static boost::iostreams::stream<boost::iostreams::null_sink> nullstream((boost::iostreams::null_sink())); //https://stackoverflow.com/questions/8243743/is-there-a-null-stdostream-implementation-in-c-or-libraries
-		return nullstream;
-	}
 	case logType::file:
-		if (addTimestamp) _logFile << Log::getTimestamp() << ": ";
-		return _logFile;
+		if(_logFile)
+		{
+			if (addTimestamp) (*_logFile) << Log::getTimestamp() << ": ";
+			return (*_logFile);
+		}
+		[[clang::fallthrough]];
+
+	case logType::null:
+		return nullstream;
+
 	}
 }
 
