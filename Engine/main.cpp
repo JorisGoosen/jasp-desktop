@@ -91,7 +91,6 @@ int main(int argc, char *argv[])
 			JASPTIMER_STOP(Engine Starting);
 
 			e.run();
-
 		}
 		catch (std::exception & e)
 		{
@@ -102,6 +101,7 @@ int main(int argc, char *argv[])
 		JASPTIMER_PRINTALL();
 
 		Log::log() << "jaspEngine " << slaveNo << " child of " << parentPID << " stops." << std::endl;
+		Log::closeLogFile();
 		exit(0);
 	}
 	else if(argc == 2)

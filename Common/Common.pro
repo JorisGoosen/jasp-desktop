@@ -10,7 +10,6 @@ CONFIG += c++11
  
 include(../JASP.pri)
 
-
 macx: QMAKE_CXXFLAGS += -DBOOST_INTERPROCESS_SHARED_DIR_FUNC
 
 windows {

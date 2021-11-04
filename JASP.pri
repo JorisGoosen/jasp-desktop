@@ -107,7 +107,7 @@ windows {
 unix: QMAKE_CXXFLAGS += -Werror=return-type
 
 #want to use JASPTIMER_* ? set JASPTIMER_USED to true, run qmake and rebuild the objects that use these macros (or just rebuild everything to be sure)
-JASPTIMER_USED = false
+JASPTIMER_USED = true
 
 $$JASPTIMER_USED {
     DEFINES += PROFILE_JASP

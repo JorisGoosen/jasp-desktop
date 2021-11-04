@@ -96,6 +96,7 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	assert(!_singleton);
 	_singleton = this;
 	JASPTIMER_START(MainWindowConstructor);
+	JASPTIMER_START(MainWindow);
 
 	//This is the constructor, so _qml is not set yet and there is no need to check that with an if statement
 	QQuickStyle::setStyle("Default");// Because otherwise plasma on kde might mess things up...
@@ -198,6 +199,9 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 MainWindow::~MainWindow()
 {
 	Log::log() << "MainWindow::~MainWindow()" << std::endl;
+
+	JASPTIMER_STOP("MainWindow");
+	JASPTIMER_PRINTALL();
 
 	_singleton = nullptr;
 

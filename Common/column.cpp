@@ -784,8 +784,6 @@ bool Column::setColumnAsScale(const std::vector<double> &values)
 		doubleInputItr++;
 	}
 
-	std::cout << "So the entire column had a change? " << (changedSomething ? "yes" : "no" ) << std::endl;
-
 	setColumnType(columnType::scale);
 
 	return changedSomething;

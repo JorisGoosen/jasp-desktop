@@ -420,8 +420,7 @@ int main(int argc, char *argv[])
 				std::cout << "Entering eventloop" << std::endl;
 				
 				int exitCode = a.exec();
-				JASPTIMER_STOP("JASP");
-				JASPTIMER_PRINTALL();
+				Log::closeLogFile();
 				return exitCode;
 			}
 			catch(std::exception & e)

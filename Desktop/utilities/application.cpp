@@ -53,7 +53,9 @@ bool Application::notify(QObject *receiver, QEvent *event)
 {
 	try
 	{
-		//Log::log()  << "Application::notify: " << receiver->objectName() << " with event: " << event  << std::endl;
+		static int eventEnumIndex = QEvent::staticMetaObject.indexOfEnumerator("Type");
+		QString name = QEvent::staticMetaObject.enumerator(eventEnumIndex).valueToKey(event->type());
+		Log::log()  << "Application::notify: " << receiver->objectName() << " with event type: " << (name != "" ? name : QString(event->type()))  << std::endl;
 		return QApplication::notify(receiver, event);
 	}
 	catch (std::exception &e)

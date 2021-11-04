@@ -1,6 +1,7 @@
 #include "labelmodel.h"
 #include "log.h"
 #include "qquick/jasptheme.h"
+#include "timers.h"
 
 LabelModel::LabelModel() : DataSetTableProxy(parIdxType::label)
 {
@@ -258,6 +259,7 @@ void LabelModel::removeAllSelected()
 
 void LabelModel::setSelected(int row, int modifier)
 {
+	JASPTIMER_RESUME(LabelModel::setSelected);
 	if (modifier & Qt::ShiftModifier && _lastSelected >= 0)
 	{
 		int start = _lastSelected >= row ? row : _lastSelected;
@@ -285,7 +287,7 @@ void LabelModel::setSelected(int row, int modifier)
 		emit dataChanged(LabelModel::index(row, 0), LabelModel::index(row, 0), {int(DataSetPackage::specialRoles::selected)});
 	}
 	_lastSelected = row;
-
+	JASPTIMER_STOP(LabelModel::setSelected);
 }
 
 

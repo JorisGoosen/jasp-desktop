@@ -2,6 +2,7 @@
 
 #ifdef PROFILE_JASP
 #include  <iostream>
+#include "log.h"
 
 static std::map<std::string, boost::timer::cpu_timer *> * timers = nullptr;
 
@@ -27,8 +28,8 @@ void _printAllTimers()
 	if(timers == nullptr)
 		return;
 
-	for(auto keyval : *timers)
-		std::cout << keyval.first << " ran for " << keyval.second->format() << std::endl;
+	for(auto & keyval : *timers)
+		Log::log() << keyval.first << " ran for " << keyval.second->format() << std::endl;
 }
 
 #endif

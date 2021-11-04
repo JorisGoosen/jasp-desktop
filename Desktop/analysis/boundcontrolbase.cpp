@@ -22,6 +22,7 @@
 #include "log.h"
 #include "widgets/listmodel.h"
 #include "widgets/rowcontrols.h"
+#include "timers.h"
 
 BoundControlBase::BoundControlBase(JASPControl* control) : _control(control)
 {
@@ -46,6 +47,8 @@ Json::Value BoundControlBase::createMeta()
 void BoundControlBase::setBoundValue(const Json::Value &value, bool emitChange)
 {
 	if (value == boundValue()) return;
+
+	JASPTIMER_RESUME(BoundControlBase::setBoundValue);
 
 	AnalysisForm* form = _control->form();
 
@@ -76,7 +79,13 @@ void BoundControlBase::setBoundValue(const Json::Value &value, bool emitChange)
 		emitChange = false;
 	
 	if (emitChange)	
+	{
+		JASPTIMER_RESUME(emit _control->boundValueChanged);
 		emit _control->boundValueChanged(_control);
+		JASPTIMER_STOP(emit _control->boundValueChanged);
+	}
+
+	JASPTIMER_STOP(BoundControlBase::setBoundValue);
 }
 
 void BoundControlBase::setIsRCode(std::string key)

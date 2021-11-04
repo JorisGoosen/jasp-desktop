@@ -14,7 +14,7 @@
 
 typedef boost::nowide::ofstream bofstream; //Use this to work around problems on Windows with utf8 conversion
 
-static bofstream _logFile;// = bofstream();
+static bofstream _logFile;
 
 std::string Log::logFileNameBase	= "";
 
@@ -115,6 +115,12 @@ void Log::redirectStdOut()
 	}
 
 	_logError = logError::noProblem;
+}
+
+void Log::closeLogFile()
+{
+	if(_logFile.is_open())
+		_logFile.close();
 }
 
 Json::Value	Log::createLogCfgMsg()

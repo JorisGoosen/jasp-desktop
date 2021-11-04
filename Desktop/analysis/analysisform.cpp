@@ -26,6 +26,7 @@
 #include "log.h"
 #include "jaspcontrol.h"
 #include "data/columnsmodel.h"
+#include "timers.h"
 
 #include <QQmlProperty>
 #include <QQmlContext>
@@ -564,18 +565,20 @@ void AnalysisForm::setAnalysis(QVariant analysis)
 void AnalysisForm::rSourceChanged(const QString &name)
 {
 	if (_rSourceModelMap.contains(name))
-	{
 		for (ListModel* model : _rSourceModelMap[name])
 			model->sourceTermsReset();
-	}
 }
 
 void AnalysisForm::boundValueChangedHandler(JASPControl *)
 {
+	JASPTIMER_RESUME(AnalysisForm::boundValueChangedHandler);
+
 	if (_signalValueChangedBlocked == 0 && _analysis)
 		_analysis->boundValueChangedHandler();
 	else
 		_signalValueChangedWasEmittedButBlocked = true;
+
+	JASPTIMER_STOP(AnalysisForm::boundValueChangedHandler);
 }
 
 
