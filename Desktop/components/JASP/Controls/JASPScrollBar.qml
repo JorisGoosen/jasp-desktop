@@ -24,12 +24,13 @@ import QtQml	2.15
 Item
 {
 									id							: scrollbar
-									width						: vertical ? breadth   : undefined
-									height						: vertical ? undefined : breadth
-									visible						: flickable.visible && ((vertical ? flickable.visibleArea.heightRatio : flickable.visibleArea.widthRatio ) < 1.0)
+									width						: vertical ? breadth		: implicitWidth
+									height						: vertical ? implicitHeight : breadth
+									enabled						: 1.0 > (vertical ? flickable.visibleArea.heightRatio : flickable.visibleArea.widthRatio)
+									visible						: flickable.visible && enabled
 
 	readonly	property int		visibleBreadth				: bigBar ? jaspTheme.scrollbarBoxWidthBig : jaspTheme.scrollbarBoxWidth
-				property int		breadth						: visible ? visibleBreadth : 0
+				property int		breadth						: enabled ? visibleBreadth : 0
 				property int		extraMarginRightOrBottom	: 0
 				property int		extraMarginLeftOrTop		: 0
 				property Flickable	flickable					: null
@@ -121,7 +122,7 @@ Item
 			anchors.fill:	parent;
 			cursorShape:	Qt.PointingHandCursor
 
-			onWheel:		scrollbar.scrollWheel(wheel)
+			onWheel:	(wheel) => { scrollbar.scrollWheel(wheel) }
 
 			drag
 			{
@@ -134,8 +135,8 @@ Item
 
 			}
 
-			onClicked:	if(scrollbar.vertical)	flickable.contentY = (mouse.y / groove.height * (flickable.contentHeight - flickable.height));
-						else					flickable.contentX = (mouse.x / groove.width  * (flickable.contentWidth  - flickable.width));
+			onClicked: (mouse) => { if(scrollbar.vertical)	flickable.contentY = (mouse.y / groove.height * (flickable.contentHeight - flickable.height));
+										else					flickable.contentX = (mouse.x / groove.width  * (flickable.contentWidth  - flickable.width)); }
 
 		}
 	}

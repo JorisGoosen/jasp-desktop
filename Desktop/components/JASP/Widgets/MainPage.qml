@@ -55,7 +55,7 @@ Item
 		{
 			id:						data
 			visible:				mainWindow.dataAvailable || fakeEmptyDataForSumStatsEtc //|| analysesModel.count > 0
-			z:						1
+			z:						10
 			leftHandSpace:			panelSplit.leftHandSplitHandlerSpace
 
 			property real baseMaxWidth:					fakeEmptyDataForSumStatsEtc ? 0 : splitViewContainer.width - (mainWindow.analysesAvailable ? jaspTheme.splitHandleWidth : 0)
@@ -117,20 +117,24 @@ Item
 
 		handle: Item
 		{
-			implicitWidth:			splitHandle.width + analyses.implicitWidth
-			width:					implicitWidth
+			id:					handleRoot
+			implicitWidth:		leftHandle.width + rightHandle.width + (analysesModel.visible ? analyses.implicitWidth : 0) // analyses.implicitWidth because width is animated and breaks it
+			width:				implicitWidth
+			z:					2
 
-
+			//handleRoot ignores resizing stuff so we capture mouseevents properly like this now:
+			containmentMask:	Item { height: handleRoot.height; width: rightHandle.x + rightHandle.width; } 
 
 			JASPSplitHandle
 			{
-				id:				splitHandle
-				onArrowClicked:	mainWindow.dataPanelVisible = !mainWindow.dataPanelVisible
+				id:				leftHandle
 				pointingLeft:	mainWindow.dataPanelVisible
+				onArrowClicked:	mainWindow.dataPanelVisible = !mainWindow.dataPanelVisible
 				showArrow:		mainWindow.dataAvailable
 				toolTipArrow:	mainWindow.dataAvailable	? (mainWindow.dataPanelVisible ? qsTr("Hide data")  : qsTr("Show data")) : ""
 				toolTipDrag:	mainWindow.dataPanelVisible ? qsTr("Resize data/results") : qsTr("Drag to show data")
 				dragEnabled:	mainWindow.dataAvailable && mainWindow.analysesAvailable
+				anchors.left:	parent.left
 			}
 
 			AnalysisForms
@@ -138,11 +142,26 @@ Item
 				id:						analyses
 				z:						-1
 				visible:				mainWindow.analysesAvailable
-				width:					visible ? implicitWidth : 0
 				anchors.top:			parent.top
 				anchors.bottom:			parent.bottom
-				anchors.left:			splitHandle.right
+				anchors.left:			leftHandle.right
+				
+				onWidthChanged:			console.log("Analyses width changed to " + width);
 			}
+			
+
+			JASPSplitHandle
+			{
+				id:						rightHandle
+				showArrow:				true
+				pointingLeft:			analysesModel.visible
+				onArrowClicked:			analysesModel.visible = !analysesModel.visible
+				toolTipDrag:			mainWindow.dataAvailable	? (mainWindow.dataPanelVisible ? qsTr("Resize data/results")  : qsTr("Drag to show data")) : ""
+				toolTipArrow:			analysesModel.visible		? qsTr("Hide input options") : qsTr("Show input options")
+				dragEnabled:			mainWindow.dataAvailable && mainWindow.analysesAvailable
+				x:						analyses.width + rightHandle.width
+			}
+
 		}
 
 		Rectangle
@@ -150,7 +169,7 @@ Item
 			id:								giveResultsSomeSpace
 			SplitView.preferredWidth:		jaspTheme.resultWidth + panelSplit.hackySplitHandlerHideWidth
 			SplitView.fillWidth:			true
-			z:								3
+			z:								1
 			visible:						mainWindow.analysesAvailable
 			onVisibleChanged:				if(visible) width = jaspTheme.resultWidth; else data.maximizeData()
 			color:							analysesModel.currentAnalysisIndex !== -1 ? jaspTheme.uiBackground : jaspTheme.white

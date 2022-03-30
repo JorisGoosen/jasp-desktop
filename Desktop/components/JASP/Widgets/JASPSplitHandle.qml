@@ -9,19 +9,19 @@ Rectangle
 	id:				handleRoot
 
 	signal arrowClicked
-	property bool pointingLeft: true
-	property bool showArrow:	false
-	property bool dragEnabled:	true
+	property bool pointingLeft:		true
+	property bool showArrow:		false
+	property bool dragEnabled:		true
 
 	property string toolTipDrag:	""
 	property string toolTipArrow:	""
 	property bool	hovered:		hoverMouse.containsMouse
 
-	implicitWidth:	jaspTheme.splitHandleWidth
-	width:			implicitWidth
-	color:			handleRoot.dragEnabled && handleRoot.hovered ? jaspTheme.grayLighter : jaspTheme.uiBackground
-	//border.color:	jaspTheme.uiBorder
-	//border.width:	1
+	implicitWidth:					jaspTheme.splitHandleWidth
+	width:							implicitWidth
+	color:							handleRoot.dragEnabled && handleRoot.hovered ? jaspTheme.grayLighter : jaspTheme.uiBackground
+	//border.color:					jaspTheme.uiBorder
+	//border.width:					1
 
 	anchors
 	{

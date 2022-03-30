@@ -7,10 +7,10 @@ import JASP.Controls	1.0
 FocusScope
 {
 	id:				analysisFormsFocusScope
-	implicitWidth:	extraSpace + (analysesModel.visible ? jaspTheme.formWidth + 1 + (2 * formsBackground.border.width) + verticalScrollbar.width : 0)
-	width:			implicitWidth
-
-	property int	extraSpace:	openCloseButton.width
+	
+	property int desiredWidth:	!analysesModel.visible ? 0 : (jaspTheme.formWidth + (2 * formsBackground.border.width) + verticalScrollbar.width)
+	implicitWidth:	desiredWidth
+	width:			desiredWidth
 
 	Behavior on width { enabled: preferencesModel.animationsOn; PropertyAnimation { duration: jaspTheme.fileMenuSlideDuration; easing.type: Easing.OutCubic  } }
 
@@ -52,51 +52,20 @@ FocusScope
 
 		Connections
 		{
-			target:							analysesModel
-			function onCurrentAnalysisIndexChanged(index) { formsBackground.scrollToForm(index); }
-		}
-
-		Rectangle
-		{
-			id:				openCloseButton
-			width:			jaspTheme.splitHandleWidth + (2 * border.width)
-			height:			parent.height
-			//color:			//mouseArea.containsMouse ? jaspTheme.grayLighter : jaspTheme.uiBackground
-			border.color:	jaspTheme.uiBorder
-			border.width:	1
-			anchors.top:	parent.top
-			anchors.right:	parent.right
-
-			JASPSplitHandle
-			{
-				showArrow:				true
-				pointingLeft:			analysesModel.visible
-				onArrowClicked:			analysesModel.visible = !analysesModel.visible
-				anchors
-				{
-					fill:				parent
-					leftMargin:			openCloseButton.border.width
-					rightMargin:		openCloseButton.border.width
-				}
-				toolTipDrag:			mainWindow.dataAvailable	? (mainWindow.dataPanelVisible ? qsTr("Resize data/results")  : qsTr("Drag to show data")) : ""
-				toolTipArrow:			analysesModel.visible		? qsTr("Hide input options") : qsTr("Show input options")
-				dragEnabled:			mainWindow.dataAvailable && mainWindow.analysesAvailable
-			}
+			target:			analysesModel
+			function		onCurrentAnalysisIndexChanged(index) { formsBackground.scrollToForm(index); }
 		}
 
 		Item
 		{
 			id:				scrollAnalyses
-			visible:		analysisFormsFocusScope.width > analysisFormsFocusScope.extraSpace
+			visible:		analysisFormsFocusScope.width > 0
 			z:				2
 			clip:			true
 
 			anchors
 			{
-				top:		parent.top
-				left:		parent.left
-				right:		openCloseButton.left
-				bottom:		parent.bottom
+				fill:		parent
 				margins:	parent.border.width
 			}
 
@@ -130,7 +99,7 @@ FocusScope
 					top:			parent.top
 					left:			parent.left
 					bottom:			parent.bottom
-					margins:		formsBackground.border.width
+					//margins:		formsBackground.border.width //Already done by encompassing Item
 				}
 
 				Behavior on contentY
@@ -142,9 +111,9 @@ FocusScope
 
 				Connections
 				{
-					target:							analysesModel
-					function onCurrentFormHeightChanged(formHeight)
-					{ if (formHeight > analysesModel.currentFormPrevH) reposition(); }//If it got larger it probably means an expander opened and we should reposition if possible
+					target:		analysesModel
+					function	onCurrentFormHeightChanged(formHeight)
+									{ if (formHeight > analysesModel.currentFormPrevH) reposition(); }//If it got larger it probably means an expander opened and we should reposition if possible
 
 					function reposition()
 					{
@@ -170,7 +139,7 @@ FocusScope
 				Column
 				{
 					id:				analysesColumn
-					width:			analysesFlickable.width
+					width:			jaspTheme.formWidth
 					spacing:		0
 
 					move: Transition
