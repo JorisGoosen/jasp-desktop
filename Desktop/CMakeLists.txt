@@ -82,7 +82,9 @@ target_include_directories(
          $<$<PLATFORM_ID:Windows>:${MINGW_LIBREADSTAT_H}>
          ${LIBREADSTAT_INCLUDE_DIRS}
          # JSONCPP
-         $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>)
+         $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>
+		 $<$<BOOL:${FLATPAK_USED}>:Qt6Core5Compat>
+		 $<$<BOOL:${FLATPAK_USED}>:Qt6WebEngineQuick>)
 
 target_link_libraries(
   JASP
