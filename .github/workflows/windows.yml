@@ -3,14 +3,12 @@ name: Windows
 on:
   push:
     branches:
-      - wip-windows-cmake-build
+      - macos-github-action
 
 jobs:
   qt:
     name: Windows Build
     runs-on: windows-latest
-    env:
-      CONAN_REVISIONS_ENABLED: 1
 
     steps:
       - name: Cache Qt
