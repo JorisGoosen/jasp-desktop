@@ -42,10 +42,9 @@ jobs:
           conan profile new default --detect
           conan profile show default
       - uses: actions/checkout@v2
-        name: Cloning JASP and Initializing the Submodules
+      - name: Configure
         run: |
           git submodule update --init
-      - name: Pre-configuring the JASP Desktop
-        run: cmake -S . -B build -DGITHUB_PAT=${{ secrets.GPAT_FOR_JASP }}
+          cmake -S . -B build -DGITHUB_PAT=${{ secrets.GPAT_FOR_JASP }}
       - name: Building JASP
         run: cmake --build build

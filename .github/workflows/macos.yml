@@ -32,12 +32,7 @@ jobs:
         run: brew update --preinstall
       - name: Preparing the Requirements
         run: brew install automake bison cmake conan pkg-config ninja
-      name: MacOS Qt 6.2 (LTS) build
-      runs-on: macos-latest
-      steps:
-      - uses: actions/checkout@v2
       - name: Cache Qt
-        id: cache-qt-6-2
         uses: actions/cache@v1  # not v2!
         with:
           path: ../Qt/6.2.4
@@ -64,6 +59,8 @@ jobs:
           conan profile show default
       - uses: actions/checkout@v2
       - name: Configure
-        run: cmake -S . -B build -G Ninja -D GITHUB_PAT=${{ secrets.GPAT_FOR_JASP }} -DTIMESTAMP_AT_BUILD_TIME=OFF 
+        run: |
+          git submodule update --init
+          cmake -S . -B build -G Ninja -D GITHUB_PAT=${{ secrets.GPAT_FOR_JASP }} -DTIMESTAMP_AT_BUILD_TIME=OFF 
       - name: Build
         run: cmake --build build --target all
