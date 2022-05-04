@@ -54,19 +54,16 @@ bool DataSetTableModel::filterAcceptsRow(int source_row, const QModelIndex & sou
 
 QStringList DataSetTableModel::getColumnLabelsAsStringList(int col) const
 {
-	QStringList labels = DataSetPackage::pkg()->getColumnLabelsAsStringList(col);
-	QStringList notUsedLabels = labels;
-	int max = rowCount();
+	QStringList			labels	= DataSetPackage::pkg()->getColumnLabelsAsStringList(col);
+	std::set<QString>	notUsed	= {labels.begin(), labels.end()};
 
-	for (int i = 0; i < max; i++)
-	{
-		QString value = data(index(i, col)).toString();
-		notUsedLabels.removeAll(value);
-		if (notUsedLabels.count() == 0) break;
-	}
+	int rows = rowCount();
+	for (int i = 0; i < rows; i++)
+		if(!_showInactive || data(index(i, col), static_cast<int>(DataSetPackage::specialRoles::filter)).toBool())
+			notUsed.erase(data(index(i, col)).toString());
 
 	// The order of the labels must be kept.
-	for (const QString& notUsedLabel : notUsedLabels)
+	for (const QString & notUsedLabel : notUsed)
 		labels.removeAll(notUsedLabel);
 
 	return labels;
