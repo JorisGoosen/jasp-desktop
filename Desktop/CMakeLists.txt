@@ -96,7 +96,7 @@ target_link_libraries(
          Qt::Qml
          Qt::WebEngineQuick
          $<$<NOT:$<BOOL:${FLATPAK_USED}>>:Qt::WebEngineQuick>
-         $<$<NOT:$<BOOL:${FLATPAK_USED}>>:/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/Qt6WebEngineQuick.so>
+         $<$<BOOL:${FLATPAK_USED}>:/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/Qt6WebEngineQuick.so>
          Qt::WebChannel
          Qt::Svg
          Qt::Network
@@ -108,7 +108,7 @@ target_link_libraries(
          Qt::QuickControls2Impl
          Qt::QuickWidgets
          $<$<NOT:$<BOOL:${FLATPAK_USED}>>:Qt::Core5Compat>
-         $<$<NOT:$<BOOL:${FLATPAK_USED}>>:/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/Qt6Core5Compat.so>
+         $<$<BOOL:${FLATPAK_USED}>:/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/Qt6Core5Compat.so>
          Qt::QuickTemplates2
          Qt::DBus
          Qt::QmlWorkerScript
