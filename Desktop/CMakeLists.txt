@@ -92,7 +92,7 @@ if(FLATPAK_USED)
 
   add_library(Qt6WebEngineQuick INTERFACE )
   target_link_libraries(Qt6WebEngineQuick /app/lib/x86_64-linux-gnu/ )
-endif`()
+endif()
 
 target_link_libraries(
   JASP
