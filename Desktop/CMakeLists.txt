@@ -87,13 +87,7 @@ target_include_directories(
 		 $<$<BOOL:${FLATPAK_USED}>:/app/include/Qt6WebEngineQuick>)
 
 if(FLATPAK_USED)
-  add_library(Qt6Core5Compat INTERFACE )
-  target_link_libraries(Qt6Core5Compat /app/lib/x86_64-linux-gnu/ )
-
-  add_library(Qt6WebEngineQuick INTERFACE )
-  target_link_libraries(Qt6WebEngineQuick /app/lib/x86_64-linux-gnu/ )
-
-  set(QT_PROMOTE_TO_GLOBAL_TARGETS FALSE)
+  link_directories(/app/lib/x86_64-linux-gnu/)
 endif()
 
 target_link_libraries(
