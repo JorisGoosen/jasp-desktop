@@ -86,6 +86,14 @@ target_include_directories(
 		 $<$<BOOL:${FLATPAK_USED}>:/app/include/QtCore5Compat>
 		 $<$<BOOL:${FLATPAK_USED}>:/app/include/Qt6WebEngineQuick>)
 
+if(FLATPAK_USED)
+  add_library(Qt6::QtCore5Compat INTERFACE IMPORTED )
+  target_link_libraries(Qt6::QtCore5Compat /app/lib/x86_64-linux-gnu/ )
+  
+  add_library(Qt6::Qt6WebEngineQuick INTERFACE IMPORTED )
+  target_link_libraries(Qt6::Qt6WebEngineQuick /app/lib/x86_64-linux-gnu/ )
+endid()
+
 target_link_libraries(
   JASP
   PUBLIC Common
