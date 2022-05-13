@@ -86,10 +86,6 @@ target_include_directories(
 		 $<$<BOOL:${FLATPAK_USED}>:/app/include/QtCore5Compat>
 		 $<$<BOOL:${FLATPAK_USED}>:/app/include/Qt6WebEngineQuick>)
 
-if(FLATPAK_USED)
-  link_directories(/app/lib/x86_64-linux-gnu/)
-endif()
-
 target_link_libraries(
   JASP
   PUBLIC Common
@@ -100,7 +96,6 @@ target_link_libraries(
          Qt::Qml
          Qt::WebEngineQuick
          $<$<NOT:$<BOOL:${FLATPAK_USED}>>:Qt::WebEngineQuick>
-         $<$<BOOL:${FLATPAK_USED}>:Qt6WebEngineQuick>
          Qt::WebChannel
          Qt::Svg
          Qt::Network
@@ -112,7 +107,6 @@ target_link_libraries(
          Qt::QuickControls2Impl
          Qt::QuickWidgets
          $<$<NOT:$<BOOL:${FLATPAK_USED}>>:Qt::Core5Compat>
-         $<$<BOOL:${FLATPAK_USED}>:Qt6Core5Compat>
          Qt::QuickTemplates2
          Qt::DBus
          Qt::QmlWorkerScript
@@ -131,6 +125,11 @@ target_link_libraries(
          $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LINK_LIBRARIES}>
          # R-Framework --------------------------------
          $<$<PLATFORM_ID:Darwin>:${_R_Framework}>)
+
+if(FLATPAK_USED)
+  target_link_libraries(JASP "/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/Qt6Core5Compat.so)
+  target_link_libraries(JASP "/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/Qt6WebEngineQuick.so)
+endif()
 
 target_compile_definitions(JASP PUBLIC JASP_USES_QT_HERE)
 
