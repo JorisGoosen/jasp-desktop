@@ -83,8 +83,7 @@ target_include_directories(
          ${LIBREADSTAT_INCLUDE_DIRS}
          # JSONCPP
          $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>
-		 $<$<BOOL:${FLATPAK_USED}>:/app/include/QtCore5Compat>
-		 $<$<BOOL:${FLATPAK_USED}>:/app/include/Qt6WebEngineQuick>)
+		 $<$<BOOL:${FLATPAK_USED}>:/app/include/QtCore5Compat>)
 
 target_link_libraries(
   JASP
@@ -95,8 +94,6 @@ target_link_libraries(
          Qt::Widgets
          Qt::Qml
          Qt::WebEngineQuick
-         $<$<NOT:$<BOOL:${FLATPAK_USED}>>:Qt::WebEngineQuick>
-         $<$<BOOL:${FLATPAK_USED}>:/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/Qt6WebEngineQuick.so>
          Qt::WebChannel
          Qt::Svg
          Qt::Network
