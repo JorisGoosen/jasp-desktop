@@ -118,14 +118,6 @@ else()
 	message(STATUS "flatpak arch is $ENV{FLATPAK_ARCH}")
 	
   find_package(
-    Qt6WebEngineQuick
-    REQUIRED
-    PATHS
-    "/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/cmake/Qt6WebEngineQuick/"
-	${Qt6WebEngineQuick_DIR}
-    NO_DEFAULT_PATH)
-
-  find_package(
     Qt6Core5Compat
     REQUIRED
     PATHS
@@ -141,6 +133,7 @@ else()
                Widgets
                Qml
                WebChannel
+               WebEngineQuick
                Svg
                Network
                PrintSupport
