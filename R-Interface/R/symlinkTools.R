@@ -49,7 +49,7 @@ determineOverlap <- function(targetRoot, sourceRoot)
     #tgtToSrc     <- paste0(tgtToSrc, .Platform$file.sep, ".")
 
     if(addRootToSource)
-      return(pastePath(tgtToSrc, rootToSrc)) #We do not need to add the separator because it is there in tgtToSrc
+      return(pastePath(c(tgtToSrc, rootToSrc)))
     return(tgtToSrc)
   }
 
