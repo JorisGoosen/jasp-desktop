@@ -164,11 +164,14 @@ if(LINUX)
   install(DIRECTORY ${MODULES_BINARY_PATH}/
           DESTINATION ${JASP_INSTALL_MODULEDIR})
 
-  install(DIRECTORY ${MODULES_RENV_ROOT_PATH}/
-          DESTINATION ${JASP_INSTALL_PREFIX}/lib64/renv-root)
+  # we do not need renv-root in an install
+  #install(DIRECTORY ${MODULES_RENV_ROOT_PATH}/
+  #        DESTINATION ${JASP_INSTALL_PREFIX}/lib64/renv-root)
 
+if(NOT FLATPAK_USED) #because flatpak already puts renv-cache in /app/lib64 anyway
   install(DIRECTORY ${MODULES_RENV_CACHE_PATH}/
           DESTINATION ${JASP_INSTALL_PREFIX}/lib64/renv-cache)
+endif()
 
   # Flatpak Misc.
 
