@@ -99,7 +99,7 @@ target_link_libraries(
          Qt::Widgets
          Qt::Qml
          $<$<NOT:$<BOOL:${FLATPAK_USED}>>:Qt::WebEngineQuick>
-         $<$<BOOL:${FLATPAK_USED}>:/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/Qt6WebEngineQuick.so>
+         $<$<BOOL:${FLATPAK_USED}>:/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/libQt6WebEngineQuick.so>
          Qt::WebChannel
          Qt::Svg
          Qt::Network
