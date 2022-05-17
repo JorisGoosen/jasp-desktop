@@ -79,15 +79,16 @@ endif()
 
 target_include_directories(
   JASP
-  PUBLIC ${CMAKE_CURRENT_LIST_DIR}
-         ${PROJECT_SOURCE_DIR}/Common
-         ${PROJECT_SOURCE_DIR}/Common/jaspColumnEncoder
-         # ReadStat
-         $<$<PLATFORM_ID:Windows>:${MINGW_LIBREADSTAT_H}>
-         ${LIBREADSTAT_INCLUDE_DIRS}
-         # JSONCPP
-         $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>
-		 $<$<BOOL:${FLATPAK_USED}>:/app/include/QtCore5Compat>)
+  PUBLIC 	${CMAKE_CURRENT_LIST_DIR}
+			${PROJECT_SOURCE_DIR}/Common
+			${PROJECT_SOURCE_DIR}/Common/jaspColumnEncoder
+			# ReadStat
+			$<$<PLATFORM_ID:Windows>:${MINGW_LIBREADSTAT_H}>
+			${LIBREADSTAT_INCLUDE_DIRS}
+			# JSONCPP
+			$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>
+			$<$<BOOL:${FLATPAK_USED}>:/app/include/QtCore5Compat>
+			$<$<BOOL:${FLATPAK_USED}>:/app/include/Qt6WebEngineQuick>)
 
 target_link_libraries(
   JASP
@@ -97,7 +98,8 @@ target_link_libraries(
          Qt::OpenGL
          Qt::Widgets
          Qt::Qml
-         Qt::WebEngineQuick
+         $<$<NOT:$<BOOL:${FLATPAK_USED}>>:Qt::WebEngineQuick>
+         $<$<BOOL:${FLATPAK_USED}>:/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/Qt6WebEngineQuick.so>
          Qt::WebChannel
          Qt::Svg
          Qt::Network
