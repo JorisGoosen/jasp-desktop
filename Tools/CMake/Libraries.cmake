@@ -125,7 +125,6 @@ else()
                Widgets
                Qml
                WebChannel
-               WebEngineQuick
                Svg
                Network
                PrintSupport
