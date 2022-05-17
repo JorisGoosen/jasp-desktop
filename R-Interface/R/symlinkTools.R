@@ -211,7 +211,7 @@ convertAbsoluteSymlinksToRelative <- function(modulesRoot, renvCache)
     {
       linkLoc <- symlinks[row, "linkLocation"]
       setwd(dirname(linkLoc))
-      #print(paste0("For link '", padToMax(symlinks[row, "linkLocation"], 1), "' will convert '", padToMax(symlinks[row, "originalTarget"], 2), "' to '", padToMax(symlinks[row, "linkTarget"], 3), "'"))
+      print(paste0("For link '", padToMax(symlinks[row, "linkLocation"], 1), "' will convert '", padToMax(symlinks[row, "originalTarget"], 2), "' to '", padToMax(symlinks[row, "linkTarget"], 3), "'"))
       file.symlink(from=symlinks[row, "linkTarget"], to=basename(linkLoc))
       
     }
