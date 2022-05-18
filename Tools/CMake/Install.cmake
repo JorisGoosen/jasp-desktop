@@ -173,6 +173,10 @@ if(NOT FLATPAK_USED) #because flatpak already puts renv-cache in /app/lib64 anyw
           DESTINATION ${JASP_INSTALL_PREFIX}/lib64/renv-cache)
 endif()
 
+  #Flatpak wrapper that sets some environment variables that JASP needs
+  install(FILES ${CMAKE_SOURCE_DIR}/Tools/flatpak/org.jaspstats.JASP
+          DESTINATION ${JASP_INSTALL_BINDIR})
+
   # Flatpak Misc.
 
   install(FILES ${CMAKE_SOURCE_DIR}/Tools/flatpak/org.jaspstats.JASP.desktop
