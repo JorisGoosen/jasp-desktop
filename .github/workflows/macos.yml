@@ -21,6 +21,7 @@ jobs:
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           MACOS_KEYCHAIN_PWD: ${{ secrets.MACOS_KEYCHAIN_PWD }}
           PKG_CONFIG_PATHS_FOR_CMAKE: "/usr/local/opt/zlib;/usr/local/opt/openssl@3;/usr/local/opt/qt;/usr/local/opt/libarchive"
+          CMAKE_OSX_ARCHITECTURES: "x86_64"
         run: |
           echo $MACOS_CERTIFICATE | base64 --decode > Certificate.p12
           security create-keychain -p $MACOS_KEYCHAIN_PWD build.keychain
