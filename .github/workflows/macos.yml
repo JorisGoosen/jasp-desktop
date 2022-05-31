@@ -8,6 +8,7 @@ on:
 jobs:
   xcode:
     runs-on: macos-latest
+    environment: macos
     strategy:
       matrix:
         xcode: [13.2]
