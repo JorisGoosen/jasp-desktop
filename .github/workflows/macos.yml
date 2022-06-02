@@ -22,6 +22,8 @@ jobs:
           MACOS_KEYCHAIN_PWD: ${{ secrets.MACOS_KEYCHAIN_PWD }}
           PKG_CONFIG_PATHS_FOR_CMAKE: "/usr/local/opt/zlib;/usr/local/opt/openssl@3;/usr/local/opt/qt;/usr/local/opt/libarchive"
           CMAKE_OSX_ARCHITECTURES: "x86_64"
+          CFLAGS: "-mmacosx-version-min=11.0/"
+          LDFLAGS: "-mmacosx-version-min=11.0/"
         run: |
           echo $MACOS_CERTIFICATE | base64 --decode > Certificate.p12
           security create-keychain -p $MACOS_KEYCHAIN_PWD build.keychain
@@ -61,10 +63,6 @@ jobs:
       - uses: actions/checkout@v2
       - name: Configure
         run: |
-          export CFLAGS="-isysroot $(xcrun --show-sdk-path)"
-          export CXXFLAGS="-isysroot $(xcrun --show-sdk-path)"
-          export CPPLAGS="-isysroot $(xcrun --show-sdk-path)"
-          export LDLAGS="-isysroot $(xcrun --show-sdk-path)"
           git submodule update --init
           cmake -S . -B build -G Ninja -D GITHUB_PAT=${{ secrets.GPAT_FOR_JASP }} -DTIMESTAMP_AT_BUILD_TIME=OFF 
       - name: Build
