@@ -63,6 +63,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Configure
         run: |
+          xcode-select --install
           git submodule update --init
           cmake -S . -B build -G Ninja -D GITHUB_PAT=${{ secrets.GPAT_FOR_JASP }} -DTIMESTAMP_AT_BUILD_TIME=OFF 
       - name: Build
