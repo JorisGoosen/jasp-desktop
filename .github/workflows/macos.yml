@@ -21,8 +21,6 @@ jobs:
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           MACOS_KEYCHAIN_PWD: ${{ secrets.MACOS_KEYCHAIN_PWD }}
           PKG_CONFIG_PATHS_FOR_CMAKE: "/usr/local/opt/zlib;/usr/local/opt/openssl@3;/usr/local/opt/qt;/usr/local/opt/libarchive"
-          CMAKE_OSX_ARCHITECTURES: "x86_64"
-          CMAKE_BUILD_TYPE:  "Release"
           CFLAGS: "-mmacosx-version-min=11.0/"
           LDFLAGS: "-mmacosx-version-min=11.0/"
         run: |
@@ -65,6 +63,6 @@ jobs:
       - name: Configure
         run: |
           git submodule update --init
-          cmake -S . -B build -G Ninja -D GITHUB_PAT=${{ secrets.GPAT_FOR_JASP }} -DTIMESTAMP_AT_BUILD_TIME=OFF 
+          cmake -S . -B build -G Ninja -D GITHUB_PAT=${{ secrets.GPAT_FOR_JASP }} -DTIMESTAMP_AT_BUILD_TIME=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64
       - name: Build
         run: cmake --build build --target all
