@@ -10,7 +10,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        xcode: [13.2]
+        xcode: [13.3]
     env:
       DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
 
@@ -33,7 +33,7 @@ jobs:
       - name: Updating Homebrew
         run: brew update --preinstall
       - name: Preparing the Requirements
-        run: brew install automake bison cmake conan pkg-config ninja gcc
+        run: brew install automake bison cmake conan pkg-config ninja
       - name: Cache Qt
         uses: actions/cache@v1  # not v2!
         with:
