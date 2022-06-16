@@ -33,7 +33,7 @@ jobs:
       - name: Updating Homebrew
         run: brew update --preinstall
       - name: Preparing the Requirements
-        run: brew install automake bison cmake conan pkg-config ninja
+        run: brew install automake bison cmake conan pkg-config ninja gcc
       - name: Cache Qt
         uses: actions/cache@v1  # not v2!
         with:
