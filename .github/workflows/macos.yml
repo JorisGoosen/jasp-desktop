@@ -22,6 +22,7 @@ jobs:
           MACOS_KEYCHAIN_PWD: ${{ secrets.MACOS_KEYCHAIN_PWD }}
           PKG_CONFIG_PATHS_FOR_CMAKE: "/usr/local/opt/zlib;/usr/local/opt/openssl@3;/usr/local/opt/qt;/usr/local/opt/libarchive"
           CMAKE_OSX_ARCHITECTURES: "x86_64"
+          CMAKE_BUILD_TYPE:  "Release"
           CFLAGS: "-mmacosx-version-min=11.0/"
           LDFLAGS: "-mmacosx-version-min=11.0/"
         run: |
