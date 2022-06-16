@@ -37,12 +37,12 @@ jobs:
       - name: Cache Qt
         uses: actions/cache@v1  # not v2!
         with:
-          path: ../Qt/6.2.4
+          path: ../Qt/6.3.0
           key: ${{ runner.os }}-QtCache-Qt6-2
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
-          version: '6.2.4'
+          version: '6.3.0'
           host: 'mac'
           target: 'desktop'
           install-deps: 'true'
