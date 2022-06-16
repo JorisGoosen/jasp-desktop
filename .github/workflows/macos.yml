@@ -7,7 +7,7 @@ on:
 
 jobs:
   xcode:
-    runs-on: macos-latest
+    runs-on: macos-12
     strategy:
       matrix:
         xcode: [13.3]
