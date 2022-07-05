@@ -947,10 +947,12 @@ void Analysis::destroyForm()
 
 		_optionsDotJASP = _boundValues;  //So that we can later reload the controls to what we currently have
 
+		_analysisForm->setVisible(false);
 		_analysisForm->setParent(		nullptr);
 		_analysisForm->setParentItem(	nullptr);
+		_analysisForm->disconnect();
+		_analysisForm->deleteLater();
 
-		delete _analysisForm;
 		_analysisForm = nullptr;
 
 		emit formItemChanged();

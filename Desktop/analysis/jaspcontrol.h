@@ -104,6 +104,7 @@ public:
 	Q_ENUM(ItemType)
 
 	JASPControl(QQuickItem *parent = nullptr);
+	~JASPControl() { disconnect();}
 
 	ControlType			controlType()				const	{ return _controlType;			}
 	const QString	&	name()						const	{ return _name;					}
