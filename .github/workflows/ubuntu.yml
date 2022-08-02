@@ -3,7 +3,8 @@ name: Ubuntu
 on:
   push:
     branches:
-      - github-action-debug
+      - development
+      - stable
 
 jobs:
   qt:
