@@ -4,6 +4,7 @@
 # I've ran into situation where installing `RInside` doesn't install the `Rcpp`.
 # 
 
+.libPaths(c("@R_LIBRARY_PATH@", .libPaths()))
 options(install.opts = '--no-multiarch --no-docs --no-test-load', pkgType = 'binary', renv.cache.linkable = FALSE)
 
 Sys.setenv(RENV_PATHS_ROOT='@MODULES_RENV_ROOT_PATH@', RENV_PATHS_CACHE='@MODULES_RENV_CACHE_PATH@')
