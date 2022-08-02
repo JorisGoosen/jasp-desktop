@@ -25,6 +25,6 @@ jobs:
       - name: Configure
         run: |
           git submodule update --init
-          cmake -S . -B build -D GITHUB_PAT=${{ secrets.GPAT_FOR_JASP }} -DINSTALL_JASP_REQUIRED_LIBRARIES=ON -DLINUX_LOCAL_BUILD=OFF -DCUSTOM_R_PATH=/usr/lib/R
+          cmake -S . -B build -D GITHUB_PAT=${{ secrets.GPAT_FOR_JASP }} -DINSTALL_JASP_REQUIRED_LIBRARIES=ON -DLINUX_LOCAL_BUILD=ON -DCUSTOM_R_PATH=/usr/lib/R
       - name: Build
         run: cmake --build build
