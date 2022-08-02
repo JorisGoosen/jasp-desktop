@@ -9,7 +9,6 @@ on:
 jobs:
   qt:
     name: Ubuntu Build
-    if: false
     runs-on: ubuntu-latest
     strategy:
       matrix:
