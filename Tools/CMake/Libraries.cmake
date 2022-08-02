@@ -68,7 +68,7 @@ endif()
 
 set(Boost_USE_STATIC_LIBS ON)
 find_package(
-  Boost 1.78 REQUIRED
+  Boost 1.74 REQUIRED
   COMPONENTS filesystem
              system
              date_time
@@ -77,7 +77,7 @@ find_package(
 
 if(WINDOWS)
   find_package(
-    Boost 1.78 REQUIRED
+    Boost 1.74 REQUIRED
     COMPONENTS filesystem
                system
                date_time
