@@ -9,7 +9,7 @@ on:
 jobs:
   qt:
     name: Ubuntu Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         qt-version: [6.2]
