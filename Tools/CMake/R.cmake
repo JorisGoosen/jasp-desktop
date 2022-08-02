@@ -824,7 +824,8 @@ elseif(LINUX)
 
     execute_process(
       # COMMAND_ECHO STDOUT
-      ERROR_QUIET OUTPUT_QUIET
+      #ERROR_QUIET OUTPUT_QUIET
+      USES_TERMINAL
       WORKING_DIRECTORY ${R_HOME_PATH}
       COMMAND ${R_EXECUTABLE} --slave --no-restore --no-save
               --file=${MODULES_RENV_ROOT_PATH}/install-renv.R)
@@ -846,7 +847,8 @@ elseif(LINUX)
                    ${MODULES_RENV_ROOT_PATH}/install-RInside.R @ONLY)
 
     execute_process(
-      ERROR_QUIET OUTPUT_QUIET
+      #ERROR_QUIET OUTPUT_QUIET
+      USES_TERMINAL
       COMMAND ${R_EXECUTABLE} --slave --no-restore --no-save
               --file=${MODULES_RENV_ROOT_PATH}/install-RInside.R)
 
