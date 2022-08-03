@@ -70,7 +70,15 @@ if(("jaspMetaAnalysis" IN_LIST JASP_EXTRA_MODULES) OR ("jaspJags" IN_LIST
   if(LINUX)
 
     if(LINUX_LOCAL_BUILD)
-      set(jags_HOME /usr/local)
+      if(EXISTS /usr/local/include/JAGS/version.h)
+        set(jags_HOME /usr/local)
+      endif()
+
+      if(EXISTS /usr/include/JAGS/version.h)
+        set(jags_HOME /usr)
+      endif()
+
+
     endif()
 
     if(FLATPAK_USED)
@@ -78,7 +86,7 @@ if(("jaspMetaAnalysis" IN_LIST JASP_EXTRA_MODULES) OR ("jaspJags" IN_LIST
     endif()
 
     message(CHECK_START "Looking for libjags.so")
-    find_file(LIBJAGS libjags.so HINTS ${jags_HOME}/lib REQUIRED)
+    find_file(LIBJAGS libjags.so HINTS ${jags_HOME}/lib ${jags_HOME}/lib/x86_64-linux-gnu ${jags_HOME}/lib/aarch64-linux-gnu REQUIRED)
     if(EXISTS ${LIBJAGS})
       message(CHECK_PASS "found")
       message(STATUS "  ${LIBJAGS}")
