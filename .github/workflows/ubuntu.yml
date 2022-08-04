@@ -21,13 +21,13 @@ jobs:
           path: ../Qt/6.3.1
           key: ${{ runner.os }}-QtCache-Qt6-3
       - name: Install Qt
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         with:
           version: '6.3.1'
           install-deps: 'true'
-          modules: 'qtwebengine qtcore5 qtwebchannel qtsql'
+          modules: 'qtwebengine qtwebenginequick qtcore5compat qtwebchannel qtsql'
           cached: ${{ steps.cache-qt-6-3.outputs.cache-hit }}
-          setup-python: 'true'
+          setup-python: 'false'
           tools: ''
           set-env: 'true'
           tools-only: 'false'
