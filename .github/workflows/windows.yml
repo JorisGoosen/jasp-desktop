@@ -15,18 +15,18 @@ jobs:
       - name: Cache Qt
         uses: actions/cache@v1  # not v2!
         with:
-          path: ../Qt/6.3.1
-          key: ${{ runner.os }}-QtCache-Qt6-2
+          path: ../Qt/6.3
+          key: ${{ runner.os }}-QtCache-Qt6-3
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
-          version: '6.3.1'
+          version: '6.3'
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
           install-deps: 'true'
-          modules: 'qtwebengine'
-          cached: ${{ steps.cache-qt-6-2.outputs.cache-hit }}
+          modules: 'qtwebengine qtwebenginequick qtcore5compat qtwebchannel qtsql'
+          cached: ${{ steps.cache-qt-6-3.outputs.cache-hit }}
           setup-python: 'true'
           tools: ''
           set-env: 'true'
