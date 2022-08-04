@@ -15,12 +15,30 @@ jobs:
         qt-version: [6.2]
 
     steps:
-      - name: Qt Requirements
-        run: |
-          sudo apt update
+      - name: Cache Qt
+        uses: actions/cache@v1  # not v2!
+        with:
+          path: ../Qt/6.3.1
+          key: ${{ runner.os }}-QtCache-Qt6-3
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.3.1'
+          install-deps: 'true'
+          modules: 'qtwebengine'
+          cached: ${{ steps.cache-qt-6-3.outputs.cache-hit }}
+          setup-python: 'true'
+          tools: ''
+          set-env: 'true'
+          tools-only: 'false'
+      - name: Installing R
+        uses: r-lib/actions/setup-r@v2
+        with: 
+          r-version: '4.2.1'
       - name: Dependencies
         run: |
-          sudo apt-get -y install build-essential ninja-build libqt6gui6 qt6-base-dev libqt6widgets6 libqt6quickwidgets6 libxcb-xkb-dev libqt6core5compat6-dev r-cran-rjags jags libreadstat-dev libqt6svg6-dev qt6-image-formats-plugin-pdf qt6-image-formats-plugins qt6-pdf-dev  qt6-declarative-dev qt6-l10n-tools qt6-positioning-dev qt6-webengine-dev qt6-webengine-dev-tools qt6-tools-dev-tools qt6-qmltooling-plugins qt6-base-private-dev libjsoncpp-dev libboost-all-dev mercurial gfortran-9 gfortran-10 flex bison r-base cmake libarchive-dev zlib1g-dev libzstd-dev mesa-utils libglu1-mesa-dev freeglut3-dev mesa-common-dev libglew-dev libglfw3-dev libglm-dev libao-dev libmpg123-dev
+          sudo apt update
+          sudo apt-get -y install build-essential ninja-build libxcb-xkb-dev jags libreadstat-dev libjsoncpp-dev libboost-all-dev mercurial gfortran-9 gfortran-10 flex bison cmake libarchive-dev zlib1g-dev libzstd-dev mesa-utils libglu1-mesa-dev freeglut3-dev mesa-common-dev libglew-dev libglfw3-dev libglm-dev libao-dev libmpg123-dev
       - uses: actions/checkout@v2
       - name: Configure
         run: |
