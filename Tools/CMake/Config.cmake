@@ -145,11 +145,20 @@ if(WIN32)
         "Microsoft_VC143_CRT_x64.msm"
         CACHE STRING "Module Merge Name")
     set(VC_TOOLS_REDIST_DIR_VARIABLE "%VCINSTALLDIR%")
+    #github action uses enterprise msvc..
+    if(EXISTS "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC")
+      set(VC_RELEASE_TYPE Community)
+    elseif(EXISTS "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC")
+      set(VC_RELEASE_TYPE Enterprise)
+    else()
+      set(VC_RELEASE_TYPE ???)
+    endif()
+
     set(VC_TOOLS_REDIST_PATH
-        "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Redist\\MSVC\\v143"
+        "C:\\Program Files\\Microsoft Visual Studio\\2022\\${VC_RELEASE_TYPE}\\VC\\Redist\\MSVC\\v143"
     )
     set(VC_VARS_PATH_NATIVE
-        "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build"
+        "C:\\Program Files\\Microsoft Visual Studio\\2022\\${VC_RELEASE_TYPE}\\VC\\Auxiliary\\Build"
     )
   elseif(MSVC_VERSION GREATER "1920")
     set(VC_MERGE_MODULE_NAME
