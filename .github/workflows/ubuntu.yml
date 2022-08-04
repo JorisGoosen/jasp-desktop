@@ -27,7 +27,7 @@ jobs:
           install-deps: 'true'
           modules: 'qtwebengine qtwebenginequick qtcore5compat qtwebchannel qtsql'
           cached: ${{ steps.cache-qt-6-3.outputs.cache-hit }}
-          setup-python: 'false'
+          setup-python: 'true'
           tools: ''
           set-env: 'true'
           tools-only: 'false'
