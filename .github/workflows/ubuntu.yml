@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        qt-version: [6.2]
+        qt-version: [6.3.1]
 
     steps:
       - name: Cache Qt
@@ -21,12 +21,12 @@ jobs:
           path: ../Qt/6.3.1
           key: ${{ runner.os }}-QtCache-Qt6-3
       - name: Install Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v2
         with:
           version: '6.3.1'
           install-deps: 'true'
           modules: 'qtwebengine qtwebenginequick qtcore5compat qtwebchannel qtsql'
-          cache: ${{ steps.cache-qt-6-3.outputs.cache-hit }}
+          cached: ${{ steps.cache-qt-6-3.outputs.cache-hit }}
           setup-python: 'false'
           tools: ''
           set-env: 'true'
