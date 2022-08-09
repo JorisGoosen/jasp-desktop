@@ -41,9 +41,9 @@ endif()
 find_package(ZLIB 1.2 REQUIRED)
 find_package(Iconv 1.16 REQUIRED)
 
-if(USE_CONAN)
-  find_package(jsoncpp 1.9 REQUIRED)
-endif()
+#if(USE_CONAN)
+#  find_package(jsoncpp 1.9 REQUIRED)
+#endif()
 
 find_package(OpenSSL 1.1.1 COMPONENTS SSL Crypto)
 if(NOT OpenSSL_FOUND)
@@ -199,7 +199,7 @@ if(LINUX)
   endif()
 
   find_package(PkgConfig)
-  pkg_check_modules(_PKGCONFIG_LIB_JSONCPP REQUIRED jsoncpp>=1.9)
+  #pkg_check_modules(_PKGCONFIG_LIB_JSONCPP REQUIRED jsoncpp>=1.9)
 
 endif()
 

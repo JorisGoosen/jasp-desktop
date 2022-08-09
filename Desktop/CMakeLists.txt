@@ -84,7 +84,8 @@ target_include_directories(
 			$<$<PLATFORM_ID:Windows>:${RTOOLS_LIBREADSTAT_H}>
 			${LIBREADSTAT_INCLUDE_DIRS}
 			# JSONCPP
-			$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>
+			#$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>
+			jsoncpp
 			$<$<BOOL:${FLATPAK_USED}>:/app/include/QtCore5Compat>
 			$<$<BOOL:${FLATPAK_USED}>:/app/include/QtWebEngineQuick>
 			$<$<BOOL:${FLATPAK_USED}>:/app/include/QtWebEngineCore>
@@ -129,8 +130,9 @@ target_link_libraries(
          # MinGW's ReadStat
          $<$<PLATFORM_ID:Windows>:${RTOOLS_LIBREADSTAT_DLL_A}>
          # JSONCPP
-         $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LIBRARIES}>
-         $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LINK_LIBRARIES}>
+		 #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LIBRARIES}>
+		 #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LINK_LIBRARIES}>
+		 jsoncpp_static
          # R-Framework --------------------------------
          $<$<PLATFORM_ID:Darwin>:${_R_Framework}>)
 

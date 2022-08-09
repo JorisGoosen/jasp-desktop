@@ -12,10 +12,15 @@ configure_file(${CMAKE_CURRENT_LIST_DIR}/appinfo.cpp.in
                ${CMAKE_CURRENT_LIST_DIR}/appinfo.cpp)
 message(STATUS "appinfo.cpp is successfully generated...")
 
-file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/*.h")
-file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
+file(GLOB HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/*.h")
+file(GLOB SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
+file(GLOB JASPCOLUMNENCODER_HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/jaspColumnEncoder/*.h")
+file(GLOB JASPCOLUMNENCODER_SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/jaspColumnEncoder/*.cpp")
 
-add_library(Common ${SOURCE_FILES} ${HEADER_FILES})
+add_library(Common ${SOURCE_FILES} ${HEADER_FILES} ${JASPCOLUMNENCODER_SOURCE_FILES} ${JASPCOLUMNENCODER_HEADER_FILES})
+
+add_dependencies(Common jsoncpp_static)
+
 
 if(LINUX)
 
@@ -33,14 +38,17 @@ target_include_directories(
          ${R_HOME_PATH}/include
          ${RCPP_PATH}/include
          #
-         $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>)
+		 #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>
+		 ${PROJECT_SOURCE_DIR}/jsoncpp/include
+	 )
 
 target_link_libraries(
   Common
   PUBLIC # jsoncpp
-         $<$<BOOL:${USE_CONAN}>:jsoncpp::jsoncpp>
-         $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LIBRARIES}>
-         $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LINK_LIBRARIES}>
+         #$<$<BOOL:${USE_CONAN}>:jsoncpp::jsoncpp>
+		 #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LIBRARIES}>
+		 #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LINK_LIBRARIES}>
+		 jsoncpp_static
          #
          LibArchive::LibArchive
          # Boost

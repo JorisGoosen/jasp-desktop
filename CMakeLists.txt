@@ -111,6 +111,7 @@ if(WIN32)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
+add_subdirectory(jsoncpp)
 add_subdirectory(Common)
 
 if(NOT WIN32)

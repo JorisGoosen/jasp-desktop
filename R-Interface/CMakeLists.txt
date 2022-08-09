@@ -180,12 +180,15 @@ else()
 
   add_library(R-Interface ${SOURCE_FILES} ${HEADER_FILES})
 
+  add_dependencies(R-Interface jsoncpp_static)
+
   target_include_directories(
     R-Interface
     PUBLIC # JASP
            ${PROJECT_SOURCE_DIR}/Common
            ${PROJECT_SOURCE_DIR}/Common/jaspColumnEncoder
-           $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>
+		   #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>
+		   ${PROJECT_SOURCE_DIR}/jsoncpp/include
            # R
            ${R_INCLUDE_PATH}
            ${RCPP_PATH}/include
@@ -201,9 +204,10 @@ else()
            Boost::timer
            Boost::chrono
            # CPM/CMake
-           $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LIBRARIES}>
-           $<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LINK_LIBRARIES}>
-           $<$<BOOL:${USE_CONAN}>:jsoncpp::jsoncpp>
+		   #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LIBRARIES}>
+		   #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LINK_LIBRARIES}>
+		   #$<$<BOOL:${USE_CONAN}>:jsoncpp::jsoncpp>
+		   jsoncpp_static
            # R
            ${_LIB_RINSIDE}
            $<$<PLATFORM_ID:Linux>:${_LIB_R}>
