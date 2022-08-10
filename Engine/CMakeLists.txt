@@ -32,9 +32,7 @@ target_include_directories(
   JASPEngine
   PUBLIC ${PROJECT_SOURCE_DIR}/R-Interface
          ${PROJECT_SOURCE_DIR}/Common
-         # Conan
-         $<$<BOOL:${USE_CONAN}>:${CONAN_INCLUDE_DIRS_JSONCPP}>
-         #
+		 ${PROJECT_SOURCE_DIR}/jsoncpp/include
          ${Boost_INCLUDE_DIRS})
 
 if(WIN32)
