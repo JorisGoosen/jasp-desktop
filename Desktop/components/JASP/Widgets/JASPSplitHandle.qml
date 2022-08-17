@@ -17,6 +17,8 @@ Rectangle
 	property string toolTipArrow:	""
 	property bool	hovered:		hoverMouse.containsMouse
 
+	property alias	hoverMouseArea:	hoverMouse
+
 	implicitWidth:	jaspTheme.splitHandleWidth
 	width:			implicitWidth
 	color:			handleRoot.dragEnabled && handleRoot.hovered ? jaspTheme.grayLighter : jaspTheme.uiBackground

@@ -23,49 +23,59 @@ import JASP.Widgets		1.0
 import JASP.Controls	1.0
 import QtQuick.Controls 6.0
 
+/// The main principle here will be that we want to have 3 views (or 2 when no data)
+/// This will be shown in a splitview as: [ (DataPanel,) AnalysisForms, ResultsWebEngine ]
+/// Previously there was some messing about outside of the screen to the left and right
+/// but that only leads to problems and makes this qml more complicated than necessary...
+/// So, without doing that again the aim should be:
+/// Make sure the separators are easy to use, that the arrowbuttons in the handles turn leftward only when at maximum width
+/// We also want to be able to softly close the analysisforms by dragging it left,
+/// to expose more of the results while keeping some of the form visible. The analyses forms should then slight out to the "left"
+/// The datapanel on the other hand will just be anchored to the left inside its window and dragging or using the arrows just exposes it
+/// The results window will also be anchored to the left and should have extra width inside its window.
+/// That extra width should be the same width as its possible max when analyses and data are collapsed.
+/// Otherwise the webengine needs to change layout too much.
+///
+/// Other behaviour should include the way that datapanel (or results for that matter) stay maximized if the jasp windowsize changes.
+/// Also, when new analyses are added the results + analysisform should both be in screen if possible (and otherwise at least the analyses)
 Item
 {
 	id: splitViewContainer
 
+	/*
 	onWidthChanged:
 	{
 		if(!mainWindow.analysesAvailable)												data.maximizeData();
 		else if(data.wasMaximized)														return; //wasMaximized binds!
 		else if(splitViewContainer.width <= data.width + jaspTheme.splitHandleWidth)	data.maximizeData();
-	}
+	}*/
 
-	onVisibleChanged:	if(visible && !mainWindow.dataPanelVisible)	data.minimizeData();
+	//onVisibleChanged:	if(visible && !mainWindow.dataPanelVisible)	data.minimizeData();
 
 	SplitView
 	{
 		id:				panelSplit
 		orientation:	Qt.Horizontal
-		height:			parent.height
-		width:			parent.width + hackySplitHandlerHideWidth + leftHandSplitHandlerSpace
-		x:				-leftHandSplitHandlerSpace
-
-		//hackySplitHandlerHideWidth is there to create some extra space on the right side for the analysisforms I put inside the splithandle. https://github.com/jasp-stats/INTERNAL-jasp/issues/144
-		//And also on the left side to allow it to move out of the screen there.
-		property int	hackySplitHandlerHideWidth:	( mainWindow.analysesAvailable ? (analysesModel.visible ? leftHandSplitHandlerSpace : 0 ) + jaspTheme.splitHandleWidth : 0 )
-		property int	leftHandSplitHandlerSpace:	jaspTheme.formWidth + 3 + jaspTheme.scrollbarBoxWidthBig
-
-		onResizingChanged: if(!resizing) data.makeSureHandleVisible();
+		anchors.fill:	parent
 
 		DataPanel
 		{
 			id:						data
-			visible:				mainWindow.dataAvailable || fakeEmptyDataForSumStatsEtc //|| analysesModel.count > 0
 			z:						1
-			leftHandSpace:			panelSplit.leftHandSplitHandlerSpace
 
-			property real baseMaxWidth:					fakeEmptyDataForSumStatsEtc ? 0 : splitViewContainer.width - (mainWindow.analysesAvailable ? jaspTheme.splitHandleWidth : 0)
-			property real maxWidth:						leftHandSpace + baseMaxWidth
+			property real maxWidth:			! mainWindow.dataAvailable ? 0 : splitViewContainer.width - (mainWindow.analysesAvailable ?  2 * jaspTheme.splitHandleWidth : 0)
+			SplitView.maximumWidth:			maxWidth
+			SplitView.preferredWidth:		maxWidth
+
+			/*property real baseMaxWidth:					fakeEmptyDataForSumStatsEtc ? 0 : splitViewContainer.width - (mainWindow.analysesAvailable ? jaspTheme.splitHandleWidth : 0)
 			property bool fakeEmptyDataForSumStatsEtc:	!mainWindow.dataAvailable && mainWindow.analysesAvailable
 			property bool wasMaximized:					false
 
-			function makeSureHandleVisible()
+			signal makeSureHandleVisible()
+
+			function onMakeSureHandleVisible()
 			{
-				if(!analysesModel.visible && data.width < leftHandSpace)
+				if(data.width < leftHandSpace)
 					data.minimizeData();
 				else if(data.width - leftHandSpace > splitViewContainer.width - jaspTheme.splitHandleWidth)
 					data.maximizeData();
@@ -111,51 +121,38 @@ Item
 					if(!visible)
 						data.makeSureHandleVisible();
 				}
-			}
+			}*/
 		}
 
 
-		handle: Item
-		{
-			implicitWidth:			splitHandle.width + analyses.implicitWidth
-			width:					implicitWidth
-
-
-
-			JASPSplitHandle
+		handle:
+			AnalysesSplitHandle
 			{
-				id:				splitHandle
-				onArrowClicked:	mainWindow.dataPanelVisible = !mainWindow.dataPanelVisible
-				pointingLeft:	mainWindow.dataPanelVisible
-				showArrow:		mainWindow.dataAvailable
-				toolTipArrow:	mainWindow.dataAvailable	? (mainWindow.dataPanelVisible ? qsTr("Hide data")  : qsTr("Show data")) : ""
-				toolTipDrag:	mainWindow.dataPanelVisible ? qsTr("Resize data/results") : qsTr("Drag to show data")
-				dragEnabled:	mainWindow.dataAvailable && mainWindow.analysesAvailable
+				id:					splitHandle
+				z:					1000
+				splitView:			panelSplit
+				/*containmentMask:	Item
+				{
+					width:			splitHandle.implicitWidth
+					height:			splitHandle.height
+				}*/
 			}
 
-			AnalysisForms
-			{
-				id:						analyses
-				z:						-1
-				visible:				mainWindow.analysesAvailable
-				width:					visible ? implicitWidth : 0
-				anchors.top:			parent.top
-				anchors.bottom:			parent.bottom
-				anchors.left:			splitHandle.right
-			}
-		}
+
 
 		Rectangle
 		{
 			id:								giveResultsSomeSpace
-			SplitView.preferredWidth:		jaspTheme.resultWidth + panelSplit.hackySplitHandlerHideWidth
+			property int maxResultsWidth:	splitViewContainer.width - (2 * jaspTheme.splitHandleWidth)
+			SplitView.maximumWidth:			maxResultsWidth
+			SplitView.preferredWidth:		jaspTheme.resultWidth
 			SplitView.fillWidth:			true
 			z:								3
 			visible:						mainWindow.analysesAvailable
-			onVisibleChanged:				if(visible) width = jaspTheme.resultWidth; else data.maximizeData()
+			//onVisibleChanged:				if(visible) width = jaspTheme.resultWidth; else data.maximizeData()
 			color:							analysesModel.currentAnalysisIndex !== -1 ? jaspTheme.uiBackground : jaspTheme.white
 
-			Connections
+			/*Connections
 			{
 				target:				analysesModel
 				function			onAnalysisAdded()
@@ -173,12 +170,11 @@ Item
 						else							data.width = remainingDataWidth
 					}
 				}
-			}
+			}*/
 
 			WebEngineView
 			{
 				id:						resultsView
-				clip:                   true
 
 				anchors
 				{
@@ -187,7 +183,7 @@ Item
 				}
 
 				x:						1 + (Math.floor(parent.x) - parent.x)
-				width:					Math.floor(giveResultsSomeSpace.width - panelSplit.hackySplitHandlerHideWidth)
+				width:					giveResultsSomeSpace.maxResultsWidth
 
 				url:					resultsJsInterface.resultsPageUrl
 				onContextMenuRequested: (request)=>{ request.accepted = true; }

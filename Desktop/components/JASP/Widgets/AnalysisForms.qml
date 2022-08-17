@@ -10,7 +10,7 @@ FocusScope
 	implicitWidth:	extraSpace + (analysesModel.visible ? jaspTheme.formWidth + 1 + (2 * formsBackground.border.width) + verticalScrollbar.width : 0)
 	width:			implicitWidth
 
-	property int	extraSpace:	openCloseButton.width
+	property int	extraSpace: 0//	openCloseButton.width
 
 	Behavior on width { enabled: preferencesModel.animationsOn; PropertyAnimation { duration: jaspTheme.fileMenuSlideDuration; easing.type: Easing.OutCubic  } }
 
@@ -56,7 +56,7 @@ FocusScope
 			function onCurrentAnalysisIndexChanged(index) { formsBackground.scrollToForm(index); }
 		}
 
-		Rectangle
+		/*Rectangle
 		{
 			id:				openCloseButton
 			width:			jaspTheme.splitHandleWidth + (2 * border.width)
@@ -80,9 +80,9 @@ FocusScope
 				}
 				toolTipDrag:			mainWindow.dataAvailable	? (mainWindow.dataPanelVisible ? qsTr("Resize data/results")  : qsTr("Drag to show data")) : ""
 				toolTipArrow:			analysesModel.visible		? qsTr("Hide input options") : qsTr("Show input options")
-				dragEnabled:			mainWindow.dataAvailable && mainWindow.analysesAvailable
+				dragEnabled:			mainWindow.analysesAvailable
 			}
-		}
+		}*/
 
 		Item
 		{
@@ -95,7 +95,7 @@ FocusScope
 			{
 				top:		parent.top
 				left:		parent.left
-				right:		openCloseButton.left
+				right:		parent.right
 				bottom:		parent.bottom
 				margins:	parent.border.width
 			}
