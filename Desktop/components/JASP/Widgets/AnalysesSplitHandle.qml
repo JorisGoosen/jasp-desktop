@@ -26,15 +26,7 @@ Item
 	width:				implicitWidth
 	implicitWidth:		!mainWindow.analysesAvailable ? splitHandleLeft.width : analysesItem.x + analysesItem.width
 
-	property SplitView splitView:	undefined
-
-	onImplicitWidthChanged:
-	{
-		width = implicitWidth;
-
-		if(splitView)
-			splitView.requestLayout()
-	}
+	onImplicitWidthChanged:	width = implicitWidth;
 
 	JASPSplitHandle
 	{

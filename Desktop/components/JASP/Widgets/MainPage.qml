@@ -16,12 +16,12 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import QtQuick			2.12
-import QtWebEngine		1.7
-import QtWebChannel		1.0
-import JASP.Widgets		1.0
-import JASP.Controls	1.0
-import QtQuick.Controls 6.0
+import QtQuick
+import QtWebEngine
+import QtWebChannel
+import JASP.Widgets
+import JASP.Controls
+import QtQuick.Controls
 
 /// The main principle here will be that we want to have 3 views (or 2 when no data)
 /// This will be shown in a splitview as: [ (DataPanel,) AnalysisForms, ResultsWebEngine ]
@@ -42,12 +42,11 @@ Item
 {
 	id: splitViewContainer
 
-	/*
-	onWidthChanged:
+
+/*	onWidthChanged:
 	{
-		if(!mainWindow.analysesAvailable)												data.maximizeData();
-		else if(data.wasMaximized)														return; //wasMaximized binds!
-		else if(splitViewContainer.width <= data.width + jaspTheme.splitHandleWidth)	data.maximizeData();
+		if(data.wasMaximized)														return; //wasMaximized binds!
+		else if(splitViewContainer.width <= data.width + panelSplit.handleWidth)	data.maximizeData();
 	}*/
 
 	//onVisibleChanged:	if(visible && !mainWindow.dataPanelVisible)	data.minimizeData();
@@ -58,14 +57,78 @@ Item
 		orientation:	Qt.Horizontal
 		anchors.fill:	parent
 
+		property int handleWidth: jaspTheme.splitHandleWidth * 2
+
 		DataPanel
 		{
 			id:						data
 			z:						1
 
-			property real maxWidth:			! mainWindow.dataAvailable ? 0 : splitViewContainer.width - (mainWindow.analysesAvailable ?  2 * jaspTheme.splitHandleWidth : 0)
+			property int  maxWidth:			!mainWindow.dataAvailable ? 0 : splitViewContainer.width - (mainWindow.analysesAvailable ? panelSplit.handleWidth : 0 )
+			property int  prefWidth:		maxWidth
+			onPrefWidthChanged:				SplitView.preferredWidth = prefWidth;
+
 			SplitView.maximumWidth:			maxWidth
-			SplitView.preferredWidth:		maxWidth
+			SplitView.preferredWidth:		prefWidth
+
+
+			property bool wasMaximized:					false
+
+			function maximizeData()
+			{
+				prefWidth = Qt.binding(function(){ return data.maxWidth; });
+				data.wasMaximized = true;
+
+			}
+
+
+			function minimizeData()
+			{
+				prefWidth = 0;
+				data.wasMaximized = false;
+			}
+
+			onWidthChanged:
+			{
+				/*if(!mainWindow.dataAvailable)
+				{
+					prefWidth = 0;
+					return;
+				}
+
+				if(data.wasMaximized)
+				{
+					prefWidth = data.maxWidth;
+				}*/
+
+
+				var iAmBig = width > 0;
+				if(iAmBig != mainWindow.dataPanelVisible)
+					mainWindow.dataPanelVisible = iAmBig
+
+
+				if(data.width != data.maxWidth)
+					data.wasMaximized = false;
+			}
+
+			Connections
+			{
+				target:		mainWindow
+				function onDataPanelVisibleChanged(visible)
+				{
+					if (visible && data.width <= 0)
+					{
+						//analysesModel.visible = false;
+						data.maximizeData();
+					}
+					else if(!visible)
+					{
+						//analysesModel.visible = true;
+						data.minimizeData();
+					}
+				}
+			}
+
 
 			/*property real baseMaxWidth:					fakeEmptyDataForSumStatsEtc ? 0 : splitViewContainer.width - (mainWindow.analysesAvailable ? jaspTheme.splitHandleWidth : 0)
 			property bool fakeEmptyDataForSumStatsEtc:	!mainWindow.dataAvailable && mainWindow.analysesAvailable
@@ -128,9 +191,10 @@ Item
 		handle:
 			AnalysesSplitHandle
 			{
-				id:					splitHandle
-				z:					1000
-				splitView:			panelSplit
+				id:							splitHandle
+				z:							1000
+				onImplicitWidthChanged:		mainWindow.mainPageViewUpdateTrigger(implicitWidth)
+
 				/*containmentMask:	Item
 				{
 					width:			splitHandle.implicitWidth
@@ -139,28 +203,51 @@ Item
 			}
 
 
+		Connections
+		{
+			target:	mainWindow
+
+			function onMainPageViewUpdateSignal(width)
+			{
+				if(giveResultsSomeSpace.width > 0)
+					data.prefWidth = data.width
+
+				panelSplit.handleWidth = width;
+
+
+
+				/*var handleDataWidth = width + data.width;
+
+				if(mainWindow.dataAvailable && handleDataWidth > splitViewContainer.width)
+				{
+				}
+				else
+					giveResultsSomeSpace.prefWidth = giveResultsSomeSpace.maxWidth - (handleDataWidth);*/
+			}
+		}
 
 		Rectangle
 		{
 			id:								giveResultsSomeSpace
-			property int maxResultsWidth:	splitViewContainer.width - (2 * jaspTheme.splitHandleWidth)
-			SplitView.maximumWidth:			maxResultsWidth
-			SplitView.preferredWidth:		jaspTheme.resultWidth
+			property int maxWidth:			splitViewContainer.width - panelSplit.handleWidth
+			property int prefWidth:			jaspTheme.resultWidth
+			SplitView.maximumWidth:			maxWidth
+			SplitView.preferredWidth:		prefWidth
 			SplitView.fillWidth:			true
 			z:								3
 			visible:						mainWindow.analysesAvailable
-			//onVisibleChanged:				if(visible) width = jaspTheme.resultWidth; else data.maximizeData()
+			onVisibleChanged:				if(visible) prefWidth = jaspTheme.resultWidth; else data.maximizeData()
 			color:							analysesModel.currentAnalysisIndex !== -1 ? jaspTheme.uiBackground : jaspTheme.white
 
-			/*Connections
+			Connections
 			{
 				target:				analysesModel
 				function			onAnalysisAdded()
 				{
 					//make sure we get to see the results!
 
-					var inputOutputWidth	= splitViewContainer.width - (data.width + jaspTheme.splitHandleWidth)
-					var remainingDataWidth	= Math.max(0, data.width - (jaspTheme.splitHandleWidth + jaspTheme.resultWidth));
+					var inputOutputWidth	= splitViewContainer.width - (data.width + panelSplit.handleWidth)
+					var remainingDataWidth	= Math.max(0, data.width - (panelSplit.handleWidth + jaspTheme.resultWidth));
 
 					if(inputOutputWidth < 100 * preferencesModel.uiScale)
 						 mainWindow.dataPanelVisible = false;
@@ -170,7 +257,7 @@ Item
 						else							data.width = remainingDataWidth
 					}
 				}
-			}*/
+			}
 
 			WebEngineView
 			{
@@ -183,7 +270,7 @@ Item
 				}
 
 				x:						1 + (Math.floor(parent.x) - parent.x)
-				width:					giveResultsSomeSpace.maxResultsWidth
+				width:					giveResultsSomeSpace.maxWidth
 
 				url:					resultsJsInterface.resultsPageUrl
 				onContextMenuRequested: (request)=>{ request.accepted = true; }

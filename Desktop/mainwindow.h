@@ -205,6 +205,8 @@ signals:
 	void welcomePageVisibleChanged(	bool		welcomePageVisible);
 	void downloadNewJASPUrlChanged	(QString	downloadNewJASPUrl);
 	void closeWindows();
+	void mainPageViewUpdateTrigger(	int			splitHandleWidth);
+	void mainPageViewUpdateSignal(	int			splitHandleWidth);
 
 private slots:
 	void resultsPageLoaded();

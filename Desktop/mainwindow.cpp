@@ -261,6 +261,7 @@ Q_DECLARE_METATYPE(columnType)
 void MainWindow::makeConnections()
 {
 	connect(this,					&MainWindow::saveJaspFile,							this,					&MainWindow::saveJaspFileHandler,							Qt::QueuedConnection);
+	connect(this,					&MainWindow::mainPageViewUpdateTrigger,				this,					&MainWindow::mainPageViewUpdateSignal,						Qt::QueuedConnection);
 	connect(this,					&MainWindow::screenPPIChanged,						_preferences,			&PreferencesModel::setDefaultPPI							);
 	connect(this,					&MainWindow::editImageCancelled,					_resultsJsInterface,	&ResultsJsInterface::cancelImageEdit						);
 	connect(this,					&MainWindow::dataAvailableChanged,					_dynamicModules,		&DynamicModules::setDataLoaded								);
