@@ -47,7 +47,7 @@ Item
 		z:						500
 		width:					implicitWidth
 		clip:					true
-		implicitWidth:			analyses.implicitWidth + splitHandleRight.implicitWidth
+		implicitWidth:			analyses.x + analyses.implicitWidth + splitHandleRight.implicitWidth
 
 		anchors.top:			parent.top
 		anchors.bottom:			parent.bottom
@@ -56,12 +56,49 @@ Item
 		AnalysisForms
 		{
 			id:						analyses
-			x:						0
+			x:						-implicitWidth
 			width:					implicitWidth
 			anchors.top:			parent.top
 			anchors.bottom:			parent.bottom
-		}
+			beingDragged:			splitHandleRight.hoverMouseArea.drag.active
 
+			property int dragStartX: 0
+
+			onXChanged:
+				if(beingDragged)
+				{
+					if(x <= splitHandleRight.hoverMouseArea.drag.minimumX && x < analyses.dragStartX)
+					{
+						//dragged left and is now minimum size:
+						analysesModel.visible = false;
+						//That should cancel the drag as well? If it was visible anyway
+
+
+					}
+					/*else if(x >= splitHandleRight.hoverMouseArea.drag.maximumX && x > analyses.dragStartX)
+					{
+						//dragged right and now at maximum
+						analysesModel.visible = true; //I guess it already was?
+					}*/
+				}
+
+
+
+			property int dragMouseStart: 0
+
+
+
+			Connections
+			{
+				target: analysesModel
+
+				function onVisibleChanged(visible)
+				{
+					if(!visible)	analyses.x = -analyses.implicitWidth
+					else			analyses.x = 0
+				}
+			}
+		}
 
 		JASPSplitHandle
 		{
@@ -79,11 +116,19 @@ Item
 			anchors.bottom:			parent.bottom
 			anchors.left:			analyses.right
 
-/*
+			hoverMouseArea.acceptedButtons: analysesModel.visible ? Qt.LeftButton : Qt.NoButton
 			hoverMouseArea.drag.target:		analyses
 			hoverMouseArea.drag.axis:		Drag.XAxis
 			hoverMouseArea.drag.minimumX:	-analyses.implicitWidth
-			hoverMouseArea.drag.maximumX:	0*/
+			hoverMouseArea.drag.maximumX:	0
+
+
+			hoverMouseArea.onPressed: function(mouse)
+			{
+				analyses.dragStartX = analyses.x
+				analyses.dragMouseStart = mouse.x
+			}
+
 		}
 	}
 

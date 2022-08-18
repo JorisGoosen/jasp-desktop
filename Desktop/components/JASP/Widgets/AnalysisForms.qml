@@ -7,12 +7,12 @@ import JASP.Controls	1.0
 FocusScope
 {
 	id:				analysisFormsFocusScope
-	implicitWidth:	extraSpace + (analysesModel.visible ? jaspTheme.formWidth + 1 + (2 * formsBackground.border.width) + verticalScrollbar.width : 0)
+	implicitWidth:	jaspTheme.formWidth + 1 + (2 * formsBackground.border.width) + verticalScrollbar.width
 	width:			implicitWidth
 
-	property int	extraSpace: 0//	openCloseButton.width
+	property bool beingDragged: false
 
-	Behavior on width { enabled: preferencesModel.animationsOn; PropertyAnimation { duration: jaspTheme.fileMenuSlideDuration; easing.type: Easing.OutCubic  } }
+	Behavior on x { enabled: !beingDragged && preferencesModel.animationsOn; PropertyAnimation { duration: jaspTheme.fileMenuSlideDuration; easing.type: Easing.OutCubic  } }
 
 
 	Rectangle
@@ -87,7 +87,7 @@ FocusScope
 		Item
 		{
 			id:				scrollAnalyses
-			visible:		analysisFormsFocusScope.width > analysisFormsFocusScope.extraSpace
+			visible:		analysisFormsFocusScope.width > 0
 			z:				2
 			clip:			true
 
@@ -203,6 +203,7 @@ FocusScope
 				z:					-10
 				onWheel:			(wheel)=>{ wheel.accepted = true; }
 				onPositionChanged:	(mouse)=>{ mouse.accepted = true; }
+				acceptedButtons:	Qt.NoButton
 				anchors
 				{
 					fill:			parent

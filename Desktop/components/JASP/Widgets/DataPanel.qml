@@ -7,6 +7,7 @@ Rectangle
 {
 	id:				rootDataset
 	color:			jaspTheme.uiBackground
+	clip:			true
 
 	property int leftHandSpace: 0 //Used to allow splithandler to move out of the screen on the left a bit.
 
