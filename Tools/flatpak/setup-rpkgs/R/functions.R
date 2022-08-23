@@ -273,7 +273,38 @@ installRecommendedPackages <- function(dirs) {
     # for some reason, "devtools" and "roxygen2" are missing...
     # renv is not a direct dependency and is installed by default
     # jasp-desktop does somewhere loadNamespace("remotes"), which is why we also download it here
-    "devtools", "roxygen2", "renv", "remotes"
+    "devtools", "roxygen2", "renv", "remotes", "crayon",
+    # jaspBase dependencies:
+    "codetools",
+    "compiler",
+    "ggplot2",
+    "grDevices",
+    "grid",
+    "gridExtra",
+    "gridGraphics",
+    "jsonlite",
+    "lifecycle",
+    "methods",
+    "modules",
+    "officer",
+    "pkgbuild",
+    "plyr",
+    "qgraph",
+    "ragg",
+    "R6",
+    "Rcpp",
+    "renv",
+    "rjson",
+    "rvg",
+    "svglite",
+    "systemfonts",
+    "withr",
+    "ggplot2",
+    "gtable",
+    "RColorBrewer",
+    "rlang",
+    "scales",
+    "viridisLite"
   )
 
   toInstall <- setdiff(toInstall, alreadyDownloadedPkgs)
