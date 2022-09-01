@@ -55,15 +55,25 @@ string Dirs::tempDir()
 	if (p != "")
 		return p;
 
+<<<<<<< Updated upstream
 	string dir;
+<<<<<<< Updated upstream
 	std::filesystem::path pa;
+=======
+	boost::filesystem::path pa;
+=======
+    string dir;
+	std::filesystem::path pa;
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
 #ifdef _WIN32
-	char buffer[MAX_PATH];
-	if ( ! SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, buffer)))
+    wchar_t buffer[MAX_PATH];
+    if ( ! SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, buffer)))
 		throw Exception("App Data directory could not be retrieved");
 
-	dir = std::string(buffer);
+    dir = Utils::wstringToString(buffer);
+
 	dir += "/JASP/temp";
 
 	pa = (dir);
