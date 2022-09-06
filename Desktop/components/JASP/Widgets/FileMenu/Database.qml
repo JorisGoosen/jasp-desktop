@@ -98,7 +98,7 @@ For a local or toy database this is probably overkill, but use your own judgemen
                     width:					dbHostnameLabel.width
                 }
 
-				QC.ComboBox
+				QtComboBoxStyled
                 {
                     id:						dbDriver
                     x:						dbHostnameLabel.width
@@ -111,6 +111,8 @@ For a local or toy database this is probably overkill, but use your own judgemen
 					model:					fileMenuModel.database.dbTypes
 
                     KeyNavigation.tab:		dbHostnameInput
+
+
                 }
             }
 

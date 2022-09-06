@@ -83,10 +83,11 @@ ComboBoxBase
 		}
 	}
 
-	ComboBox
+	QtComboBoxStyled
 	{
 						id:				control
 						model:			comboBox.model
+
 						anchors.left:	!rectangleLabel.visible || comboBox.setLabelAbove ? comboBox.left : rectangleLabel.right
 						anchors.leftMargin: !rectangleLabel.visible || comboBox.setLabelAbove ? 0 : jaspTheme.labelSpacing
 						anchors.top:	rectangleLabel.visible && comboBox.setLabelAbove ? rectangleLabel.bottom: comboBox.top
@@ -99,129 +100,25 @@ ComboBoxBase
 						font:			jaspTheme.font
 		property int	modelWidth:		30 * preferencesModel.uiScale
 		property int	extraWidth:		5 * padding + dropdownIcon.width
-		property bool	isEmptyValue:	comboBox.addEmptyValue && comboBox.currentIndex === 0
-		property bool	showEmptyValueStyle:	!comboBox.showEmptyValueAsNormal && isEmptyValue
-
-		TextMetrics
-		{
-			id: textMetrics
-			font: control.font
-
-			property bool initialized: false
-
-			onWidthChanged:
-			{
-				if (initialized)
-					_resetWidth(width)
-			}
-		}
-
-		contentItem: Rectangle
-		{
-			color:	jaspTheme.controlBackgroundColor
-			Image
-			{
-				id:						contentIcon
-				height:					15 * preferencesModel.uiScale
-				width:					15 * preferencesModel.uiScale
-				x:						3  * preferencesModel.uiScale
-				anchors.verticalCenter: parent.verticalCenter
-				source:					!visible ? "" : comboBox.currentColumnTypeIcon
-				visible:				comboBox.showVariableTypeIcon && comboBox.currentColumnType && !control.isEmptyValue
-			}
-
-			Text
-			{
-				anchors.left:				contentIcon.visible ? contentIcon.right : parent.left
-				anchors.leftMargin:			4 * preferencesModel.uiScale
-				anchors.verticalCenter:		parent.verticalCenter
-				anchors.horizontalCenter:	control.showEmptyValueStyle ? parent.horizontalCenter : undefined
-				text:						comboBox.currentText
-				font:						control.font
-				color:						(!enabled || control.showEmptyValueStyle) ? jaspTheme.grayDarker : jaspTheme.black
-			}
-		}
-
-		indicator: Image
-		{
-			id:			dropdownIcon
-			x:			control.width - width - 3 //control.spacing
-			y:			control.topPadding + (control.availableHeight - height) / 2
-			width:		12 * preferencesModel.uiScale
-			height:		12 * preferencesModel.uiScale
-			source:		jaspTheme.iconPath + "/toolbutton-menu-indicator.svg"
-
-		}
-
-		background: Rectangle
-		{
-			id:				comboBoxBackground
-			border.width:	comboBox.showBorder && !control.activeFocus ? 1					: 0
-			border.color:	comboBox.showBorder							? jaspTheme.borderColor : "transparent"
-			radius:			2
-			color:			jaspTheme.controlBackgroundColor
-		}
-
-		Rectangle
-		{
-			id:					externalControlBackground
-			height:				parent.height + jaspTheme.jaspControlHighlightWidth
-			width:				parent.width + jaspTheme.jaspControlHighlightWidth
-			color:				"transparent"
-			border.width:		1
-			border.color:		"transparent"
-			anchors.centerIn:	parent
-			opacity:			debug ? .3 : 1
-			visible:			comboBox.useExternalBorder
-			radius:				jaspTheme.jaspControlHighlightWidth
-		}
-
-		popup: Popup
-		{
-			y:				control.height - 1
-			width:			comboBoxBackground.width
-			padding:		1
-
-			enter: Transition { NumberAnimation { property: "opacity"; from: 0.0; to: 1.0 } enabled: preferencesModel.animationsOn }
-
-			JASPScrollBar
-			{
-				id:				scrollBar
-				flickable:		popupView
-				manualAnchor:	true
-				vertical:		true
-				visible:		addScrollBar
-				z:				1337
-
-				anchors
-				{
-					top:		parent.top
-					right:		parent.right
-					bottom:		parent.bottom
-					margins:	2
-				}
-			}
 
 
-			contentItem: ListView
-			{
-				id: popupView
-				width:			comboBoxBackground.width
-				implicitHeight: contentHeight
-				model:			control.popup.visible ? control.delegateModel : null
-				currentIndex:	control.highlightedIndex
-				clip:			true
+						isEmptyValue:			comboBox.addEmptyValue && comboBox.currentIndex === 0
+						showEmptyValueStyle:	!comboBox.showEmptyValueAsNormal && isEmptyValue
 
-				Rectangle
-				{
-					anchors.centerIn: parent
-					width: parent.width + 4
-					height: parent.height + 4
-					border.color:	jaspTheme.focusBorderColor
-					border.width:	2
-					color: "transparent"
-				}
-			}
+						showIcon:				comboBox.showVariableTypeIcon && comboBox.currentColumnType && !control.isEmptyValue
+						iconSource:				!visible ? "" : comboBox.currentColumnTypeIcon
+						showBorder:				comboBox.showBorder
+						useExternalBorder:		comboBox.useExternalBorder
+						enabledOptions:			comboBox.enabledOptions
+
+						addEmptyValue:			comboBox.addEmptyValue
+						showEmptyValueAsNormal:	comboBox.showEmptyValueAsNormal
+						addLineAfterEmptyValue:	comboBox.addLineAfterEmptyValue
+						showVariableTypeIcon:	comboBox.showVariableTypeIcon
+
+						placeholderText:		comboBox.placeholderText
+						addScrollBar:			addScrollBar
+
 		}
 
 		delegate: ItemDelegate
