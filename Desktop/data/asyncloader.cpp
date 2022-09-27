@@ -34,7 +34,7 @@ using namespace std;
 
 AsyncLoader::AsyncLoader(QObject *parent) :
 	QObject(parent)
-{ 
+{
 	connect(this, &AsyncLoader::beginLoad, this, &AsyncLoader::loadTask, Qt::QueuedConnection);
 	connect(this, &AsyncLoader::beginSave, this, &AsyncLoader::saveTask, Qt::QueuedConnection);
 }
@@ -109,7 +109,7 @@ void AsyncLoader::saveTask(FileEvent *event)
 		int	maxSleepTime	= 2000,
 			sleepTime		= 100,
 			delay			= 0;
-		
+
 		while (DataSetPackage::pkg()->isReady() == false)
 		{
 			if (delay > maxSleepTime)
@@ -123,25 +123,25 @@ void AsyncLoader::saveTask(FileEvent *event)
 		if (exporter)	exporter->saveDataSet(fq(tempPath), boost::bind(&AsyncLoader::progressHandler, this, _1));
 		else			throw runtime_error("No Exporter found!");
 
-		int attempts = 1;
-
-#ifdef _WIN32
-		if(event->type() == Utils::FileType::pdf)
-			attempts = 5;
-#endif		
+		int attempts =
+#ifndef _WIN32
+						1;
+#else
+						5; //Windows might not give the .tmp file free quick enough...
+#endif
 		bool renameSucceeded = false;
-		
+
 		while(
-			  !		(renameSucceeded = Utils::renameOverwrite(fq(tempPath), fq(path))) 
+			  !		(renameSucceeded = Utils::renameOverwrite(fq(tempPath), fq(path)))
 			  &&	--attempts > 0)
 		{
-			Utils::sleep(sleepTime); //Yes Bruno, I can hear you laugh. But it seems webengine is not releasing the pdf.tmp file quickly enough on Windows... See: https://github.com/jasp-stats/jasp-test-release/issues/957
+			Utils::sleep(sleepTime); //Yes Bruno, I can hear you laugh. But it seems webengine is not releasing the pdf/html.tmp file quickly enough on Windows... See: https://github.com/jasp-stats/jasp-test-release/issues/957 and https://github.com/jasp-stats/jasp-test-release/issues/2013
 		}
-		
+
 		if(!renameSucceeded)
 			throw runtime_error("File '" + fq(path) + "' or '" + fq(tempPath) + "' is being used by another application.");
 
-		
+
 		if (event->isOnlineNode())	// Not really sure why we would need to do the invokeMethod here?
 			QMetaObject::invokeMethod(
 						_odm, "beginUploadFile", Qt::AutoConnection,
@@ -255,7 +255,7 @@ void AsyncLoader::loadPackage(QString id)
 			if (_currentEvent->type() != Utils::FileType::jasp)
 			{
 				pkg->setDataFilePath(_currentEvent->path().toStdString());
-                pkg->setDataFileTimestamp(_currentEvent->isOnlineNode() ? 0 : QFileInfo(_currentEvent->path()).lastModified().toSecsSinceEpoch());
+				pkg->setDataFileTimestamp(_currentEvent->isOnlineNode() ? 0 : QFileInfo(_currentEvent->path()).lastModified().toSecsSinceEpoch());
 				pkg->setDatabaseJson(_currentEvent->database());
 			}
 			pkg->setDataFileReadOnly(_currentEvent->isReadOnly());
