@@ -49,6 +49,12 @@ const std::string	jaspExtension		= ".jasp",
 // The remove-junction mode is called before the uninstaller runs to remove all these junctions: doing this prevent the uninstaller to run for ages.
 bool runJaspEngineJunctionFixer(int argc, char *argv[], bool removeJunctions = false, bool exitAfterwards = true)
 {
+	//Force safe graphics 
+	QCoreApplication::setAttribute(Qt::AA_UseSoftwareOpenGL);
+	args.push_back("--disable-gpu");
+	char dst[] = "LIBGL_ALWAYS_SOFTWARE=1";
+	putenv(dst);
+	
 	QApplication	*	app		= exitAfterwards ? new QApplication(argc, argv) : nullptr;
 	QProcessEnvironment env		= ProcessHelper::getProcessEnvironmentForJaspEngine();
 	QString				workDir = QFileInfo( QCoreApplication::applicationFilePath() ).absoluteDir().absolutePath();
