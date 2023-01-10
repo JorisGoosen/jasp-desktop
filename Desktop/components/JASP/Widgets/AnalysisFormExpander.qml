@@ -378,6 +378,7 @@ DropArea
 				MenuButton
 				{
 					id:					rSyntaxButton
+					height:				editButton.height * 1.1
 					width:				height
 					iconSource:			jaspTheme.iconPath + "/R.png"
 					enabled:			expanderButton.expanded
@@ -388,11 +389,12 @@ DropArea
 					visible:            formParent.myForm && formParent.myForm.showRButton
 					anchors
 					{
-						top:			parent.top
+						//top:			parent.top
 						right:			editButton.left
-						bottom:			parent.bottom
-						topMargin:		editButton.anchors.topMargin
-						bottomMargin:	editButton.anchors.bottomMargin
+						//bottom:			parent.bottom
+						//topMargin:		editButton.anchors.topMargin
+						//bottomMargin:	editButton.anchors.bottomMargin
+						verticalCenter:	editButton.verticalCenter
 					}
 				}
 
