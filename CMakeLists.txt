@@ -71,6 +71,7 @@ include(FetchContent)
 include(ExternalProject)
 include(CMakePrintHelpers)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Tools/CMake")
 
 # ------ Options
@@ -78,7 +79,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Tools/CMake")
 include(Config)
 
 # ------ Conan Dependency Manager
-
 include(Conan)
 
 # ------ JASP Config

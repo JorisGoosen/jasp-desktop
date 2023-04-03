@@ -263,8 +263,9 @@ if(GITHUB_PAT_DEF STREQUAL "")
     WARNING
       "Your GITHUB_PAT is used as the default PAT for any JASP build with this config, if this is inteded as released software you will want to set GITHUB_PAT_DEF to something else than your personal PAT!"
   )
+else()
+	message(CHECK_PASS "found")
 endif()
-message(CHECK_PASS "found")
 
 message(STATUS "GITHUB_PAT:     ${GITHUB_PAT}")
 message(STATUS "GITHUB_PAT_DEF: ${GITHUB_PAT_DEF}")

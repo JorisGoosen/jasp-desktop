@@ -18,8 +18,7 @@ bison/3.7.6
 brotli/1.0.9
 
 [generators]
-cmake_paths
-cmake_find_package
+CMakeDeps
 
 [options]
 brotli/*:shared=True
