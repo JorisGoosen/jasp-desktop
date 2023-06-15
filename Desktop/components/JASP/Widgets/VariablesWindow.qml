@@ -82,9 +82,47 @@ FocusScope
 
 				anchors
 				{
-					horizontalCenter:	parent.horizontalCenter
+					right:				parent.horizontalCenter
 					top:				parent.top
-					topMargin:			jaspTheme.generalAnchorMargin
+					margins:			jaspTheme.generalAnchorMargin
+				}
+
+				Rectangle
+				{
+					color:				jaspTheme.controlBackgroundColor
+					border.color:		jaspTheme.uiBorder
+					border.width:		1
+					visible:			enabled
+
+					anchors.fill:		parent
+					anchors.margins:	-1 * jaspTheme.jaspControlPadding
+					z:					-1
+				}
+
+				MouseArea
+				{
+					acceptedButtons:	Qt.NoButton
+					anchors.fill:		parent
+					cursorShape:		Qt.IBeamCursor
+				}
+
+			}
+
+			TextInput
+			{
+				id:					columnTitleVariablesWindow
+				text:				labelModel.columnTitle
+				onTextChanged:		if(labelModel.columnTitle != text) labelModel.columnTitle = text
+				color:				jaspTheme.textEnabled
+				font:				jaspTheme.fontGroupTitle
+				enabled:			ribbonModel.dataMode
+				selectByMouse:		true
+
+				anchors
+				{
+					left:				parent.horizontalCenter
+					top:				parent.top
+					margins:			jaspTheme.generalAnchorMargin
 				}
 
 				Rectangle
@@ -133,7 +171,7 @@ FocusScope
 						top:			parent.top
 						left:			parent.left
 						right:			parent.right
-						bottom:			parent.bottom
+						bottom:			columnDescriptionVariablesWindow.top
 					}
 
 					model:						labelModel
@@ -452,6 +490,45 @@ FocusScope
 			}
 
 
+			TextInput
+			{
+				id:					columnDescriptionVariablesWindow
+				text:				labelModel.columnTitle
+				onTextChanged:		if(labelModel.columnTitle !== text) labelModel.columnTitle = text
+				color:				jaspTheme.textEnabled
+				font:				jaspTheme.fontGroupTitle
+				enabled:			ribbonModel.dataMode
+				selectByMouse:		true
+				wrapMode:			Text.WrapAtWordBoundaryOrAnywhere
+
+				anchors
+				{
+					left:				parent.left
+					bottom:				parent.bottom
+					right:				parent.right
+					margins:			jaspTheme.generalAnchorMargin
+				}
+
+				Rectangle
+				{
+					color:				jaspTheme.controlBackgroundColor
+					border.color:		jaspTheme.uiBorder
+					border.width:		1
+					visible:			enabled
+
+					anchors.fill:		parent
+					anchors.margins:	-1 * jaspTheme.jaspControlPadding
+					z:					-1
+				}
+
+				MouseArea
+				{
+					acceptedButtons:	Qt.NoButton
+					anchors.fill:		parent
+					cursorShape:		Qt.IBeamCursor
+				}
+
+			}
 		}
 
 	}
