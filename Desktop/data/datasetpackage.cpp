@@ -490,6 +490,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		case int(specialRoles::valuesStrList):		return getColumnValuesAsStringList(getColumnIndex(column->name()));
 		case int(specialRoles::inEasyFilter):		return isColumnUsedInEasyFilter(column->name());
 		case int(specialRoles::value):				return tq(column->getValue(index.row()));
+		case int(specialRoles::name):				return tq(column->name());
 		case int(specialRoles::title):				return tq(column->title());
 		case int(specialRoles::filter):				return getRowFilter(index.row());
 		case int(specialRoles::columnType):			return int(column->type());
@@ -633,7 +634,7 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 			Column	* column	= dynamic_cast<Column*>(node);
 			//DataSet * data		= column->data();
 
-			if(role == Qt::DisplayRole || role == int(specialRoles::value))
+			if(role == Qt::DisplayRole || role == Qt::EditRole || role == int(specialRoles::value))
 			{
 				if(column->setStringValueToRowIfItFits(index.row(), fq(value.toString())))
 				{
@@ -687,7 +688,7 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 
 				case int(specialRoles::columnType):
 					{
-						if(value.toInt() >= int(columnType::unknown) && value.toInt() <= int(columnType::nominalText))
+						if(value.toInt() >= int(columnType::unknown) && value.toInt() <= int(columnType::scale))
 						{
 							columnType converted = static_cast<columnType>(value.toInt());
 							if(setColumnType(index.column(), converted, false))
@@ -702,8 +703,11 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 
 				}
 
-				emit dataChanged(DataSetPackage::index(0, index.column(), indexForSubNode(node->parent())), DataSetPackage::index(rowCount()-1, index.column(), indexForSubNode(node->parent())), {role});
-				emit headerDataChanged(Qt::Horizontal, index.column(), index.column());
+				if(aChange)
+				{
+					beginResetModel();
+					endResetModel();
+				}
 			}
 
 			return true;
@@ -1084,7 +1088,7 @@ bool DataSetPackage::setColumnType(int columnIndex, columnType newColumnType, bo
 			break;
 		}
 
-		MessageForwarder::showWarning("Changing column type failed", informUser);
+		emit showWarning("Changing column type failed", informUser);
 	}
 
 	return feedback == columnTypeChangeResult::changed;
