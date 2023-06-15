@@ -155,7 +155,7 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 	_windowsWorkaroundCPs	= new CodePagesWindows(this);
 #endif
 
-	new MessageForwarder(this); //We do not need to store this
+	_msgForwarder = new MessageForwarder(this);
 
 	startOnlineDataManager();
 
@@ -303,6 +303,7 @@ void MainWindow::makeConnections()
 	connect(_package,				&DataSetPackage::dataModeChanged,					_engineSync,			&EngineSync::dataModeChanged								);
 	connect(_package,				&DataSetPackage::dataModeChanged,					this,					&MainWindow::onDataModeChanged								);
 	connect(_package,				&DataSetPackage::askUserForExternalDataFile,		this,					&MainWindow::startDataEditorHandler							);
+	connect(_package,				&DataSetPackage::showWarning,						_msgForwarder,			&MessageForwarder::showWarningQML,							Qt::QueuedConnection);
 	
 	connect(_engineSync,			&EngineSync::computeColumnSucceeded,				_computedColumnsModel,	&ComputedColumnsModel::computeColumnSucceeded				);
 	connect(_engineSync,			&EngineSync::computeColumnFailed,					_computedColumnsModel,	&ComputedColumnsModel::computeColumnFailed					);

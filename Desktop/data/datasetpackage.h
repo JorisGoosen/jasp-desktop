@@ -317,6 +317,7 @@ signals:
 				void				synchingExternallyChanged();
 				void				askUserForExternalDataFile();
 				void				checkForDependentColumnsToBeSent(QString columnName);
+				void				showWarning(QString title, QString msg);
 
 
 public slots:
