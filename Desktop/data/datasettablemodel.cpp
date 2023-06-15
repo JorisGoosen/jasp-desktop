@@ -51,35 +51,25 @@ bool DataSetTableModel::filterAcceptsRow(int source_row, const QModelIndex & sou
 	return (_showInactive || DataSetPackage::pkg()->getRowFilter(source_row));
 }
 
-QStringList DataSetTableModel::getColumnLabelsAsStringList(int col) const
-{
-	QStringList labels = DataSetPackage::pkg()->getColumnLabelsAsStringList(col);
-	QStringList notUsedLabels = labels;
-	int max = rowCount();
-
-	for (int i = 0; i < max; i++)
-	{
-		QString value = data(index(i, col)).toString();
-		notUsedLabels.removeAll(value);
-		if (notUsedLabels.count() == 0) break;
-	}
-
-	// The order of the labels must be kept.
-	for (const QString& notUsedLabel : notUsedLabels)
-		labels.removeAll(notUsedLabel);
-
-	return labels;
-}
-
 QString DataSetTableModel::columnName(int column) const
 {
-	//map to source might be needed here once we start filtering columns
-	return tq(getColumnName(column));
+	return data(index(0, column, DataSetPackage::pkg()->indexForSubNode(node())), int(DataSetPackage::specialRoles::name)).toString();
 }
 
-void DataSetTableModel::setColumnName(int col, QString name) const
+void DataSetTableModel::setColumnName(int col, QString name)
 {
-	return DataSetPackage::pkg()->setColumnName(col, fq(name));
+	setData(index(0, col), name, int(DataSetPackage::specialRoles::name));
+}
+
+bool DataSetTableModel::columnUsedInEasyFilter(int column) const
+{
+	return data(index(0, column, DataSetPackage::pkg()->indexForSubNode(node())), int(DataSetPackage::specialRoles::inEasyFilter)).toBool();
+}
+
+int DataSetTableModel::setColumnTypeFromQML(int columnIndex, int newColumnType)
+{
+	setData(index(0, columnIndex), newColumnType, int(DataSetPackage::specialRoles::columnType));
+	return data(index(0, columnIndex), int(DataSetPackage::specialRoles::columnType)).toInt();
 }
 
 void DataSetTableModel::pasteSpreadsheet(size_t row, size_t col, const std::vector<std::vector<QString> > & cells, QStringList newColNames)

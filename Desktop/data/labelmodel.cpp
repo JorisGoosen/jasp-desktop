@@ -42,8 +42,32 @@ QString LabelModel::columnNameQ()
 void LabelModel::setColumnNameQ(QString newColumnName)
 {
 	if(column())
-		return DataSetPackage::pkg()->setColumnName(chosenColumn(), fq(newColumnName)); //use DataSetPackage to make sure signals are sent!
+		return DataSetPackage::pkg()->setColumnName(DataSetPackage::pkg()->getColumnIndex(column()->name()), fq(newColumnName)); //use DataSetPackage to make sure signals are sent!
 }
+
+
+QString LabelModel::columnTitle() const
+{
+	return QString::fromStdString(column() ? column()->title() : "");
+}
+
+void LabelModel::setColumnTitle(const QString & newColumnTitle)
+{
+	if(column())
+		return DataSetPackage::pkg()->setColumnTitle(DataSetPackage::pkg()->getColumnIndex(column()->name()), fq(newColumnTitle)); //use DataSetPackage to make sure signals are sent!
+}
+
+QString LabelModel::columnDescription() const
+{
+	return QString::fromStdString(column() ? column()->description() : "");
+}
+
+void LabelModel::setColumnDescription(const QString & newColumnDescription)
+{
+	if(column())
+		return DataSetPackage::pkg()->setColumnDescription(chosenColumn(), fq(newColumnDescription)); //use DataSetPackage to make sure signals are sent!
+}
+
 
 std::vector<bool> LabelModel::filterAllows(size_t col)
 {
