@@ -43,14 +43,14 @@ QModelIndex	DataSetPackageSubNodeModel::mapFromSource(const QModelIndex &sourceI
 int DataSetPackageSubNodeModel::rowCount(const QModelIndex & parent) const
 {
 	int row = !_node ? 0 :DataSetPackage::pkg()->rowCount(mapToSource(parent));
-	//Log::log() << "DataSetPackageSubNodeModel("<< _whatAmI.toStdString() << ")::rowCount(" << ( _node ? dataSetBaseNodeTypeToString(_node->nodeType()) : "no node") << ") = " << row << std::endl;
+	Log::log() << "DataSetPackageSubNodeModel("<< _whatAmI.toStdString() << ")::rowCount(" << ( _node ? dataSetBaseNodeTypeToString(_node->nodeType()) : "no node") << ") = " << row << std::endl;
 	return row;
 }
 
 int DataSetPackageSubNodeModel::columnCount(const QModelIndex & parent) const
 {
 	int col = !_node ? 0 : DataSetPackage::pkg()->columnCount(mapToSource(parent));
-	//Log::log() << "DataSetPackageSubNodeModel("<< _whatAmI.toStdString() << ")::columnCount(" << ( _node ? dataSetBaseNodeTypeToString(_node->nodeType()) : "no node")  << ") = " << col << std::endl;
+	Log::log() << "DataSetPackageSubNodeModel("<< _whatAmI.toStdString() << ")::columnCount(" << ( _node ? dataSetBaseNodeTypeToString(_node->nodeType()) : "no node")  << ") = " << col << std::endl;
 	return col;
 }
 

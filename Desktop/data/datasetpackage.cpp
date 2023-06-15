@@ -371,7 +371,7 @@ int DataSetPackage::rowCount(const QModelIndex & parent) const
 int DataSetPackage::columnCount(const QModelIndex &parent) const
 {
 	if(!parent.isValid())
-		return 1; //There is only a "row" of DataSets as topnodes, and currently a single column because a single DataSet	
+		return dataColumnCount();//does this make headerData work? //There is only a "row" of DataSets as topnodes, and currently a single column because a single DataSet
 	
 	DataSetBaseNode * node = indexPointerToNode(parent);
 
@@ -401,7 +401,7 @@ int DataSetPackage::columnCount(const QModelIndex &parent) const
 	{
 		Column * col = dynamic_cast<Column*>(node);
 		
-		if(col->type() == columnType::scale)
+		if(!col || col->type() == columnType::scale)
 			return 0;
 
 		int labelSize = col->labels().size();
@@ -594,13 +594,13 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 	return QVariant();
 }
 
-bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, int role)
+bool DataSetPackage::setData(const QModelIndex &mIndex, const QVariant &value, int role)
 {
     JASPTIMER_SCOPE(DataSetPackage::setData);
     
-	if(!index.isValid() || !_dataSet) return false;
+	if(!mIndex.isValid() || !_dataSet) return false;
 
-	DataSetBaseNode * node = indexPointerToNode(index);
+	DataSetBaseNode * node = indexPointerToNode(mIndex);
 	
 	if(!node)
 		return false;
@@ -636,7 +636,7 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 
 			if(role == Qt::DisplayRole || role == Qt::EditRole || role == int(specialRoles::value))
 			{
-				if(column->setStringValueToRowIfItFits(index.row(), fq(value.toString())))
+				if(column->setStringValueToRowIfItFits(mIndex.row(), fq(value.toString())))
 				{
 					JASPTIMER_SCOPE(DataSetPackage::setData reset model);
 
@@ -651,7 +651,7 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 
 					//endSynchingData(changedCols, missing, changeName, false, false, false);
 
-					emit dataChanged(DataSetPackage::index(index.row(), index.column(), index.parent()), DataSetPackage::index(index.row(), index.column(), index.parent()));
+					emit dataChanged(DataSetPackage::index(mIndex.row(), mIndex.column(), mIndex.parent()), DataSetPackage::index(mIndex.row(), mIndex.column(), mIndex.parent()));
 					emit datasetChanged(tq(changedCols), tq(missing), tq(changeName), false, false);
 
 					emit labelsReordered(tq(column->name()));
@@ -667,7 +667,7 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 				{
 					JASPTIMER_SCOPE(DataSetPackage::setData pasteSpreadsheet);
 					column->rememberOriginalColumnType();
-					pasteSpreadsheet(index.row(), index.column(), {{value.toString()}});
+					pasteSpreadsheet(mIndex.row(), mIndex.column(), {{value.toString()}});
 				}
 			}
 			else
@@ -687,26 +687,15 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 					break;
 
 				case int(specialRoles::columnType):
-					{
-						if(value.toInt() >= int(columnType::unknown) && value.toInt() <= int(columnType::scale))
-						{
-							columnType converted = static_cast<columnType>(value.toInt());
-							if(setColumnType(index.column(), converted, false))
-							{
-								aChange = true;
-								emit columnDataTypeChanged(tq(column->name()));
-							}
-							break;
-						}
-					}
-
-
+					if(value.toInt() >= int(columnType::unknown) && value.toInt() <= int(columnType::scale))
+						setColumnType(mIndex.column(), static_cast<columnType>(value.toInt()));
+					break;
 				}
 
 				if(aChange)
 				{
-					beginResetModel();
-					endResetModel();
+					emit dataChanged(index(0, mIndex.column(), indexForSubNode(node)), index(rowCount(mIndex.parent()), mIndex.column(), indexForSubNode(node)), {role});
+					emit headerDataChanged(Qt::Horizontal, mIndex.column(), mIndex.column());
 				}
 			}
 
@@ -719,10 +708,10 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 	{
 		Column * column = dynamic_cast<Column*>(node->parent());
 		
-		int parColCount = columnCount(index.parent()),
-			parRowCount = rowCount(index.parent());
+		int parColCount = columnCount(mIndex.parent()),
+			parRowCount = rowCount(mIndex.parent());
 
-		if(!_dataSet || index.column() >= parColCount || index.row() >= parRowCount || index.column() < 0 || index.row() < 0)
+		if(!_dataSet || mIndex.column() >= parColCount || mIndex.row() >= parRowCount || mIndex.column() < 0 || mIndex.row() < 0)
 			return false;
 
 		const Labels	&	labels		= column->labels();
@@ -733,23 +722,23 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 			if(value.typeId() != QMetaType::Bool) 
 				return false;
 			
-			return setAllowFilterOnLabel(index, value.toBool());
+			return setAllowFilterOnLabel(mIndex, value.toBool());
 
 		case int(specialRoles::description):
-			return setDescriptionOnLabel(index, value.toString());
+			return setDescriptionOnLabel(mIndex, value.toString());
 
 		case int(specialRoles::value):
 			return false;
 
 		default:
 		{
-			QString originalLabel = tq(labels[index.row()]->label(true));
+			QString originalLabel = tq(labels[mIndex.row()]->label(true));
 			
-			if(labels[index.row()]->setLabel(value.toString().toStdString()))
+			if(labels[mIndex.row()]->setLabel(value.toString().toStdString()))
 			{
 				beginSynchingData(false);
-				QModelIndex parent	= index.parent();
-				size_t		row		= index.row(),
+				QModelIndex parent	= mIndex.parent();
+				size_t		row		= mIndex.row(),
 							col		= parent.column();
 
 				/*
@@ -1050,7 +1039,7 @@ void DataSetPackage::resetAllFilters()
 	//this is only used in conjunction with a reset so dont do: emit headerDataChanged(Qt::Horizontal, 0, columnCount());
 }
 
-bool DataSetPackage::setColumnType(int columnIndex, columnType newColumnType, bool emitHeaderChanged)
+bool DataSetPackage::setColumnType(int columnIndex, columnType newColumnType, bool emitSignals)
 {
 	if (_dataSet == nullptr)
 		return true;
@@ -1059,10 +1048,16 @@ bool DataSetPackage::setColumnType(int columnIndex, columnType newColumnType, bo
 
 	feedback = _dataSet->column(columnIndex)->changeType(newColumnType);
 
-	if (feedback == columnTypeChangeResult::changed) //Everything went splendidly
+	if (feedback == columnTypeChangeResult::same)
 	{
-		if(emitHeaderChanged)
+		//nothing
+	}
+	else if (feedback == columnTypeChangeResult::changed) //Everything went splendidly
+	{
+		if(emitSignals)
 			emit headerDataChanged(Qt::Orientation::Horizontal, columnIndex, columnIndex);
+
+
 		emit columnDataTypeChanged(tq(_dataSet->column(columnIndex)->name()));
 	}
 	else
@@ -1088,16 +1083,11 @@ bool DataSetPackage::setColumnType(int columnIndex, columnType newColumnType, bo
 		emit showWarning("Changing column type failed", informUser);
 	}
 
-	return feedback == columnTypeChangeResult::changed;
+	return feedback == columnTypeChangeResult::changed || feedback == columnTypeChangeResult::same;
 }
 
 void DataSetPackage::refreshColumn(QString columnName)
-{
-	beginResetModel();
-	endResetModel();
-
-	return;
-/*
+{	
 	if(!_dataSet) return;
 
 	int colIndex = getColumnIndex(columnName);
@@ -1107,7 +1097,7 @@ void DataSetPackage::refreshColumn(QString columnName)
 		QModelIndex p = indexForSubNode(_dataSet->dataNode());
 		emit dataChanged(index(0, colIndex, p), index(rowCount(p), colIndex, p));
 		emit headerDataChanged(Qt::Horizontal, colIndex, colIndex);
-	}*/
+	}
 }
 
 void DataSetPackage::columnWasOverwritten(const std::string & columnName, const std::string &)
@@ -1824,7 +1814,7 @@ void DataSetPackage::labelReverse(size_t colIdx)
 	emit labelsReordered(tq(column->name()));
 }
 
-void DataSetPackage::columnSetDefaultValues(const std::string & columnName, columnType columnType, bool emitSignals)
+void DataSetPackage::columnSetDefaultValues(const std::string & columnName, columnType columnType)
 {
 	if(!_dataSet)
 		return;
@@ -1838,12 +1828,8 @@ void DataSetPackage::columnSetDefaultValues(const std::string & columnName, colu
 
 		QModelIndex p = indexForSubNode(_dataSet->dataNode());
 
-
-		if(emitSignals)
-		{
-			emit dataChanged(index(0, colIndex, p), index(rowCount(p), colIndex, p));
-			emit headerDataChanged(Qt::Horizontal, colIndex, colIndex);
-		}
+		emit dataChanged(index(0, colIndex, p), index(rowCount(p), colIndex, p));
+		emit headerDataChanged(Qt::Horizontal, colIndex, colIndex);
 	}
 }
 
@@ -2252,7 +2238,7 @@ void DataSetPackage::resetModelOneCell()
 	beginResetModel();
 	DataSetPackage::pkg()->setDataSetSize(1, 1);
 	DataSetPackage::pkg()->setColumnName(0, DataSetPackage::pkg()->freeNewColumnName(0), false);
-	DataSetPackage::pkg()->setColumnType(0, columnType::scale,	false);
+	DataSetPackage::pkg()->setColumnType(0, columnType::scale, false);
 	endResetModel();
 }
 

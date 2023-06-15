@@ -213,7 +213,7 @@ public:
 
 				void						storeInEmptyValues(		const std::string	& columnName, const intstrmap & emptyValues);
 
-				void						columnSetDefaultValues(	const std::string	& columnName, columnType colType = columnType::unknown, bool emitSignals = true);
+				void						columnSetDefaultValues(	const std::string	& columnName, columnType colType = columnType::unknown);
 				Column *					createColumn(			const std::string	& name,		columnType colType);
 				Column *					createComputedColumn(	const std::string	& name,		columnType type, computedColumnType desiredType, Analysis * analysis = nullptr);
 				void						renameColumn(			const std::string	& oldColumnName, const std::string & newColumnName);
@@ -236,7 +236,7 @@ public:
 				bool						isColumnInvalidated(		size_t					colIndex)	const;
 
 				int							setColumnTypeFromQML(	int columnIndex, int		newColumnType);
-				bool						setColumnType(			int columnIndex, columnType newColumnType, bool emitHeaderChanged = true);
+				bool						setColumnType(			int columnIndex, columnType newColumnType, bool emitSignals=true);
 
 				int							columnsFilteredCount();
 

@@ -789,7 +789,7 @@ columnTypeChangeResult Column::changeType(columnType colType)
 	if(!isComputed())
 	{
 		if (colType == _type)				
-			return columnTypeChangeResult::changed;
+			return columnTypeChangeResult::same;
 		else								
 			return colType == columnType::scale ? _changeColumnToScale() : _changeColumnToNominalOrOrdinal(colType);
 	}
