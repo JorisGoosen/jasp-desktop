@@ -494,6 +494,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		case int(specialRoles::title):				return tq(column->title());
 		case int(specialRoles::filter):				return getRowFilter(index.row());
 		case int(specialRoles::columnType):			return int(column->type());
+		case int(specialRoles::columnPkgIndex):		return index.column();
 		case int(specialRoles::lines):
 		{
 			bool	iAmActive		= getRowFilter(index.row()),

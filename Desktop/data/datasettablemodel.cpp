@@ -53,7 +53,11 @@ bool DataSetTableModel::filterAcceptsRow(int source_row, const QModelIndex & sou
 
 QString DataSetTableModel::columnName(int column) const
 {
-	return data(index(0, column, DataSetPackage::pkg()->indexForSubNode(node())), int(DataSetPackage::specialRoles::name)).toString();
+	int pkgColIndex = data(index(0, column), int(DataSetPackage::specialRoles::columnPkgIndex)).toInt();
+	return	DataSetPackage::pkg()->data(
+				DataSetPackage::pkg()->index(0, pkgColIndex, DataSetPackage::pkg()->indexForSubNode(node())),
+				int(DataSetPackage::specialRoles::name)
+			).toString();
 }
 
 void DataSetTableModel::setColumnName(int col, QString name)
@@ -63,7 +67,11 @@ void DataSetTableModel::setColumnName(int col, QString name)
 
 bool DataSetTableModel::columnUsedInEasyFilter(int column) const
 {
-	return data(index(0, column, DataSetPackage::pkg()->indexForSubNode(node())), int(DataSetPackage::specialRoles::inEasyFilter)).toBool();
+	int pkgColIndex = data(index(0, column), int(DataSetPackage::specialRoles::columnPkgIndex)).toInt();
+	return	DataSetPackage::pkg()->data(
+				DataSetPackage::pkg()->index(0, pkgColIndex, DataSetPackage::pkg()->indexForSubNode(node())),
+				int(DataSetPackage::specialRoles::inEasyFilter)
+			).toBool();
 }
 
 int DataSetTableModel::setColumnTypeFromQML(int columnIndex, int newColumnType)
