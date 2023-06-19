@@ -605,6 +605,9 @@ void MainWindow::setQmlImportPaths()
 	newImportPaths.append("qrc:///components");
 	newImportPaths.append(_dynamicModules->importPaths());
 
+	if(_qml->importPathList() == newImportPaths)
+		return;
+
 	_qml->setImportPathList(newImportPaths);
 
 	if(_preferences->developerMode())

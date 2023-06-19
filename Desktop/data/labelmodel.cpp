@@ -8,6 +8,8 @@ LabelModel::LabelModel() : DataSetTableProxy(DataSetPackage::pkg()->labelsSubMod
 	connect(DataSetPackage::pkg(),	&DataSetPackage::filteredOutChanged,			this, &LabelModel::filteredOutChangedHandler);
 	connect(this,					&DataSetTableProxy::nodeChanged,				this, &LabelModel::filteredOutChanged		);
 	connect(this,					&DataSetTableProxy::nodeChanged,				this, &LabelModel::columnNameChanged		);
+	connect(this,					&DataSetTableProxy::nodeChanged,				this, &LabelModel::columnTitleChanged		);
+	connect(this,					&DataSetTableProxy::nodeChanged,				this, &LabelModel::columnDescriptionChanged	);
 	connect(this,					&DataSetTableProxy::nodeChanged,				this, &LabelModel::chosenColumnChanged		);
 	connect(this,					&LabelModel::chosenColumnChanged,				this, &LabelModel::onChosenColumnChanged	);
 	connect(DataSetPackage::pkg(),	&DataSetPackage::modelReset,					this, &LabelModel::columnNameChanged		);
