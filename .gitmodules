@@ -139,3 +139,6 @@
 [submodule "Modules/jaspProcess"]
 	path = Modules/jaspProcess
 	url = https://github.com/jasp-stats/jaspProcess
+[submodule "Engine/jaspModuleInstaller"]
+	path = Engine/jaspModuleInstaller
+	url = https://github.com/vandenman/jaspModuleInstaller.git
