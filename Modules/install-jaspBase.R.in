@@ -22,10 +22,24 @@ if (@IS_FLATPAK_USED@) {
 
 .libPaths(c("@R_LIBRARY_PATH@"))
 
-modulePkg     <- "@PROJECT_SOURCE_DIR@/Engine/jaspBase"
 moduleLibrary <- "@R_LIBRARY_PATH@"
 prompt        <- FALSE
 
+modulePkg     <- file.path("@PROJECT_SOURCE_DIR@", "..", "jaspModuleInstaller")
+if (md5SumsChanged(modulePkg, moduleLibrary)) {
+  options(renv.cache.linkable = FALSE)
+
+  Sys.setenv(JASP_R_INTERFACE_LIBRARY="Oh yes indeed")
+  setupRenv("@R_LIBRARY_PATH@", modulePkg)
+
+  options(renv.config.install.verbose = TRUE)
+  renv::install(package = modulePkg, project = modulePkg, library = moduleLibrary, prompt = prompt)
+
+  if (TRUE) # TODO: validate installation
+    writeMd5Sums(modulePkg, moduleLibrary)
+}
+
+modulePkg     <- "@PROJECT_SOURCE_DIR@/Engine/jaspBase"
 if (md5SumsChanged(modulePkg, moduleLibrary)) {
   options(
     renv.cache.linkable = FALSE,
