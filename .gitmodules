@@ -133,3 +133,6 @@
 [submodule "Modules/jaspRobustTTests"]
 	path = Modules/jaspRobustTTests
 	url = https://github.com/jasp-stats/jaspRobustTTests.git
+[submodule "Engine/jaspModuleInstaller"]
+	path = Engine/jaspModuleInstaller
+	url = https://github.com/vandenman/jaspModuleInstaller.git

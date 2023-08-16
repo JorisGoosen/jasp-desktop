@@ -6,10 +6,14 @@ Sys.setenv(RENV_PATHS_CACHE="@MODULES_RENV_CACHE_PATH@")
 Sys.setenv(JASPENGINE_LOCATION="@JASP_ENGINE_PATH@/JASPEngine")
 
 #Load the post-install fixes from jaspBase. Think Baron von Munchausen ;)
-source("@PROJECT_SOURCE_DIR@/Engine/jaspBase/R/utility.R")
-source("@PROJECT_SOURCE_DIR@/Engine/jaspBase/R/checkSums.R")
-source("@PROJECT_SOURCE_DIR@/Engine/jaspBase/R/assignFunctionInPackage.R")
-source("@PROJECT_SOURCE_DIR@/Engine/jaspBase/R/moduleInstall.R")
+#source("@PROJECT_SOURCE_DIR@/Engine/jaspBase/R/utility.R")
+#source("@PROJECT_SOURCE_DIR@/Engine/jaspBase/R/checkSums.R")
+#source("@PROJECT_SOURCE_DIR@/Engine/jaspBase/R/assignFunctionInPackage.R")
+#source("@PROJECT_SOURCE_DIR@/Engine/jaspBase/R/moduleInstall.R")
+
+source("@PROJECT_SOURCE_DIR@/Engine/jaspModuleInstaller/R/renvOverrides.R")
+source("@PROJECT_SOURCE_DIR@/Engine/jaspModuleInstaller/R/checksums.R")
+source("@PROJECT_SOURCE_DIR@/Engine/jaspModuleInstaller/R/getOS.R")
 
 # The R_LIBRARY_PATH might already be there, but depending on the configuration
 # of the CMake, we might be installing in a different location, so, I just add
@@ -20,46 +24,44 @@ if (@IS_FLATPAK_USED@) {
   options(repos = "@R_REPOSITORY@")
 }
 
-.libPaths(c("@R_LIBRARY_PATH@"))
+.libPaths("@R_LIBRARY_PATH@")
 
 moduleLibrary <- "@R_LIBRARY_PATH@"
-prompt        <- FALSE
 
-modulePkg     <- file.path("@PROJECT_SOURCE_DIR@", "..", "jaspModuleInstaller")
+modulePkg     <- file.path("@PROJECT_SOURCE_DIR@", "Engine", "jaspModuleInstaller")
 if (md5SumsChanged(modulePkg, moduleLibrary)) {
-  options(renv.cache.linkable = FALSE)
 
-  Sys.setenv(JASP_R_INTERFACE_LIBRARY="Oh yes indeed")
+#  Sys.setenv(JASP_R_INTERFACE_LIBRARY="Oh yes indeed")
   setupRenv("@R_LIBRARY_PATH@", modulePkg)
-
-  options(renv.config.install.verbose = TRUE)
-  renv::install(package = modulePkg, project = modulePkg, library = moduleLibrary, prompt = prompt)
+  renv::install(package = modulePkg, project = modulePkg, library = moduleLibrary, prompt = FALSE)
 
   if (TRUE) # TODO: validate installation
     writeMd5Sums(modulePkg, moduleLibrary)
+} else {
+  cat("jaspModuleInstaller is unchanged, not reinstalling.\n")
 }
 
-modulePkg     <- "@PROJECT_SOURCE_DIR@/Engine/jaspBase"
-if (md5SumsChanged(modulePkg, moduleLibrary)) {
-  options(
-    renv.cache.linkable = FALSE,
-    configure.vars = c(jaspBase = "INCLUDE_DIR='@PROJECT_SOURCE_DIR@/Common'")
-  )
+#modulePkg     <- file.path("@PROJECT_SOURCE_DIR@", "Engine", "jaspBase")
+#if (md5SumsChanged(modulePkg, moduleLibrary)) {
+#  options(
+#    renv.cache.linkable = FALSE,
+#    configure.vars = c(jaspBase = "INCLUDE_DIR='@PROJECT_SOURCE_DIR@/Common'")
+#  )
 
-  Sys.setenv(JASP_R_INTERFACE_LIBRARY="Oh yes indeed")
-  setupRenv("@R_LIBRARY_PATH@", modulePkg)
+#  Sys.setenv(JASP_R_INTERFACE_LIBRARY="Oh yes indeed")
+#  setupRenv("@R_LIBRARY_PATH@", modulePkg)
 
-  renv::hydrate(library = moduleLibrary, project = modulePkg, sources=moduleLibrary)
-  options(renv.config.install.verbose = TRUE)
-  renv::install(package = modulePkg, project = modulePkg, library = moduleLibrary, prompt = prompt)
+#  renv::hydrate(library = moduleLibrary, project = modulePkg, sources=moduleLibrary)
+#  options(renv.config.install.verbose = TRUE)
+#  renv::install(package = modulePkg, project = modulePkg, library = moduleLibrary, prompt = prompt)
 
-  correctlyInstalled <- installModulePkg(modulePkg, moduleLibrary, prompt, cacheAble=TRUE) 
+#  correctlyInstalled <- installModulePkg(modulePkg, moduleLibrary, prompt, cacheAble=TRUE)
 
-  if (correctlyInstalled)
-    writeMd5Sums(modulePkg, moduleLibrary)
+#  if (correctlyInstalled)
+#    writeMd5Sums(modulePkg, moduleLibrary)
 
 
-}
+#}
 
 # Converting the absolute symlinks to relative symlinks on macOS
 # Todo, I can do this using CMake like I do on Windows
