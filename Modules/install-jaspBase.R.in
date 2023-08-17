@@ -13,7 +13,6 @@ Sys.setenv(JASPENGINE_LOCATION="@JASP_ENGINE_PATH@/JASPEngine")
 
 source("@PROJECT_SOURCE_DIR@/Engine/jaspModuleInstaller/R/renvOverrides.R")
 source("@PROJECT_SOURCE_DIR@/Engine/jaspModuleInstaller/R/checksums.R")
-source("@PROJECT_SOURCE_DIR@/Engine/jaspModuleInstaller/R/getOS.R")
 
 # The R_LIBRARY_PATH might already be there, but depending on the configuration
 # of the CMake, we might be installing in a different location, so, I just add
@@ -40,6 +39,8 @@ if (md5SumsChanged(modulePkg, moduleLibrary)) {
 } else {
   cat("jaspModuleInstaller is unchanged, not reinstalling.\n")
 }
+
+jaspModuleInstaller::writeModuleStatusObject("@PROJECT_SOURCE_DIR@")
 
 #modulePkg     <- file.path("@PROJECT_SOURCE_DIR@", "Engine", "jaspBase")
 #if (md5SumsChanged(modulePkg, moduleLibrary)) {
