@@ -79,7 +79,6 @@ void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCa
 	jaspRCPP_logString("Creating RInside.\n");
 
 	rinside = new RInside();
-
 	R_TempDir = (char*)tempDir;
 	
 	RInside &rInside = rinside->instance();
@@ -150,6 +149,8 @@ void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCa
 	Rcpp::RObject sinkObj = rInside[".outputSink"];
 	//jaspRCPP_logString(sinkObj.isNULL() ? "sink is null\n" : !sinkObj.isObject() ? " sink is not object\n" : sinkObj.isS4() ? "sink is s4\n" : "sink is obj but not s4\n");
 
+    rInside.parseEvalQNT("sink(.outputSink); print(.libPaths()); sink();");
+
 	static const char *baseCitationFormat	= "JASP Team (%s). JASP (Version %s) [Computer software].";
 	char baseCitation[200];
 	snprintf(baseCitation, 200, baseCitationFormat, buildYear, version);
@@ -181,6 +182,16 @@ void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCa
 	rInside[".imageBackground"]					= "transparent";
 	rInside[".ppi"]								= 300;
 
+    jaspRCPP_parseEvalQNT("library(methods)");
+
+    _R_HOME = jaspRCPP_parseEvalStringReturn("R.home('')");
+    jaspRCPP_logString("R_HOME is: " + _R_HOME + "\n");
+
+
+}
+
+void STDCALL jaspRCPP_init_jaspBase()
+{
 
 	//jaspRCPP_parseEvalQNT("options(encoding = 'UTF-8')");
 
@@ -191,21 +202,21 @@ void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCa
 	jaspRCPP_parseEvalQNT("jaspBase:::setPollMessagesFunc(	.pollMessagesFunction)");
 	jaspRCPP_parseEvalQNT("jaspBase:::setBaseCitation(		.baseCitation)");
 	jaspRCPP_parseEvalQNT("jaspBase:::setInsideJasp()");
+    jaspRCPP_parseEvalQNT("jaspBase:::registerFonts()");
 
 	//Load it
 	jaspRCPP_logString("Initializing jaspBase.\n");
-	jaspRCPP_parseEvalQNT("library(methods)");
 	jaspRCPP_parseEvalQNT("library(jaspBase)");
 
 //	if we have a separate engine for each module then we should move these kind of hacks to the .onAttach() of each module (instead of loading BayesFactor when Descriptives is requested).
 //	jaspRCPP_logString("initEnvironment().\n");
 //	jaspRCPP_parseEvalQNT("initEnvironment()");
 	
-	_R_HOME = jaspRCPP_parseEvalStringReturn("R.home('')");
-	jaspRCPP_logString("R_HOME is: " + _R_HOME + "\n");
-	
 	jaspRCPP_logString("initializeDoNotRemoveList().\n");
 	jaspRCPP_parseEvalQNT("jaspBase:::.initializeDoNotRemoveList()");
+
+    std::cerr << "Done with jaspRCPP_init_jaspBase" << std::endl;
+
 }
 
 void STDCALL jaspRCPP_junctionHelper(bool collectNotRestore, const char * folder)
@@ -267,7 +278,8 @@ void STDCALL jaspRCPP_setFontAndPlotSettings(const char * resultFont, const int 
 	rInside[".imageBackground"]		= imageBackground;
 	rInside[".ppi"]					= ppi;
 
-	jaspRCPP_parseEvalQNT("jaspBase:::registerFonts()");
+    // sometimes jaspBase is not available
+    jaspRCPP_parseEvalQNT("try(jaspBase:::registerFonts())");
 }
 
 const char* STDCALL jaspRCPP_runModuleCall(const char* name, const char* title, const char* moduleCall, const char* dataKey, const char* options,

@@ -1,30 +1,29 @@
 # Generated from install-module.R.in
 #
 Sys.setenv(PATH=paste0(file.path("@R_HOME_PATH@", "bin"), .Platform$path.sep, Sys.getenv("PATH"))) #Make sure any Rscript calls use ours
-Sys.setenv(RHOME="@R_HOME_PATH@") #Rscript looks for RHOME not R_HOME
-Sys.setenv(GITHUB_PAT="@GITHUB_PAT@")
-Sys.setenv(RENV_PATHS_ROOT="@MODULES_RENV_ROOT_PATH@")
-Sys.setenv(RENV_PATHS_CACHE="@MODULES_RENV_CACHE_PATH@")
-Sys.setenv(JASPENGINE_LOCATION="@JASP_ENGINE_PATH@/JASPEngine")
-Sys.setenv(JAGS_PREFIX="@jags_HOME@")
-Sys.setenv(JAGS_INCLUDEDIR="@jags_INCLUDE_DIRS@")
-Sys.setenv(JAGS_LIBDIR="@jags_LIBRARY_DIRS@")
-Sys.setenv(JASP_R_INTERFACE_LIBRARY="Yes, do it")
+Sys.setenv(RHOME                    = "@R_HOME_PATH@") #Rscript looks for RHOME not R_HOME
+Sys.setenv(GITHUB_PAT               = "@GITHUB_PAT@")
+Sys.setenv(RENV_PATHS_ROOT          = "@MODULES_RENV_ROOT_PATH@")
+Sys.setenv(RENV_PATHS_CACHE         = "@MODULES_RENV_CACHE_PATH@")
+Sys.setenv(RENV_PATHS_SANDBOX       = "@RENV_SANDBOX@")
+Sys.setenv(JASPENGINE_LOCATION      = "@JASP_ENGINE_PATH@/JASPEngine")
+Sys.setenv(JAGS_PREFIX              = "@jags_HOME@")
+Sys.setenv(JAGS_INCLUDEDIR          = "@jags_INCLUDE_DIRS@")
+Sys.setenv(JAGS_LIBDIR              = "@jags_LIBRARY_DIRS@")
+Sys.setenv(JASP_R_INTERFACE_LIBRARY = "Yes, do it")
 
 if (@IS_LINUX_LOCAL_BUILD@) {
-	# Only set when building using LINUX_LOCAL_BUILD. This is to help jags finds its libraries
-	Sys.setenv(LD_LIBRARY_PATH="@jags_LIBRARY_DIRS@")
+  # Only set when building using LINUX_LOCAL_BUILD. This is to help jags finds its libraries
+  Sys.setenv(LD_LIBRARY_PATH="@jags_LIBRARY_DIRS@")
 }
 
 
 if (@IS_FLATPAK_USED@) {
-	source('/app/lib64/Rprofile.R');
+  source('/app/lib64/Rprofile.R');
 }
 
-# The R_LIBRARY_PATH might already be there, but depending on the configuration
-# of the CMake, we might be installing in a different location, so, I just add
-# it anyway! It gets to if-y.
-.libPaths(c("@R_LIBRARY_PATH@"))
+.libPaths("@JASPMODULEINSTALLER_LIBRARY@")
+sandboxPaths <- renv:::renv_sandbox_activate()
 
 options(
   configure.vars = c(jaspBase = "INCLUDE_DIR='@PROJECT_SOURCE_DIR@/Common'") #Needed for flatpak build as it keeps recompiling jaspBase (which it shouldnt of course but I dont know why) and this is an easy fix to get it to work now
@@ -40,12 +39,12 @@ jaspModuleInstaller::installJaspModule(
 
 result <- "succes"
 if (result == "succes") {
-	cat(NULL, file="@MODULES_RENV_ROOT_PATH@/@MODULE@-installed-successfully.log")
+  cat(NULL, file="@MODULES_RENV_ROOT_PATH@/@MODULE@-installed-successfully.log")
 }
 
 # Converting the absolute symlinks to relative symlinks on macOS
 # Todo, I can do this using CMake like I do on Windows
 if (Sys.info()["sysname"] == "Darwin") {
-	source('@MODULES_BINARY_PATH@/symlinkTools.R')
-	convertAbsoluteSymlinksToRelative('@MODULES_BINARY_PATH@', '@MODULES_RENV_CACHE_PATH@')
+  source('@MODULES_BINARY_PATH@/symlinkTools.R')
+  convertAbsoluteSymlinksToRelative('@MODULES_BINARY_PATH@', '@MODULES_RENV_CACHE_PATH@')
 }

@@ -85,7 +85,7 @@ QProcessEnvironment ProcessHelper::getProcessEnvironmentForJaspEngine()
 #else  // linux
 	env.insert("LD_LIBRARY_PATH",	rHome.absoluteFilePath("lib") + ":" + rHome.absoluteFilePath("library/RInside/lib") + ":" + rHome.absoluteFilePath("library/Rcpp/lib") + ":" + rHome.absoluteFilePath("site-library/RInside/lib") + ":" + rHome.absoluteFilePath("site-library/Rcpp/lib") + ":/app/lib/:/app/lib64/");
 	env.insert("R_HOME",			rHome.absolutePath());
-	env.insert("R_LIBS",			programDir.absoluteFilePath("R/library") + custom_R_library + ":" + rHome.absoluteFilePath("library") + ":" + rHome.absoluteFilePath("site-library"));
+    env.insert("R_LIBS",			programDir.absoluteFilePath("R/library") + custom_R_library + ":" + rHome.absoluteFilePath("library") + ":" + rHome.absoluteFilePath("site-library") + ":" + programDir.absoluteFilePath("../R/R_cpp_includes_library"));
 #endif
 
 	env.insert("TZDIR",				TZDIR);
@@ -96,6 +96,8 @@ QProcessEnvironment ProcessHelper::getProcessEnvironmentForJaspEngine()
 	// Sorry Joris, I still had to do this because I couldn't get your method to work!
 	env.insert("R_LIBS_USER", (AppDirs::programDir().absolutePath().toStdString() + "/../R/library").c_str());
 #endif
+
+    Log::log() << "Using R_LIBS of " << env.value("R_LIBS") << std::endl;
 
 	return(env);	
 }

@@ -1,0 +1,95 @@
+# Generated from Tools/setup_renv_rcpp_rinside_jaspModuleInstaller.R.in
+#
+Sys.setenv(GITHUB_PAT          = "@GITHUB_PAT@")
+Sys.setenv(RENV_PATHS_ROOT     = "@MODULES_RENV_ROOT_PATH@")
+Sys.setenv(RENV_PATHS_CACHE    = "@MODULES_RENV_CACHE_PATH@")
+Sys.setenv(RENV_PATHS_SANDBOX  = "@RENV_SANDBOX@")
+Sys.setenv(JASPENGINE_LOCATION = "@JASP_ENGINE_PATH@/JASPEngine")
+
+
+RENV_LIBRARY                <- "@RENV_LIBRARY@"
+R_CPP_INCLUDES_LIBRARY      <- "@R_CPP_INCLUDES_LIBRARY@"
+JASPMODULEINSTALLER_LIBRARY <- "@JASPMODULEINSTALLER_LIBRARY@"
+
+ENGINE                 <- file.path("@PROJECT_SOURCE_DIR@", "Engine")
+TOOLS                  <- file.path("@PROJECT_SOURCE_DIR@", "Tools")
+
+getOS <- function() {
+
+  os <- NULL
+
+  if (!is.null(Sys.info())) {
+
+    os <- Sys.info()["sysname"]
+
+    if (os == "Darwin")
+      os <- "osx"
+
+  } else {
+
+    if (grepl("^darwin", R.version$os))
+      os <- "osx"
+
+    if (grepl("linux-gnu", R.version$os))
+      os <- "linux"
+
+  }
+
+  if (is.null(os))
+    stop("Unable to determine the operating system because `Sys.info()` returned NULL.", domain = NA)
+
+  return(tolower(os))
+
+}
+
+mkdir <- function(paths) {
+  for (path in paths)
+    if (!dir.exists(path))
+      dir.create(path, recursive = TRUE)
+}
+
+
+mkdir(c(RENV_LIBRARY, R_CPP_INCLUDES_LIBRARY, JASPMODULEINSTALLER_LIBRARY))
+
+if (!dir.exists(file.path(RENV_LIBRARY, "renv"))) {
+  cat("Installing renv from CRAN\n")
+  install.packages(
+    pkgs         = "renv",
+    lib          = RENV_LIBRARY,
+    repos        ='http://cloud.r-project.org',
+    INSTALL_opts ='--no-multiarch --no-docs --no-test-load')
+} else {
+  cat("renv already installed, not reinstalling\n")
+}
+
+.libPaths(RENV_LIBRARY)
+sandboxPaths <- renv:::renv_sandbox_activate()
+
+cat("Using sandbox paths:\n")
+for (path in sandboxPaths)
+  cat(path, "\n", sep = "")
+
+# same as in jaspModuleInstaller:::setupRenv
+options(
+  "renv.config.install.verbose" = TRUE,  # not necessary but saves headaches
+  "renv.config.cache.enabled"   = TRUE,  # enable using a cache
+  "renv.cache.linkable"         = TRUE,  # undocumented, see renv:::renv_cache_linkable. required for linking to a custom folder
+  "renv.config.auto.snapshot"   = FALSE, # new option, we don't want this
+  "renv.snapshot.ignore.self"   = FALSE  # currently unused, but can be useful.
+)
+
+
+cat("Restoring Rcpp & RInside\n")
+renv::restore(
+  library  = R_CPP_INCLUDES_LIBRARY, 
+  lockfile = file.path(TOOLS, "Rcpp_RInside.lock"),
+  clean    = TRUE
+)
+
+cat("Restoring jaspModuleInstaller\n")
+renv::restore(
+  library  = JASPMODULEINSTALLER_LIBRARY, 
+  lockfile = file.path(ENGINE, "jaspModuleInstaller", "renv.lock"),
+  exclude  = "jaspModuleInstaller", # otherwise "clean" would remove jaspModuleInstaller
+  clean    = TRUE
+)
