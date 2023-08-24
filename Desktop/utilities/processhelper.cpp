@@ -83,9 +83,11 @@ QProcessEnvironment ProcessHelper::getProcessEnvironmentForJaspEngine()
 	env.insert("LC_CTYPE",			"UTF-8"); //This isn't really a locale but seems necessary to get proper output from gettext on mac
 
 #else  // linux
-	env.insert("LD_LIBRARY_PATH",	rHome.absoluteFilePath("lib") + ":" + rHome.absoluteFilePath("library/RInside/lib") + ":" + rHome.absoluteFilePath("library/Rcpp/lib") + ":" + rHome.absoluteFilePath("site-library/RInside/lib") + ":" + rHome.absoluteFilePath("site-library/Rcpp/lib") + ":/app/lib/:/app/lib64/");
+//	env.insert("LD_LIBRARY_PATH",	rHome.absoluteFilePath("lib") + ":" + rHome.absoluteFilePath("library/RInside/lib") + ":" + rHome.absoluteFilePath("library/Rcpp/lib") + ":" + rHome.absoluteFilePath("site-library/RInside/lib") + ":" + rHome.absoluteFilePath("site-library/Rcpp/lib") + ":/app/lib/:/app/lib64/");
 	env.insert("R_HOME",			rHome.absolutePath());
-    env.insert("R_LIBS",			programDir.absoluteFilePath("R/library") + custom_R_library + ":" + rHome.absoluteFilePath("library") + ":" + rHome.absoluteFilePath("site-library") + ":" + programDir.absoluteFilePath("../R/R_cpp_includes_library"));
+//	env.insert("R_LIBS",			programDir.absoluteFilePath("R/library") + custom_R_library + ":" + rHome.absoluteFilePath("library") + ":" + rHome.absoluteFilePath("site-library") + ":" + programDir.absoluteFilePath("../R/R_cpp_includes_library"));
+	// TODO: the last one should be the sandbox, not the actual library!
+	env.insert("R_LIBS",			programDir.absoluteFilePath("../R/R_cpp_includes_library") + ":" + programDir.absoluteFilePath("R/library") + custom_R_library);
 #endif
 
 	env.insert("TZDIR",				TZDIR);
@@ -97,7 +99,10 @@ QProcessEnvironment ProcessHelper::getProcessEnvironmentForJaspEngine()
 	env.insert("R_LIBS_USER", (AppDirs::programDir().absolutePath().toStdString() + "/../R/library").c_str());
 #endif
 
-    Log::log() << "Using R_LIBS of " << env.value("R_LIBS") << std::endl;
+	Log::log() <<	"R_LIBS:"			<< env.value("R_LIBS")			<< "\n" <<
+					"R_LIBS_USER:"		<< env.value("R_LIBS_USER")		<< "\n" <<
+					"LD_LIBRARY_PATH:"	<< env.value("LD_LIBRARY_PATH") << "\n" <<
+					std::endl;
 
 	return(env);	
 }
