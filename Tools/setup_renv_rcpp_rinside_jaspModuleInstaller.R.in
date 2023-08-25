@@ -14,6 +14,17 @@ JASPMODULEINSTALLER_LIBRARY <- "@JASPMODULEINSTALLER_LIBRARY@"
 ENGINE                 <- file.path("@PROJECT_SOURCE_DIR@", "Engine")
 TOOLS                  <- file.path("@PROJECT_SOURCE_DIR@", "Tools")
 
+assignFunctionInPackage <- function(fun, name, package) {
+  ns <- getNamespace(package)
+  unlockBinding(name, ns)
+  assign(name, fun, ns)
+  lockBinding(name, ns)
+}
+
+assignFunctionInRenv <- function(fun, name) {
+  assignFunctionInPackage(fun, name, "renv")
+}
+
 getOS <- function() {
 
   os <- NULL
@@ -62,8 +73,17 @@ if (!dir.exists(file.path(RENV_LIBRARY, "renv"))) {
   cat("renv already installed, not reinstalling\n")
 }
 
+# used by renv
+options(
+  install.opts                = "--no-multiarch --no-docs --no-test-load",
+  renv.config.install.verbose = TRUE
+)
+
 .libPaths(RENV_LIBRARY)
 sandboxPaths <- renv:::renv_sandbox_activate()
+
+# renv adds e.g,. "R-3.6/x86_64-pc-linux-gnu" to all paths (R-version/os) and we don't need that
+assignFunctionInRenv(function() return(""),                   "renv_bootstrap_platform_prefix")
 
 cat("Using sandbox paths:\n")
 for (path in sandboxPaths)
@@ -77,7 +97,6 @@ options(
   "renv.config.auto.snapshot"   = FALSE, # new option, we don't want this
   "renv.snapshot.ignore.self"   = FALSE  # currently unused, but can be useful.
 )
-
 
 cat("Restoring Rcpp & RInside\n")
 renv::restore(
