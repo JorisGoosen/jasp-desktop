@@ -62,6 +62,9 @@ mkdir <- function(paths) {
 
 mkdir(c(RENV_LIBRARY, R_CPP_INCLUDES_LIBRARY, JASPMODULEINSTALLER_LIBRARY))
 
+repos <- "https://packagemanager.posit.co/cran/latest"
+# alternative to 'http://cloud.r-project.org'
+
 if (!dir.exists(file.path(RENV_LIBRARY, "renv"))) {
   cat("Installing renv from CRAN\n")
   install.packages(
@@ -76,7 +79,8 @@ if (!dir.exists(file.path(RENV_LIBRARY, "renv"))) {
 # used by renv
 options(
   install.opts                = "--no-multiarch --no-docs --no-test-load",
-  renv.config.install.verbose = TRUE
+  renv.config.install.verbose = TRUE,
+  renv.config.ppm.default     = TRUE
 )
 
 .libPaths(RENV_LIBRARY)
@@ -100,14 +104,14 @@ options(
 
 cat("Restoring Rcpp & RInside\n")
 renv::restore(
-  library  = R_CPP_INCLUDES_LIBRARY, 
+  library  = R_CPP_INCLUDES_LIBRARY,
   lockfile = file.path(TOOLS, "Rcpp_RInside.lock"),
   clean    = TRUE
 )
 
 cat("Restoring jaspModuleInstaller\n")
 renv::restore(
-  library  = JASPMODULEINSTALLER_LIBRARY, 
+  library  = JASPMODULEINSTALLER_LIBRARY,
   lockfile = file.path(ENGINE, "jaspModuleInstaller", "renv.lock"),
   exclude  = "jaspModuleInstaller", # otherwise "clean" would remove jaspModuleInstaller
   clean    = TRUE

@@ -51,33 +51,12 @@ if (md5SumsChanged(modulePkg, moduleLibrary)) {
 
   if (TRUE) # TODO: validate installation
     writeMd5Sums(modulePkg, moduleLibrary)
+
 } else {
   cat("jaspModuleInstaller is unchanged, not reinstalling.\n")
 }
 
 jaspModuleInstaller::writeModuleStatusObject("@PROJECT_SOURCE_DIR@")
-
-#modulePkg     <- file.path("@PROJECT_SOURCE_DIR@", "Engine", "jaspBase")
-#if (md5SumsChanged(modulePkg, moduleLibrary)) {
-#  options(
-#    renv.cache.linkable = FALSE,
-#    configure.vars = c(jaspBase = "INCLUDE_DIR='@PROJECT_SOURCE_DIR@/Common'")
-#  )
-
-#  Sys.setenv(JASP_R_INTERFACE_LIBRARY="Oh yes indeed")
-#  setupRenv("@R_LIBRARY_PATH@", modulePkg)
-
-#  renv::hydrate(library = moduleLibrary, project = modulePkg, sources=moduleLibrary)
-#  options(renv.config.install.verbose = TRUE)
-#  renv::install(package = modulePkg, project = modulePkg, library = moduleLibrary, prompt = prompt)
-
-#  correctlyInstalled <- installModulePkg(modulePkg, moduleLibrary, prompt, cacheAble=TRUE)
-
-#  if (correctlyInstalled)
-#    writeMd5Sums(modulePkg, moduleLibrary)
-
-
-#}
 
 # Converting the absolute symlinks to relative symlinks on macOS
 # Todo, I can do this using CMake like I do on Windows

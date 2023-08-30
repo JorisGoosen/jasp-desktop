@@ -598,10 +598,6 @@ elseif(WIN32)
   set(R_EXECUTABLE "${R_HOME_PATH}/bin/R")
   set(RSCRIPT_EXECUTABLE "${R_HOME_PATH}/bin/Rscript")
   set(R_INCLUDE_PATH "${R_HOME_PATH}/include")
-  set(RCPP_PATH "${R_LIBRARY_PATH}/Rcpp")
-  set(RINSIDE_PATH "${R_LIBRARY_PATH}/RInside")
-  set(RENV_PATH "${R_LIBRARY_PATH}/renv")
-  
 
   # This will be added to the install.packages calls
   set(USE_LOCAL_R_LIBS_PATH ", lib='${R_LIBRARY_PATH}'")
@@ -612,10 +608,6 @@ elseif(WIN32)
   cmake_print_variables(R_OPT_PATH)
   cmake_print_variables(R_EXECUTABLE)
   cmake_print_variables(RSCRIPT_EXECUTABLE)
-
-  cmake_print_variables(RCPP_PATH)
-  cmake_print_variables(RINSIDE_PATH)
-  cmake_print_variables(RENV_PATH)
 
   message(CHECK_START "Checking for R/")
 
@@ -691,7 +683,6 @@ elseif(WIN32)
   # NOTE: identical to the code under elseif(LINUX)
   set(RENV_LIBRARY                "${CMAKE_BINARY_DIR}/_cache/R/renv_library")
   set(R_CPP_INCLUDES_LIBRARY      "${CMAKE_BINARY_DIR}/R/R_cpp_includes_library")
-#  set(R_CPP_INCLUDES_LIBRARY      "${CMAKE_BINARY_DIR}/R/R_cpp_includes_library")
   set(JASPMODULEINSTALLER_LIBRARY "${CMAKE_BINARY_DIR}/R/jaspModuleInstaller_library")
   SET(RENV_SANDBOX                "${CMAKE_BINARY_DIR}/_cache/R/renv_sandbox")
   file(MAKE_DIRECTORY ${RENV_SANDBOX})
@@ -850,7 +841,6 @@ elseif(LINUX)
 
   set(RENV_LIBRARY                "${CMAKE_BINARY_DIR}/_cache/R/renv_library")
   set(R_CPP_INCLUDES_LIBRARY      "${CMAKE_BINARY_DIR}/R/R_cpp_includes_library")
-#  set(R_CPP_INCLUDES_LIBRARY      "${CMAKE_BINARY_DIR}/R/R_cpp_includes_library")
   set(JASPMODULEINSTALLER_LIBRARY "${CMAKE_BINARY_DIR}/R/jaspModuleInstaller_library")
   SET(RENV_SANDBOX                "${CMAKE_BINARY_DIR}/_cache/R/renv_sandbox")
   file(MAKE_DIRECTORY ${RENV_SANDBOX})
