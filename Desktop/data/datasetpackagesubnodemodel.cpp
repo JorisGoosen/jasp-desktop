@@ -3,13 +3,24 @@
 #include "log.h"
 
 DataSetPackageSubNodeModel::DataSetPackageSubNodeModel(const QString & whatAmI, DataSetBaseNode * node)
-	: QIdentityProxyModel(DataSetPackage::pkg()), _node(node), _whatAmI(whatAmI)
+	: QAbstractItemModel(DataSetPackage::pkg()), _node(node), _whatAmI(whatAmI)
 {
-	beginResetModel();
-	setSourceModel(DataSetPackage::pkg());
-	endResetModel();
+	connect(pkg(),	&DataSetPackage::modelReset,				this,	&DataSetPackageSubNodeModel::modelWasReset);
+	connect(pkg(),	&DataSetPackage::dataChanged,				this,	&DataSetPackageSubNodeModel::dataChangedHandler);
+	
+	connect(pkg(),	&DataSetPackage::rowsAboutToBeInserted,		this,	&DataSetPackageSubNodeModel::rowsAboutToBeInsertedHandler);
+	connect(pkg(),	&DataSetPackage::rowsInserted,				this,	&DataSetPackageSubNodeModel::rowsInsertedHandler);
+	
+	connect(pkg(),	&DataSetPackage::rowsAboutToBeRemoved,		this,	&DataSetPackageSubNodeModel::rowsAboutToBeRemovedHandler);
+	connect(pkg(),	&DataSetPackage::rowsRemoved,				this,	&DataSetPackageSubNodeModel::rowsRemovedHandler);
+	
+	connect(pkg(),	&DataSetPackage::columnsAboutToBeInserted,	this,	&DataSetPackageSubNodeModel::columnsAboutToBeInsertedHandler);
+	connect(pkg(),	&DataSetPackage::columnsInserted,			this,	&DataSetPackageSubNodeModel::columnsInsertedHandler);
+	
+	connect(pkg(),	&DataSetPackage::columnsAboutToBeRemoved,	this,	&DataSetPackageSubNodeModel::columnsAboutToBeRemovedHandler);
+	connect(pkg(),	&DataSetPackage::columnsRemoved,			this,	&DataSetPackageSubNodeModel::columnsRemovedHandler);
+	
 
-	connect(DataSetPackage::pkg(),	&DataSetPackage::modelReset,			this,	&DataSetPackageSubNodeModel::modelWasReset);
 }
 
 
@@ -58,7 +69,7 @@ QString DataSetPackageSubNodeModel::insertColumnSpecial(int column, bool compute
 {
 	int sourceColumn = column > columnCount() ? columnCount() : column;
 	sourceColumn = mapToSource(index(0, sourceColumn)).column();
-	return DataSetPackage::pkg()->insertColumnSpecial(sourceColumn == -1 ? sourceModel()->columnCount() : sourceColumn, computed, R ? computedColumnType::rCode : computedColumnType::constructorCode);
+	return DataSetPackage::pkg()->insertColumnSpecial(sourceColumn == -1 ? pkg()->columnCount() : sourceColumn, computed, R ? computedColumnType::rCode : computedColumnType::constructorCode);
 }
 
 QString DataSetPackageSubNodeModel::appendColumnSpecial(bool computed, bool R)
@@ -81,8 +92,65 @@ void DataSetPackageSubNodeModel::selectNode(DataSetBaseNode * node)
 
 	beginResetModel();
 	_node = node;
-	if(!_node)	setSourceModel(nullptr);
-	else		setSourceModel(DataSetPackage::pkg());
 	emit nodeChanged();
 	endResetModel();
+}
+
+DataSetPackage *DataSetPackageSubNodeModel::pkg() const { return DataSetPackage::pkg(); }
+
+void DataSetPackageSubNodeModel::dataChangedHandler(const QModelIndex &topLeft, const QModelIndex &bottomRight,  const QList<int> &roles)
+{
+	QModelIndex tl(mapFromSource(topLeft)), br(mapFromSource(bottomRight));
+	
+	if(tl.isValid() && br.isValid())
+		emit dataChangedHandler(tl, br, roles);
+}
+
+void DataSetPackageSubNodeModel::headerDataChangedHandler(Qt::Orientation orientation, int first, int last)
+{
+
+}
+
+
+void DataSetPackageSubNodeModel::rowsAboutToBeInsertedHandler(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+void DataSetPackageSubNodeModel::rowsInsertedHandler(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+
+void DataSetPackageSubNodeModel::rowsAboutToBeRemovedHandler(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+void DataSetPackageSubNodeModel::rowsRemovedHandler(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+
+void DataSetPackageSubNodeModel::columnsAboutToBeInsertedHandler(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+void DataSetPackageSubNodeModel::columnsInsertedHandler(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+
+void DataSetPackageSubNodeModel::columnsAboutToBeRemovedHandler(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+void DataSetPackageSubNodeModel::columnsRemovedHandler(const QModelIndex &parent, int first, int last)
+{
+
 }
