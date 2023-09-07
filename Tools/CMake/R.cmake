@@ -16,15 +16,15 @@
 #     on x86_64, it is using the Fortran 8.
 #
 # Notes:
-#   - Be aware that at some point, R will move to use a different Fortran, and 
+#   - Be aware that at some point, R will move to use a different Fortran, and
 #     when that happens, someone needs to make sure that the right Fortran is being
-#     download, unpacked, and placed in the right location. You can find the 
+#     download, unpacked, and placed in the right location. You can find the
 #     appropriate version in `etc/Makeconf` and the binary here,
 #     https://github.com/fxcoudert/gfortran-for-macOS/releases
 #   - On GitHub Action,
 #     - You probably want to unpack the `https://static.jasp-stats.org/development/gfortran-8.2-Mojave.dmg`
 #       into a `.tar.gz`. I think this might elimite some possible issues with the unpacking on
-#       their environment. If you have decided to do this, make sure that the structure of the 
+#       their environment. If you have decided to do this, make sure that the structure of the
 #       archive is similiar and things land where they are expected.
 #
 # Todos:
@@ -140,6 +140,7 @@ if(APPLE)
   set(R_LIBRARY_PATH "${R_HOME_PATH}/library")
   set(R_OPT_PATH "${R_HOME_PATH}/opt")
   set(R_EXECUTABLE "${R_HOME_PATH}/bin/R")
+  set(RSCRIPT_EXECUTABLE "${R_HOME_PATH}/bin/Rscript")
   set(R_INCLUDE_PATH "${R_HOME_PATH}/include")
   set(RCPP_PATH "${R_LIBRARY_PATH}/Rcpp")
   set(RINSIDE_PATH "${R_LIBRARY_PATH}/RInside")
@@ -152,6 +153,7 @@ if(APPLE)
   cmake_print_variables(R_LIBRARY_PATH)
   cmake_print_variables(R_OPT_PATH)
   cmake_print_variables(R_EXECUTABLE)
+  cmake_print_variables(RSCRIPT_EXECUTABLE)
   cmake_print_variables(RCPP_PATH)
   cmake_print_variables(RINSIDE_PATH)
   cmake_print_variables(RENV_PATH)
@@ -377,7 +379,7 @@ if(APPLE)
       # Patch and sign all first party libraries
 	  execute_process(
 		#COMMAND_ECHO STDOUT
-		#ERROR_QUIET 
+		#ERROR_QUIET
     OUTPUT_QUIET
 		WORKING_DIRECTORY ${R_HOME_PATH}
 		COMMAND
@@ -393,7 +395,7 @@ if(APPLE)
       message(CHECK_START "Patching /bin/exec/R")
       execute_process(
         #COMMAND_ECHO STDOUT
-        #ERROR_QUIET 
+        #ERROR_QUIET
         OUTPUT_QUIET
         WORKING_DIRECTORY ${R_HOME_PATH}
         COMMAND
@@ -500,94 +502,6 @@ if(APPLE)
     message(CHECK_FAIL "not found in ${R_HOME_PATH}/lib")
   endif()
 
-  if(NOT EXISTS ${RINSIDE_PATH})
-    message(STATUS "RInside is not installed!")
-
-    message(CHECK_START "Installing the 'RInside' and 'Rcpp'")
-
-    configure_file(${MODULES_SOURCE_PATH}/install-RInside.R.in
-		           ${SCRIPT_DIRECTORY}/install-RInside.R @ONLY)
-
-    execute_process(
-      COMMAND_ECHO STDOUT
-      #ERROR_QUIET OUTPUT_QUIET
-      WORKING_DIRECTORY ${R_HOME_PATH}
-      COMMAND ${R_EXECUTABLE} --slave --no-restore --no-save
-	          --file=${SCRIPT_DIRECTORY}/install-RInside.R)
-
-    if(NOT EXISTS ${R_LIBRARY_PATH}/RInside)
-      message(CHECK_FAIL "unsuccessful.")
-      message(FATAL_ERROR "'RInside' installation has failed!")
-    endif()
-
-    message(CHECK_PASS "successful.")
-
-    # Patching RInside and RCpp
-    message(CHECK_START "Patching Frameworks/.../library")
-    execute_process(
-	  COMMAND_ECHO STDOUT
-	  #ERROR_QUIET OUTPUT_QUIET
-      WORKING_DIRECTORY ${R_HOME_PATH}
-      COMMAND
-        ${CMAKE_COMMAND} -D
-        NAME_TOOL_PREFIX_PATCHER=${PROJECT_SOURCE_DIR}/Tools/macOS/install_name_prefix_tool.sh
-        -D PATH=${R_HOME_PATH}/library -D R_HOME_PATH=${R_HOME_PATH} -D
-        R_DIR_NAME=${R_DIR_NAME} -D SIGNING_IDENTITY=${APPLE_CODESIGN_IDENTITY}
-        -D SIGNING=1 -D CODESIGN_TIMESTAMP_FLAG=${CODESIGN_TIMESTAMP_FLAG} -P
-        ${PROJECT_SOURCE_DIR}/Tools/CMake/Patch.cmake)
-
-  endif()
-
-  if(NOT EXISTS ${RENV_PATH})
-    message(STATUS "renv is not installed!")
-    message(CHECK_START "Installing 'renv'")
-
-    configure_file(${MODULES_SOURCE_PATH}/install-renv.R.in
-		           ${SCRIPT_DIRECTORY}/install-renv.R @ONLY)
-
-    set(ENV{JASP_R_HOME} ${R_HOME_PATH})
-
-    execute_process(
-	  COMMAND_ECHO STDERR
-	  #ERROR_QUIET OUTPUT_QUIET
-      WORKING_DIRECTORY ${R_HOME_PATH}
-	  COMMAND ${R_EXECUTABLE} --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/install-renv.R)
-
-    if(NOT EXISTS ${R_LIBRARY_PATH}/renv)
-      message(CHECK_FAIL "unsuccessful.")
-      message(FATAL_ERROR "'renv' installation has failed!")
-    endif()
-
-    message(CHECK_PASS "successful.")
-
-    message(CHECK_START "Patching Frameworks/.../library")
-    execute_process(
-	  COMMAND_ECHO STDOUT
-	  #ERROR_QUIET OUTPUT_QUIET
-      WORKING_DIRECTORY ${R_HOME_PATH}
-      COMMAND
-        ${CMAKE_COMMAND} -D
-        NAME_TOOL_PREFIX_PATCHER=${PROJECT_SOURCE_DIR}/Tools/macOS/install_name_prefix_tool.sh
-        -D PATH=${R_HOME_PATH}/library -D R_HOME_PATH=${R_HOME_PATH} -D
-        R_DIR_NAME=${R_DIR_NAME} -D SIGNING_IDENTITY=${APPLE_CODESIGN_IDENTITY}
-        -D SIGNING=1 -D CODESIGN_TIMESTAMP_FLAG=${CODESIGN_TIMESTAMP_FLAG} -P
-        ${PROJECT_SOURCE_DIR}/Tools/CMake/Patch.cmake)
-  endif()
-
-  message(CHECK_START "Checking for 'libRInside'")
-  find_library(
-    _LIB_RINSIDE
-    NAMES RInside
-    PATHS ${RINSIDE_PATH}/lib
-    NO_DEFAULT_PATH NO_CACHE REQUIRED)
-
-  if(_LIB_RINSIDE)
-    message(CHECK_PASS "found.")
-    message(STATUS "  ${_LIB_RINSIDE}")
-  else()
-    message(CHECK_FAIL "not found in ${RINSIDE_PATH}/lib")
-  endif()
-
 elseif(WIN32)
 
   set(R_HOME_PATH "${CMAKE_BINARY_DIR}/R")
@@ -679,52 +593,6 @@ elseif(WIN32)
 
   endif()
 
-
-  # NOTE: identical to the code under elseif(LINUX)
-  set(RENV_LIBRARY                "${CMAKE_BINARY_DIR}/_cache/R/renv_library")
-  set(R_CPP_INCLUDES_LIBRARY      "${CMAKE_BINARY_DIR}/R/R_cpp_includes_library")
-  set(JASPMODULEINSTALLER_LIBRARY "${CMAKE_BINARY_DIR}/R/jaspModuleInstaller_library")
-  SET(RENV_SANDBOX                "${CMAKE_BINARY_DIR}/_cache/R/renv_sandbox")
-  file(MAKE_DIRECTORY ${RENV_SANDBOX})
-  # TODO: it would be nice to ship the sandbox so it can be used to install dynamic modules
-  # also, the sandbox paths would probably need to be adjusted on windows
-
-  message(STATUS "Setting up renv, Rcpp, RInside, and jaspModuleInstaller")
-  message(STATUS "RENV_LIBRARY           = ${RENV_LIBRARY}")
-  message(STATUS "R_CPP_INCLUDES_LIBRARY = ${R_CPP_INCLUDES_LIBRARY}")
-
-  configure_file(${PROJECT_SOURCE_DIR}/Tools/setup_renv_rcpp_rinside_jaspModuleInstaller.R.in
-                 ${SCRIPT_DIRECTORY}/setup_renv_rcpp_rinside_jaspModuleInstaller.R @ONLY)
-
-  execute_process(
-    COMMAND_ECHO STDOUT
-    #ERROR_QUIET OUTPUT_QUIET
-    WORKING_DIRECTORY ${R_HOME_PATH}
-    COMMAND ${R_EXECUTABLE} --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/setup_renv_rcpp_rinside_jaspModuleInstaller.R)
-
-  set(FIND_PACKAGE_PATH_SCRIPT		${PROJECT_SOURCE_DIR}/Tools/find_package_path.R)
-  macro(find_package_path out libPath packageName)
-    execute_process(COMMAND ${RSCRIPT_EXECUTABLE} ${FIND_PACKAGE_PATH_SCRIPT} ${libPath} ${packageName} OUTPUT_VARIABLE ${out})
-  endmacro()
-  find_package_path(RCPP_PATH       ${R_CPP_INCLUDES_LIBRARY} "Rcpp")
-  find_package_path(RINSIDE_PATH    ${R_CPP_INCLUDES_LIBRARY} "RInside")
-
-  set(RENV_PATH "${RENV_LIBRARY}/renv")
-
-  message(STATUS "RENV_PATH              = ${RENV_PATH}")
-  message(STATUS "RCPP_PATH              = ${RCPP_PATH}")
-  message(STATUS "RINSIDE_PATH           = ${RINSIDE_PATH}")
-
-  if(NOT EXISTS ${RENV_PATH})
-      message(FATAL_ERROR "'renv' installation has failed!")
-  endif()
-  if(NOT EXISTS ${RCPP_PATH})
-      message(FATAL_ERROR "'Rcpp' installation has failed!")
-  endif()
-  if(NOT EXISTS ${RINSIDE_PATH})
-      message(FATAL_ERROR "'RInside' installation has failed!")
-  endif()
-
 elseif(LINUX)
 
   message(CHECK_START "Looking for R")
@@ -787,9 +655,6 @@ elseif(LINUX)
 
   set(R_EXECUTABLE "${R_HOME_PATH}/bin/R")
   set(RSCRIPT_EXECUTABLE "${R_HOME_PATH}/bin/Rscript")
-#  set(RCPP_PATH "${R_LIBRARY_PATH}/Rcpp")
-#  set(RINSIDE_PATH "${R_LIBRARY_PATH}/RInside")
-#  set(RENV_PATH "${R_LIBRARY_PATH}/renv")
 
   set(USE_LOCAL_R_LIBS_PATH ", lib='${R_LIBRARY_PATH}'")
 
@@ -838,51 +703,71 @@ elseif(LINUX)
     message(CHECK_FAIL "not found in ${R_HOME_PATH}/lib")
   endif()
 
+endif()
 
-  set(RENV_LIBRARY                "${CMAKE_BINARY_DIR}/_cache/R/renv_library")
-  set(R_CPP_INCLUDES_LIBRARY      "${CMAKE_BINARY_DIR}/R/R_cpp_includes_library")
-  set(JASPMODULEINSTALLER_LIBRARY "${CMAKE_BINARY_DIR}/R/jaspModuleInstaller_library")
-  SET(RENV_SANDBOX                "${CMAKE_BINARY_DIR}/_cache/R/renv_sandbox")
-  file(MAKE_DIRECTORY ${RENV_SANDBOX})
-  # TODO: it would be nice to ship the sandbox so it can be used to install dynamic modules
-  # also, the sandbox paths would probably need to be adjusted on windows
+set(RENV_LIBRARY                "${CMAKE_BINARY_DIR}/_cache/R/renv_library")
+set(R_CPP_INCLUDES_LIBRARY      "${CMAKE_BINARY_DIR}/R/R_cpp_includes_library")
+set(JASPMODULEINSTALLER_LIBRARY "${CMAKE_BINARY_DIR}/R/jaspModuleInstaller_library")
+SET(RENV_SANDBOX                "${CMAKE_BINARY_DIR}/_cache/R/renv_sandbox")
+file(MAKE_DIRECTORY ${RENV_SANDBOX})
+# TODO: it could be nice to ship the sandbox so it can be used to install dynamic modules
+# also, the sandbox paths may need to be adjusted on windows (they are symlinks)
 
-  message(STATUS "Setting up renv, Rcpp, RInside, and jaspModuleInstaller")
-  message(STATUS "RENV_LIBRARY           = ${RENV_LIBRARY}")
-  message(STATUS "R_CPP_INCLUDES_LIBRARY = ${R_CPP_INCLUDES_LIBRARY}")
+message(STATUS "Setting up renv, Rcpp, RInside, and jaspModuleInstaller")
+message(STATUS "RENV_LIBRARY           = ${RENV_LIBRARY}")
+message(STATUS "R_CPP_INCLUDES_LIBRARY = ${R_CPP_INCLUDES_LIBRARY}")
 
-  configure_file(${PROJECT_SOURCE_DIR}/Tools/setup_renv_rcpp_rinside_jaspModuleInstaller.R.in
-                 ${SCRIPT_DIRECTORY}/setup_renv_rcpp_rinside_jaspModuleInstaller.R @ONLY)
+configure_file(${PROJECT_SOURCE_DIR}/Tools/setup_renv_rcpp_rinside_jaspModuleInstaller.R.in
+                ${SCRIPT_DIRECTORY}/setup_renv_rcpp_rinside_jaspModuleInstaller.R @ONLY)
 
+execute_process(
+  COMMAND_ECHO STDOUT
+  #ERROR_QUIET OUTPUT_QUIET
+  WORKING_DIRECTORY ${R_HOME_PATH}
+  COMMAND ${R_EXECUTABLE} --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/setup_renv_rcpp_rinside_jaspModuleInstaller.R)
+
+if(APPLE)
+  # Patch RInside and RCpp
+  message(CHECK_START "Patching ${R_CPP_INCLUDES_LIBRARY}")
   execute_process(
     COMMAND_ECHO STDOUT
     #ERROR_QUIET OUTPUT_QUIET
     WORKING_DIRECTORY ${R_HOME_PATH}
-    COMMAND ${R_EXECUTABLE} --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/setup_renv_rcpp_rinside_jaspModuleInstaller.R)
+    COMMAND
+      ${CMAKE_COMMAND} -D
+      NAME_TOOL_PREFIX_PATCHER=${PROJECT_SOURCE_DIR}/Tools/macOS/install_name_prefix_tool.sh
+      -D PATH=${R_CPP_INCLUDES_LIBRARY} -D R_HOME_PATH=${R_HOME_PATH} -D
+      R_DIR_NAME=${R_DIR_NAME} -D SIGNING_IDENTITY=${APPLE_CODESIGN_IDENTITY}
+      -D SIGNING=1 -D CODESIGN_TIMESTAMP_FLAG=${CODESIGN_TIMESTAMP_FLAG} -P
+      ${PROJECT_SOURCE_DIR}/Tools/CMake/Patch.cmake
+  )
+endif()
 
-  set(FIND_PACKAGE_PATH_SCRIPT		${PROJECT_SOURCE_DIR}/Tools/find_package_path.R)
-  macro(find_package_path out libPath packageName)
-    execute_process(COMMAND ${RSCRIPT_EXECUTABLE} ${FIND_PACKAGE_PATH_SCRIPT} ${libPath} ${packageName} OUTPUT_VARIABLE ${out})
-  endmacro()
-  find_package_path(RCPP_PATH       ${R_CPP_INCLUDES_LIBRARY} "Rcpp")
-  find_package_path(RINSIDE_PATH    ${R_CPP_INCLUDES_LIBRARY} "RInside")
+# Locate the full paths (so those in the cache, not the symlinks)
+set(FIND_PACKAGE_PATH_SCRIPT		${PROJECT_SOURCE_DIR}/Tools/find_package_path.R)
+macro(find_package_path out libPath packageName)
+  execute_process(COMMAND ${RSCRIPT_EXECUTABLE} ${FIND_PACKAGE_PATH_SCRIPT} ${libPath} ${packageName} OUTPUT_VARIABLE ${out})
+endmacro()
+find_package_path(RCPP_PATH       ${R_CPP_INCLUDES_LIBRARY} "Rcpp")
+find_package_path(RINSIDE_PATH    ${R_CPP_INCLUDES_LIBRARY} "RInside")
 
-  set(RENV_PATH "${RENV_LIBRARY}/renv")
+set(RENV_PATH "${RENV_LIBRARY}/renv")
 
-  message(STATUS "RENV_PATH              = ${RENV_PATH}")
-  message(STATUS "RCPP_PATH              = ${RCPP_PATH}")
-  message(STATUS "RINSIDE_PATH           = ${RINSIDE_PATH}")
+message(STATUS "RENV_PATH              = ${RENV_PATH}")
+message(STATUS "RCPP_PATH              = ${RCPP_PATH}")
+message(STATUS "RINSIDE_PATH           = ${RINSIDE_PATH}")
 
-  if(NOT EXISTS ${RENV_PATH})
-      message(FATAL_ERROR "'renv' installation has failed!")
-  endif()
-  if(NOT EXISTS ${RCPP_PATH})
-      message(FATAL_ERROR "'Rcpp' installation has failed!")
-  endif()
-  if(NOT EXISTS ${RINSIDE_PATH})
-      message(FATAL_ERROR "'RInside' installation has failed!")
-  endif()
+if(NOT EXISTS ${RENV_PATH})
+    message(FATAL_ERROR "'renv' installation has failed!")
+endif()
+if(NOT EXISTS ${RCPP_PATH})
+    message(FATAL_ERROR "'Rcpp' installation has failed!")
+endif()
+if(NOT EXISTS ${RINSIDE_PATH})
+    message(FATAL_ERROR "'RInside' installation has failed!")
+endif()
 
+if(APPLE OR LINUX)
   message(CHECK_START "Checking for 'libRInside'")
   find_library(
     _LIB_RINSIDE
@@ -896,7 +781,6 @@ elseif(LINUX)
   else()
     message(CHECK_FAIL "not found in ${RINSIDE_PATH}/lib")
   endif()
-
 endif()
 
 list(POP_BACK CMAKE_MESSAGE_CONTEXT)
