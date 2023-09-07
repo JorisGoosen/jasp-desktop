@@ -39,9 +39,8 @@ class DataSetPackageSubNodeModel;
 /// This class is meant as the single bottleneck between the main application and Qt and the data stored in sqlite.
 /// To this end a clean separation has been attempted between any access of the data so that it can easily be controlled.
 ///
-/// In order to have all that data available through this class a tree-model has been chosen here.
-///
-/// The structure of this tree should be described here...
+/// In order to have all that data available through this class it has a few DataSetPackageSubNodeModel that make 
+/// parts of the data, filters etc available each
 class DataSetPackage : public QAbstractItemModel //Not QAbstractTableModel because of: https://stackoverflow.com/a/38999940 (And this being a tree model)
 {
 	Q_OBJECT
