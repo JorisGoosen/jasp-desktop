@@ -40,9 +40,13 @@ target_link_libraries(
 		 #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LIBRARIES}>
 		 #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LINK_LIBRARIES}>
          #
-         Common
+         #Common
+         Boost::system
+         Boost::date_time
+         Boost::timer
+         Boost::chrono
          LibArchive::LibArchive
-		 SQLite::SQLite3
+         SQLite::SQLite3
          #
          $<$<BOOL:${JASP_USES_QT_HERE}>:Qt::Core>)
 
