@@ -26,9 +26,11 @@ if (@IS_FLATPAK_USED@) {
 sandboxPaths <- renv:::renv_sandbox_activate()
 
 options(
-  configure.vars = c(jaspBase = "INCLUDE_DIR='@PROJECT_SOURCE_DIR@/Common'") #Needed for flatpak build as it keeps recompiling jaspBase (which it shouldnt of course but I dont know why) and this is an easy fix to get it to work now
+  configure.vars = c(jaspBase = "INCLUDE_DIR='@PROJECT_SOURCE_DIR@/Common'"), #Needed for flatpak build as it keeps recompiling jaspBase (which it shouldnt of course but I dont know why) and this is an easy fix to get it to work now
+  PKGDEPENDS_LIBRARY = "@PKGDEPENDS_LIBRARY@"
 )
 
+options(error = recover)
 jaspModuleInstaller::installJaspModule(
     modulePkg           = "@MODULES_SOURCE_PATH@/@MODULE@",
     repos               = "@R_REPOSITORY@",

@@ -10,8 +10,10 @@ Sys.setenv(JASPENGINE_LOCATION = "@JASP_ENGINE_PATH@/JASPEngine")
 RENV_LIBRARY                <- "@RENV_LIBRARY@"
 R_CPP_INCLUDES_LIBRARY      <- "@R_CPP_INCLUDES_LIBRARY@"
 JASPMODULEINSTALLER_LIBRARY <- "@JASPMODULEINSTALLER_LIBRARY@"
+PKGDEPENDS_LIBRARY          <- "@PKGDEPENDS_LIBRARY@"
 
 ENGINE                 <- file.path("@PROJECT_SOURCE_DIR@", "Engine")
+MODULES                <- file.path("@PROJECT_SOURCE_DIR@", "Modules")
 TOOLS                  <- file.path("@PROJECT_SOURCE_DIR@", "Tools")
 
 assignFunctionInPackage <- function(fun, name, package) {
@@ -91,7 +93,7 @@ assignFunctionInRenv(function() return(""),                   "renv_bootstrap_pl
 
 cat("Using sandbox paths:\n")
 for (path in sandboxPaths)
-  cat(path, "\n", sep = "")
+  cat("    ", path, "\n", sep = "")
 
 # same as in jaspModuleInstaller:::setupRenv
 options(
@@ -105,7 +107,14 @@ options(
 cat("Restoring Rcpp & RInside\n")
 renv::restore(
   library  = R_CPP_INCLUDES_LIBRARY,
-  lockfile = file.path(TOOLS, "Rcpp_RInside.lock"),
+  lockfile = file.path(MODULES, "Rcpp_RInside.lock"),
+  clean    = TRUE
+)
+
+cat("Restoring pkgdepends\n")
+renv::restore(
+  library  = PKGDEPENDS_LIBRARY,
+  lockfile = file.path(MODULES, "pkgdepends.lock"),
   clean    = TRUE
 )
 

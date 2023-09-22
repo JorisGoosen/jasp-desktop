@@ -708,6 +708,8 @@ endif()
 set(RENV_LIBRARY                "${CMAKE_BINARY_DIR}/_cache/R/renv_library")
 set(R_CPP_INCLUDES_LIBRARY      "${CMAKE_BINARY_DIR}/R/R_cpp_includes_library")
 set(JASPMODULEINSTALLER_LIBRARY "${CMAKE_BINARY_DIR}/R/jaspModuleInstaller_library")
+set(PKGDEPENDS_LIBRARY          "${CMAKE_BINARY_DIR}/R/pkgdepends_library")
+
 SET(RENV_SANDBOX                "${CMAKE_BINARY_DIR}/_cache/R/renv_sandbox")
 file(MAKE_DIRECTORY ${RENV_SANDBOX})
 # TODO: it could be nice to ship the sandbox so it can be used to install dynamic modules
@@ -717,7 +719,7 @@ message(STATUS "Setting up renv, Rcpp, RInside, and jaspModuleInstaller")
 message(STATUS "RENV_LIBRARY           = ${RENV_LIBRARY}")
 message(STATUS "R_CPP_INCLUDES_LIBRARY = ${R_CPP_INCLUDES_LIBRARY}")
 
-configure_file(${PROJECT_SOURCE_DIR}/Tools/setup_renv_rcpp_rinside_jaspModuleInstaller.R.in
+configure_file(${PROJECT_SOURCE_DIR}/Modules/setup_renv_rcpp_rinside_jaspModuleInstaller.R.in
                 ${SCRIPT_DIRECTORY}/setup_renv_rcpp_rinside_jaspModuleInstaller.R @ONLY)
 
 execute_process(
