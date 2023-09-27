@@ -16,51 +16,14 @@ ENGINE                 <- file.path("@PROJECT_SOURCE_DIR@", "Engine")
 MODULES                <- file.path("@PROJECT_SOURCE_DIR@", "Modules")
 TOOLS                  <- file.path("@PROJECT_SOURCE_DIR@", "Tools")
 
-assignFunctionInPackage <- function(fun, name, package) {
-  ns <- getNamespace(package)
-  unlockBinding(name, ns)
-  assign(name, fun, ns)
-  lockBinding(name, ns)
-}
-
-assignFunctionInRenv <- function(fun, name) {
-  assignFunctionInPackage(fun, name, "renv")
-}
-
-getOS <- function() {
-
-  os <- NULL
-
-  if (!is.null(Sys.info())) {
-
-    os <- Sys.info()["sysname"]
-
-    if (os == "Darwin")
-      os <- "osx"
-
-  } else {
-
-    if (grepl("^darwin", R.version$os))
-      os <- "osx"
-
-    if (grepl("linux-gnu", R.version$os))
-      os <- "linux"
-
-  }
-
-  if (is.null(os))
-    stop("Unable to determine the operating system because `Sys.info()` returned NULL.", domain = NA)
-
-  return(tolower(os))
-
-}
+# defines assignFunctionInRenv, getOS, and setupRenv
+source(file.path(ENGINE, "jaspModuleInstaller", "R", "renvOverrides.R"))
 
 mkdir <- function(paths) {
   for (path in paths)
     if (!dir.exists(path))
       dir.create(path, recursive = TRUE)
 }
-
 
 mkdir(c(RENV_LIBRARY, R_CPP_INCLUDES_LIBRARY, JASPMODULEINSTALLER_LIBRARY))
 
@@ -73,7 +36,7 @@ if (!dir.exists(file.path(RENV_LIBRARY, "renv"))) {
     pkgs         = "renv",
     lib          = RENV_LIBRARY,
     repos        ='http://cloud.r-project.org',
-    INSTALL_opts ='--no-multiarch --no-docs --no-test-load')
+    INSTALL_opts ='--no-multiarch --no-docs --no-test-load') # --no-test-load is dubious here
 } else {
   cat("renv already installed, not reinstalling\n")
 }
@@ -81,6 +44,7 @@ if (!dir.exists(file.path(RENV_LIBRARY, "renv"))) {
 # used by renv
 options(
   install.opts                = "--no-multiarch --no-docs --no-test-load",
+  # these two could be added to setupRenv
   renv.config.install.verbose = TRUE,
   renv.config.ppm.default     = TRUE
 )
@@ -88,23 +52,12 @@ options(
 .libPaths(RENV_LIBRARY)
 sandboxPaths <- renv:::renv_sandbox_activate()
 
-# renv adds e.g,. "R-3.6/x86_64-pc-linux-gnu" to all paths (R-version/os) and we don't need that
-assignFunctionInRenv(function() return(""),                   "renv_bootstrap_platform_prefix")
-
 cat("Using sandbox paths:\n")
 for (path in sandboxPaths)
   cat("    ", path, "\n", sep = "")
 
-# same as in jaspModuleInstaller:::setupRenv
-options(
-  "renv.config.install.verbose" = TRUE,  # not necessary but saves headaches
-  "renv.config.cache.enabled"   = TRUE,  # enable using a cache
-  "renv.cache.linkable"         = TRUE,  # undocumented, see renv:::renv_cache_linkable. required for linking to a custom folder
-  "renv.config.auto.snapshot"   = FALSE, # new option, we don't want this
-  "renv.snapshot.ignore.self"   = FALSE  # currently unused, but can be useful.
-)
-
 cat("Restoring Rcpp & RInside\n")
+setupRenv(R_CPP_INCLUDES_LIBRARY)
 renv::restore(
   library  = R_CPP_INCLUDES_LIBRARY,
   lockfile = file.path(MODULES, "Rcpp_RInside.lock"),
@@ -112,6 +65,7 @@ renv::restore(
 )
 
 cat("Restoring pkgdepends\n")
+setupRenv(PKGDEPENDS_LIBRARY)
 renv::restore(
   library  = PKGDEPENDS_LIBRARY,
   lockfile = file.path(MODULES, "pkgdepends.lock"),
@@ -119,6 +73,7 @@ renv::restore(
 )
 
 cat("Restoring jaspModuleInstaller\n")
+setupRenv(JASPMODULEINSTALLER_LIBRARY)
 renv::restore(
   library  = JASPMODULEINSTALLER_LIBRARY,
   lockfile = file.path(ENGINE, "jaspModuleInstaller", "renv.lock"),
