@@ -496,8 +496,8 @@ void Engine::receiveModuleRequestMessage(const Json::Value & jsonRequest)
 
 	Log::log() << "Was " << (succes ? "succesful" : "a failure") << ", now crafting answer." << std::endl;
 
-    if(moduleStatusFromString((moduleRequest)) == moduleStatus::loading)
-        jaspRCPP_init_jaspBase();
+	if(moduleStatusFromString((moduleRequest)) == moduleStatus::loading)
+		jaspRCPP_init_jaspBase();
 
 	Json::Value		jsonAnswer		= Json::objectValue;
 
