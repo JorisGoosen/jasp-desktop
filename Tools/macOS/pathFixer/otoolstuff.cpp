@@ -1,6 +1,5 @@
 #include "otoolstuff.h"
 #include "stringutils.h"
-#include "rbridge.h"
 #include <fstream>
 #include <boost/algorithm/string/predicate.hpp>
 #include "utils.h"

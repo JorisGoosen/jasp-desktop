@@ -92,9 +92,11 @@ if(WIN32)
 
   set(R_CPP_INCLUDES_LIBRARY      "${JASP_BINARY_DIR}/R/R_cpp_includes_library")
   set(FIND_PACKAGE_PATH_SCRIPT    "${CMAKE_SOURCE_DIR}/../Tools/find_package_path.R")
+
   macro(find_package_path out libPath packageName)
     execute_process(COMMAND ${RSCRIPT_EXECUTABLE} ${FIND_PACKAGE_PATH_SCRIPT} ${libPath} ${packageName} OUTPUT_VARIABLE ${out})
   endmacro()
+
   find_package_path(RCPP_PATH       ${R_CPP_INCLUDES_LIBRARY} "Rcpp")
   find_package_path(RINSIDE_PATH    ${R_CPP_INCLUDES_LIBRARY} "RInside")
 
@@ -119,7 +121,7 @@ if(WIN32)
     message(STATUS "  ${_LIB_R}")
   else()
     message(CHECK_FAIL "not found in ${_LIB_R_PATH}/bin/x64")
-    message(FATAL_ERROR "R.dll is required for building R-Interface.")
+	message(FATAL_ERROR "R.dll is required for building R-Interface.")
   endif()
 
   message(CHECK_START "Checking for 'libRInside'")

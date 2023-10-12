@@ -102,6 +102,9 @@ include(Dependencies)
 # Setting JASP's parameters, e.g., JASP_VERSION
 include(JASP)
 
+# prepare the binary path fixer
+add_subdirectory(Tools/macOs/pathFixer)
+
 # Preparing R environment, and setting R_HOME_PATH
 include(R)
 
