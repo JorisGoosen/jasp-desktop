@@ -153,7 +153,7 @@ if(APPLE)
   set(RINSIDE_PATH "${R_LIBRARY_PATH}/RInside")
   set(RENV_PATH "${R_LIBRARY_PATH}/renv")
   set(ENV{JASP_R_HOME} ${R_HOME_PATH})
-  set(ENV{R_HOME} ${R_HOME_PATH})
+  #set(ENV{R_HOME} ${R_HOME_PATH}) #enabling this breaks the output from R because it will add a warning about: `WARNING: ignoring environment value of R_HOME`
 
   cmake_print_variables(R_FRAMEWORK_PATH)
   cmake_print_variables(R_HOME_PATH)
