@@ -510,8 +510,8 @@ if(APPLE)
     execute_process(
       COMMAND_ECHO STDOUT
       #ERROR_QUIET OUTPUT_QUIET
-      WORKING_DIRECTORY ${R_HOME_PATH}
-      COMMAND ${R_EXECUTABLE} --slave --no-restore --no-save
+	  WORKING_DIRECTORY ${R_HOME_PATH}/bin
+	  COMMAND R --slave --no-restore --no-save
 	          --file=${SCRIPT_DIRECTORY}/install-RInside.R)
 
     if(NOT EXISTS ${R_LIBRARY_PATH}/RInside)
@@ -550,8 +550,8 @@ if(APPLE)
     execute_process(
 	  COMMAND_ECHO STDERR
 	  #ERROR_QUIET OUTPUT_QUIET
-      WORKING_DIRECTORY ${R_HOME_PATH}
-	  COMMAND ${R_EXECUTABLE} --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/install-renv.R)
+	  WORKING_DIRECTORY ${R_HOME_PATH}/bin
+	  COMMAND R --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/install-renv.R)
 
     if(NOT EXISTS ${R_LIBRARY_PATH}/renv)
       message(CHECK_FAIL "unsuccessful.")
@@ -570,7 +570,7 @@ if(APPLE)
         NAME_TOOL_PREFIX_PATCHER=${PROJECT_SOURCE_DIR}/Tools/macOS/install_name_prefix_tool.sh
         -D PATH=${R_HOME_PATH}/library -D R_HOME_PATH=${R_HOME_PATH} -D R_DIR_NAME=${R_DIR_NAME} 
         -D SIGNING_IDENTITY=${APPLE_CODESIGN_IDENTITY} -D SIGNING=1 
-		-D RUNTIMEHARDENING=${RUNTIMEHARDENING}
+		    -D RUNTIMEHARDENING=${RUNTIMEHARDENING}
         -D CODESIGN_TIMESTAMP_FLAG=${CODESIGN_TIMESTAMP_FLAG} -P
         ${PROJECT_SOURCE_DIR}/Tools/CMake/Patch.cmake)
   endif()
@@ -877,7 +877,7 @@ elseif(LINUX)
 
     execute_process(
       COMMAND_ECHO STDOUT
-      #ERROR_QUIET OUTPUT_QUIET
+      WORKING_DIRECTORY ${R_HOME_PATH}
       COMMAND ${R_EXECUTABLE} --slave --no-restore --no-save
 	          --file=${SCRIPT_DIRECTORY}/install-RInside.R)
 

@@ -19,7 +19,7 @@
 list(APPEND CMAKE_MESSAGE_CONTEXT Modules)
 
 set(JASP_COMMON_MODULES
-  "jaspDescriptives"
+	"jaspDescriptives"
 	"jaspTTests"
 	"jaspAnova"
 	"jaspMixedModels"
@@ -29,30 +29,30 @@ set(JASP_COMMON_MODULES
 )
 
 set(JASP_EXTRA_MODULES
-    "jaspAcceptanceSampling"
-    "jaspAudit"
-    "jaspBain"
-    "jaspBsts"
-    "jaspCircular"
-    "jaspCochrane"
-    "jaspDistributions"
-    "jaspEquivalenceTTests"
-    "jaspJags"
-    "jaspLearnBayes"
-    "jaspLearnStats"
-    "jaspMachineLearning"
-    "jaspMetaAnalysis"
-    "jaspNetwork"
-    "jaspPower"
-    "jaspPredictiveAnalytics"
-    "jaspProphet"
-    "jaspQualityControl"
-    "jaspReliability"
-    "jaspRobustTTests"
-    "jaspSem"
-    "jaspSummaryStatistics"
-    "jaspTimeSeries"
-    "jaspVisualModeling"
+	"jaspAcceptanceSampling"
+	"jaspAudit"
+	"jaspBain"
+	"jaspBsts"
+	"jaspCircular"
+	"jaspCochrane"
+	"jaspDistributions"
+	"jaspEquivalenceTTests"
+	"jaspJags"
+	"jaspLearnBayes"
+	"jaspLearnStats"
+	"jaspMachineLearning"
+	"jaspMetaAnalysis"
+	"jaspNetwork"
+	"jaspPower"
+	"jaspPredictiveAnalytics"
+	"jaspProphet"
+	"jaspQualityControl"
+	"jaspReliability"
+	"jaspRobustTTests"
+	"jaspSem"
+	"jaspSummaryStatistics"
+	"jaspTimeSeries"
+	"jaspVisualModeling"
     )
 
 list(
@@ -162,10 +162,10 @@ if(APPLE)
 	add_dependencies(jaspBase JASPEngine)
 
 	add_custom_command(
-	  WORKING_DIRECTORY ${R_HOME_PATH}
+	  WORKING_DIRECTORY ${R_HOME_PATH}/bin
 	  OUTPUT ${MODULES_BINARY_PATH}/jaspBase/jaspBaseHash.rds
 	  USES_TERMINAL
-	  COMMAND ${CMAKE_COMMAND}  -E env "JASP_R_HOME=${R_HOME_PATH}" ${R_EXECUTABLE} --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/install-jaspBase.R
+	  COMMAND ${CMAKE_COMMAND}  -E env "JASP_R_HOME=${R_HOME_PATH}" R --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/install-jaspBase.R
 	  COMMENT "------ Installing 'jaspBase'")
 else()
 	add_custom_command(
@@ -207,9 +207,9 @@ if(APPLE)
     add_custom_target(
       ${MODULE}
       USES_TERMINAL
-      WORKING_DIRECTORY ${R_HOME_PATH}
+      WORKING_DIRECTORY ${R_HOME_PATH}/bin
 	  DEPENDS	${MODULES_BINARY_PATH}/jaspBase/jaspBaseHash.rds
-	  COMMAND  ${CMAKE_COMMAND}  -E env "JASP_R_HOME=${R_HOME_PATH}" ${R_EXECUTABLE} --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/install-${MODULE}.R
+	  COMMAND  ${CMAKE_COMMAND}  -E env "JASP_R_HOME=${R_HOME_PATH}" R --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/install-${MODULE}.R
       # COMMAND
       #   ${CMAKE_COMMAND} -D PATH=${MODULES_BINARY_PATH}/${MODULE} -D
       #   MODULES_BINARY_PATH=${MODULES_BINARY_PATH} -P
@@ -259,13 +259,13 @@ if(APPLE)
     add_custom_target(
       ${MODULE}
       USES_TERMINAL
-      WORKING_DIRECTORY ${R_HOME_PATH}
+	  WORKING_DIRECTORY ${R_HOME_PATH}/bin
       DEPENDS
 	    JASPEngine
         ${MODULES_BINARY_PATH}/jaspBase/jaspBaseHash.rds
         $<$<STREQUAL:"${MODULE}","jaspMetaAnalysis">:${jags_VERSION_H_PATH}>
         $<$<STREQUAL:"${MODULE}","jaspJags">:${jags_VERSION_H_PATH}>
-		COMMAND ${CMAKE_COMMAND}  -E env "JASP_R_HOME=${R_HOME_PATH}" ${R_EXECUTABLE} --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/install-${MODULE}.R
+		COMMAND ${CMAKE_COMMAND}  -E env "JASP_R_HOME=${R_HOME_PATH}" R --slave --no-restore --no-save --file=${SCRIPT_DIRECTORY}/install-${MODULE}.R
       # COMMAND
       #   ${CMAKE_COMMAND} -D PATH=${MODULES_BINARY_PATH}/${MODULE} -D
       #   MODULES_BINARY_PATH=${MODULES_BINARY_PATH} -P
