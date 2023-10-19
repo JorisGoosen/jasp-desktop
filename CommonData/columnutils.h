@@ -34,8 +34,10 @@ public:
 	static bool	convertValueToDoubleForImport(	const	std::string & strValue, double &doubleValue);
 	static void	convertEscapedUnicodeToUTF8(			std::string & inputStr);
 
-	static bool convertVecToInt(	const stringvec &values, intvec		& intValues,	intset		& uniqueValues, intstrmap & emptyValuesMap);
-	static bool convertVecToDouble(	const stringvec &values, doublevec	& doubleValues,								intstrmap	& emptyValuesMap);
+	static const intvec		&	convertVecToInt(		const stringvec & values,	intstrmap & emptyValuesMap);
+	static const doublevec	&	convertVecToDouble(		const stringvec & values,	intstrmap & emptyValuesMap);
+	static bool					canConvertVecToInt(		const stringvec & values,	int & uniqueValues);
+	static bool					canConvertVecToDouble(	const stringvec & values);
 
 	static std::string	doubleToString(			double dbl, int precision = 10);
 	static std::string	doubleToDisplayString(	double dbl, bool fancyEmptyValue = true); ///< fancyEmptyValue is the user-settable missing value label, for saving to csv this might be less practical though, so turn it off

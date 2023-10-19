@@ -183,15 +183,14 @@ bool ColumnUtils::convertValueToIntForImport(const std::string &strValue, int &i
 {
 	JASPTIMER_SCOPE(ColumnUtils::convertValueToIntForImport);
 	
-	if (!isEmptyValue(strValue))
+	if (isEmptyValue(strValue))		
 	{
-		if (!ColumnUtils::getIntValue(strValue, intValue))
-			return false;
-	}
-	else
 		intValue = std::numeric_limits<int>::lowest();
-
-	return true;
+		return true;
+	}
+	
+	return ColumnUtils::getIntValue(strValue, intValue);
+			
 }
 
 bool ColumnUtils::convertValueToDoubleForImport(const std::string & strValue, double & doubleValue)
@@ -200,12 +199,12 @@ bool ColumnUtils::convertValueToDoubleForImport(const std::string & strValue, do
 	_deEuropeaniseForImport(v);
 
 	if(isEmptyValue(v))
+	{
 		doubleValue = NAN;
+		return true;
+	}
 	
-	else if (!ColumnUtils::getDoubleValue(v, doubleValue))
-		return false;
-	
-	return true;
+	return ColumnUtils::getDoubleValue(v, doubleValue);
 }
 
 std::string ColumnUtils::doubleToString(double dbl, int precision)
@@ -230,14 +229,14 @@ std::string ColumnUtils::doubleToDisplayString(double dbl, bool fancyEmptyValue)
 
 
 
-bool ColumnUtils::convertVecToInt(const std::vector<std::string> &values, std::vector<int> &intValues, std::set<int> &uniqueValues, std::map<int, std::string> &emptyValuesMap)
+const intvec & ColumnUtils::convertVecToInt(const std::vector<std::string> &values, std::map<int, std::string> &emptyValuesMap)
 {
 	JASPTIMER_SCOPE(ColumnUtils::convertVecToInt);
 	
 	emptyValuesMap.clear();
-	uniqueValues.clear();
-	intValues.clear();
-	intValues.reserve(values.size());
+
+	static intvec intValues;
+	intValues.resize(values.size());
 
 	int row = 0;
 
@@ -245,32 +244,29 @@ bool ColumnUtils::convertVecToInt(const std::vector<std::string> &values, std::v
 	{
 		int intValue = std::numeric_limits<int>::lowest();
 
-		if (ColumnUtils::convertValueToIntForImport(value, intValue))
-		{
-			if (intValue != std::numeric_limits<int>::lowest())	uniqueValues.insert(intValue);
-			else if (!value.empty())							emptyValuesMap.insert(make_pair(row, value));
+		if (!ColumnUtils::convertValueToIntForImport(value, intValue))
+			throw std::runtime_error("Could not convert " + value + " to integer...");
+			
+		
+		if (intValue == std::numeric_limits<int>::lowest() && !value.empty())	
+			emptyValuesMap.insert(make_pair(row, value));
 
-			intValues.push_back(intValue);
-		}
-		else
-		{
-			std::vector<int>().swap(intValues); //this clears intValues and guarentees its memory is released
-			return false;
-		}
-
+		intValues.push_back(intValue);
+		
 		row++;
 	}
 
-	return true;
+	return intValues;
 }
 
 
-bool ColumnUtils::convertVecToDouble(const stringvec & values, doublevec & doubleValues, intstrmap & emptyValuesMap)
+const doublevec & ColumnUtils::convertVecToDouble(const stringvec & values, intstrmap & emptyValuesMap)
 {
 	JASPTIMER_SCOPE(ColumnUtils::convertVecToDouble);
 	
 	emptyValuesMap.clear();
-	doubleValues.clear();
+	
+	static doublevec doubleValues;
 	doubleValues.resize(values.size());
 
 	int row = 0;
@@ -278,18 +274,60 @@ bool ColumnUtils::convertVecToDouble(const stringvec & values, doublevec & doubl
 	{
 		double doubleValue = static_cast<double>(NAN);
 
-		if (ColumnUtils::convertValueToDoubleForImport(value, doubleValue))
-		{
-			doubleValues[row] = doubleValue;
+		if (!ColumnUtils::convertValueToDoubleForImport(value, doubleValue))
+			throw std::runtime_error("Could not convert " + value + " to double...");
 
-			if (std::isnan(doubleValue) && value != ColumnUtils::emptyValue)
-				emptyValuesMap.insert(std::make_pair(row, value));
-		}
-		else
-		{
-			std::vector<double>().swap(doubleValues); //this clears doubleValues and guarentees its memory is released
+		doubleValues[row] = doubleValue;
+
+		if (std::isnan(doubleValue) && value != ColumnUtils::emptyValue)
+			emptyValuesMap.insert(std::make_pair(row, value));
+		
+		row++;
+	}
+
+	return doubleValues;
+}
+
+
+bool ColumnUtils::canConvertVecToInt(const std::vector<std::string> &values, int & uniqueValues)
+{
+	JASPTIMER_SCOPE(ColumnUtils::canConvertVecToInt);
+	
+	intset uniques;
+
+	int row = 0;
+
+	for (const std::string &value : values)
+	{
+		int intValue = std::numeric_limits<int>::lowest();
+		
+		
+
+		if (!ColumnUtils::convertValueToIntForImport(value, intValue))
 			return false;
-		}
+		
+		uniques.insert(intValue);
+				
+		row++;
+	}
+	
+	uniqueValues = uniques.size();
+
+	return true;
+}
+
+
+bool ColumnUtils::canConvertVecToDouble(const stringvec & values)
+{
+	JASPTIMER_SCOPE(ColumnUtils::canConvertVecToDouble);
+
+	int row = 0;
+	for (const std::string & value : values)
+	{
+		double doubleValue = static_cast<double>(NAN);
+
+		if (!ColumnUtils::convertValueToDoubleForImport(value, doubleValue))
+			return false;
 
 		row++;
 	}

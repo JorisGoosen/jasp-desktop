@@ -1420,30 +1420,31 @@ void DataSetPackage::initColumnWithStrings(QVariant colId, const std::string & n
 	
 	// interpret the column as a datatype
 	intset		uniqueValues;
-	intvec		intValues;
-	doublevec	doubleValues;
 	intstrmap	emptyValuesMap;
+	
+	int			uniqueInts = 0;
 
 	//If less unique integers than the thresholdScale then we think it must be ordinal: https://github.com/jasp-stats/INTERNAL-jasp/issues/270
 	bool	useCustomThreshold	= Settings::value(Settings::USE_CUSTOM_THRESHOLD_SCALE).toBool();
 	size_t	thresholdScale		= (useCustomThreshold ? Settings::value(Settings::THRESHOLD_SCALE) : Settings::defaultValue(Settings::THRESHOLD_SCALE)).toUInt();
 
 	JASPTIMER_RESUME(DataSetPackage::initColumnWithStrings preamble);
-	bool valuesAreIntegers		= ColumnUtils::convertVecToInt(values, intValues, uniqueValues, emptyValuesMap);
+	bool	valuesAreIntegers		= ColumnUtils::canConvertVecToInt(values, uniqueInts),
+			valuesAreDoubles		= valuesAreIntegers || ColumnUtils::canConvertVecToDouble(values);
 		
 	size_t minIntForThresh		= thresholdScale > 2 ? 2 : 0;
 
-	auto isNominalInt			= [&](){ return valuesAreIntegers && (desiredType == columnType::nominal || uniqueValues.size() == minIntForThresh); };
-	auto isOrdinal				= [&](){ return valuesAreIntegers && (desiredType == columnType::ordinal || (uniqueValues.size() >  minIntForThresh && uniqueValues.size() <= thresholdScale)); };
-	auto isScalar				= [&](){ return ColumnUtils::convertVecToDouble(values, doubleValues, emptyValuesMap); };
+	auto isNominalInt			= [&](){ return valuesAreIntegers && (desiredType == columnType::nominal || uniqueInts == minIntForThresh); };
+	auto isOrdinal				= [&](){ return valuesAreIntegers && (desiredType == columnType::ordinal || (uniqueInts >  minIntForThresh && uniqueInts <= thresholdScale)); };
+	auto isScalar				= [&](){ return valuesAreDoubles; };
 	
 	JASPTIMER_STOP(DataSetPackage::initColumnWithStrings preamble);
 
 	JASPTIMER_RESUME(DataSetPackage::initColumnWithStrings followup - initing columns);
 	
-	if		(isOrdinal())					initColumnAsNominalOrOrdinal(	colId,	newName,	intValues,		true	);
-	else if	(isNominalInt())				initColumnAsNominalOrOrdinal(	colId,	newName,	intValues,		false	);
-	else if	(isScalar())					initColumnAsScale(				colId,	newName,	doubleValues	);
+	if		(isOrdinal())					initColumnAsNominalOrOrdinal(	colId,	newName,	ColumnUtils::convertVecToInt(		values, emptyValuesMap),		true	);
+	else if	(isNominalInt())				initColumnAsNominalOrOrdinal(	colId,	newName,	ColumnUtils::convertVecToInt(		values, emptyValuesMap),		false	);
+	else if	(isScalar())					initColumnAsScale(				colId,	newName,	ColumnUtils::convertVecToDouble(	values, emptyValuesMap)	);
 	else				emptyValuesMap =	initColumnAsNominalText(		colId,	newName,	values			);
 	
 	JASPTIMER_STOP(DataSetPackage::initColumnWithStrings followup - initing columns);
