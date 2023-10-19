@@ -443,7 +443,10 @@ int DataSetPackage::columnCount(const QModelIndex &parent) const
 
 bool DataSetPackage::getRowFilter(int row) const
 {
-	return !_dataSet ? false : data(this->index(row, 0, indexForSubNode(_dataSet->filtersNode()))).toBool();
+	if(!_dataSet || row < 0 || row >= filter()->filtered().size())
+		return false;
+	
+	return filter()->filtered()[row];//data(this->index(row, 0, indexForSubNode(_dataSet->filtersNode()))).toBool();
 }
 
 QVariant DataSetPackage::getDataSetViewLines(bool up, bool left, bool down, bool right)

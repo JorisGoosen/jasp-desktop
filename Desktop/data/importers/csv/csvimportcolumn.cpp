@@ -13,7 +13,6 @@ CSVImportColumn::CSVImportColumn(ImportDataSet *importDataSet, std::string name,
 CSVImportColumn::~CSVImportColumn()
 {
 	JASPTIMER_SCOPE(CSVImportColumn::~CSVImportColumn());
-	_data.clear();
 }
 
 size_t CSVImportColumn::size() const
