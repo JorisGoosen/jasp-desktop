@@ -1422,7 +1422,7 @@ void DataSetPackage::initColumnWithStrings(QVariant colId, const std::string & n
 	intset		uniqueValues;
 	intstrmap	emptyValuesMap;
 	
-	int			uniqueInts = 0;
+ 	int			uniqueInts = 0;
 
 	//If less unique integers than the thresholdScale then we think it must be ordinal: https://github.com/jasp-stats/INTERNAL-jasp/issues/270
 	bool	useCustomThreshold	= Settings::value(Settings::USE_CUSTOM_THRESHOLD_SCALE).toBool();

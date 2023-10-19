@@ -45,26 +45,29 @@ void ColumnUtils::processEmptyValues()
 
 bool ColumnUtils::getIntValue(const string &value, int &intValue)
 {
-	try
-	{
-		intValue = boost::lexical_cast<int>(value);
-		return true;
-	}
-	catch (...)	{}
-
+	// No exceptions  https://en.cppreference.com/w/cpp/string/byte/strtol
+	
+	// errno can be set to any non-zero value by a library function call
+	// regardless of whether there was an error, so it needs to be cleared
+	// in order to check the error set by strtol
+	errno = 0;
+	const char * p = value.c_str();
+	
+	char* p_end{};
+	intValue = std::strtol(p, &p_end, 10);
+	
+	const bool range_error = errno == ERANGE;
+	
+	if (p_end - p == value.size()) //parsed the entire string so could be correct depending on error
+		return !range_error;
+	
 	return false;
 }
 
 bool ColumnUtils::isIntValue(const string &value)
 {
-	try
-	{
-		boost::lexical_cast<int>(value);
-		return true;
-	}
-	catch (...)	{}
-
-	return false;
+	static int dummy;
+	return getIntValue(value, dummy);
 }
 
 bool ColumnUtils::getIntValue(const double &value, int &intValue)
@@ -91,27 +94,30 @@ bool ColumnUtils::getIntValue(const double &value, int &intValue)
 
 bool ColumnUtils::getDoubleValue(const string &value, double &doubleValue)
 {
-	try
-	{
-		doubleValue = boost::lexical_cast<double>(value);
-		return true;
-	}
-	catch (...) {}
-
+	// No exceptions  https://en.cppreference.com/w/cpp/string/byte/strtof
+	
+	// errno can be set to any non-zero value by a library function call
+	// regardless of whether there was an error, so it needs to be cleared
+	// in order to check the error set by strtol
+	errno = 0;
+	const char * p = value.c_str();
+	
+	char* p_end{};
+	doubleValue = std::strtod(p, &p_end);
+	
+	const bool range_error = errno == ERANGE;
+	
+	if (p_end - p == value.size()) //parsed the entire string so could be correct depending on error
+		return !range_error;
+	
 	return false;
 }
 
 
 bool ColumnUtils::isDoubleValue(const string &value)
 {
-	try
-	{
-		boost::lexical_cast<double>(value);
-		return true;
-	}
-	catch (...)	{}
-
-	return false;
+	static double dummy;
+	return getDoubleValue(value, dummy);
 }
 
 
@@ -195,6 +201,8 @@ bool ColumnUtils::convertValueToIntForImport(const std::string &strValue, int &i
 
 bool ColumnUtils::convertValueToDoubleForImport(const std::string & strValue, double & doubleValue)
 {
+	JASPTIMER_SCOPE(ColumnUtils::convertValueToDoubleForImport);
+	
 	std::string v = strValue;
 	_deEuropeaniseForImport(v);
 
