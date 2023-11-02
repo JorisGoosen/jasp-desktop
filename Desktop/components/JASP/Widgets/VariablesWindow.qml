@@ -44,11 +44,11 @@ FocusScope
 		{
 			if (columnModel.visible && columnModel.chosenColumn >= 0)
 			{
-				if(columnModel.columnName !== columnNameVariablesWindow.value)				columnModel.columnName			= columnNameVariablesWindow.value
-				if(columnModel.columnTitle !== columnTitleVariablesWindow.value)			columnModel.columnTitle			= columnTitleVariablesWindow.value
-				if(columnModel.columnDescription !== columnDescriptionVariablesWindow.text) columnModel.columnDescription	= columnDescriptionVariablesWindow.text
-				if(columnModel.computedType !== computedTypeVariableWindow.value)			columnModel.computedType		= computedTypeVariableWindow.value
-				if(columnModel.currentColumnType !== columnTypeVariableWindow.value)		columnModel.currentColumnType	= columnTypeVariableWindow.value
+				columnModel.columnName			= columnNameVariablesWindow.value
+				columnModel.columnTitle			= columnTitleVariablesWindow.value
+				columnModel.columnDescription	= columnDescriptionVariablesWindow.text
+				columnModel.computedType		= computedTypeVariableWindow.value
+				columnModel.currentColumnType	= columnTypeVariableWindow.value
 			}
 		}
 		
