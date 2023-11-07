@@ -66,6 +66,7 @@ if(NOT JASP_TEST_BUILD)
 		"jaspVisualModeling"
         )
 else() #it IS a test build
+	message(STATUS "JASP_TEST_BUILD is enabled, building with minimal modules")
 	set(JASP_COMMON_MODULES
 		"jaspDescriptives"
 		"jaspTestModule"
