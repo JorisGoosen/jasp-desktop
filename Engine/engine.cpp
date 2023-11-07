@@ -772,10 +772,11 @@ std::string Engine::createColumn(const std::string &columnName)
 		return "";
 
 	DataSet * data = provideAndUpdateDataSet();
-
-	Column * col = data->newColumn(columnName);
+	Column  * col  = data->newColumn(columnName);
 
 	col->setAnalysisId(_analysisId);
+	col->setCodeType(computedColumnType::analysisNotComputed);
+	data->db().columnSetIndex(col->id(), data->columnCount() - 1);
 
 	reloadColumnNames();
 
@@ -1030,7 +1031,7 @@ void Engine::sendEnginePaused()
 void Engine::reloadColumnNames()
 {
 	Log::log() << "Engine rescanning columnNames for en/decoding" << std::endl;
-        ColumnEncoder::columnEncoder()->setCurrentColumnNames(provideAndUpdateDataSet() == nullptr ? std::vector<std::string>({}) : provideAndUpdateDataSet()->getColumnNames());
+	ColumnEncoder::columnEncoder()->setCurrentColumnNames(provideAndUpdateDataSet() == nullptr ? std::vector<std::string>({}) : provideAndUpdateDataSet()->getColumnNames());
 }
 
 void Engine::resumeEngine(const Json::Value & jsonRequest)

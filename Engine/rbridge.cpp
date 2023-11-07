@@ -642,32 +642,37 @@ extern "C" RBridgeColumnDescription* STDCALL rbridge_readDataSetDescription(RBri
 }
 
 ///Sneaky variable declaration of colName!
-#define JASP_COLUMN_DECODE_HERE std::string colName(ColumnEncoder::columnEncoder()->decode(columnName))
+#define JASP_COLUMN_DECODE_HERE_STORED_colName std::string colName(ColumnEncoder::columnEncoder()->decode(columnName))
 
 extern "C" int STDCALL rbridge_getColumnType(const char * columnName)
 {
-	JASP_COLUMN_DECODE_HERE;
+	if(!ColumnEncoder::columnEncoder()->shouldDecode(columnName))
+		return int(columnType::unknown);
+
+	JASP_COLUMN_DECODE_HERE_STORED_colName;
 	return rbridge_getColumnTypeEngine(colName);
 }
 
 extern "C" int STDCALL rbridge_getColumnAnalysisId(const char * columnName)
 {
-	JASP_COLUMN_DECODE_HERE;
+	if(!ColumnEncoder::columnEncoder()->shouldDecode(columnName))
+		return -1;
+
+	JASP_COLUMN_DECODE_HERE_STORED_colName;
 	return rbridge_getColumnAnalysisIdEngine(colName);
 }
 
 extern "C" const char * STDCALL rbridge_createColumn(const char * columnName)
 {
-	JASP_COLUMN_DECODE_HERE;
 	static std::string lastColumnName;
-	lastColumnName = rbridge_createColumnEngine(colName);
+	lastColumnName = rbridge_createColumnEngine(columnName);
 
 	return lastColumnName.c_str();
 }
 
 extern "C" bool STDCALL rbridge_setColumnAsScale(const char* columnName, double * scalarData, size_t length)
 {
-	JASP_COLUMN_DECODE_HERE;
+	JASP_COLUMN_DECODE_HERE_STORED_colName;
 
 	std::vector<double> scalars(scalarData, scalarData + length);
 
@@ -676,7 +681,7 @@ extern "C" bool STDCALL rbridge_setColumnAsScale(const char* columnName, double 
 
 extern "C" bool STDCALL rbridge_setColumnAsOrdinal(const char* columnName, int * ordinalData, size_t length, const char ** levels, size_t numLevels)
 {
-	JASP_COLUMN_DECODE_HERE;
+	JASP_COLUMN_DECODE_HERE_STORED_colName;
 
 	std::vector<int> ordinals(ordinalData, ordinalData + length);
 
@@ -689,7 +694,7 @@ extern "C" bool STDCALL rbridge_setColumnAsOrdinal(const char* columnName, int *
 
 extern "C" bool STDCALL rbridge_setColumnAsNominal(const char* columnName, int * nominalData, size_t length, const char ** levels, size_t numLevels)
 {
-	JASP_COLUMN_DECODE_HERE;
+	JASP_COLUMN_DECODE_HERE_STORED_colName;
 
 	std::vector<int> nominals(nominalData, nominalData + length);
 
@@ -702,7 +707,7 @@ extern "C" bool STDCALL rbridge_setColumnAsNominal(const char* columnName, int *
 
 extern "C" bool STDCALL rbridge_setColumnAsNominalText(const char* columnName, const char ** nominalData, size_t length)
 {
-	JASP_COLUMN_DECODE_HERE;
+	JASP_COLUMN_DECODE_HERE_STORED_colName;
 
 	std::vector<std::string> nominals(nominalData, nominalData + length);
 
