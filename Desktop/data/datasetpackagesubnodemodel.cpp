@@ -53,7 +53,16 @@ QModelIndex	DataSetPackageSubNodeModel::mapFromSource(const QModelIndex &sourceI
 
 QHash<int, QByteArray> DataSetPackageSubNodeModel::roleNames() const
 {
-	return DataSetPackage::pkg()->roleNames();
+	static QHash<int, QByteArray> roles = [&](){
+		auto roles = QAbstractTableModel::roleNames ();
+
+		for(const auto & enumString : dataPkgRolesToStringMap())
+			roles[int(enumString.first)] = QString::fromStdString(enumString.second).toUtf8();
+
+		return roles;
+	}();
+
+	return roles;
 }
 
 int DataSetPackageSubNodeModel::rowCount(const QModelIndex & parent) const

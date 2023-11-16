@@ -38,7 +38,7 @@
 
 DataSetPackage * DataSetPackage::_singleton = nullptr;
 
-DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
+DataSetPackage::DataSetPackage(QObject * parent) : QObject(parent)
 {
 	if(_singleton) throw std::runtime_error("DataSetPackage can be constructed only once!");
 	_singleton = this;
@@ -187,177 +187,8 @@ void DataSetPackage::onDataModeChanged(bool dataMode)
 	endResetModel();
 }
 
-DataSetBaseNode * DataSetPackage::indexPointerToNode(const QModelIndex & index) const
+int DataSetPackage::nodeRowCount(DataSetBaseNode * node, const QModelIndex & parent) const
 {
-	DataSetBaseNode * node = static_cast<DataSetBaseNode*>(index.internalPointer());
-	
-	//Below was when I was trying to use dataChanged for columnModel setData updates. but it got messy, so instead we do reset but we do not need to loop over all nodes anymore everytime we convert something
-	return node;
-	//Sometimes the proxymodels seem to return pointers to destroyed objects, so lets check even if it gives some overhead...
-	//return dataSetBaseNodeStillExists(node) ? node : nullptr;
-}
-
-/// the following hierarchy is used (Where parents point to children):
-/// QModelIndex()/root -> DataSet_N* Where each DataSet is located at row 0 and column N (0-based)
-/// DataSet_N -> Data (0r,0c) and Filters(1r,0c)
-/// Filters -> Filter_N* where column is filterIndex and row value-index in the filtered-bools
-/// Data -> Directly to the data but each column (dfwith any row) can also be used as a parent for getting the Labels
-/// Data[*r, Nc] -> Labels
-QModelIndex DataSetPackage::index(int row, int column, const QModelIndex &parent) const
-{
-	const void * pointer = nullptr;
-
-	if(parent.isValid()) //Top of hierarchy (parent != valid) has no pointer
-	{
-		if(!parent.internalPointer()) //Parent has no pointer stored so this must be a dataSet
-		{
-			//Currently we only have a single dataSet but in the future there will be more.
-			//Then they will be differentiated here by row
-			pointer = dynamic_cast<const void*>(_dataSet);
-		}
-		else
-		{
-			DataSetBaseNode * parentNode = indexPointerToNode(parent);
-			
-			switch(parentNode->nodeType())
-			{
-			case dataSetBaseNodeType::dataSet:
-			{
-				DataSet * data = dynamic_cast<DataSet*>(parentNode);
-				// if row 0 it is "data" else "filters"
-				pointer = row == 0 ? dynamic_cast<const void*>(data->dataNode()) : dynamic_cast<const void*>(data->filtersNode());
-				break;
-			}
-				
-			case dataSetBaseNodeType::data:
-			{
-				DataSet * data = dynamic_cast<DataSet*>(parentNode->parent());
-				pointer = dynamic_cast<const void*>(data->column(column));
-				break;
-			}
-				
-			case dataSetBaseNodeType::filters:
-			{
-				//Later on we should support multiple filters here by selecting a filter per column
-				DataSet * data = dynamic_cast<DataSet*>(parentNode->parent());
-				pointer = dynamic_cast<const void*>(data->filter());
-				break;
-			}
-				
-			case dataSetBaseNodeType::column:
-			{
-				Column * col = dynamic_cast<Column*>(parentNode);
-				pointer = dynamic_cast<const void*>(col->labels()[row]);
-				break;
-			}
-				
-			case dataSetBaseNodeType::label:	//Label & Filter cant be a parentnode
-			case dataSetBaseNodeType::filter:
-			default:
-				throw std::runtime_error("Somehow a label, filter or unknown DataSetBaseNode was passed as parent for an index... This is not allowed.");
-				break;
-			}
-		}
-	}
-	
-	return createIndex(row, column, pointer);
-}
-
-///Used to get the parent for a DataSetPackageSubNodeModel
-QModelIndex DataSetPackage::indexForSubNode(DataSetBaseNode * node) const
-{
-	if(node)
-		switch(node->nodeType())
-		{
-		case dataSetBaseNodeType::dataSet:
-			return createIndex(0, 0, dynamic_cast<void *>(_dataSet));
-
-		case dataSetBaseNodeType::data:
-			return createIndex(0, 0, dynamic_cast<void *>(_dataSet->dataNode()));
-
-		case dataSetBaseNodeType::filters:
-			return createIndex(1, 0, dynamic_cast<void *>(_dataSet->filtersNode()));
-
-		case dataSetBaseNodeType::column:
-		{
-			Column * col = dynamic_cast<Column*>(node);
-			if (col)
-				return createIndex(0, col->data()->columnIndex(col), dynamic_cast<void *>(col));
-			else
-				return QModelIndex();
-		}
-
-		case dataSetBaseNodeType::label: //Doesnt really make sense to have this as the parent of a subnodemodel but whatever
-		{
-			Label	* lab = dynamic_cast<Label*>( node);
-			Column	* col = lab ? dynamic_cast<Column*>(node->parent()) : nullptr;
-			int		i = col ? col->labelIndex(lab) : -1;
-
-			return createIndex(i, 0, dynamic_cast<void*>(lab));
-		}
-
-		case dataSetBaseNodeType::filter: //Doesnt really make sense to have this as the parent of a subnodemodel but whatever
-		{
-			return createIndex(0, 0, dynamic_cast<void*>(_dataSet->filter()));
-		}
-
-		default:
-			break;
-		}
-
-	return QModelIndex();
-}
-
-QModelIndex DataSetPackage::parent(const QModelIndex & index) const
-{
-	if(!index.isValid())
-		return QModelIndex();
-
-	
-	DataSetBaseNode * node = indexPointerToNode(index);
-
-	if(!node)
-		return QModelIndex();
-	
-	switch(node->nodeType())
-	{
-	case dataSetBaseNodeType::filters: [[fallthrough]];
-	case dataSetBaseNodeType::dataSet:
-		return QModelIndex();
-		
-	case dataSetBaseNodeType::data:
-		return indexForSubNode(_dataSet);
-
-	case dataSetBaseNodeType::column:
-		return indexForSubNode(_dataSet->dataNode());
-		
-	case dataSetBaseNodeType::label:
-	{
-	//	Label	* label	= dynamic_cast<Label*>(node);
-		Column	* col	= dynamic_cast<Column*>(node->parent());
-		
-		return indexForSubNode(col);
-	}
-		
-		
-	case dataSetBaseNodeType::filter:
-		return indexForSubNode(_dataSet->filtersNode());
-		
-	default:
-		break;
-	}
-	
-	return QModelIndex(); //Shouldnt get here though
-}
-
-int DataSetPackage::rowCount(const QModelIndex & parent) const
-{
-	if(!parent.isValid())
-		return 1; //There is only a "column" of DataSets as topnodes
-	
-	
-	DataSetBaseNode * node = indexPointerToNode(parent);
-
 	if(!node)
 		return 1;
 	
@@ -395,13 +226,8 @@ int DataSetPackage::rowCount(const QModelIndex & parent) const
 	return 0; // <- because gcc is stupid
 }
 
-int DataSetPackage::columnCount(const QModelIndex &parent) const
+int DataSetPackage::nodeColumnCount(DataSetBaseNode * node, const QModelIndex &parent) const
 {
-	if(!parent.isValid())
-		return 1; //There is only a "row" of DataSets as topnodes, and currently a single column because a single DataSet	
-	
-	DataSetBaseNode * node = indexPointerToNode(parent);
-
 	if(!node)
 		return 1;
 	
@@ -426,7 +252,7 @@ int DataSetPackage::columnCount(const QModelIndex &parent) const
 	{
 		Column * col = dynamic_cast<Column*>(node);
 		
-		if(col->type() == columnType::scale)
+		if(!col || col->type() == columnType::scale)
 			return 0;
 
 		return 1;
@@ -459,15 +285,15 @@ QVariant DataSetPackage::getDataSetViewLines(bool up, bool left, bool down, bool
 
 int DataSetPackage::dataRowCount() const 
 { 
-	return !_dataSet ? 0 : rowCount(indexForSubNode(_dataSet->dataNode()));
+	return !_dataSet ? 0 : nodeRowCount(_dataSet->dataNode());
 }
 
 int DataSetPackage::dataColumnCount() const 
 { 
-	return !_dataSet ? 0 : columnCount(indexForSubNode(_dataSet->dataNode()));
+	return !_dataSet ? 0 : nodeColumnCount(_dataSet->dataNode());
 }
 
-QVariant DataSetPackage::data(const QModelIndex &index, int role) const
+QVariant DataSetPackage::nodeData(DataSetBaseNode * node, const QModelIndex &index, int role) const
 {
     JASPTIMER_SCOPE(DataSetPackage::data);
     
@@ -477,7 +303,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 	if(role == int(specialRoles::selected))
 		return false; //DataSetPackage doesnt know anything about selected, only ColumnModel does (now)
 
-	DataSetBaseNode *	node		= indexPointerToNode(index);
+//	DataSetBaseNode *	node		= indexPointerToNode(index);
 //					*	parentNode	= !index.parent().isValid() ? nullptr : indexPointerToNode(index.parent());
 
 	if(!node)
@@ -529,7 +355,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 				iAmActive,
 				iAmActive,
 				iAmActive && !belowMeIsActive,
-				iAmActive && index.column() == columnCount(index.parent()) - 1 //always draw left line and right line only if last col
+				iAmActive && index.column() == nodeColumnCount(node, index.parent()) - 1 //always draw left line and right line only if last col
 			);
 		}
 		}
@@ -537,7 +363,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		
 	case dataSetBaseNodeType::label:
 	{
-		int			parRowCount = rowCount(index.parent());
+		int			parRowCount = nodeRowCount(node, index.parent());
 	//	Label	*	label		= dynamic_cast<Label*>(node);
 		Column	*	column		= dynamic_cast<Column*>(node->parent());
 		
@@ -573,7 +399,7 @@ size_t DataSetPackage::getMaximumColumnWidthInCharacters(int columnIndex) const
 QVariant DataSetPackage::headerDataForNode(DataSetBaseNode *node, int section, Qt::Orientation orientation, int role) const
 {
 	if(!node)
-		return headerData(section, orientation, role);
+		return nodeHeaderData(_dataSet->dataNode(), section, orientation, role);
 
 	switch(node->nodeType())
 	{
@@ -582,7 +408,7 @@ QVariant DataSetPackage::headerDataForNode(DataSetBaseNode *node, int section, Q
 		return QVariant();
 
 	case dataSetBaseNodeType::data:
-		return headerData(section, orientation, role);
+		return nodeHeaderData(_dataSet->dataNode(), section, orientation, role);
 
 	case dataSetBaseNodeType::dataSet:
 		return "DataSet";
@@ -595,7 +421,7 @@ QVariant DataSetPackage::headerDataForNode(DataSetBaseNode *node, int section, Q
 	}
 }
 
-QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, int role)	const
+QVariant DataSetPackage::nodeHeaderData(DataSetBaseNode * node, int section, Qt::Orientation orientation, int role)	const
 {
 	if (!_dataSet || section < 0 || section >= (orientation == Qt::Horizontal ? dataColumnCount() : dataRowCount()))
 		return QVariant();
@@ -620,7 +446,7 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 		case int(specialRoles::maxColString):
 		{
 			//calculate some kind of maximum string to give views an expectation of the width needed for a column
-			QString dummyText = headerData(section, orientation, Qt::DisplayRole).toString() + "XXXXX" + (isColumnComputed(section) ? "XXXXX" : ""); //Bit of padding for filtersymbol and columnIcon
+			QString dummyText = nodeHeaderData(node, section, orientation, Qt::DisplayRole).toString() + "XXXXX" + (isColumnComputed(section) ? "XXXXX" : ""); //Bit of padding for filtersymbol and columnIcon
 			int colWidth = getMaximumColumnWidthInCharacters(section);
 
 			while(colWidth > dummyText.length())
@@ -645,13 +471,13 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 	return QVariant();
 }
 
-bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, int role)
+bool DataSetPackage::nodeSetData(DataSetBaseNode * node, const QModelIndex &index, const QVariant &value, int role)
 {
     JASPTIMER_SCOPE(DataSetPackage::setData);
     
 	if(!index.isValid() || !_dataSet) return false;
 
-	DataSetBaseNode * node = indexPointerToNode(index);
+	//DataSetBaseNode * node = indexPointerToNode(index);
 	
 	if(!node)
 		return false;
@@ -916,7 +742,7 @@ bool DataSetPackage::setAllowFilterOnLabel(const QModelIndex & index, bool newAl
 	size_t		row		= index.row();
 
 
-	if(int(row) > rowCount(parent))
+	if(int(row) > dataRowCount())
 		return false;
 
 	const Labels	& labels = column->labels();
@@ -973,29 +799,13 @@ int DataSetPackage::filteredOut(size_t col) const
 	return filteredOut;
 }
 
-Qt::ItemFlags DataSetPackage::flags(const QModelIndex &index) const
+Qt::ItemFlags DataSetPackage::nodeFlags(DataSetBaseNode * node, const QModelIndex &index) const
 {
-	const auto *	node		= indexPointerToNode(index);
+	//const auto *	node		= indexPointerToNode(index);
 	bool			isDataNode	= node && (node->nodeType() == dataSetBaseNodeType::data || node->nodeType() == dataSetBaseNodeType::column),
 					isEditable	= !isDataNode || (_dataMode && !isColumnComputed(index.column()));
 
 	return Qt::ItemIsSelectable | Qt::ItemIsEnabled | (isEditable ? Qt::ItemIsEditable : Qt::NoItemFlags);
-}
-
-QHash<int, QByteArray> DataSetPackage::roleNames() const
-{
-	static bool						set = false;
-	static QHash<int, QByteArray> roles = QAbstractItemModel::roleNames ();
-
-	if(!set)
-	{
-		for(const auto & enumString : dataPkgRolesToStringMap())
-			roles[int(enumString.first)] = QString::fromStdString(enumString.second).toUtf8();
-
-		set = true;
-	}
-
-	return roles;
 }
 
 void DataSetPackage::setModified(bool value)

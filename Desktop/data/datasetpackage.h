@@ -19,7 +19,6 @@
 #define FILEPACKAGE_H
 
 #include <cstddef>
-#include <QAbstractItemModel>
 #include <QFileInfo>
 #include <QUrl>
 #include "common.h"
@@ -36,12 +35,17 @@ class EngineSync;
 class DataSetPackageSubNodeModel;
 
 ///
-/// This class is meant as the single bottleneck between the main application and Qt and the data stored in sqlite.
-/// To this end a clean separation has been attempted between any access of the data so that it can easily be controlled.
+/// This class serves as the single bottleneck between the main application + Qt and the data stored in sqlite.
+/// A clean separation has been attempted by having any access of the data flow through this class so that it can easily be controlled.
 ///
-/// In order to have all that data available through this class it has a few DataSetPackageSubNodeModel that make 
-/// parts of the data, filters etc available each
-class DataSetPackage : public QAbstractItemModel //Not QAbstractTableModel because of: https://stackoverflow.com/a/38999940 (And this being a tree model)
+/// In order to have all that data available to the rest of the application in a encapsulated way there are some (DataSetPackage)SubNodeModels
+/// Each represents a part of the workspace, DataSet(s), Filter(s), and Label(s)
+/// They all are a QAbstractItemModel in their own right and serve as the source for the later SortFilterProxyModels
+///
+/// DataSetPackage is itself not a QAbstractItemModel, despite having similarly named functions ::nodeData(...) vs ::data(...) etc
+/// The subnodemodels use these to return relevant information
+///
+class DataSetPackage : public QObject
 {
 	Q_OBJECT
 	Q_PROPERTY(int			columnsFilteredCount	READ columnsFilteredCount								NOTIFY columnsFilteredCountChanged	)
@@ -93,8 +97,6 @@ public:
 		
 		void				waitForExportResultsReady();
 		
-
-
 		void				beginLoadingData(	bool informEngines = true);
 		void				endLoadingData(		bool informEngines = true);
 		void				beginSynchingData(	bool informEngines = true);
@@ -108,20 +110,16 @@ public:
 		
 		QVariant			headerDataForNode(DataSetBaseNode * node,	int section, Qt::Orientation orientation, int role = Qt::DisplayRole )			const;
 
-		QHash<int, QByteArray>		roleNames()																						const	override;
-				int					rowCount(		const QModelIndex &parent = QModelIndex())										const	override;
-				int					columnCount(	const QModelIndex &parent = QModelIndex())										const	override;
-				QVariant			data(			const QModelIndex &index, int role = Qt::DisplayRole)							const	override;
-				QVariant			headerData(		int section, Qt::Orientation orientation, int role = Qt::DisplayRole )			const	override;
-
-				bool				setData(		const QModelIndex &index, const QVariant &value, int role)								override;
-				Qt::ItemFlags		flags(			const QModelIndex &index)														const	override;
-				QModelIndex			parent(			const QModelIndex & index)														const	override;
-				QModelIndex			index(			int row,		int column, const QModelIndex & parent = QModelIndex())			const	override;
-				bool				insertRows(		int row,		int count, const QModelIndex & aparent = QModelIndex())					override;
-				bool				insertColumns(	int column,		int count, const QModelIndex & aparent = QModelIndex())					override;
-				bool				removeRows(		int row,		int count, const QModelIndex & aparent = QModelIndex())					override;
-				bool				removeColumns(	int column,		int count, const QModelIndex & aparent = QModelIndex())					override;
+				int					nodeRowCount(		DataSetBaseNode * node, const QModelIndex &parent = QModelIndex())										const	;
+				int					nodeColumnCount(	DataSetBaseNode * node, const QModelIndex &parent = QModelIndex())										const	;
+				QVariant			nodeData(			DataSetBaseNode * node, const QModelIndex &index, int role = Qt::DisplayRole)							const	;
+				QVariant			nodeHeaderData(		DataSetBaseNode * node, int section, Qt::Orientation orientation, int role = Qt::DisplayRole )			const	;
+				bool				nodeSetData(		DataSetBaseNode * node, const QModelIndex &index, const QVariant &value, int role)								;
+				Qt::ItemFlags		nodeFlags(			DataSetBaseNode * node, const QModelIndex &index)														const	;
+				bool				nodeInsertRows(		DataSetBaseNode * node, int row,		int count, const QModelIndex & aparent = QModelIndex())					;
+				bool				nodeInsertColumns(	DataSetBaseNode * node, int column,		int count, const QModelIndex & aparent = QModelIndex())					;
+				bool				nodeRemoveRows(		DataSetBaseNode * node, int row,		int count, const QModelIndex & aparent = QModelIndex())					;
+				bool				nodeRemoveColumns(	DataSetBaseNode * node, int column,		int count, const QModelIndex & aparent = QModelIndex())					;
 				QString				insertColumnSpecial(int column, const QMap<QString, QVariant>& props);
 				QString				appendColumnSpecial(			const QMap<QString, QVariant>& props);
 
