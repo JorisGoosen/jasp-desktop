@@ -570,6 +570,31 @@ size_t DataSetPackage::getMaximumColumnWidthInCharacters(int columnIndex) const
 	return _dataSet ? _dataSet->getMaximumColumnWidthInCharacters(columnIndex) : 0;
 }
 
+QVariant DataSetPackage::headerDataForNode(DataSetBaseNode *node, int section, Qt::Orientation orientation, int role) const
+{
+	if(!node)
+		return headerData(section, orientation, role);
+
+	switch(node->nodeType())
+	{
+	default:
+	case dataSetBaseNodeType::unknown:
+		return QVariant();
+
+	case dataSetBaseNodeType::data:
+		return headerData(section, orientation, role);
+
+	case dataSetBaseNodeType::dataSet:
+		return "DataSet";
+
+	case dataSetBaseNodeType::column:
+	case dataSetBaseNodeType::filter:
+	case dataSetBaseNodeType::filters:
+	case dataSetBaseNodeType::label:
+		return "???";
+	}
+}
+
 QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, int role)	const
 {
 	if (!_dataSet || section < 0 || section >= (orientation == Qt::Horizontal ? dataColumnCount() : dataRowCount()))

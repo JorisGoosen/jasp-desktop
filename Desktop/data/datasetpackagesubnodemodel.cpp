@@ -3,7 +3,7 @@
 #include "log.h"
 
 DataSetPackageSubNodeModel::DataSetPackageSubNodeModel(const QString & whatAmI, DataSetBaseNode * node)
-	: QAbstractItemModel(DataSetPackage::pkg()), _node(node), _whatAmI(whatAmI)
+	: QAbstractTableModel(DataSetPackage::pkg()), _node(node), _whatAmI(whatAmI)
 {
 	connect(pkg(),	&DataSetPackage::modelReset,				this,	&DataSetPackageSubNodeModel::modelWasReset);
 	connect(pkg(),	&DataSetPackage::dataChanged,				this,	&DataSetPackageSubNodeModel::dataChangedHandler);
@@ -51,6 +51,11 @@ QModelIndex	DataSetPackageSubNodeModel::mapFromSource(const QModelIndex &sourceI
 	return createIndex(sourceIndex.row(), sourceIndex.column(), nullptr);
 }
 
+QHash<int, QByteArray> DataSetPackageSubNodeModel::roleNames() const
+{
+	return DataSetPackage::pkg()->roleNames();
+}
+
 int DataSetPackageSubNodeModel::rowCount(const QModelIndex & parent) const
 {
 	int row = !_node ? 0 :DataSetPackage::pkg()->rowCount(mapToSource(parent));
@@ -64,6 +69,47 @@ int DataSetPackageSubNodeModel::columnCount(const QModelIndex & parent) const
 	//Log::log() << "DataSetPackageSubNodeModel("<< _whatAmI.toStdString() << ")::columnCount(" << ( _node ? dataSetBaseNodeTypeToString(_node->nodeType()) : "no node")  << ") = " << col << std::endl;
 	return col;
 }
+
+QVariant DataSetPackageSubNodeModel::data(const QModelIndex &index, int role) const
+{
+	return !_node ? QVariant() : DataSetPackage::pkg()->data(mapToSource(index), role);
+}
+
+QVariant DataSetPackageSubNodeModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+	return DataSetPackage::pkg()->headerDataForNode(_node, section, orientation, role);
+}
+
+bool DataSetPackageSubNodeModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+	return _node && DataSetPackage::pkg()->setData(mapToSource(index), value, role);
+}
+
+Qt::ItemFlags DataSetPackageSubNodeModel::flags(const QModelIndex &index) const
+{
+	return !_node ? Qt::ItemFlags() : DataSetPackage::pkg()->flags(mapToSource(index));
+}
+
+bool DataSetPackageSubNodeModel::insertRows(int row, int count, const QModelIndex &aparent)
+{
+	return _node && DataSetPackage::pkg()->insertRows(row, count, mapToSource(aparent));
+}
+
+bool DataSetPackageSubNodeModel::insertColumns(int column, int count, const QModelIndex &aparent)
+{
+	return _node && DataSetPackage::pkg()->insertColumns(column, count, mapToSource(aparent));
+}
+
+bool DataSetPackageSubNodeModel::removeRows(int row, int count, const QModelIndex &aparent)
+{
+	return _node && DataSetPackage::pkg()->removeRows(row, count, mapToSource(aparent));
+}
+
+bool DataSetPackageSubNodeModel::removeColumns(int column, int count, const QModelIndex &aparent)
+{
+	return _node && DataSetPackage::pkg()->removeColumns(column, count, mapToSource(aparent));
+}
+
 
 QString DataSetPackageSubNodeModel::insertColumnSpecial(int column, const QMap<QString, QVariant>& props)
 {
@@ -83,7 +129,9 @@ void DataSetPackageSubNodeModel::modelWasReset()
 	//The model was reset, which means _node might no longer exist!
 	if(!DataSetPackage::pkg()->dataSetBaseNodeStillExists(_node))
 		selectNode(nullptr);
-	
+
+	beginResetModel();
+	endResetModel();
 }
 
 void DataSetPackageSubNodeModel::selectNode(DataSetBaseNode * node)
@@ -104,54 +152,35 @@ void DataSetPackageSubNodeModel::dataChangedHandler(const QModelIndex &topLeft, 
 	QModelIndex tl(mapFromSource(topLeft)), br(mapFromSource(bottomRight));
 	
 	if(tl.isValid() && br.isValid())
-		emit dataChangedHandler(tl, br, roles);
+		emit dataChanged(tl, br, roles);
 }
 
-void DataSetPackageSubNodeModel::headerDataChangedHandler(Qt::Orientation orientation, int first, int last)
-{
+//avoid unnecessary hickups in the downstream models by only ever mentioning relevant things
 
+#define HANDLERBEGIN(NAME,CALLEE)															\
+void DataSetPackageSubNodeModel:: NAME (const QModelIndex &parent, int first, int last)		\
+{																							\
+		QModelIndex p(mapFromSource(parent));												\
+																							\
+		if(p.isValid())																		\
+			CALLEE (p, first, last);														\
 }
 
-
-void DataSetPackageSubNodeModel::rowsAboutToBeInsertedHandler(const QModelIndex &parent, int first, int last)
-{
-
+#define HANDLEREND(NAME,CALLEE)																\
+void DataSetPackageSubNodeModel:: NAME (const QModelIndex &parent, int first, int last)		\
+{																							\
+		QModelIndex p(mapFromSource(parent));												\
+																							\
+		if(p.isValid())																		\
+			CALLEE (first, 1+last-first, p);												\
 }
 
-void DataSetPackageSubNodeModel::rowsInsertedHandler(const QModelIndex &parent, int first, int last)
-{
+HANDLERBEGIN(	rowsAboutToBeInsertedHandler,		beginInsertRows		)
+HANDLEREND(		rowsInsertedHandler,				insertRows			)
+HANDLERBEGIN(	rowsAboutToBeRemovedHandler,		beginRemoveRows		)
+HANDLEREND(		rowsRemovedHandler,					removeRows			)
+HANDLERBEGIN(	columnsAboutToBeInsertedHandler,	beginInsertColumns	)
+HANDLEREND(		columnsInsertedHandler,				insertColumns		)
+HANDLERBEGIN(	columnsAboutToBeRemovedHandler,		beginRemoveColumns	)
+HANDLEREND(		columnsRemovedHandler,				removeColumns		)
 
-}
-
-
-void DataSetPackageSubNodeModel::rowsAboutToBeRemovedHandler(const QModelIndex &parent, int first, int last)
-{
-
-}
-
-void DataSetPackageSubNodeModel::rowsRemovedHandler(const QModelIndex &parent, int first, int last)
-{
-
-}
-
-
-void DataSetPackageSubNodeModel::columnsAboutToBeInsertedHandler(const QModelIndex &parent, int first, int last)
-{
-
-}
-
-void DataSetPackageSubNodeModel::columnsInsertedHandler(const QModelIndex &parent, int first, int last)
-{
-
-}
-
-
-void DataSetPackageSubNodeModel::columnsAboutToBeRemovedHandler(const QModelIndex &parent, int first, int last)
-{
-
-}
-
-void DataSetPackageSubNodeModel::columnsRemovedHandler(const QModelIndex &parent, int first, int last)
-{
-
-}
