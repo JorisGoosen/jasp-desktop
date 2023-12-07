@@ -74,6 +74,19 @@ bool ColumnUtils::getDoubleValue(const string &value, double &doubleValue)
 	return false;
 }
 
+doubleset ColumnUtils::getDoubleValues(const stringset & values)
+{
+	doubleset result;
+	for (const std::string & val : values)
+	{
+		double doubleValue;
+		if (getDoubleValue(val, doubleValue))
+			result.insert(doubleValue);
+	}
+
+	return result;
+}
+
 
 bool ColumnUtils::isDoubleValue(const string &value)
 {

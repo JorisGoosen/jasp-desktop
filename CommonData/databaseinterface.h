@@ -63,6 +63,8 @@ public:
 	static		DatabaseInterface * singleton() { return _singleton; }					///< There can be only one! https://www.youtube.com/watch?v=sqcLjcSloXs
 
 	bool		hasConnection() { return _db; }
+	
+	void		upgradeDBFromVersion(Version originalVersion);													///< Ensures that the database has all the fields configured as required for the current JASP version, useful when loading older sqlite-containing jasp-files
 
 	void		runQuery(		const std::string & query,		std::function<void(sqlite3_stmt *stmt)>		bindParameters,				std::function<void(size_t row, sqlite3_stmt *stmt)>		processRow);	///< Runs a single query and then goes through the resultrows while calling processRow for each.
 	void		runStatements(	const std::string & statements);																																				///< Runs several sql statements without looking at the results.
@@ -124,8 +126,9 @@ public:
 	void		columnSetInvalidated(		int columnId, bool invalidated);
 	void		columnSetName(				int columnId, const std::string & name);
 	void		columnSetTitle(				int columnId, const std::string & title);
+	void		columnSetEmptyVals(			int columnId, const std::string & emptyValsJson);
 	void		columnSetDescription(		int columnId, const std::string & description);
-	void		columnGetBasicInfo(			int columnId,		std::string & name, std::string & title, std::string & description, columnType & colType, int & revision);
+	void		columnGetBasicInfo(			int columnId,		std::string & name, std::string & title, std::string & description, columnType & colType, int & revision, Json::Value & emptyValuesJson);
 	void		columnSetComputedInfo(		int columnId, int analysisId, bool isComputed, bool   invalidated, computedColumnType   codeType, const	std::string & rCode, const	std::string & error, const	std::string & constructorJson);
 	bool		columnGetComputedInfo(		int columnId, int &analysisId, bool & invalidated, computedColumnType & codeType,		std::string & rCode,		std::string & error,		Json::Value & constructorJson);
 	void		columnSetValues(			int columnId, const intvec	  & ints);
@@ -165,7 +168,6 @@ private:
 	void		create();										///< Creates a new sqlite database in sessiondir and loads it
 	void		load();											///< Loads a sqlite database from sessiondir (after loading a jaspfile)
 	void		close();										///< Closes the loaded database and disconnects
-	void		ensureCorrectDb();
 
 	int			_transactionWriteDepth	= 0,
 				_transactionReadDepth	= 0;

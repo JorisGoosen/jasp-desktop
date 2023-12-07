@@ -13,11 +13,12 @@ typedef std::vector<Column*> Columns;
 class DataSet : public DataSetBaseNode
 {
 public:
-							DataSet(int index = -1);
+							DataSet(int index = -1); ///< index==-1: create a new dataSet, >0: load that dataSet, 0: do nothing
 							~DataSet();
 	
-			Filter		*	filter()				{ return	_filter;	}
-			Columns		&	columns()	const		{ return	const_cast<Columns&>(_columns);	}
+			Filter		*	filter()						{ return	_filter;	}
+			Columns		&	columns()			const		{ return	const_cast<Columns&>(_columns);	}
+			EmptyValues *	emptyValuesObject() const		{ return	_emptyValues; }
 
 			Column		*	column(		const std::string & name);
 			Column		*	column(		size_t				columnIndex);
@@ -35,7 +36,7 @@ public:
 
 			void			dbCreate();
 			void			dbUpdate();
-			void			dbLoad(int index = -1, const Version& loadedJaspVersion = Version(), std::function<void(float)> progressCallback = [](float){});
+			void			dbLoad(int index = -1, std::function<void(float)> progressCallback = [](float){});
 			void			dbDelete();
 
 			void			beginBatchedToDB();
@@ -76,15 +77,8 @@ public:
 			DataSetBaseNode		 *	filtersNode()	const { return _filtersNode; }
 
 			std::map<std::string, intstrmap > resetMissingData(const std::vector<Column*>& columns);
-			void					setMissingData(const std::string & columnName, const intstrmap & missingData)			{ _emptyValues.setMissingData(columnName, missingData);			dbUpdate();	}
 			void					setEmptyValuesJson(			const Json::Value & emptyValues, bool updateDB = true);
-	const	stringset			&	emptyValues(				const std::string& colName)							const	{ return _emptyValues.emptyValues(colName);									}
-	const	doubleset			&	doubleEmptyValues(			const std::string& colName)							const	{ return _emptyValues.doubleEmptyValues(colName);							}
-	const	intstrmap			&	missingData(				const std::string& colName)							const	{ return _emptyValues.missingData(colName);									}
-	const	stringset			&	workspaceEmptyValues()															const	{ return _emptyValues.workspaceEmptyValues();								}
-			void					setCustomEmptyValues(		const std::string& colName, const stringset& values)		{ _emptyValues.setCustomEmptyValues(colName, values);			dbUpdate();	}
-			bool					hasCustomEmptyValues(		const std::string& colName)							const	{ return _emptyValues.hasCutomEmptyValues(colName);							}
-			void					setHasCustomEmptyValues(	const std::string& colName, bool hasCustom)					{ _emptyValues.setHasCustomEmptyValues(colName, hasCustom);		dbUpdate();	}
+	const	stringset			&	workspaceEmptyValues()															const	{ return _emptyValues.emptyValues();								}
 			void					setWorkspaceEmptyValues(	const stringset& values);
 	const	std::string			&	description()																	const	{ return _description; }
 			void					setDescription(				const std::string& desc);

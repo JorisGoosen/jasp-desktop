@@ -6,6 +6,7 @@
 #include "columntype.h"
 #include "utils.h"
 #include <list>
+#include "emptyvalues.h"
 
 class DataSet;
 class Analysis;
@@ -167,9 +168,18 @@ public:
 			std::string				doubleToDisplayString(	double dbl, bool fancyEmptyValue = true)		const; ///< fancyEmptyValue is the user-settable empty value label, for saving to csv this might be less practical though, so turn it off
 			bool					hasCustomEmptyValues()													const;
 			const stringset		&	emptyValues()															const;
+			const intstrmap		&	missingData(				const std::string& colName)					const;
 			const doubleset		&	doubleEmptyValues()														const;
 			void					setHasCustomEmptyValues(		bool hasCustom);
 			void					setCustomEmptyValues(			const stringset		& customEmptyValues);
+			
+			
+			
+			
+			
+			
+			
+			
 			bool					isEmptyValue(					const std::string	& val)				const;
 			bool					isEmptyValue(					const double		  val)				const;
 			bool					convertValueToDoubleForImport(	const std::string	& strValue, double	& doubleValue)	const;
@@ -211,7 +221,8 @@ private:
 			doublevec				_dbls;
 			intvec					_ints;
 			stringset				_dependsOnColumns;
-			std::map<int, Label*>	_labelByValueMap;			
+			std::map<int, Label*>	_labelByValueMap;
+			EmptyValues				_emptyValues;			
 };
 
 #endif // COLUMN_H

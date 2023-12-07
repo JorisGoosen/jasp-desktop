@@ -170,6 +170,7 @@ public:
 				void				setAnalysesData(const Json::Value & analysesData)	{ _analysesData					= analysesData;		}
 				void				setArchiveVersion(Version archiveVersion)			{ _archiveVersion				= archiveVersion;	}
 				void				setJaspVersion(Version jaspVersion)					{ _jaspVersion					= jaspVersion;		}
+				void				updateDbToCurrentVersion();							///< Should be ran immediately after loading the jasp file
 				void				setMissingData(Json::Value & missingData);
 				void				resetMissingData(const std::vector<Column*>& cols, bool reset = true);
 				void				setWarningMessage(std::string message)				{ _warningMessage				= message;			}

@@ -84,9 +84,8 @@ void JASPImporter::loadDataArchive(const std::string &path, std::function<void(i
 
     //Store sqlite into tempfiles:
     ArchiveReader(path, DatabaseInterface::singleton()->dbFile(true)).writeEntryToTempFiles([&](float p){ progressCallback(33.333 * p); });
-
+	
 	DataSetPackage::pkg()->loadDataSet([&](float p){ progressCallback(33.333 + 33.333 * p); });
-
 
 	if(resultXmlCompare::compareResults::theOne()->testMode())
 	{
@@ -101,15 +100,10 @@ void JASPImporter::loadDataArchive(const std::string &path, std::function<void(i
 
 		resultXmlCompare::compareResults::theOne()->setOriginalResult(QString::fromStdString(html));
 	}
-
-
 }
 
 void JASPImporter::loadJASPArchive(const std::string &path, std::function<void(int)> progressCallback)
 {
-	if (DataSetPackage::pkg()->archiveVersion().major() != 4)
-		throw std::runtime_error("The file version is not supported (too new).\nPlease update to the latest version of JASP to view this file.");
-
 	JASPTIMER_SCOPE(JASPImporter::loadJASPArchive_1_00 read analyses.json);
 	Json::Value analysesData;
 
@@ -127,44 +121,18 @@ void JASPImporter::loadJASPArchive(const std::string &path, std::function<void(i
 
 			resourceEntry.writeEntryToTempFiles(); //this one doesnt really need to give feedback as the files are pretty tiny
 
-			/* This is double, since writeEntryToTempFiles do that already...
-			JASPTIMER_RESUME(JASPImporter::loadJASPArchive_1_00 Write file stream);
-			std::ofstream file(destination.c_str(),  std::ios::out | std::ios::binary);
-
-			static char streamBuff[8192 * 32];
-			file.rdbuf()->pubsetbuf(streamBuff, sizeof(streamBuff)); //Set the buffer manually to make it much faster our issue https://github.com/jasp-stats/INTERNAL-jasp/issues/436 and solution from:  https://stackoverflow.com/a/15177770
-	
-			static char copyBuff[8192 * 4];
-			int			bytes		= 0,
-						errorCode	= 0;
-
-			do
-			{
-				bytes = resourceEntry.readData(copyBuff, sizeof(copyBuff), errorCode);
-
-                if(bytes > 0 && errorCode == 0)		file.write(copyBuff, bytes);
-                else                                break;
-			}
-			while (true);
-
-			file.flush();
-			file.close();
-			JASPTIMER_STOP(JASPImporter::loadJASPArchive_1_00 Write file stream);
-	
-			if (errorCode != 0)
-				throw std::runtime_error("Could not read resource files.");
-
-			JASPTIMER_STOP(JASPImporter::loadJASPArchive_1_00 Create resource files);
-			*/
             progressCallback( 66.666 + int((33.333 / double(resources.size())) * ++resourceCounter));// "Loading Analyses",
 		}
 	}
 
 	JASPTIMER_STOP(JASPImporter::loadJASPArchive_1_00 read analyses.json);
 	
+
 	JASPTIMER_RESUME(JASPImporter::loadJASPArchive_1_00 packageData->setAnalysesData(analysesData));
 	DataSetPackage::pkg()->setAnalysesData(analysesData);
 	JASPTIMER_STOP(JASPImporter::loadJASPArchive_1_00 packageData->setAnalysesData(analysesData));
+	
+
 
 	progressCallback(100); //"Initializing Analyses & Results",
 }
@@ -190,13 +158,13 @@ void JASPImporter::readManifest(const std::string &path)
 		Json::Value     manifest;
 		parser.parse(manifestStr, manifest);
 
-		std::string jaspArchiveVersionStr = manifest.get("jaspArchiveVersion", "").asString();
-		std::string jaspVersionStr = manifest.get("jaspVersion", "").asString();
+		std::string jaspArchiveVersionStr	= manifest.get("jaspArchiveVersion", "").asString();
+		std::string jaspVersionStr			= manifest.get("jaspVersion",		"").asString();
 
 		foundVersion = ! jaspArchiveVersionStr.empty();
 
-		DataSetPackage::pkg()->setArchiveVersion(Version(jaspArchiveVersionStr));
-		DataSetPackage::pkg()->setJaspVersion(Version(jaspVersionStr));
+		DataSetPackage::pkg()->setArchiveVersion(	Version(jaspArchiveVersionStr));
+		DataSetPackage::pkg()->setJaspVersion(		Version(jaspVersionStr));
 	}
 
 	if ( ! foundVersion)

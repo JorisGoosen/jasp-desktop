@@ -221,7 +221,7 @@ void DataSet::dbUpdate()
 	incRevision();
 }
 
-void DataSet::dbLoad(int index, const Version& loadedJaspVersion, std::function<void(float)> progressCallback)
+void DataSet::dbLoad(int index, std::function<void(float)> progressCallback)
 {
 	//Log::log() << "loadDataSet(index=" << index << "), _dataSetID="<< _dataSetID <<";" << std::endl;
 
@@ -234,7 +234,7 @@ void DataSet::dbLoad(int index, const Version& loadedJaspVersion, std::function<
 		Log::log() << "No DataSet with id " << index << "!" << std::endl;
 		return;
 	}
-	
+		
 	if(index != -1)
 		_dataSetID	= index;
 

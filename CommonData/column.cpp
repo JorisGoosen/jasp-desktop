@@ -5,7 +5,7 @@
 #include "databaseinterface.h"
 
 Column::Column(DataSet * data, int id) 
-	: DataSetBaseNode(dataSetBaseNodeType::column, data->dataNode()), _data(data), _id(id)
+	: DataSetBaseNode(dataSetBaseNodeType::column, data->dataNode()), _data(data), _id(id), _emptyValues(data->emptyValuesObject())
 {}
 
 void Column::dbCreate(int index)
@@ -27,7 +27,9 @@ void Column::dbLoad(int id, bool getValues)
 
 	db().transactionReadBegin();
 	
-					db().columnGetBasicInfo(	_id, _name, _title, _description, _type, _revision);
+	Json::Value emptyVals;
+	
+					db().columnGetBasicInfo(	_id, _name, _title, _description, _type, _revision, emptyVals);
 	_isComputed =   db().columnGetComputedInfo(	_id, _analysisId, _invalidated, _codeType, _rCode, _error, _constructorJson);
 
 	db().labelsLoad(this);
@@ -139,28 +141,28 @@ void Column::setType(columnType colType)
 
 bool Column::hasCustomEmptyValues() const
 {
-	return _data->hasCustomEmptyValues(_name);
+	return _emptyValues.hasCustomEmptyValues();
 }
 
 const stringset& Column::emptyValues() const
 {
-	return _data->emptyValues(_name);
+	return _emptyValues.emptyValues();
 }
 
 const doubleset& Column::doubleEmptyValues() const
 {
-	return _data->doubleEmptyValues(_name);
+	return _emptyValues.doubleEmptyValues();
 }
 
 void Column::setHasCustomEmptyValues(bool hasCustom)
 {
 	JASPTIMER_SCOPE(Column::setHasCustomEmptyValues);
 
-	if (_data->hasCustomEmptyValues(_name) == hasCustom)
+	if(hasCustomEmptyValues() == hasCustom)
 		return;
-
-	_data->setHasCustomEmptyValues(_name, hasCustom);
-
+	
+	_emptyValues.setHasCustomEmptyValues(hasCustom);
+	
 	incRevision();
 }
 
@@ -171,8 +173,8 @@ void Column::setCustomEmptyValues(const stringset& customEmptyValues)
 	if (hasCustomEmptyValues() && emptyValues() == customEmptyValues)
 		return;
 
-	_data->setCustomEmptyValues(_name, customEmptyValues);
-
+	_emptyValues.setEmptyValues(customEmptyValues);
+	
 	incRevision();
 }
 
@@ -2279,6 +2281,6 @@ bool Column::isEmptyValue(const std::string& val) const
 
 bool Column::isEmptyValue(const double val) const
 {
-	return ColumnUtils::isEmptyValue(val, doubleEmptyValues());
+	return _emptyValues.isEmpty(val);
 }
 
