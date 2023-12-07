@@ -238,7 +238,7 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback)
 		Log::log() << "No DataSet with id " << index << "!" << std::endl;
 		return;
 	}
-	
+		
 	if(index != -1)
 		_dataSetID	= index;
 
@@ -409,29 +409,11 @@ void DataSet::loadOldComputedColumnsJson(const Json::Value &json)
 		col->findDependencies();
 }
 
-std::map<std::string, intstrmap> DataSet::resetMissingData(const std::vector<Column*>& cols)
-{
-	std::map<std::string, intstrmap> colChanged;
-
-	for (Column * col : cols)
-	{
-		intstrmap missingDataMap = _emptyValues.missingData(col->name());
-
-		if (col->resetMissingData(missingDataMap))
-			colChanged[col->name()] = missingDataMap;
-	}
-
-	dbUpdate();
-	incRevision();
-
-	return colChanged;
-}
-
 void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 {
 	if (!emptyValues.isMember("workspaceEmptyValues"))
 	{
-		// For backword compatibility, if the workspaceEmptyValues are not specified, take the defdault ones
+		// For backward compatibility we take the default ones if the workspaceEmptyValues are not specified
 		Json::Value updatedEmptyValues = emptyValues;
 		Json::Value emptyValuesJson(Json::arrayValue);
 		for (const std::string& val : _defaultEmptyvalues)
@@ -449,7 +431,7 @@ void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 void DataSet::setWorkspaceEmptyValues(const stringset &values)
 {
 	_defaultEmptyvalues = values;
-	_emptyValues.setWorkspaceEmptyValues(values);
+	_emptyValues.setEmptyValues(values);
 	dbUpdate();
 }
 

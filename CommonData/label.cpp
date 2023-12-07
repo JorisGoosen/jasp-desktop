@@ -189,7 +189,7 @@ std::string Label::originalValueAsString(bool fancyEmptyValue) const
 	switch(_originalValue.type())
 	{
 	default:
-		return fancyEmptyValue ? ColumnUtils::emptyValue : "";
+		return fancyEmptyValue ? EmptyValues::displayString() : "";
 
 	case Json::intValue:
 		return std::to_string(_originalValue.asInt());

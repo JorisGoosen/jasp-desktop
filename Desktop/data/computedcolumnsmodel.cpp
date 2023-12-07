@@ -1,5 +1,5 @@
 #include "computedcolumnsmodel.h"
-#include "utilities/jsonutilities.h"
+#include "jsonutilities.h"
 #include "utilities/qutils.h"
 #include "columnencoder.h"
 #include "log.h"

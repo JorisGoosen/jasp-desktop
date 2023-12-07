@@ -1,4 +1,4 @@
-#include "databaseinterface.h"
+﻿#include "databaseinterface.h"
 #include "utils.h"
 #include "tempfiles.h"
 #include "log.h"
@@ -21,16 +21,20 @@ const std::string DatabaseInterface::_dbConstructionSql =
 
 void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 {
-	   transactionWriteBegin();
+	transactionWriteBegin();
 
-	   if(originalVersion < "0.18.2")
-			   runStatements("ALTER TABLE DataSets ADD COLUMN description     TEXT;"                 "\n");
+	if(originalVersion < "0.18.2")
+		runStatements(
+			"ALTER TABLE DataSets ADD COLUMN description     TEXT;"			"\n");
 
-	   //Are you going to 0.19 or higher? Maybe drop isComputed from Columns as its not needed anymore
+	
+	if(originalVersion < "0.19.0")
+		runStatements(		
+			"ALTER TABLE Columns  ADD 	COLUMN emptyValuesJson TEXT;"		"\n"
+			"ALTER TABLE Columns  DROP 	COLUMN isComputed;"					"\n"); // was removed in 0.18.3
+	
 
-	   //Later versions can add new originalVersion < blabla blocks at the end of this "list"
-
-		transactionWriteEnd();
+	transactionWriteEnd();
 }
 
 DatabaseInterface::DatabaseInterface(bool createDb)
@@ -1006,6 +1010,16 @@ void DatabaseInterface::columnSetTitle(int columnId, const std::string & title)
 	});
 }
 
+void DatabaseInterface::columnSetEmptyVals(int columnId, const std::string & emptyValsJson)
+{
+	JASPTIMER_SCOPE(DatabaseInterface::columnSetTitle);
+	runStatements("UPDATE Columns SET emptyValuesJson=? WHERE id=?;", [&](sqlite3_stmt * stmt)
+	{
+		sqlite3_bind_text(stmt, 1, emptyValsJson.c_str(), emptyValsJson.length(), SQLITE_TRANSIENT);
+		sqlite3_bind_int(stmt,	2, columnId);
+	});
+}
+
 void DatabaseInterface::columnSetDescription(int columnId, const std::string & description)
 {
 	JASPTIMER_SCOPE(DatabaseInterface::columnSetDescription);
@@ -1039,29 +1053,35 @@ void DatabaseInterface::columnSetComputedInfo(int columnId, int analysisId, bool
 	});
 }
 
-void DatabaseInterface::columnGetBasicInfo(int columnId, std::string &name, std::string &title, std::string &description, columnType &colType, int & revision)
+void DatabaseInterface::columnGetBasicInfo(int columnId, std::string &name, std::string &title, std::string &description, columnType &colType, int & revision, Json::Value & emptyValuesJson)
 {
 	JASPTIMER_SCOPE(DatabaseInterface::columnGetBasicInfo);
+	
+	emptyValuesJson = Json::nullValue;
+	
 	std::function<void(sqlite3_stmt *stmt)>  prepare = [&](sqlite3_stmt *stmt)
 	{
 		sqlite3_bind_int(stmt, 1, columnId);
 	};
-
+	
 	std::function<void(size_t row, sqlite3_stmt *stmt)> processRow = [&](size_t row, sqlite3_stmt *stmt)
 	{
 		int colCount = sqlite3_column_count(stmt);
 
 		assert(colCount == 5);
-					name		= _wrap_sqlite3_column_text(stmt, 0);
-					title		= _wrap_sqlite3_column_text(stmt, 1);
-					description	= _wrap_sqlite3_column_text(stmt, 2);
-		std::string colTypeStr	= _wrap_sqlite3_column_text(stmt, 3);
-		revision				= sqlite3_column_int(		stmt, 4);
+					name			= _wrap_sqlite3_column_text(stmt, 0);
+					title			= _wrap_sqlite3_column_text(stmt, 1);
+					description		= _wrap_sqlite3_column_text(stmt, 2);
+		std::string colTypeStr		= _wrap_sqlite3_column_text(stmt, 3);
+		revision					= sqlite3_column_int(		stmt, 4);
+		std::string	emptyValuesStr	= _wrap_sqlite3_column_text(stmt, 5);
 
 		colType = colTypeStr.empty() ? columnType::unknown : columnTypeFromString(colTypeStr);
+		
+		Json::Reader().parse(emptyValuesStr, emptyValuesJson);
 	};
 
-	runStatements("SELECT name, title, description, columnType, revision FROM Columns WHERE id = ?;", prepare, processRow);
+	runStatements("SELECT name, title, description, columnType, revision, emptyValuesJson FROM Columns WHERE id = ?;", prepare, processRow);
 }
 
 
@@ -1625,12 +1645,11 @@ void DatabaseInterface::load()
 	}
 	else
 		Log::log() << "Opened internal sqlite database for loading at '" << dbFile() << "'." << std::endl;
-
 }
 
 void DatabaseInterface::close()
 {
-	JASPTIMER_SCOPE(DatabaseInterface::);
+	JASPTIMER_SCOPE(DatabaseInterface::close);
 	if(_db)
 	{
 		sqlite3_close(_db);

@@ -12,14 +12,18 @@ class ColumnUtils
 public:
 	friend class PreferencesModel;
 
-	static       std::string emptyValue;
-	
 	static bool			getIntValue(	const std::string	& value, int	& intValue);
 	static bool			getIntValue(	const double		& value, int	& intValue);
 	static bool			getDoubleValue(	const std::string	& value, double	& doubleValue);
+	static doubleset	getDoubleValues(const stringset & values);
 
 	static bool			isIntValue(		const std::string	& value);
 	static bool			isDoubleValue(	const std::string	& value);
+
+	static bool			convertValueToIntForImport(		const	std::string & strValue, int		& intValue);
+	static bool			convertValueToDoubleForImport(	const	std::string & strValue, double	& doubleValue);
+	static void			convertEscapedUnicodeToUTF8(			std::string & inputStr);
+	static std::string	deEuropeaniseForImport(					std::string   value);
 
 	static bool			convertValueToIntForImport(		const	std::string &	strValue, int		& intValue);
 	static bool			convertValueToDoubleForImport(	const	std::string &	strValue, double	& doubleValue);

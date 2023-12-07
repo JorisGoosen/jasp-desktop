@@ -49,7 +49,7 @@
 #include "results/resultsjsinterface.h"
 #include "modules/ribbonmodeluncommon.h"
 #include "results/resultmenumodel.h"
-#include "utilities/jsonutilities.h"
+#include "jsonutilities.h"
 #include "utilities/helpmodel.h"
 #include "utilities/reporter.h"
 #include "utilities/codepageswindows.h"
