@@ -2,7 +2,7 @@
 #include "jasptheme.h"
 #include "utilities/qutils.h"
 #include "datasettablemodel.h"
-#include "computedcolumnsmodel.h"
+#include "computedcolumnmodel.h"
 
 QMap<computedColumnType, QString> ColumnModel::columnTypeFriendlyName =
 {
@@ -164,7 +164,7 @@ void ColumnModel::setUseCustomEmptyValues(bool useCustom)
 
 QStringList ColumnModel::emptyValues() const
 {
-	return (_virtual || !column()) ? QStringList() : tql(column()->emptyValues());
+	return (_virtual || !column()) ? QStringList() : tql(column()->emptyValues()->emptyStrings());
 }
 
 void ColumnModel::setCustomEmptyValues(const QStringList& customEmptyValues)
@@ -174,14 +174,14 @@ void ColumnModel::setCustomEmptyValues(const QStringList& customEmptyValues)
 	_undoStack->pushCommand(new SetCustomEmptyValuesCommand(this, customEmptyValues));
 }
 
-void ColumnModel::addEmptyValue(QString value)
+void ColumnModel::addEmptyValue(const QString & value)
 {
 	QStringList values = emptyValues();
 	values.push_back(value);
 	setCustomEmptyValues(values);
 }
 
-void ColumnModel::removeEmptyValue(QString value)
+void ColumnModel::removeEmptyValue(const QString & value)
 {
 	QStringList values = emptyValues();
 	values.removeAll(value);
@@ -207,7 +207,7 @@ QVariantList ColumnModel::tabs() const
 		if (col->isComputed() && (col->codeType() == computedColumnType::rCode || col->codeType() == computedColumnType::constructorCode))
 			tabs.push_back(QMap<QString, QVariant>({  std::make_pair("name", "computed"), std::make_pair("title", tr("Computed column definition"))}));
 
-		if (col->type() != columnType::scale && rowCount() > 0)
+		if (rowCount() > 0)
 			tabs.push_back(QMap<QString, QVariant>({  std::make_pair("name", "label"), std::make_pair("title", tr("Label editor"))}));
 	}
 
@@ -223,8 +223,6 @@ QString ColumnModel::currentColumnType() const
 	if (_virtual) return columnTypeToQString(_dummyColumn.type);
 
 	columnType type = column() ? column()->type() : columnType::scale;
-	if (type == columnType::nominalText)
-		type = columnType::nominal;
 
 	return columnTypeToQString(type);
 }
@@ -278,7 +276,7 @@ void ColumnModel::setComputedType(QString type)
 	else if(column())
 		_undoStack->pushCommand(new SetColumnPropertyCommand(this, int(cType), SetColumnPropertyCommand::ColumnProperty::ComputedColumn));
 
-	ComputedColumnsModel::singleton()->refreshProperties();
+	emit ComputedColumnModel::singleton()->refreshProperties();
 	emit tabsChanged();
 }
 
@@ -296,16 +294,16 @@ void ColumnModel::setColumnType(QString type)
 	emit tabsChanged();
 }
 
-std::vector<size_t> ColumnModel::getSortedSelection() const
+std::vector<qsizetype> ColumnModel::getSortedSelection() const
 {
 	if (_virtual) return {};
 
-	std::map<QString, size_t> mapValueToRow;
+	std::map<QString, qsizetype> mapValueToRow;
 
-	for(size_t r=0; r<size_t(rowCount()); r++)
+	for(qsizetype r=0; r<qsizetype(rowCount()); r++)
 		mapValueToRow[data(index(r, 0), int(DataSetPackage::specialRoles::value)).toString()] = r;
 
-	std::vector<size_t> out;
+	std::vector<qsizetype> out;
 
 	for(const QString & v : _selected)
 		out.push_back(mapValueToRow[v]);
@@ -317,43 +315,29 @@ std::vector<size_t> ColumnModel::getSortedSelection() const
 
 void ColumnModel::setValueMaxWidth()
 {
-	DataSetPackage *			pkg = DataSetPackage::pkg();
-	QModelIndex					p	= pkg->indexForSubNode(node());
+	qsizetype maxWidthChars = std::max((tr("Value").size()), !column() ? 0 : column()->getMaximumWidthInCharacters(false, true));
+	
+	double prevMaxWidth = _valueMaxWidth;
+	_valueMaxWidth = JaspTheme::fontMetrics().size(Qt::TextSingleLine, QString(maxWidthChars, 'X')).width();
 
-	double max = JaspTheme::fontMetrics().size(Qt::TextSingleLine, tr("Value")).width();
-
-	for (int row=0; row<pkg->rowCount(p); row++)
-	{
-		QString value = pkg->data(pkg->index(row, 0, p), int(DataSetPackage::specialRoles::value)).toString();
-		max = std::max(max, JaspTheme::fontMetrics().size(Qt::TextSingleLine, value).width());
-	}
-
-	_valueMaxWidth = max;
-
-	emit valueMaxWidthChanged();
+	if(_valueMaxWidth != prevMaxWidth)
+		emit valueMaxWidthChanged();
 }
 
 void ColumnModel::setLabelMaxWidth()
 {
-	DataSetPackage *			pkg = DataSetPackage::pkg();
-	QModelIndex					p	= pkg->indexForSubNode(node());
+	qsizetype maxWidthChars = std::max((tr("Label").size()), !column() ? 0 : column()->getMaximumWidthInCharacters(false, false));
+	
+	double prevMaxWidth = _labelMaxWidth;
+	_labelMaxWidth = JaspTheme::fontMetrics().size(Qt::TextSingleLine, QString(maxWidthChars, 'X')).width();
 
-	double max = JaspTheme::fontMetrics().size(Qt::TextSingleLine, tr("Label")).width();
-
-	for (int row=0; row<pkg->rowCount(p); row++)
-	{
-		QString label = pkg->data(pkg->index(row, 0, p)).toString();
-		max = std::max(max, JaspTheme::fontMetrics().size(Qt::TextSingleLine, label).width());
-	}
-
-	_labelMaxWidth = max;
-
-	emit labelMaxWidthChanged();
+	if(_labelMaxWidth != prevMaxWidth)
+		emit labelMaxWidthChanged();
 }
 
 void ColumnModel::moveSelectionUp()
 {
-	std::vector<size_t> indexes = getSortedSelection();
+	std::vector<qsizetype> indexes = getSortedSelection();
 	if (indexes.size() < 1)
 		return;
 
@@ -363,7 +347,7 @@ void ColumnModel::moveSelectionUp()
 
 void ColumnModel::moveSelectionDown()
 {
-	std::vector<size_t> indexes = getSortedSelection();
+	std::vector<qsizetype> indexes = getSortedSelection();
 	if (indexes.size() < 1)
 		return;
 
@@ -522,16 +506,22 @@ QVariant ColumnModel::headerData(int section, Qt::Orientation orientation, int r
 	return QVariant();
 }
 
+int ColumnModel::rowCount(const QModelIndex & p) const
+{
+	if(p.isValid())
+		return 0;
+	
+	return !column() ? 0 : column()->labelsTempCount(); //Im having some trouble with the proxymodel, so lets take a shortcut 
+}
+
 void ColumnModel::onChosenColumnChanged()
 {
 	_selected.clear();
 	_lastSelected = -1;
 	setValueMaxWidth();
 	setLabelMaxWidth();
-
-	if (column())
-		ComputedColumnsModel::singleton()->selectColumn(column());
-	//dataChanged probably not needed 'cause we are in a reset
+	
+	ComputedColumnModel::singleton()->selectColumn(column());
 }
 
 void ColumnModel::refresh()
@@ -612,9 +602,9 @@ void ColumnModel::checkCurrentColumn(QStringList, QStringList missingColumns, QM
 
 void ColumnModel::removeAllSelected()
 {
-	QMap<QString, size_t> mapValueToRow;
+	QMap<QString, qsizetype> mapValueToRow;
 
-	for(size_t r=0; r<size_t(rowCount()); r++)
+	for(qsizetype r=0; r<qsizetype(rowCount()); r++)
 		mapValueToRow[data(index(r, 0), int(DataSetPackage::specialRoles::value)).toString()] = r;
 
 	QVector<QString> selectedValues;
@@ -679,8 +669,15 @@ bool ColumnModel::setChecked(int rowIndex, bool checked)
 	_editing = true;
 	_undoStack->pushCommand(new FilterLabelCommand(this, rowIndex, checked));
 	_editing = false;
-
+	
 	return data(index(rowIndex, 0), int(DataSetPackage::specialRoles::filter)).toBool() == checked;
+}
+
+void ColumnModel::setValue(int rowIndex, const QString &value)
+{
+	_editing = true;
+	_undoStack->pushCommand(new SetLabelOriginalValueCommand(this, rowIndex, value));
+	_editing = false;
 }
 
 void ColumnModel::setLabel(int rowIndex, QString label)

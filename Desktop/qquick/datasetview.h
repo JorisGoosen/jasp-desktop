@@ -237,7 +237,7 @@ public slots:
 	void		onDataModeChanged(bool dataMode);
 	void		commitLastEdit();
 
-	int			setColumnType(int columnIndex, int newColumnType)	{ return _model->setColumnType(columnIndex, newColumnType); }
+	void		setColumnType(int newColumnType);
 protected:
 	void		_copy(QPoint where, bool clear);
 	void		calculateCellSizesAndClear(bool clearStorage);

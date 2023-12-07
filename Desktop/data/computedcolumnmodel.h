@@ -9,7 +9,7 @@
 /// 
 /// A model for use by the computed columns editor in QML
 /// It can only show the relevant information for a single computed column at a time
-class ComputedColumnsModel : public QObject
+class ComputedColumnModel : public QObject
 {
 	Q_OBJECT
 	Q_PROPERTY(bool		computeColumnUsesRCode		READ computeColumnUsesRCode													NOTIFY computeColumnUsesRCodeChanged	)
@@ -19,7 +19,7 @@ class ComputedColumnsModel : public QObject
 	Q_PROPERTY(bool		datasetLoaded				READ datasetLoaded															NOTIFY refreshProperties				)
 
 public:
-	explicit	ComputedColumnsModel();
+    explicit	ComputedColumnModel();
 
 				bool				datasetLoaded()					{ return DataSetPackage::pkg()->hasDataSet();	}
 				DataSet			*	dataSet()						{ return DataSetPackage::pkg()->dataSet();		}
@@ -49,7 +49,7 @@ public:
 
 	Q_INVOKABLE bool				showAnalysisFormForColumn(const QString & columnName);
 
-	static		ComputedColumnsModel * singleton()		{ return _singleton; }
+                                static		ComputedColumnModel * singleton()		{ return _singleton; }
 
 	
 	
@@ -90,7 +90,7 @@ public slots:
 										bool					hasNewColumns);
 
 private:
-	static	ComputedColumnsModel	* _singleton;
+                                static	ComputedColumnModel	* _singleton;
 			Column					* _selectedColumn	= nullptr;
 
 			UndoStack				* _undoStack		= nullptr;

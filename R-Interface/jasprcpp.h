@@ -75,7 +75,6 @@ int jaspRCPP_dataSetRowCount();
 bool jaspRCPP_columnIsScale(				std::string columnName	);
 bool jaspRCPP_columnIsOrdinal(				std::string columnName		  );
 bool jaspRCPP_columnIsNominal(				std::string columnName				 );
-bool jaspRCPP_columnIsNominalText(			std::string columnName						);
 
 bool jaspRCPP_setColumnDataAsScale(			std::string columnName,	Rcpp::RObject scalarData	);
 bool jaspRCPP_setColumnDataAsOrdinal(		std::string columnName,	Rcpp::RObject ordinalData		);

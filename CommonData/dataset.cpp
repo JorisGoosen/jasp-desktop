@@ -12,6 +12,7 @@ DataSet::DataSet(int index)
 
 	_dataNode		= new DataSetBaseNode(dataSetBaseNodeType::data,	this);
 	_filtersNode	= new DataSetBaseNode(dataSetBaseNodeType::filters, this);
+	_emptyValues	= new EmptyValues();
 	
 	if(index == -1)         dbCreate();
 	else if(index > 0)		dbLoad(index);
@@ -25,12 +26,16 @@ DataSet::~DataSet()
 		delete col;
 
 	_columns.clear();
-
-	delete _dataNode;
-	_dataNode = nullptr;
 	
+	delete _emptyValues;
+	delete _dataNode;
 	delete _filter;
-	_filter = nullptr;
+	
+	_emptyValues	= nullptr;
+	_dataNode		= nullptr;
+	_filter			= nullptr;
+	
+	
 }
 
 void DataSet::dbDelete()
@@ -61,12 +66,15 @@ void DataSet::beginBatchedToDB()
 	_writeBatchedToDB = true;
 }
 
-void DataSet::endBatchedToDB(std::function<void(float)> progressCallback)
+void DataSet::endBatchedToDB(std::function<void(float)> progressCallback, Columns columns)
 {
 	assert(_writeBatchedToDB);
 	_writeBatchedToDB = false;
+	
+	if(columns.size() == 0)
+		columns = _columns;
 
-	db().dataSetBatchedValuesUpdate(this, progressCallback);
+	db().dataSetBatchedValuesUpdate(this, columns, progressCallback);
 	incRevision(); //Should trigger reload at engine end
 }
 
@@ -160,34 +168,12 @@ Column * DataSet::newColumn(const std::string &name)
 	return col;
 }
 
-size_t DataSet::getMaximumColumnWidthInCharacters(size_t columnIndex) const
+qsizetype DataSet::getMaximumColumnWidthInCharacters(size_t columnIndex) const
 {
 	if(columnIndex >= columnCount())
 		return 0;
 
-	const Column * col = _columns[columnIndex];
-
-	int extraPad = 4;
-
-	switch(col->type())
-	{
-	case columnType::scale:
-		return 11 + extraPad; //default precision of stringstream is 6 (and sstream is used in displaying scale values) + 3 because Im seeing some weird stuff with exp-notation  etc + some padding because of dots and whatnot
-
-	case columnType::unknown:
-		return 0;
-
-	default:
-	{
-		int tempVal = 0;
-
-		for(Label * label : col->labels())
-			tempVal = std::max(tempVal, static_cast<int>(label->label(true).length()));
-
-		return tempVal + extraPad;
-	}
-	}
-
+	return _columns[columnIndex]->getMaximumWidthInCharacters(true, false);
 }
 
 stringvec DataSet::getColumnNames()
@@ -209,7 +195,7 @@ void DataSet::dbCreate()
 	db().transactionWriteBegin();
 
 	//The variables are probably empty though:
-	_dataSetID	= db().dataSetInsert(_dataFilePath, _description, _databaseJson, _emptyValues.toJson().toStyledString(), _dataFileSynch);
+	_dataSetID	= db().dataSetInsert(_dataFilePath, _description, _databaseJson, _emptyValues->toJson().toStyledString(), _dataFileSynch);
 	_filter = new Filter(this);
 	_filter->dbCreate();
 	_columns.clear();
@@ -222,7 +208,7 @@ void DataSet::dbCreate()
 void DataSet::dbUpdate()
 {
 	assert(_dataSetID > 0);
-	db().dataSetUpdate(_dataSetID, _description, _dataFilePath, _databaseJson, _emptyValues.toJson().toStyledString(), _dataFileSynch);
+	db().dataSetUpdate(_dataSetID, _description, _dataFilePath, _databaseJson, _emptyValues->toJson().toStyledString(), _dataFileSynch);
 	incRevision();
 }
 
@@ -239,7 +225,7 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback)
 		Log::log() << "No DataSet with id " << index << "!" << std::endl;
 		return;
 	}
-	
+		
 	if(index != -1)
 		_dataSetID	= index;
 
@@ -255,7 +241,7 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback)
 	_filter->dbLoad();
 	progressCallback(0.2);
 
-	int colCount = db().dataSetColCount(_dataSetID);
+	int colCount	= db().dataSetColCount(_dataSetID);
 	_rowCount		= db().dataSetRowCount(_dataSetID);
 	//Log::log() << "colCount: " << colCount << ", " << "rowCount: " << rowCount() << std::endl;
 
@@ -280,7 +266,8 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback)
 
 	Json::Value emptyValsJson;
 	Json::Reader().parse(emptyVals, emptyValsJson);
-	setEmptyValuesJson(emptyValsJson, false);
+	
+	_emptyValues->fromJson(emptyValsJson);
 }
 
 int DataSet::columnCount() const
@@ -440,38 +427,27 @@ void DataSet::loadOldComputedColumnsJson(const Json::Value &json)
 		col->findDependencies();
 }
 
-std::map<std::string, intstrmap> DataSet::resetMissingData(const std::vector<Column*>& cols)
-{
-	std::map<std::string, intstrmap> colChanged;
-
-	for (Column * col : cols)
-	{
-		intstrmap missingDataMap = _emptyValues.missingData(col->name());
-
-		if (col->resetMissingData(missingDataMap))
-			colChanged[col->name()] = missingDataMap;
-	}
-
-	dbUpdate();
-	incRevision();
-
-	return colChanged;
-}
-
 void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 {
-	if (!emptyValues.isMember("workspaceEmptyValues"))
+	try
 	{
-		// For backword compatibility, if the workspaceEmptyValues are not specified, take the defdault ones
-		Json::Value updatedEmptyValues = emptyValues;
-		Json::Value emptyValuesJson(Json::arrayValue);
-		for (const std::string& val : _defaultEmptyvalues)
-			emptyValuesJson.append(val);
-		updatedEmptyValues["workspaceEmptyValues"] = emptyValuesJson;
-		_emptyValues.fromJson(updatedEmptyValues);
+		if (emptyValues.isMember("workspaceEmptyValues"))
+		{
+			// For backward compatibility we take the default ones if the workspaceEmptyValues are not specified
+			Json::Value updatedEmptyValues = emptyValues;
+			Json::Value emptyValuesJson(Json::arrayValue);
+			for (const std::string& val : _defaultEmptyvalues)
+				emptyValuesJson.append(val);
+			updatedEmptyValues["workspaceEmptyValues"] = emptyValuesJson;
+			_emptyValues->fromJson(updatedEmptyValues);
+		}
+		else
+			_emptyValues->fromJson(emptyValues);
 	}
-	else
-		_emptyValues.fromJson(emptyValues);
+	catch(std::exception & e)
+	{
+		Log::log() << "DataSet::setEmptyValuesJson got exception: " << e.what() << std::endl;
+	}
 
 	if (updateDB)
 		dbUpdate();
@@ -479,8 +455,7 @@ void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 
 void DataSet::setWorkspaceEmptyValues(const stringset &values)
 {
-	_defaultEmptyvalues = values;
-	_emptyValues.setWorkspaceEmptyValues(values);
+	_emptyValues->setEmptyValues(values);
 	dbUpdate();
 }
 

@@ -373,14 +373,48 @@ FocusScope
 				}
 
 			itemDelegate:
-				Text
+				Item
 				{
-					text:				itemText
-					textFormat:			Text.RichText
-					color:				itemActive ? jaspTheme.textEnabled : jaspTheme.textDisabled
-					font:				jaspTheme.font
-					verticalAlignment:	Text.AlignVCenter
-
+					id:			itemDelegateItem
+					
+					
+					Text
+					{
+						id:					itemDelegateText
+						text:				itemText
+						textFormat:			Text.RichText
+						color:				itemActive ? jaspTheme.textEnabled : jaspTheme.textDisabled
+						font:				jaspTheme.font
+						verticalAlignment:	Text.AlignVCenter
+						width:				Math.min(contentWidth, itemDelegateItem.width)
+						anchors
+						{
+							top:			parent.top
+							left:			parent.left
+							bottom:			parent.bottom
+						}
+					}
+					
+					Text
+					{
+						id:						itemDelegateLabel
+						text:					itemLabel ? itemLabel : ""
+						textFormat:				Text.RichText
+						color:					jaspTheme.textDisabled
+						font:					jaspTheme.font
+						verticalAlignment:		Text.AlignVCenter
+						horizontalAlignment:	Text.AlignRight
+						elide:					Text.ElideRight
+						visible:				itemLabel && itemText && itemText !== itemLabel
+						width:					Math.max(0, parent.width - itemDelegateText.width)
+						anchors
+						{
+							top:				parent.top
+							right:				parent.right
+							bottom:				parent.bottom
+						}
+					}
+	
 					MouseArea
 					{
 						z:					1234
@@ -448,6 +482,7 @@ FocusScope
 							bottomMargin:	-dataTableView.itemVerticalPadding
 						}
 					}
+				
 				}
 
 			leftTopCornerItem:
@@ -573,7 +608,7 @@ FocusScope
 
 					function setColumnType(newColumnType)
 					{
-						dataTableView.view.setColumnType(columnIndex, newColumnType)
+						dataTableView.view.setColumnType(newColumnType)
 					}
 
 

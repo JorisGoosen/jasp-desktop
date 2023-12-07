@@ -14,7 +14,6 @@
 #include <QGuiApplication>
 #include <QClipboard>
 #include "utils.h"
-#include "columnutils.h"
 
 DataSetView * DataSetView::_lastInstancedDataSetView = nullptr;
 
@@ -148,7 +147,10 @@ void DataSetView::modelDataChanged(const QModelIndex &topLeft, const QModelIndex
 					if (roles.contains(int(DataSetPackage::specialRoles::selected)))
 						context->setContextProperty("itemSelected",	_model->data(row, col, _model->getRole("selected")));
 					if (roles.contains(Qt::DisplayRole))
-						context->setContextProperty("itemText", _model->data(row, col));
+					{
+						context->setContextProperty("itemText",		_model->data(row, col));
+						context->setContextProperty("itemLabel",	_model->data(row, col, _model->getRole("label")));
+					}
 				}
 			}
 	}
@@ -1300,6 +1302,18 @@ void DataSetView::columnSelect(int col,	bool shiftPressed, bool rightClicked)
 	setSelectionEnd(QPoint(endCol, _model->rowCount(false) - 1));
 }
 
+void DataSetView::setColumnType(int newColumnType)	
+{ 
+	int columnA	= _selectionStart.x(),
+		columnB	= _selectionEnd.x()	!= -1 ? _selectionEnd.x() : _selectionStart.x();
+
+	if(columnA > columnB)
+		std::swap(columnA, columnB);
+	
+	for	(size_t columnIndex	= columnA; columnIndex <= columnB; columnIndex++)
+	 _model->setColumnType(columnIndex, newColumnType); 
+}
+
 QString DataSetView::columnInsertBefore(int col, bool computed, bool R)
 {
 	destroyEditItem(false);
@@ -1570,13 +1584,14 @@ QQmlContext * DataSetView::setStyleDataItem(QQmlContext * previousContext, bool 
 
 	QString text = _storedDisplayText[row][col];
 
-	if(isEditable && text == tq(ColumnUtils::emptyValue) && !emptyValLabel)
+	if(isEditable && text == tq(EmptyValues::displayString()) && !emptyValLabel)
 		text = "";
 
 	if(previousContext == nullptr)
 		previousContext = new QQmlContext(qmlContext(this), this);
 
 	previousContext->setContextProperty("itemText",			text);
+	previousContext->setContextProperty("itemLabel",		_model->data(row, col, _model->getRole("label")));
 	previousContext->setContextProperty("itemActive",		active);
 	previousContext->setContextProperty("itemEditable",		isEditable);
 	previousContext->setContextProperty("itemSelected",		_model->data(row, col, _model->getRole("selected")));

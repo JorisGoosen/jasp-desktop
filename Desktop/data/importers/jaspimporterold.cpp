@@ -112,6 +112,7 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 	DataSetPackage::filter()->setConstructorJson(jsonFilterConstructor.isObject() ? jsonFilterConstructor.toStyledString() : jsonFilterConstructor.asString());
 
 	Json::Value &emptyValuesJson = metaData["emptyValues"];
+	
 	if (emptyValuesJson.isNull())
 		// Really old JASP files: the empty values were '.', 'NaN' & 'nan'
 		packageData->setWorkspaceEmptyValues({"NaN", "nan", "."}, false);
@@ -123,7 +124,7 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 		packageData->setWorkspaceEmptyValues(emptyValues, false);
 	}
 
-	packageData->setMissingData(dataSetDesc["emptyValuesMap"]);
+	packageData->integrateMissingDataMap(dataSetDesc["emptyValuesMap"]);
 
 	columnCount = dataSetDesc["columnCount"].asInt();
 	rowCount	= dataSetDesc["rowCount"].asInt();
@@ -185,7 +186,7 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 			{
 				int value = *reinterpret_cast<int*>(buff);
 
-				if (columnType == columnType::nominalText && value != std::numeric_limits<int>::lowest())
+				if (columnType == columnType::nominalText && value != EmptyValues::missingValueInteger)
 					value = mapValues[value];
 
 				ints[r] = value;
@@ -199,8 +200,7 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 			}
 		}
 
-		if(isScalar)	packageData->setColumnDataDbls(c, dbls);
-		else			packageData->setColumnDataInts(c, ints);
+		throw new std::runtime_error("YOU ARE NOT SETTING THE VALUES ON A COLUMN!!!");
 	}
 
 	dataEntry.close();

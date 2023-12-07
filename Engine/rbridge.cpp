@@ -1,4 +1,4 @@
-//
+﻿//
 // Copyright (C) 2013-2018 University of Amsterdam
 //
 // This program is free software: you can redistribute it and/or modify
@@ -419,123 +419,40 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSet(RBridgeColumnType* colHead
 			requestedType = colType;
 
 		resultCol.nbRows = filteredRowCount;
-		int rowNo = 0, dataSetRowNo = 0;
-
-		//Here a reusable block of code to set the resultCol properly for .ints being indices in R to column->labels()
-		auto setResultColIntsLabels = [&]()
+		
+		if (requestedType == columnType::scale)
 		{
-			//first map the values to indices in order to avoid any malformed factor problems
-			intintmap indices;
-			if(requestedType != columnType::scale || colType == columnType::nominalText)
-			{
-				int i = 1; // R starts indices from 1
+			int rowNo = 0;
+					
+			resultCol.isScale	= true;
+			resultCol.hasLabels	= false;
+			resultCol.doubles	= (double*)calloc(filteredRowCount, sizeof(double));
+			
+			boolvec filterToUse;
+			if(obeyFilter)
+				filterToUse = rbridge_dataSet->filter()->filtered();
 
-				for(const Label * label : column->labels())
-					indices[label->value()] = i++;
-			}
-
+			for(double value : column->dataAsRDoubles(filterToUse))
+				resultCol.doubles[rowNo++] = value;
+		}
+		else // if (requestedType != ColumnType::scale)
+		{
 			resultCol.isScale	= false;
 			resultCol.hasLabels	= true;
 			resultCol.ints		= filteredRowCount == 0 ? nullptr : static_cast<int*>(calloc(filteredRowCount, sizeof(int)));
 			resultCol.isOrdinal = (requestedType == columnType::ordinal);
+			
+			intvec vals;
+			boolvec filterToUse;
+			if(obeyFilter)
+				filterToUse = rbridge_dataSet->filter()->filtered();
+			
+			stringvec levels = column->dataAsRLevels(vals, filterToUse, true);
+			
+			for(size_t i=0; i<vals.size(); i++)
+				resultCol.ints[i] = vals[i] == EmptyValues::missingValueInteger ? vals[i] : vals[i] + 1; //R chokes on 0-based indices
 
-			for(int value : column->ints())
-				if(rowNo < filteredRowCount && (!obeyFilter || rbridge_dataSet->filter()->filtered()[dataSetRowNo++]))
-				{
-					if (value == std::numeric_limits<int>::lowest())	resultCol.ints[rowNo++] = std::numeric_limits<int>::lowest();
-					else												resultCol.ints[rowNo++] = indices[value];
-				}
-
-			resultCol.labels = rbridge_getLabels(column->labels(), resultCol.nbLabels);
-		};
-
-
-
-		if (requestedType == columnType::scale)
-		{
-			if (colType == columnType::scale)
-			{
-				resultCol.isScale	= true;
-				resultCol.hasLabels	= false;
-				resultCol.doubles	= (double*)calloc(filteredRowCount, sizeof(double));
-
-				for(double value : column->dbls())
-					if(rowNo < filteredRowCount && (!obeyFilter || rbridge_dataSet->filter()->filtered()[dataSetRowNo++]))
-						resultCol.doubles[rowNo++] = value;
-			}
-			else if (colType == columnType::ordinal || colType == columnType::nominal)
-			{
-				resultCol.isScale	= false;
-				resultCol.hasLabels	= false;
-				resultCol.ints		= filteredRowCount == 0 ? nullptr : static_cast<int*>(calloc(filteredRowCount, sizeof(int)));
-
-				for(int value : column->ints())
-					if(rowNo < filteredRowCount && (!obeyFilter || rbridge_dataSet->filter()->filtered()[dataSetRowNo++]))
-						resultCol.ints[rowNo++] = value;
-			}
-			else // columnType == ColumnType::nominalText
-			{
-				setResultColIntsLabels();
-			}
-		}
-		else // if (requestedType != ColumnType::scale)
-		{
-			if (colType != columnType::scale)
-			{
-				setResultColIntsLabels();
-			}
-			else
-			{
-				// scale to nominal or ordinal (doesn't really make sense, but we have to do something)
-				resultCol.isScale	= false;
-				resultCol.hasLabels = true;
-				resultCol.isOrdinal = false;
-				resultCol.ints		= filteredRowCount == 0 ? nullptr : static_cast<int*>(calloc(filteredRowCount, sizeof(int)));
-
-				//collect values and bin all doubles per three decimals to determine the labels "required"
-				intset uniqueValues;
-				for(double value : column->dbls())
-				{
-					if (std::isnan(value))
-						continue;
-
-					int intValue;
-
-					if (std::isfinite(value))	intValue = (int)(value * 1000);
-					else if (value < 0)			intValue = std::numeric_limits<int>::lowest();
-					else						intValue = std::numeric_limits<int>::max();
-
-					uniqueValues.insert(intValue);
-				}
-
-				int			index = 0;
-				intintmap	valueToIndex;
-				stringvec	labels;
-
-				for(int value : uniqueValues)
-				{
-					valueToIndex[value] = index++;
-
-					if		(value == std::numeric_limits<int>::max())		labels.push_back("Inf");
-					else if (value == std::numeric_limits<int>::lowest())	labels.push_back("-Inf");
-					else													labels.push_back(std::to_string((double)value / 1000));
-
-				}
-
-				for(double value : column->dbls())
-					if(rowNo < filteredRowCount && (!obeyFilter || rbridge_dataSet->filter()->filtered()[dataSetRowNo++]))
-					{
-						//for the ints that need to be label indices we add 1+ to make sure R understands whats going on here
-						if (std::isnan(value))			resultCol.ints[rowNo] = std::numeric_limits<int>::lowest();
-						else if (std::isfinite(value))	resultCol.ints[rowNo] = 1 + valueToIndex[(int)(value * 1000)] ;
-						else if (value > 0)				resultCol.ints[rowNo] = 1 + valueToIndex[std::numeric_limits<int>::max()];
-						else							resultCol.ints[rowNo] = 1 + valueToIndex[std::numeric_limits<int>::lowest()];
-
-						rowNo++;
-					}
-
-				resultCol.labels = rbridge_getLabels(labels, resultCol.nbLabels);
-			}
+			resultCol.labels = rbridge_getLabels(levels, resultCol.nbLabels);
 		}
 	}
 
@@ -632,7 +549,7 @@ extern "C" RBridgeColumnDescription* STDCALL rbridge_readDataSetDescription(RBri
 					int intValue;
 
 					if (std::isfinite(value))	intValue = (int)(value * 1000);
-					else if (value < 0)			intValue = std::numeric_limits<int>::lowest();
+					else if (value < 0)			intValue = EmptyValues::missingValueInteger;
 					else						intValue = std::numeric_limits<int>::max();
 
 					uniqueValues.insert(intValue);
@@ -643,7 +560,7 @@ extern "C" RBridgeColumnDescription* STDCALL rbridge_readDataSetDescription(RBri
 				for (int value: uniqueValues)
 				{
 					if (value == std::numeric_limits<int>::max())				labels.push_back("Inf");
-					else if (value == std::numeric_limits<int>::lowest())		labels.push_back("-Inf");
+					else if (value == EmptyValues::missingValueInteger)		labels.push_back("-Inf");
 					else														labels.push_back(std::to_string((double)value / 1000.0f));
 				}
 
@@ -798,14 +715,16 @@ char** rbridge_getLabels(const Labels & levels, size_t &nbLevels)
 	}
 	else
 	{
-		results = (char**)calloc(levels.size(), sizeof(char*));
+		size_t levelsNotEmpty = levels.size();
+		for(const Label * label : levels)
+			if(label->isEmptyValue())
+				levelsNotEmpty--;
+		
+		results = (char**)calloc(levelsNotEmpty, sizeof(char*));
 		int i = 0;
 		for (const Label * level: levels)
-		{
+		if(!level->isEmptyValue())
 			results[i++] = strdup(level->label(false).c_str());
-
-			//Log::log() << "For label " << level->str() << " wrote to label-vec[" << i-1 << "]: " << results[i-1] << "\n";
-		}
 		nbLevels = i;
 	}
 

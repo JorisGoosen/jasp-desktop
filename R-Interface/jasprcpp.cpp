@@ -133,7 +133,6 @@ void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCa
 	rInside[".columnIsNominal"]					= Rcpp::InternalFunction(&jaspRCPP_columnIsNominal);
 	rInside[".encodeColNamesLax"]				= Rcpp::InternalFunction(&jaspRCPP_encodeAllColumnNames);
 	rInside[".decodeColNamesLax"]				= Rcpp::InternalFunction(&jaspRCPP_decodeAllColumnNames);
-	rInside[".columnIsNominalText"]				= Rcpp::InternalFunction(&jaspRCPP_columnIsNominalText);
 	rInside[".encodeColNamesStrict"]			= Rcpp::InternalFunction(&jaspRCPP_encodeColumnNameRcpp);
 	rInside[".decodeColNamesStrict"]			= Rcpp::InternalFunction(&jaspRCPP_decodeColumnNameRcpp);
 	rInside[".setColumnDataAsScale"]			= Rcpp::InternalFunction(&jaspRCPP_setColumnDataAsScale);
@@ -746,7 +745,6 @@ bool jaspRCPP_getColumnExists(std::string columnName)
 bool jaspRCPP_columnIsScale(		std::string columnName) { return jaspRCPP_getColumnType(columnName) == columnType::scale;		}
 bool jaspRCPP_columnIsOrdinal(		std::string columnName) { return jaspRCPP_getColumnType(columnName) == columnType::ordinal;		}
 bool jaspRCPP_columnIsNominal(		std::string columnName) { return jaspRCPP_getColumnType(columnName) == columnType::nominal;		}
-bool jaspRCPP_columnIsNominalText(	std::string columnName) { return jaspRCPP_getColumnType(columnName) == columnType::nominalText;	}
 
 bool jaspRCPP_setColumnDataAsScale(std::string columnName, Rcpp::RObject scalarData)
 {
@@ -1057,9 +1055,9 @@ Rcpp::DataFrame jaspRCPP_convertRBridgeColumns_to_DataFrame(const RBridgeColumn*
 
 			columnNames[i] = colResult.name;
 
-			if (colResult.isScale)			list[i] = Rcpp::NumericVector(colResult.doubles, colResult.doubles + colResult.nbRows);
-			else if(!colResult.hasLabels)	list[i] = Rcpp::IntegerVector(colResult.ints, colResult.ints + colResult.nbRows);
-			else							list[i] = jaspRCPP_makeFactor(Rcpp::IntegerVector(colResult.ints, colResult.ints + colResult.nbRows), colResult.labels, colResult.nbLabels, colResult.isOrdinal);
+			if (colResult.isScale)			list[i] =						Rcpp::NumericVector(colResult.doubles,	colResult.doubles	+ colResult.nbRows);
+			else if(!colResult.hasLabels)	list[i] =						Rcpp::IntegerVector(colResult.ints,		colResult.ints		+ colResult.nbRows);
+			else							list[i] = jaspRCPP_makeFactor(	Rcpp::IntegerVector(colResult.ints,		colResult.ints		+ colResult.nbRows), colResult.labels, colResult.nbLabels, colResult.isOrdinal);
 
 		}
 
@@ -1107,7 +1105,7 @@ Rcpp::DataFrame jaspRCPP_readDataSetHeaderSEXP(SEXP columns, SEXP columnsAsNumer
 
 Rcpp::IntegerVector jaspRCPP_makeFactor(Rcpp::IntegerVector v, char** levels, int nbLevels, bool ordinal)
 {
-/*#ifdef JASP_DEBUG
+#ifdef JASP_DEBUG
 	std::cout << "jaspRCPP_makeFactor:\n\tlevels:\n\t\tnum: " << nbLevels << "\n\t\tstrs:\n";
 	for(int i=0; i<nbLevels; i++)
 		std::cout << "\t\t\t'" << levels[i] << "'\n";
@@ -1116,7 +1114,7 @@ Rcpp::IntegerVector jaspRCPP_makeFactor(Rcpp::IntegerVector v, char** levels, in
 	for(int i=0; i<v.size(); i++)
 		std::cout << v[i] << (i < v.size() - 1 ? ", " : "" );
 	std::cout << std::endl;
-#endif*/
+#endif
 
 	Rcpp::CharacterVector labels(nbLevels);
 	for (int i = 0; i < nbLevels; i++)
