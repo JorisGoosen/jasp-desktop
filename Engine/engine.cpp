@@ -114,22 +114,6 @@ void Engine::initialize()
 		Log::log() << "rbridge_init completed" << std::endl;
 	
 		sendEngineLoadingData();
-
-		//Is there maybe already some data? Like, if we just killed and restarted the engine
-		std::vector<std::string> columns;
-                if(provideAndUpdateDataSet())
-		{
-                    columns = provideAndUpdateDataSet()->getColumnNames();
-			Log::log() << "There is a dataset and got " << columns.size() << " columns in it, loading them into encoder now." << std::endl;
-		}
-		else
-			Log::log() << "No dataset available so resetting columnnames in encoder." << std::endl;
-
-                ColumnEncoder::columnEncoder()->setCurrentColumnNames(provideAndUpdateDataSet() == nullptr ? std::vector<std::string>({}) : provideAndUpdateDataSet()->getColumnNames());
-
-
-
-		Log::log() << "Engine::initialize() done" << std::endl;
 	}
 	catch(std::exception & e)
 	{
@@ -939,36 +923,7 @@ bool Engine::isColumnNameOk(std::string columnName)
 
 bool Engine::setColumnDataAsNominalOrOrdinal(bool isOrdinal, const std::string & columnName, std::vector<int> & data, const std::map<int, std::string> & levels)
 {
-	std::map<int, int> uniqueInts;
-
-	for(auto & keyval : levels)
-	{
-		size_t convertedChars;
-
-		try
-		{
-			int asInt = std::stoi(keyval.second, &convertedChars);
-
-			if(convertedChars == keyval.second.size()) //It was a number!
-				uniqueInts[keyval.first] = asInt;
-		}
-		catch(std::invalid_argument & e) {}
-	}
-
-	if(uniqueInts.size() == levels.size()) //everything was an int!
-	{
-		for(auto & dat : data)
-			if(dat != std::numeric_limits<int>::lowest())
-				dat = uniqueInts[dat];
-
-                if(isOrdinal)	return	provideAndUpdateDataSet()->column(columnName)->overwriteDataWithOrdinal(data);
-                else			return	provideAndUpdateDataSet()->column(columnName)->overwriteDataWithNominal(data);
-	}
-	else
-	{
-            if(isOrdinal)	return	provideAndUpdateDataSet()->column(columnName)->overwriteDataWithOrdinal(data, levels);
-            else			return	provideAndUpdateDataSet()->column(columnName)->overwriteDataWithNominal(data, levels);
-	}
+	return	provideAndUpdateDataSet()->column(columnName)->overwriteDataWithOrdinalOrNominal(isOrdinal, data, levels);
 }
 
 void Engine::stopEngine()

@@ -43,7 +43,7 @@ public:
 
 	static QMap<computedColumnType, QString>	columnTypeFriendlyName;
 
-	bool			labelNeedsFilter(size_t col);
+	bool			labelNeedsFilter(qsizetype col);
 	QString			columnNameQ();
 	QString			columnTitle()					const;
 	QString			columnDescription()				const;
@@ -59,6 +59,7 @@ public:
 	bool			setData(const QModelIndex & index, const QVariant & value,	int role = Qt::EditRole)			override;
 	QVariant		data(	const QModelIndex & index,							int role = Qt::DisplayRole)	const	override;
 	QVariant		headerData(int section, Qt::Orientation orientation, int role)							const	override;
+	int				rowCount(const QModelIndex & = QModelIndex())											const	override;
 
 	bool			visible()			const {	return _visible; }
 	int				filteredOut()		const;
@@ -72,10 +73,11 @@ public:
 	Q_INVOKABLE void resetFilterAllows();
 	Q_INVOKABLE void unselectAll();
 	Q_INVOKABLE bool setChecked(int rowIndex, bool checked);
-	Q_INVOKABLE void addEmptyValue(QString value);
-	Q_INVOKABLE void removeEmptyValue(QString value);
-	Q_INVOKABLE void resetEmptyValues();
+	Q_INVOKABLE void setValue(int rowIndex, const QString & value);
 	Q_INVOKABLE void setLabel(int rowIndex, QString label);
+	Q_INVOKABLE void addEmptyValue(		const QString & value);
+	Q_INVOKABLE void removeEmptyValue(	const QString & value);
+	Q_INVOKABLE void resetEmptyValues();
 	Q_INVOKABLE void undo()				{ _undoStack->undo(); }
 	Q_INVOKABLE void redo()				{ _undoStack->redo(); }
 
@@ -143,7 +145,7 @@ signals:
 	void compactModeChanged();
 	
 private:
-	std::vector<size_t> getSortedSelection()					const;
+	std::vector<qsizetype> getSortedSelection()					const;
 	void				setValueMaxWidth();
 	void				clearVirtual();
 

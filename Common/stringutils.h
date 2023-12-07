@@ -72,7 +72,7 @@ public:
 		return out.str();
 	}
 
-    inline static std::vector<std::string> splitString(const std::string & str, const char sep = ',')
+	inline static std::vector<std::string> split(const std::string & str, const char sep = ',')
     {
         stringvec			vecString;
         std::string			item;
@@ -82,6 +82,18 @@ public:
 			vecString.push_back(item);
 
 		return vecString;
+	}
+
+	inline static std::string join(const stringvec & strs, const std::string & sep = ",")
+	{
+		std::stringstream strm;
+
+		unsigned char howFarAreWe = 0;
+		for(const std::string & str : strs)
+			strm << (howFarAreWe++ ? sep : "") << str;
+
+		return strm.str();
+
 	}
 
 	inline static std::string toLower(std::string input)
@@ -204,6 +216,25 @@ public:
 		}
 
 		return useQuotes;
+	}
+	
+	///< Should maybe use some kind of std lib function? Does that exist? (Got no internet here)
+	static inline uint64_t approximateVisualLength(const std::string & in)
+	{
+		uint64_t	normalL  = 0,
+					specialL = 0;
+		for(const char & kar : in)
+			(kar < 0 ? specialL : normalL)++;
+		return normalL + (specialL / 2); // not really true probably but should be good enough?
+		
+	}
+	
+	static inline bool hasMultiByteChars(const std::string & in)
+	{
+		for(const char & kar : in)
+			if(kar < 0)
+				return true;
+		return false;
 	}
 
 private:

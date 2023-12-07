@@ -189,19 +189,64 @@ FocusScope
 								height:					selectionRectangle.height
 								color:					jaspTheme.uiBorder
 							}
-
-							Text
+							
+							TextInput
 							{
-								color:					jaspTheme.grayDarker
-								text:					itemValue
-								elide:					Text.ElideMiddle
-								font:					jaspTheme.font
-								leftPadding:			3 * jaspTheme.uiScale
-								width:					levelsTableView.valueColWidth;
-								anchors.top:			parent.top
-								anchors.topMargin:		levelsTableView.itemVerticalPadding
-								verticalAlignment:		Text.AlignVCenter
+								id:					valueInput
+								color:				jaspTheme.textEnabled
 
+								text:				itemValue
+								font:				jaspTheme.font
+								clip:				true
+								selectByMouse:		true
+								autoScroll:			true
+								z:					1
+
+								leftPadding:		3 * jaspTheme.uiScale
+								width:				levelsTableView.valueColWidth;
+								//width:				Math.min(Math.max(contentWidth, 20), parent.width + 20) + 3 * jaspTheme.uiScale//Minimal contentWidth to allow editing after label set to ""
+								anchors.top:		parent.top
+								anchors.topMargin:	levelsTableView.itemVerticalPadding
+
+								verticalAlignment:	Text.AlignVCenter
+
+								property int chosenColumnWas: -1
+								property string lastActiveText: ""
+								property int	lastActiveRow:	-1
+								
+								onEditingFinished:
+								{
+									messages.log("Label value editing finished, '%1' was entered for row %2 and %3".arg(text).arg(rowIndex).arg((activeFocus ? "activeFocus!" : focus ? "focus." : "no focus.")))
+									
+									//If we press enter in the thing we get this slot fired twice, once with activeFocus and once without focus
+									//To ignore this here some ugly faintly persistent memory
+									var shouldISet = activeFocus || lastActiveRow !== rowIndex || lastActiveText !== text
+									
+									if(shouldISet && chosenColumnWas === columnModel.chosenColumn && rowIndex >= 0)
+									{
+										columnModel.setValue(rowIndex, text)
+										
+										lastActiveRow  = activeFocus ? rowIndex		:	-1
+										lastActiveText = activeFocus ? text			:	""
+									}
+								}
+								onActiveFocusChanged:
+								{
+									if (activeFocus)
+									{
+										chosenColumnWas = columnModel.chosenColumn
+										columnModel.removeAllSelected()
+									}
+								}
+
+								MouseArea
+								{
+									anchors.fill:		parent
+									acceptedButtons:	Qt.NoButton
+									cursorShape:		Qt.IBeamCursor
+									hoverEnabled:		true
+									z:					3
+								}
 							}
 
 							Rectangle
@@ -231,11 +276,25 @@ FocusScope
 								verticalAlignment:	Text.AlignVCenter
 
 								property int chosenColumnWas: -1
-
+								
+								property string lastActiveText: ""
+								property int	lastActiveRow:	-1
+								
 								onEditingFinished:
 								{
-									if(chosenColumnWas === columnModel.chosenColumn && rowIndex >= 0)
+									messages.log("Label label editing finished, '%1' was entered for row %2 and %3".arg(text).arg(rowIndex).arg((activeFocus ? "activeFocus!" : focus ? "focus." : "no focus.")))
+									
+									//If we press enter in the thing we get this slot fired twice, once with activeFocus and once without focus
+									//To ignore this here some ugly faintly persistent memory
+									var shouldISet = activeFocus || lastActiveRow !== rowIndex || lastActiveText !== text
+									
+									if(shouldISet && chosenColumnWas === columnModel.chosenColumn && rowIndex >= 0)
+									{
 										columnModel.setLabel(rowIndex, text)
+										
+										lastActiveRow  = activeFocus ? rowIndex		:	-1
+										lastActiveText = activeFocus ? text			:	""
+									}
 								}
 
 								onActiveFocusChanged:

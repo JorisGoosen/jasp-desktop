@@ -170,8 +170,8 @@ public:
 				void				setAnalysesData(const Json::Value & analysesData)	{ _analysesData					= analysesData;		}
 				void				setArchiveVersion(Version archiveVersion)			{ _archiveVersion				= archiveVersion;	}
 				void				setJaspVersion(Version jaspVersion)					{ _jaspVersion					= jaspVersion;		}
-				void				setMissingData(Json::Value & missingData);
-				void				resetMissingData(const std::vector<Column*>& cols, bool reset = true);
+				void				updateDbToCurrentVersion();							///< Should be ran immediately after loading the jasp file
+				void				integrateMissingDataMap(Json::Value & missingData);	///< This reintegrates the missing data map data into the dataset, to update from <0.19 jasp-files
 				void				setWarningMessage(std::string message)				{ _warningMessage				= message;			}
 				void				setDataFilePath(std::string filePath);
 				void				setDatabaseJson(const Json::Value & dbInfo);
@@ -188,21 +188,11 @@ public:
 				void				setManualEdits(bool newManualEdits);
 				void				setLoaded(bool loaded = true);
 				void				setDescription(const QString& description);
-
-				bool						initColumnAsScale(				size_t colNo,		const std::string & newName, const doublevec	& values);
-				bool						initColumnAsNominalOrOrdinal(	size_t colNo,		const std::string & newName, const intvec		& values,	const intstrmap &uniqueValues,	bool is_ordinal = false);
-				bool						initColumnAsNominalOrOrdinal(	size_t colNo,		const std::string & newName, const intvec		& values,	bool is_ordinal);
-				intstrmap					initColumnAsNominalText(		size_t colNo,		const std::string & newName, const stringvec	& values,	const strstrmap & labels = strstrmap());
-				bool						initColumnAsScale(				QVariant colID,		const std::string & newName, const doublevec	& values)																{ return initColumnAsScale(getColIndex(colID), newName, values); }
-				bool						initColumnAsNominalOrOrdinal(	QVariant colID,		const std::string & newName, const intvec		& values,	const intstrmap &uniqueValues,	bool is_ordinal = false)	{ return initColumnAsNominalOrOrdinal(getColIndex(colID), newName, values, uniqueValues, is_ordinal); }
-				bool						initColumnAsNominalOrOrdinal(	QVariant colID,		const std::string & newName, const intvec		& values,	bool is_ordinal)											{ return initColumnAsNominalOrOrdinal(getColIndex(colID), newName, values, is_ordinal); }
-				intstrmap					initColumnAsNominalText(		QVariant colID,		const std::string & newName, const stringvec	& values,	const strstrmap & labels = strstrmap())						{ return initColumnAsNominalText(getColIndex(colID), newName, values, labels); }
-				void						initColumnWithStrings(			QVariant			colId,		const std::string & newName, const stringvec	& values,	const std::string & title = "", columnType desiredType = columnType::unknown);
+				
+				bool						initColumnWithStrings(			QVariant			colId,		const std::string & newName, const stringvec	& values, const stringvec	& labels=stringvec(),	const std::string & title = "", columnType desiredType = columnType::unknown, const stringset & emptyValues = stringset());
 				void						initializeComputedColumns();
 				
 				void						pasteSpreadsheet(size_t row, size_t column, const std::vector<std::vector<QString>> & cells, const intvec & colTypes = intvec(), const QStringList & colNames = {});
-
-				void						storeMissingData(		const std::string	& columnName, const intstrmap & missingData);
 
 				void						columnSetDefaultValues(	const std::string	& columnName, columnType colType = columnType::unknown, bool emitSignals = true);
 				Column *					createColumn(			const std::string	& name,		columnType colType);
@@ -235,7 +225,6 @@ public:
 				std::string					getColumnTypeNameForJASPFile(columnType columnType);
 				void						writeDataSetToOStream(std::ostream & out, bool includeComputed);
 				columnType					parseColumnTypeForJASPFile(const std::string & name);
-				Json::Value					columnToJsonForJASPFile(size_t columnIndex, Json::Value & labelsData, size_t & dataSize);
 				void						columnLabelsFromJsonForJASPFile(Json::Value xData, Json::Value columnDesc, size_t columnIndex, std::map<std::string, intintmap > & mapNominalTextValues);
 
 				int							getColumnIndex(						const std::string & name)			const	{ return !_dataSet ? -1 : _dataSet->getColumnIndex(name); }
@@ -244,8 +233,6 @@ public:
 				enum columnType				getColumnType(						size_t				columnIndex)	const;
 				enum columnType				getColumnType(						const QString	  &	name)			const;
 				std::string					getColumnName(						size_t				columnIndex)	const;
-				intvec						getColumnDataInts(					size_t				columnIndex);
-				doublevec					getColumnDataDbls(					size_t				columnIndex);
 				stringvec					getColumnDataStrs(					size_t				columnIndex);
 				void						setColumnName(						size_t				columnIndex, const std::string	& newName,			bool resetModel = true);
 				void						setColumnTitle(						size_t				columnIndex, const std::string	& newTitle);
@@ -254,9 +241,7 @@ public:
 				void						setColumnComputedType(				const std::string &	columnName,	computedColumnType	type);
 				void						setColumnHasCustomEmptyValues(		size_t				columnIndex, bool				  hasCustomEmptyValue);
 				void						setColumnCustomEmptyValues(			size_t				columnIndex, const stringset	& customEmptyValues);
-				void						setColumnDataInts(					size_t				columnIndex, const intvec		& ints);
-				void						setColumnDataDbls(					size_t				columnIndex, const doublevec	& dbls);
-				size_t						getMaximumColumnWidthInCharacters(	int					columnIndex)				const;
+				qsizetype					getMaximumColumnWidthInCharacters(	int					columnIndex)				const;
 				QStringList					getColumnLabelsAsStringList(		const std::string & columnName)					const;
 				QStringList					getColumnLabelsAsStringList(		size_t				columnIndex)				const;
 				stringvec					getColumnLabelsAsStrVec(			size_t				columnIndex)				const;
@@ -268,7 +253,7 @@ public:
 				void						resetFilterAllows(					size_t				columnIndex);
 				int							filteredOut(						size_t				columnIndex)				const;
 				bool						labelNeedsFilter(					size_t				columnIndex)				const;
-				void						labelMoveRows(						size_t				columnIndex, sizetvec rows, bool up);
+				void						labelMoveRows(						size_t				columnIndex, std::vector<qsizetype> rows, bool up);
 				void						labelReverse(						size_t				columnIndex);
 				bool						setFilterData(const std::string & filter, const boolvec & filterResult);
 				void						resetAllFilters();
@@ -347,13 +332,12 @@ public slots:
 
 private:
 				bool				isThisTheSameThreadAsEngineSync();
-				bool				setAllowFilterOnLabel(const QModelIndex & index, bool newAllowValue);
-				bool				setDescriptionOnLabel(const QModelIndex & index, const QString & newDescription);
+				bool				setLabelAllowFilter(	const QModelIndex & index, bool newAllowValue);
+				bool				setLabelDescription(	const QModelIndex & index, const QString & newDescription);
+				bool				setLabelDisplay(		const QModelIndex & index, const QString & newLabel);
+				bool				setLabelValue(			const QModelIndex & index, const QString & newLabel);
 				QModelIndex			lastCurrentCell();
 				int					getColIndex(QVariant colID);
-				bool				convertVecToInt(int colId, const std::vector<std::string> &values, std::vector<int> &intValues, std::set<int> &uniqueValues, std::map<int, std::string> &emptyValuesMap);
-				bool				convertVecToDouble(int colId, const stringvec & values, doublevec & doubleValues, intstrmap & emptyValuesMap);
-
 
 private:
 	static DataSetPackage	*	_singleton;

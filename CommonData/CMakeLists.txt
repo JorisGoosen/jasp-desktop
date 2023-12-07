@@ -8,10 +8,16 @@
 #
 list(APPEND CMAKE_MESSAGE_CONTEXT CommonData)
 
+make_includable(internalDbDefinition.sql internalDbDefinition.h)
+
 file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/*.h")
 file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 
 add_library(CommonData ${SOURCE_FILES} ${HEADER_FILES})
+	
+# the resources below arent used, but this way we can see the file in qtcreator
+qt_add_resources(CommonData "sql" PREFIX "/" FILES internalDbDefinition.sql)
+
 
 if(LINUX)
 

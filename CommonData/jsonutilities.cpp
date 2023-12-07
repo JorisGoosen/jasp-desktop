@@ -127,3 +127,10 @@ stringvec JsonUtilities::jsonStringArrayToVec(const Json::Value & jsonStrings)
 
 	return out;
 }
+
+stringset JsonUtilities::jsonStringArrayToSet(const Json::Value &jsonStrings)
+{
+	auto vec = jsonStringArrayToVec(jsonStrings);
+	
+	return stringset(vec.begin(), vec.end());
+}

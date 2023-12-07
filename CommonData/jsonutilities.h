@@ -4,9 +4,7 @@
 #include <json/json.h>
 #include <string>
 #include <set>
-#include "stringutils.h"
 #include <cmath>
-#include "qutils.h"
 #include "utils.h"
 
 /// There are recurring needs when working with Json::Value etc and these are collected here.
@@ -29,6 +27,7 @@ public:
 	static Json::Value				replaceColumnNamesInDragNDropFilterJSON(	const	Json::Value & json,		const strstrmap & changeNameColumns);
 
 	static stringvec				jsonStringArrayToVec(const Json::Value & jsonStrings);
+	static stringset				jsonStringArrayToSet(const Json::Value & jsonStrings);
 
 	template<typename T>
 	static Json::Value				vecToJsonArray(const std::vector<T> & vec)
@@ -39,7 +38,9 @@ public:
 
 		return out;
 	}
-
+	
+	template<typename T> static Json::Value				setToJsonArray(const std::set<T> & set) { return vecToJsonArray<T>(std::vector<T>(set.begin(), set.end())); }
+	
 	static Json::Value				vecToJsonArray(const std::vector<double> vec)
 	{
 		Json::Value out = Json::arrayValue;
@@ -51,14 +52,14 @@ public:
 		return out;
 	}
 
-	static Json::Value				vecToJsonArray(const std::vector<QString> & vec)
+/*	static Json::Value				vecToJsonArray(const std::vector<QString> & vec)
 	{
 		Json::Value out = Json::arrayValue;
 
 		for(const QString & e : vec)	out.append(fq(e));
 
 		return out;
-	}
+	}*/
 
 
 private:

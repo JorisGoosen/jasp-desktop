@@ -8,7 +8,7 @@
 
 class ColumnModel;
 class FilterModel;
-class ComputedColumnsModel;
+class ComputedColumnModel;
 
 class UndoModelCommand : public QUndoCommand
 {
@@ -63,16 +63,32 @@ class SetLabelCommand: public UndoModelCommand
 {
 public:
 	SetLabelCommand(QAbstractItemModel *model, int labelIndex, QString newLabel);
-
+	
 	void undo()					override;
 	void redo()					override;
-
+	
 private:
 	ColumnModel*			_columnModel = nullptr;
 	int						_colId		= -1,
 							_labelIndex = -1;
 	QString					_newLabel,
 							_oldLabel;
+};
+
+class SetLabelOriginalValueCommand: public UndoModelCommand
+{
+public:
+	SetLabelOriginalValueCommand(QAbstractItemModel *model, int labelIndex, QString originalValue);
+	
+	void undo()					override;
+	void redo()					override;
+	
+private:
+	ColumnModel*			_columnModel = nullptr;
+	int						_colId		= -1,
+							_labelIndex = -1;
+	QString					_newOriginalValue,
+							_oldOriginalValue;
 };
 
 class FilterLabelCommand: public UndoModelCommand
@@ -93,13 +109,13 @@ private:
 class MoveLabelCommand: public UndoModelCommand
 {
 public:
-	MoveLabelCommand(QAbstractItemModel *model, const std::vector<size_t>& indexes, bool up);
+	MoveLabelCommand(QAbstractItemModel *model, const std::vector<qsizetype>& indexes, bool up);
 
 	void undo()					override;
 	void redo()					override;
 
 private:
-	std::vector<size_t>		_getIndexes();
+	std::vector<qsizetype>	_getIndexes();
 	void					_moveLabels(bool up);
 	
 	ColumnModel*			_columnModel = nullptr;
@@ -172,7 +188,7 @@ public:
 	void redo()					override;
 
 private:
-	ComputedColumnsModel*	_computedColumnModel = nullptr;
+        ComputedColumnModel*	_computedColumnModel = nullptr;
 	std::string				_name;
 	QString					_oldRCode,
 							_newRCode,
