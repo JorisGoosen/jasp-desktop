@@ -2,10 +2,11 @@
 #include "dataset.h"
 #include "log.h"
 #include "columnutils.h"
+#include "jsonutilities.h"
 #include "databaseinterface.h"
 
 Column::Column(DataSet * data, int id) 
-	: DataSetBaseNode(dataSetBaseNodeType::column, data->dataNode()), _data(data), _id(id), _emptyValues(data->emptyValuesObject())
+    : DataSetBaseNode(dataSetBaseNodeType::column, data->dataNode()), _data(data), _id(id), _emptyValues(data->emptyValues())
 {}
 
 void Column::dbCreate(int index)
@@ -144,16 +145,6 @@ bool Column::hasCustomEmptyValues() const
 	return _emptyValues.hasCustomEmptyValues();
 }
 
-const stringset& Column::emptyValues() const
-{
-	return _emptyValues.emptyValues();
-}
-
-const doubleset& Column::doubleEmptyValues() const
-{
-	return _emptyValues.doubleEmptyValues();
-}
-
 void Column::setHasCustomEmptyValues(bool hasCustom)
 {
 	JASPTIMER_SCOPE(Column::setHasCustomEmptyValues);
@@ -170,7 +161,7 @@ void Column::setCustomEmptyValues(const stringset& customEmptyValues)
 {
 	JASPTIMER_SCOPE(Column::setCustomEmptyValues);
 
-	if (hasCustomEmptyValues() && emptyValues() == customEmptyValues)
+	if (_emptyValues.hasCustomEmptyValues() && _emptyValues.emptyStrings() == customEmptyValues)
 		return;
 
 	_emptyValues.setEmptyValues(customEmptyValues);
@@ -1579,8 +1570,8 @@ bool Column::isValueEqual(size_t row, const std::string &value) const
 std::string Column::doubleToDisplayString(double dbl, bool fancyEmptyValue) const
 {
 	if (dbl > std::numeric_limits<double>::max())				return "∞";
-	else if (dbl < std::numeric_limits<double>::lowest())		return "-∞";
-	else if (isEmptyValue(dbl))									return fancyEmptyValue ? ColumnUtils::emptyValue : "";
+    else if (dbl < std::numeric_limits<double>::lowest())		return "-∞";
+    else if (isEmptyValue(dbl))									return fancyEmptyValue ? EmptyValues::displayString() : "";
 	else														return ColumnUtils::doubleToString(dbl);
 }
 
@@ -1600,7 +1591,7 @@ std::string Column::getValue(size_t row, bool fancyEmptyValue) const
 		}
 	}
 
-	return fancyEmptyValue ? ColumnUtils::emptyValue : "";
+    return fancyEmptyValue ? EmptyValues::displayString() : "";
 }
 
 Label * Column::labelByRow(int row) const
@@ -1932,7 +1923,7 @@ void Column::labelsReverse()
 
 std::string Column::operator[](size_t row)
 {
-	std::string result = ColumnUtils::emptyValue;
+    std::string result = EmptyValues::displayString();
 
 	if (row < rowCount())
 	{
@@ -1948,7 +1939,7 @@ std::string Column::operator[](size_t row)
 std::string Column::_getLabelDisplayStringByValue(int key) const
 {
 	if (key == std::numeric_limits<int>::lowest())
-		return ColumnUtils::emptyValue;
+        return EmptyValues::displayString();
 
 	if(_labelByValueMap.count(key))
 		return _labelByValueMap.at(key)->label(true);
@@ -2142,13 +2133,8 @@ Json::Value Column::serialize() const
 	for (int i : _ints)
 		jsonInts.append(i);
 
-	if (_data->hasCustomEmptyValues(_name))
-	{
-		Json::Value jsonCustomEmptyValues(Json::arrayValue);
-		for (const std::string& val : _data->emptyValues(_name))
-			jsonCustomEmptyValues.append(val);
-		json["customEmptyValues"]	= jsonCustomEmptyValues;
-	}
+    if (hasCustomEmptyValues())
+		json["customEmptyValues"]	= JsonUtilities::setToJsonArray(emptyValues().emptyStrings());
 
 	json["labels"]				= jsonLabels;
 	json["dbls"]				= jsonDbls;
@@ -2225,11 +2211,11 @@ void Column::deserialize(const Json::Value &json)
 		{
 			for (const Json::Value& emptyVal : jsonCustomEmptyValues)
 				emptyValues.insert(emptyVal.asString());
-		}
-		_data->setCustomEmptyValues(_name, emptyValues);
+        }
+        setCustomEmptyValues(emptyValues);
 	}
 	else
-		_data->setHasCustomEmptyValues(_name, false);
+        setHasCustomEmptyValues(false);
 
 
 	incRevision();
@@ -2276,11 +2262,11 @@ bool Column::isComputedByAnalysis(size_t analysisID)
 
 bool Column::isEmptyValue(const std::string& val) const
 {
-	return ColumnUtils::isEmptyValue(val, emptyValues());
+    return emptyValues().isEmptyValue(val);
 }
 
 bool Column::isEmptyValue(const double val) const
 {
-	return _emptyValues.isEmpty(val);
+    return emptyValues().isEmptyValue(val);
 }
 

@@ -405,22 +405,6 @@ void DataSet::loadOldComputedColumnsJson(const Json::Value &json)
 		col->findDependencies();
 }
 
-std::map<std::string, intstrmap> DataSet::resetMissingData(const std::vector<Column*>& cols)
-{
-	std::map<std::string, intstrmap> colChanged;
-
-	for (Column * col : cols)
-	{
-		intstrmap missingDataMap = _emptyValues.missingData(col->name());
-
-		if (col->resetMissingData(missingDataMap))
-			colChanged[col->name()] = missingDataMap;
-	}
-
-	incRevision();
-
-	return colChanged;
-}
 
 void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 {
@@ -444,7 +428,7 @@ void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 void DataSet::setWorkspaceEmptyValues(const stringset &values)
 {
 	_defaultEmptyvalues = values;
-	_emptyValues.setWorkspaceEmptyValues(values);
+	_emptyValues.setEmptyValues(values);
 	dbUpdate();
 }
 

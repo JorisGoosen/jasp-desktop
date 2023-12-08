@@ -18,7 +18,7 @@ public:
 	
 			Filter		*	filter()						{ return	_filter;	}
 			Columns		&	columns()			const		{ return	const_cast<Columns&>(_columns);	}
-			EmptyValues *	emptyValuesObject() const		{ return	_emptyValues; }
+    const	EmptyValues &	emptyValues()       const		{ return	_emptyValues; }
 
 			Column		*	column(		const std::string & name);
 			Column		*	column(		size_t				columnIndex);
@@ -78,7 +78,7 @@ public:
 
 			std::map<std::string, intstrmap > resetMissingData(const std::vector<Column*>& columns);
 			void					setEmptyValuesJson(			const Json::Value & emptyValues, bool updateDB = true);
-	const	stringset			&	workspaceEmptyValues()															const	{ return _emptyValues.emptyValues();								}
+	const	stringset			&	workspaceEmptyValues()															const	{ return _emptyValues.emptyStrings();								}
 			void					setWorkspaceEmptyValues(	const stringset& values);
 	const	std::string			&	description()																	const	{ return _description; }
 			void					setDescription(				const std::string& desc);

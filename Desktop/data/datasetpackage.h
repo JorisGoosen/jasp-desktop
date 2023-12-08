@@ -193,17 +193,15 @@ public:
 				bool						initColumnAsScale(				size_t colNo,		const std::string & newName, const doublevec	& values);
 				bool						initColumnAsNominalOrOrdinal(	size_t colNo,		const std::string & newName, const intvec		& values,	const intstrmap &uniqueValues,	bool is_ordinal = false);
 				bool						initColumnAsNominalOrOrdinal(	size_t colNo,		const std::string & newName, const intvec		& values,	bool is_ordinal);
-				intstrmap					initColumnAsNominalText(		size_t colNo,		const std::string & newName, const stringvec	& values,	const strstrmap & labels = strstrmap());
+				void    					initColumnAsNominalText(		size_t colNo,		const std::string & newName, const stringvec	& values,	const strstrmap & labels = strstrmap());
 				bool						initColumnAsScale(				QVariant colID,		const std::string & newName, const doublevec	& values)																{ return initColumnAsScale(getColIndex(colID), newName, values); }
 				bool						initColumnAsNominalOrOrdinal(	QVariant colID,		const std::string & newName, const intvec		& values,	const intstrmap &uniqueValues,	bool is_ordinal = false)	{ return initColumnAsNominalOrOrdinal(getColIndex(colID), newName, values, uniqueValues, is_ordinal); }
 				bool						initColumnAsNominalOrOrdinal(	QVariant colID,		const std::string & newName, const intvec		& values,	bool is_ordinal)											{ return initColumnAsNominalOrOrdinal(getColIndex(colID), newName, values, is_ordinal); }
-				intstrmap					initColumnAsNominalText(		QVariant colID,		const std::string & newName, const stringvec	& values,	const strstrmap & labels = strstrmap())						{ return initColumnAsNominalText(getColIndex(colID), newName, values, labels); }
+				void    					initColumnAsNominalText(		QVariant colID,		const std::string & newName, const stringvec	& values,	const strstrmap & labels = strstrmap())						{ return initColumnAsNominalText(getColIndex(colID), newName, values, labels); }
 				void						initColumnWithStrings(			QVariant			colId,		const std::string & newName, const stringvec	& values,	const std::string & title = "", columnType desiredType = columnType::unknown);
 				void						initializeComputedColumns();
 				
 				void						pasteSpreadsheet(size_t row, size_t column, const std::vector<std::vector<QString>> & cells, const intvec & colTypes = intvec(), const QStringList & colNames = {});
-
-				void						storeMissingData(		const std::string	& columnName, const intstrmap & missingData);
 
 				void						columnSetDefaultValues(	const std::string	& columnName, columnType colType = columnType::unknown, bool emitSignals = true);
 				Column *					createColumn(			const std::string	& name,		columnType colType);
@@ -349,8 +347,8 @@ private:
 				bool				setDescriptionOnLabel(const QModelIndex & index, const QString & newDescription);
 				QModelIndex			lastCurrentCell();
 				int					getColIndex(QVariant colID);
-				bool				convertVecToInt(int colId, const std::vector<std::string> &values, std::vector<int> &intValues, std::set<int> &uniqueValues, std::map<int, std::string> &emptyValuesMap);
-				bool				convertVecToDouble(int colId, const stringvec & values, doublevec & doubleValues, intstrmap & emptyValuesMap);
+				bool				convertVecToInt(int colId, const std::vector<std::string> &values, std::vector<int> &intValues, std::set<int> &uniqueValues);
+				bool				convertVecToDouble(int colId, const stringvec & values, doublevec & doubleValues);
 
 
 private:

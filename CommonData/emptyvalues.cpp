@@ -39,30 +39,14 @@ void EmptyValues::fromJson(const Json::Value & json)
 }
 
 
-const stringset& EmptyValues::emptyValues() const
+const stringset& EmptyValues::emptyStrings() const
 {
-	static stringset localSet;
-			
-	if(!_parent)
-		return _emptyStrings;
-	
-	localSet = _parent->emptyValues();
-	localSet.insert(_emptyStrings.begin(), _emptyStrings.end());
-	
-	return localSet;
+	return _emptyStrings;
 }
 
 const doubleset & EmptyValues::doubleEmptyValues() const
 {
-	static doubleset localSet;
-			
-	if(!_parent)
-		return _emptyDoubles;
-	
-	localSet = _parent->doubleEmptyValues();
-	localSet.insert(_emptyDoubles.begin(), _emptyDoubles.end());
-	
-	return localSet;
+    return _emptyDoubles;
 }
 
 void EmptyValues::setEmptyValues(const stringset& values)
@@ -87,4 +71,12 @@ void EmptyValues::setHasCustomEmptyValues(bool hasCustom)
 }
 
 
+bool EmptyValues::isEmptyValue(const std::string& val) const
+{
+	return _emptyStrings.contains(val) || ( _parent && _parent->isEmptyValue(val));
+}
 
+bool EmptyValues::isEmptyValue(const double val) const
+{
+    return _emptyDoubles.contains(val) || ( _parent && _parent->isEmptyValue(val));
+}

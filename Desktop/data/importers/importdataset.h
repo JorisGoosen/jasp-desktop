@@ -2,6 +2,7 @@
 #define IMPORTDATASET_H
 
 #include "importcolumn.h"
+#include "emptyvalues.h"
 
 class Importer;
 
@@ -33,9 +34,12 @@ public:
 	void clearColumns() { _columns.clear(); }
 	void clear();
 	void erase(ImportColumns::iterator it);
-	void buildDictionary();
+    void buildDictionary();
+
+    EmptyValues & emptyValues() { return _emptyValues; }
 
 protected:
+    EmptyValues                                 _emptyValues;
 	Importer								*	_importer;
 	ImportColumns								_columns;
 	std::map<std::string, ImportColumn*>		_nameToColMap;

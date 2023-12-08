@@ -158,3 +158,37 @@ void ReadStatImportDataSet::setCurrentRow(int row)
 
 	_progressCallback(int(float(_currentRow) / float(_expectedRows) * 100.0));
 }
+
+}
+
+bool ReadStatImportDataSet::convertValueToIntForImport(const std::string &strValue, int &intValue)
+{
+    JASPTIMER_SCOPE(ReadStatImportDataSet::convertValueToIntForImport);
+
+    if(isEmptyValue(strValue, EmptyValues::singleton()->workspaceEmptyValues()))
+        intValue = std::numeric_limits<int>::lowest();
+    else
+    {
+        if (!ColumnUtils::getIntValue(strValue, intValue))
+            return false;
+    }
+
+    return true;
+}
+
+bool ReadStatImportDataSet::convertValueToDoubleForImport(const std::string & strValue, double & doubleValue)
+{
+    JASPTIMER_SCOPE(ReadStatImportDataSet::convertValueToDoubleForImport);
+
+    std::string v = strValue;
+    deEuropeaniseForImport(v);
+
+    if(isEmptyValue(v, EmptyValues::singleton()->workspaceEmptyValues()))
+        doubleValue = NAN;
+
+    else if (!ColumnUtils::getDoubleValue(v, doubleValue))
+        return false;
+
+    return true;
+}
+

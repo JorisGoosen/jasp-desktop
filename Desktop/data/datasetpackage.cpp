@@ -1312,39 +1312,30 @@ void DataSetPackage::deleteDataSet()
 
 bool DataSetPackage::initColumnAsScale(size_t colNo, const std::string & newName, const doublevec & values)
 {
-	JASPTIMER_SCOPE(DataSetPackage::initColumnAsScale);
-	
-	bool result = _dataSet->columns()[colNo]->initAsScale(colNo, newName, values);
+    JASPTIMER_SCOPE(DataSetPackage::initColumnAsScale);
 
-	return result;
+    return _dataSet->columns()[colNo]->initAsScale(colNo, newName, values);
 }
 
-intstrmap DataSetPackage::initColumnAsNominalText(size_t colNo, const std::string & newName, const stringvec & values, const strstrmap & labels)
+bool DataSetPackage::initColumnAsNominalText(size_t colNo, const std::string & newName, const stringvec & values, const strstrmap & labels)
 {
 	JASPTIMER_SCOPE(DataSetPackage::initColumnAsNominalText);
 	
-	intstrmap result =  _dataSet->columns()[colNo]->initAsNominalText(colNo, newName, values, labels);
-
-	return result;
+    return _dataSet->columns()[colNo]->initAsNominalText(colNo, newName, values, labels);
 }
 
 bool DataSetPackage::initColumnAsNominalOrOrdinal(size_t colNo, const std::string & newName, const intvec & values, bool is_ordinal)
 {
 	JASPTIMER_SCOPE(DataSetPackage::initColumnAsNominalOrOrdinal);
 	
-	bool result =  _dataSet->columns()[colNo]->initAsNominalOrOrdinal(colNo, newName, values, is_ordinal);
-
-	return result;
+    return  _dataSet->columns()[colNo]->initAsNominalOrOrdinal(colNo, newName, values, is_ordinal);
 }
 
 bool DataSetPackage::initColumnAsNominalOrOrdinal(size_t colNo, const std::string & newName, const intvec & values, const intstrmap &uniqueValues, bool is_ordinal)
 {
 	JASPTIMER_SCOPE(DataSetPackage::initColumnAsNominalOrOrdinal with uniqueValues);
 	
-	bool result =  _dataSet->columns()[colNo]->initAsNominalOrOrdinal(colNo, newName, values, uniqueValues, is_ordinal);
-
-
-	return result;
+    return _dataSet->columns()[colNo]->initAsNominalOrOrdinal(colNo, newName, values, uniqueValues, is_ordinal);
 }
 
 int DataSetPackage::getColIndex(QVariant colID)
@@ -1456,11 +1447,9 @@ void DataSetPackage::initColumnWithStrings(QVariant colId, const std::string & n
 	if		(isOrdinal())					initColumnAsNominalOrOrdinal(	colIndex,	newName,	intValues,		true	);
 	else if	(isNominalInt())				initColumnAsNominalOrOrdinal(	colIndex,	newName,	intValues,		false	);
 	else if	(isScalar())					initColumnAsScale(				colIndex,	newName,	doubleValues	);
-	else				emptyValuesMap =	initColumnAsNominalText(		colIndex,	newName,	values			);
+    else                                	initColumnAsNominalText(		colIndex,	newName,	values			);
 	
 	JASPTIMER_STOP(DataSetPackage::initColumnWithStrings followup - initing columns);
-
-	storeMissingData(newName, emptyValuesMap);
 }
 
 void DataSetPackage::initializeComputedColumns()
@@ -2342,12 +2331,6 @@ bool DataSetPackage::removeRows(int row, int count, const QModelIndex & aparent)
 	emit datasetChanged(tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
 
 	return true;
-}
-
-void DataSetPackage::storeMissingData(const std::string & columnName, const intstrmap & emptyValues)
-{
-	JASPTIMER_SCOPE(DataSetPackage::storeInEmptyValues);
-	_dataSet->setMissingData(columnName, emptyValues);
 }
 
 Column * DataSetPackage::createColumn(const std::string & name, columnType columnType)

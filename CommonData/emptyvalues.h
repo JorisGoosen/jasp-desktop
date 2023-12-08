@@ -8,7 +8,7 @@
 class EmptyValues
 {
 public:
-								EmptyValues(EmptyValues * parent);
+								EmptyValues(EmptyValues * parent = nullptr);
 								~EmptyValues();
 								
 			void				resetEmptyValues();
@@ -16,14 +16,13 @@ public:
 			void				fromJson(				const Json::Value	& json);
 			Json::Value			toJson() const;
 			
-			bool				isEmpty(const std::string & data)					const;
-			bool				isEmpty(double				data)					const;
+            bool				isEmptyValue(const std::string & data)				const;
+            bool				isEmptyValue(double				data)           	const;
 			
-	const	stringset		&	emptyValues()										const;
+	const	stringset		&	emptyStrings()										const;
 	const	doubleset		&	doubleEmptyValues()									const;
 			bool				hasCustomEmptyValues()								const;
-			void				setEmptyValues(			const stringset	& values);
-			void				setMissingData(			const intstrmap	& data);
+            void				setEmptyValues(			const stringset	& values);
 			void				setHasCustomEmptyValues(bool hasCustom);
 			
 	static	void				setDisplayString(const std::string & str);

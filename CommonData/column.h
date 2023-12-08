@@ -167,18 +167,9 @@ public:
 			std::string				getUniqueName(const std::string& name)									const;
 			std::string				doubleToDisplayString(	double dbl, bool fancyEmptyValue = true)		const; ///< fancyEmptyValue is the user-settable empty value label, for saving to csv this might be less practical though, so turn it off
 			bool					hasCustomEmptyValues()													const;
-			const stringset		&	emptyValues()															const;
-			const intstrmap		&	missingData(				const std::string& colName)					const;
-			const doubleset		&	doubleEmptyValues()														const;
+    const   EmptyValues    		&	emptyValues()															const;
 			void					setHasCustomEmptyValues(		bool hasCustom);
 			void					setCustomEmptyValues(			const stringset		& customEmptyValues);
-			
-			
-			
-			
-			
-			
-			
 			
 			bool					isEmptyValue(					const std::string	& val)				const;
 			bool					isEmptyValue(					const double		  val)				const;
