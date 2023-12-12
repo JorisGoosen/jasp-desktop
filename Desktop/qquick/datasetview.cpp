@@ -1570,7 +1570,7 @@ QQmlContext * DataSetView::setStyleDataItem(QQmlContext * previousContext, bool 
 
 	QString text = _storedDisplayText[row][col];
 
-	if(isEditable && text == tq(ColumnUtils::emptyValue) && !emptyValLabel)
+	if(isEditable && text == tq(EmptyValues::displayString()) && !emptyValLabel)
 		text = "";
 
 	if(previousContext == nullptr)

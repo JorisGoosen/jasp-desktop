@@ -318,354 +318,7 @@ void Column::_convertVectorIntToDouble(intvec & intValues, doublevec & doubleVal
 
 	doubleValues.clear();
 	for (int intValue : intValues)
-		doubleValues.push_back(intValue == std::numeric_limits<int>::lowest() ? NAN : double(intValue));
-}
-
-bool Column::_resetMissingDataForNominal(intstrmap &missingDataMap)
-{
-	JASPTIMER_SCOPE(Column::_resetMissingDataForNominal);
-
-	intstrmap	emptyValuesMapOrg	= missingDataMap;
-	bool		hasChanged			= false,
-				hasMissingData		= !missingDataMap.empty(),
-				changeToNominalText = false;
-	int			row					= 0;
-
-	intset uniqueValues = getUniqueLabelValues();
-
-	for (int intValue : _ints)
-	{
-		if (intValue == std::numeric_limits<int>::lowest() && hasMissingData)
-		{
-			if(missingDataMap.count(row))
-			{
-				std::string orgValue = missingDataMap[row];
-				if (!isEmptyValue(orgValue))
-				{
-					// This value is not empty anymore
-					if (ColumnUtils::getIntValue(orgValue, intValue))
-					{
-						_ints[row] = intValue;
-						uniqueValues.insert(intValue);
-						hasChanged = true;
-						missingDataMap.erase(row);
-					}
-					else
-					{
-						// The original value is not an integer, this column cannot be nominal anymore
-						// Let's make it a nominal text.
-						changeToNominalText = true;
-						break;
-					}
-				}
-			}
-		}
-		else if (intValue != std::numeric_limits<int>::lowest() && isEmptyValue(intValue))
-		{
-			// This value is now considered as empty
-			_ints[row] = std::numeric_limits<int>::lowest();
-			uniqueValues.erase(intValue);
-			hasChanged = true;
-			missingDataMap.insert(make_pair(row, std::to_string(intValue)));
-		}
-		row++;
-	}
-
-	if (changeToNominalText)
-	{
-		setType(columnType::nominalText);
-		missingDataMap.clear();
-		missingDataMap.insert(emptyValuesMapOrg.begin(), emptyValuesMapOrg.end());
-		hasChanged = _resetMissingDataForNominalText(missingDataMap, false);
-	}
-	else if (hasChanged)
-		labelsSyncInts(uniqueValues);
-
-	if(hasChanged)
-	{
-		if(!_data->writeBatchedToDB())
-			db().columnSetValues(_id, _ints);
-		incRevision();
-	}
-
-	return hasChanged;
-}
-
-bool Column::_resetMissingDataForScale(intstrmap & missingDataMap)
-{
-	JASPTIMER_SCOPE(Column::_resetMissingDataForScale);
-
-	bool	hasChanged			= false,
-			hasMissingData		= !missingDataMap.empty(),
-			changeToNominalText = false;
-	int		row					= 0;
-	
-	for (double doubleValue : _dbls)
-	{
-		if (std::isnan(doubleValue) && hasMissingData)
-		{
-			if(missingDataMap.count(row))
-			{
-				std::string orgValue = missingDataMap[row];
-				if (!isEmptyValue(orgValue))
-				{
-					// This value is not empty anymore
-					if (ColumnUtils::getDoubleValue(orgValue, doubleValue))
-					{
-						_dbls[row] = doubleValue;
-						hasChanged = true;
-					}
-					else
-					{
-						changeToNominalText = true;
-						break;
-					}
-				}
-			}
-		}
-		else if (!std::isnan(doubleValue) && isEmptyValue(doubleValue))
-		{
-			// This value is now considered as empty
-			_dbls[row] = NAN;
-			hasChanged = true;
-			missingDataMap.insert(make_pair(row, ColumnUtils::doubleToString(doubleValue)));
-		}
-		row++;
-	}
-
-	if (changeToNominalText)
-	{
-		// Cannot use _resetMissingDataForNominalText since the AsInts are not set.
-		// So use setColumnAsNominalText
-		stringvec values;
-		for(size_t row=0; row<_dbls.size(); row++)
-			if (std::isnan(_dbls[row]))	values.push_back(missingDataMap.count(row) ? missingDataMap[row] : "");
-			else						values.push_back(std::to_string(_dbls[row]));
-			
-
-		intstrmap newEmptyValues = setAsNominalText(values);
-		missingDataMap.clear();
-		missingDataMap.insert(newEmptyValues.begin(), newEmptyValues.end());
-		hasChanged = true;
-	}
-	else if(hasChanged)
-	{
-		db().columnSetValues(_id, _dbls);
-		incRevision();
-	}
-
-	return hasChanged;
-}
-
-//This function is pretty hard to read...
-bool Column::_resetMissingDataForNominalText(intstrmap & missingDataMap, bool tryToConvert)
-{
-	JASPTIMER_SCOPE(Column::_resetMissingDataForNominalText);
-
-	bool				hasChanged					= false;
-	bool				hasMissingData				= !missingDataMap.empty(),
-						canBeConvertedToIntegers	= tryToConvert,
-						canBeConvertedToDoubles		= tryToConvert;
-	stringvec			values;
-	intvec				intValues;
-	doublevec			doubleValues;
-	intset				uniqueIntValues;
-	intstrmap			intLabels;
-
-	for(size_t row =0; row<_ints.size(); row++)
-	{
-		int key = _ints[row];
-		
-		if (key == std::numeric_limits<int>::lowest() && hasMissingData)
-		{
-			//currently this row has empty value, but maybe with the new map no more?
-			if(missingDataMap.count(row))
-			{
-				std::string orgValue = missingDataMap[row];
-				values.push_back(orgValue);
-
-				if (!isEmptyValue(orgValue))
-					hasChanged = true; //So this emptyValue became a normal value!
-
-				if (canBeConvertedToIntegers || canBeConvertedToDoubles)
-				{
-					if (isEmptyValue(orgValue))
-					{
-						if (canBeConvertedToIntegers)	intValues.push_back(std::numeric_limits<int>::lowest());
-						else							doubleValues.push_back(NAN);
-					}
-					else
-					{
-						bool convertToDouble = false;
-
-						if (!canBeConvertedToIntegers)
-							convertToDouble = true;
-						else
-						{
-							int intValue;
-
-							if (ColumnUtils::getIntValue(orgValue, intValue))
-							{
-								intValues.push_back(intValue);
-								if (!uniqueIntValues.count(intValue))
-								{
-									uniqueIntValues.insert(intValue);
-									intLabels.insert(make_pair(intValue, orgValue));
-								}
-								missingDataMap.erase(row);
-							}
-							else
-							{
-								canBeConvertedToIntegers = false;
-								_convertVectorIntToDouble(intValues, doubleValues);
-								convertToDouble = true;
-							}
-						}
-
-
-						if (convertToDouble)
-						{
-							double doubleValue;
-							if (ColumnUtils::getDoubleValue(orgValue, doubleValue))
-							{
-								doubleValues.push_back(doubleValue);
-								missingDataMap.erase(row);
-							}
-							else
-								canBeConvertedToDoubles = false;
-						}
-					}
-				}
-			}
-			else //if we couldnt find the "row" in the emptyValuesMap?
-			{
-				values.push_back("");
-
-				if (canBeConvertedToIntegers)		intValues.push_back(std::numeric_limits<int>::lowest());
-				else if (canBeConvertedToDoubles)	doubleValues.push_back(NAN);
-			}
-		}
-		else if (key == std::numeric_limits<int>::lowest())
-		{
-			//Didnt have emptyValues so itll stay empty
-			values.push_back("");
-
-			if (canBeConvertedToIntegers)		intValues.push_back(std::numeric_limits<int>::lowest());
-			else if (canBeConvertedToDoubles)	doubleValues.push_back(NAN);
-		}
-		else
-		{
-			//We have a value here, but it might not be full anymore
-			Label		*	labelHere	= labelByValue(key);
-			std::string		orgValue	= labelHere->originalValueAsString();
-			values.push_back(orgValue);
-
-			if (isEmptyValue(orgValue))
-			{
-				hasChanged = true;
-				if (canBeConvertedToIntegers)
-				{
-					intValues.push_back(std::numeric_limits<int>::lowest());
-					missingDataMap.insert(make_pair(row, orgValue));
-				}
-				else if (canBeConvertedToDoubles)
-				{
-					doubleValues.push_back(NAN);
-					missingDataMap.insert(make_pair(row, orgValue));
-				}
-			}
-			else
-			{
-				bool convertToDouble = false;
-				if (canBeConvertedToIntegers)
-				{
-					int intValue;
-					if (ColumnUtils::getIntValue(orgValue, intValue))
-					{
-						intValues.push_back(intValue);
-						if (!uniqueIntValues.count(intValue))
-						{
-							uniqueIntValues.insert(intValue);
-							intLabels.insert(make_pair(intValue, labelHere->label()));
-						}
-					}
-					else
-					{
-						canBeConvertedToIntegers = false;
-						_convertVectorIntToDouble(intValues, doubleValues);
-						convertToDouble = true;
-					}
-				}
-				else if (canBeConvertedToDoubles)
-					convertToDouble = true;
-
-				if (convertToDouble)
-				{
-					double doubleValue;
-					if (ColumnUtils::getDoubleValue(orgValue, doubleValue))	doubleValues.push_back(doubleValue);
-					else													canBeConvertedToDoubles = false;
-				}
-			}
-		}
-	}
-	// End of int for loop
-
-	//Ok, so now we have checked the "original values" for being convertible to doubles or ints, pretty awesome.
-	//But there are scenarios where the user added some nice labels to their doubles (SPSS can have labels on doubles) or ints and right now these would just be thrown away.
-	//Lets check if the labels are maybe not convertible to whatever datatype all orginal values *can* be.
-
-	if(canBeConvertedToIntegers)
-		for(const Label * label : _labels)
-			if(!ColumnUtils::isIntValue(label->label()))
-			{
-				canBeConvertedToIntegers = false;
-				break;
-			}
-
-	if(canBeConvertedToDoubles)
-		for(const Label * label : _labels)
-			if(!ColumnUtils::isDoubleValue(label->label()))
-			{
-				canBeConvertedToDoubles = false;
-				break;
-			}
-
-	//Now we haven't even checked if the labels are maybe different from the values stored in orginalString... So we might still be throwing info away
-	//With the new database storage this is no longer necessarily the case
-	if (canBeConvertedToIntegers)
-	{
-		labelsClear();
-		setAsNominalOrOrdinal(intValues, intLabels);
-		hasChanged = true;
-	}
-	else if (canBeConvertedToDoubles)
-	{
-		setAsScale(doubleValues);
-		hasChanged = true;
-	}
-	else if (hasChanged)
-	{
-		intstrmap newEmptyValues = setAsNominalText(values);
-		missingDataMap.clear();
-		missingDataMap.insert(newEmptyValues.begin(), newEmptyValues.end());
-	}
-
-	return hasChanged;
-
-}
-
-
-bool Column::resetMissingData(intstrmap &missingDataMap)
-{
-	JASPTIMER_SCOPE(Column::resetEmptyValues);
-
-	switch(_type)
-	{
-	case columnType::ordinal:
-	case columnType::nominal:	return _resetMissingDataForNominal(		missingDataMap);
-	case columnType::scale:		return _resetMissingDataForScale(		missingDataMap);
-	default:					return _resetMissingDataForNominalText(	missingDataMap);
-	}
+		doubleValues.push_back(intValue == EmptyValues::missingValueInteger ? NAN : double(intValue));
 }
 
 columnTypeChangeResult Column::_changeColumnToNominalOrOrdinal(enum columnType newColumnType)
@@ -681,31 +334,24 @@ columnTypeChangeResult Column::_changeColumnToNominalOrOrdinal(enum columnType n
 	if (_type == columnType::nominalText)
 	{
 		intvec		values;
-		intset		uniqueIntValues;
 		intstrmap	intLabels;
 
 		for (int key : ints())
 		{
 			int intValue = std::numeric_limits<int>::lowest();
 
-			if (key != std::numeric_limits<int>::lowest())
+			if (labelByValue(key))
 			{
 				std::string value = labelByValue(key)->originalValueAsString();
+
 				if (!isEmptyValue(value) && !ColumnUtils::getIntValue(value, intValue))
-					break;
+					break; //string value is not convertible to integer so we cant convert to nominal, break for-loop and return columnTypeChangeResult::cannotConvertStringValueToInteger
 			}
 
 			values.push_back(intValue);
 
-			if (intValue != std::numeric_limits<int>::lowest())
-			{
-				if (uniqueIntValues.find(intValue) == uniqueIntValues.end())
-				{
-					std::string label = _getLabelDisplayStringByValue(key);
-					uniqueIntValues.insert(intValue);
-					intLabels.insert(make_pair(intValue, label));
-				}
-			}
+			if (intValue != std::numeric_limits<int>::lowest() && !intLabels.count(intValue))
+					intLabels.insert(make_pair(intValue, _getLabelDisplayStringByValue(key)));
 		}
 
 		if (values.size() == rowCount())
@@ -771,14 +417,15 @@ columnTypeChangeResult Column::_changeColumnToScale()
 
 			bool	converted	= false;
 
-			if (intValue != std::numeric_limits<int>::lowest() && labelByValue(intValue))
+			if (labelByValue(intValue))
 			{
 				std::string value = labelByValue(intValue)->originalValueAsString();
+
 				if (!isEmptyValue(value))
 					converted = ColumnUtils::getDoubleValue(value, doubleValue);
 			}
 
-			if (!converted && intValue != std::numeric_limits<int>::lowest() && !isEmptyValue(intValue))
+			if (!converted)
 				doubleValue = double(intValue);
 
 			values.push_back(doubleValue);
@@ -792,14 +439,14 @@ columnTypeChangeResult Column::_changeColumnToScale()
 			double	doubleValue = NAN;
 			bool	converted	= false;
 
-			if (key != std::numeric_limits<int>::lowest())
+			if (labelByValue(key))
 			{
 				std::string value = labelByValue(key)->originalValueAsString();
 				if (!isEmptyValue(value))
 					converted = ColumnUtils::getDoubleValue(value, doubleValue);
 			}
 			else
-				converted = true; //Because if key == std::numeric_limits<int>::lowest() then it is missing value
+				converted = true; //Because if there is no label it is missing value/NAN
 
 			if (converted)	values.push_back(doubleValue);
 			else			return columnTypeChangeResult::cannotConvertStringValueToDouble;
@@ -855,7 +502,7 @@ bool Column::initAsScale(size_t colNo, std::string newName, const doublevec & va
 }
 
 
-intstrmap Column::initAsNominalText(size_t colNo, std::string newName, const stringvec & values, const strstrmap & labels)
+bool Column::initAsNominalText(size_t colNo, std::string newName, const stringvec & values, const strstrmap & labels)
 {
 	JASPTIMER_SCOPE(Column::initAsNominalText);
 
@@ -1141,14 +788,13 @@ void Column::_sortLabelsByOrder()
 	std::sort(_labels.begin(), _labels.end(), [](const Label * l, const Label * r) { return l->order() < r->order(); });
 }
 
-intstrmap Column::setAsNominalText(const stringvec &values, const strstrmap & labels, bool * changedSomething)
+bool Column::setAsNominalText(const stringvec &values, const strstrmap & labels, bool * changedSomething)
 {
 	JASPTIMER_SCOPE(Column::setAsNominalText);
 
 	if(changedSomething != nullptr)
 		*changedSomething = type() != columnType::nominalText;
 	
-	intstrmap	emptyValuesMap;
 	stringvec	unicifiedValues;
 	stringset	foundAlready;
 
@@ -1601,6 +1247,75 @@ Label * Column::labelByRow(int row) const
 
 	return nullptr;
 }
+
+
+bool Column::convertVecToInt(const stringvec &values, intvec & intValues, intset & uniqueValues)
+{
+	JASPTIMER_SCOPE(ColumnUtils::convertVecToInt);
+
+	emptyValuesMap.clear();
+	uniqueValues.clear();
+	intValues.clear();
+	intValues.reserve(values.size());
+
+	int row = 0;
+
+	for (const std::string &value : values)
+	{
+			int intValue = std::numeric_limits<int>::lowest();
+
+			if (convertValueToIntForImport(value, intValue))
+			{
+				if (intValue != std::numeric_limits<int>::lowest())	uniqueValues.insert(intValue);
+				else if (!value.empty())							emptyValuesMap.insert(make_pair(row, value));
+
+				intValues.push_back(intValue);
+			}
+			else
+			{
+				std::vector<int>().swap(intValues); //this clears intValues and guarentees its memory is released
+				return false;
+			}
+
+			row++;
+	}
+
+	return true;
+}
+
+bool Column::convertVecToDouble(const stringvec & values, doublevec & doubleValues)
+{
+	JASPTIMER_SCOPE(DataSetPackage::convertVecToDouble);
+
+	emptyValuesMap.clear();
+	doubleValues.clear();
+	doubleValues.resize(values.size());
+
+	int row = 0;
+	for (const std::string & value : values)
+	{
+			double doubleValue = static_cast<double>(NAN);
+
+			if (_dataSet->column(colIndex)->convertValueToDoubleForImport(value, doubleValue))
+			{
+			doubleValues[row] = doubleValue;
+
+			if (std::isnan(doubleValue) && value != ColumnUtils::emptyValue)
+				emptyValuesMap.insert(std::make_pair(row, value));
+			}
+			else
+			{
+			std::vector<double>().swap(doubleValues); //this clears doubleValues and guarentees its memory is released
+			return false;
+			}
+
+			row++;
+	}
+
+	return true;
+}
+
+
 
 bool Column::convertValueToIntForImport(const std::string &strValue, int &intValue) const
 {
@@ -2133,8 +1848,7 @@ Json::Value Column::serialize() const
 	for (int i : _ints)
 		jsonInts.append(i);
 
-    if (hasCustomEmptyValues())
-		json["customEmptyValues"]	= JsonUtilities::setToJsonArray(emptyValues().emptyStrings());
+	json["customEmptyValues"]	= _emptyValues.toJson();
 
 	json["labels"]				= jsonLabels;
 	json["dbls"]				= jsonDbls;
@@ -2203,20 +1917,7 @@ void Column::deserialize(const Json::Value &json)
 			labelsAdd(labelJson["value"].asInt(), labelJson["label"].asString(), labelJson["filterAllows"].asBool(), labelJson["description"].asString(), labelJson["originalValue"].asString(), labelJson["order"].asInt(), -1);
 	}
 
-	if (json.isMember("customEmptyValues"))
-	{
-		stringset emptyValues;
-		const Json::Value& jsonCustomEmptyValues = json["customEmptyValues"];
-		if (jsonCustomEmptyValues.isArray())
-		{
-			for (const Json::Value& emptyVal : jsonCustomEmptyValues)
-				emptyValues.insert(emptyVal.asString());
-        }
-        setCustomEmptyValues(emptyValues);
-	}
-	else
-        setHasCustomEmptyValues(false);
-
+	_emptyValues.fromJson(json["customEmptyValues"]);
 
 	incRevision();
 }
@@ -2262,11 +1963,11 @@ bool Column::isComputedByAnalysis(size_t analysisID)
 
 bool Column::isEmptyValue(const std::string& val) const
 {
-    return emptyValues().isEmptyValue(val);
+	return _emptyValues.isEmptyValue(val);
 }
 
 bool Column::isEmptyValue(const double val) const
 {
-    return emptyValues().isEmptyValue(val);
+	return _emptyValues.isEmptyValue(val);
 }
 

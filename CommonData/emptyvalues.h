@@ -26,7 +26,10 @@ public:
 			void				setHasCustomEmptyValues(bool hasCustom);
 			
 	static	void				setDisplayString(const std::string & str);
-	static	std::string		&	displayString();
+	static	std::string		&	displayString() { return _displayString; }
+
+	static	const int			missingValueInteger;
+	static	const double		missingValueDouble;
 
 private:
 	

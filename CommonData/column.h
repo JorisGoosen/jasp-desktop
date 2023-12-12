@@ -53,17 +53,16 @@ public:
 			void					setDefaultValues(enum columnType columnType = columnType::unknown);
 
 			bool					initAsScale(			size_t colNo, std::string newName, const doublevec	& values);
-			intstrmap				initAsNominalText(		size_t colNo, std::string newName, const stringvec	& values, const strstrmap & labels);
+			bool				initAsNominalText(		size_t colNo, std::string newName, const stringvec	& values, const strstrmap & labels);
 			bool					initAsNominalOrOrdinal(	size_t colNo, std::string newName, const intvec		& values,									bool is_ordinal = false);
 			bool					initAsNominalOrOrdinal(	size_t colNo, std::string newName, const intvec		& values, const intstrmap &uniqueValues,	bool is_ordinal = false);
 
 			bool					setAsScale(				const doublevec & values);
-			intstrmap				setAsNominalText(		const stringvec	& values, const strstrmap & labels,			bool *	changedSomething = nullptr);
-			intstrmap				setAsNominalText(		const stringvec & values,									bool *	changedSomething = nullptr) {	return setAsNominalText(values, {}, changedSomething); }
+			bool					setAsNominalText(		const stringvec	& values, const strstrmap & labels,			bool *	changedSomething = nullptr);
+			bool					setAsNominalText(		const stringvec & values,									bool *	changedSomething = nullptr) {	return setAsNominalText(values, {}, changedSomething); }
 			bool					setAsNominalOrOrdinal(	const intvec	& values,									bool	is_ordinal = false);
 			bool					setAsNominalOrOrdinal(	const intvec	& values, intstrmap uniqueValues,			bool	is_ordinal = false);
-			
-			bool					resetMissingData(intstrmap &emptyValuesMap);
+
 
 			bool					overwriteDataWithScale(	 doublevec	scalarData);
 			bool					overwriteDataWithOrdinal(intvec		ordinalData, intstrmap levels);
@@ -167,14 +166,16 @@ public:
 			std::string				getUniqueName(const std::string& name)									const;
 			std::string				doubleToDisplayString(	double dbl, bool fancyEmptyValue = true)		const; ///< fancyEmptyValue is the user-settable empty value label, for saving to csv this might be less practical though, so turn it off
 			bool					hasCustomEmptyValues()													const;
-    const   EmptyValues    		&	emptyValues()															const;
+	const   EmptyValues    		&	emptyValues()															const { return _emptyValues; }
 			void					setHasCustomEmptyValues(		bool hasCustom);
 			void					setCustomEmptyValues(			const stringset		& customEmptyValues);
 			
-			bool					isEmptyValue(					const std::string	& val)				const;
-			bool					isEmptyValue(					const double		  val)				const;
-			bool					convertValueToDoubleForImport(	const std::string	& strValue, double	& doubleValue)	const;
-			bool					convertValueToIntForImport(		const std::string	& strValue, int		& intValue)		const;
+			bool					isEmptyValue(					const std::string	& val)															const;
+			bool					isEmptyValue(					const double		  val)															const;
+			bool					convertValueToDoubleForImport(	const std::string	& strValue,			double	& doubleValue)						const;
+			bool					convertValueToIntForImport(		const std::string	& strValue,			int		& intValue)							const;
+			bool					convertVecToInt(				const stringvec		& values,			intvec & intValues, intset & uniqueValues);
+			bool					convertVecToDouble(				const stringvec		& values,			doublevec & doubleValues);
 
 protected:
 			void					_checkForDependencyLoop(stringset foundNames, std::list<std::string> loopList);
@@ -186,9 +187,6 @@ protected:
 			columnTypeChangeResult	_changeColumnToScale();
 			
 			void					_convertVectorIntToDouble(intvec & intValues, doublevec & doubleValues);
-			bool					_resetMissingDataForNominal(	intstrmap & missingDataMap);
-			bool					_resetMissingDataForScale(		intstrmap & missingDataMap);
-			bool					_resetMissingDataForNominalText(intstrmap & missingDataMap, bool tryToConvert = true);
 			
 			void					_resetLabelValueMap();
 

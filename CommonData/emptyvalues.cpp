@@ -1,15 +1,16 @@
 #include "emptyvalues.h"
 #include "columnutils.h"
 #include "log.h"
-#include "jsonutilities.h" 
+#include "jsonutilities.h"
 
-std::string EmptyValues::_displayString = "";
+std::string		EmptyValues::_displayString			= "";
+const int		EmptyValues::missingValueInteger	= std::numeric_limits<int>::lowest();
+const double	EmptyValues::missingValueDouble		= NAN;
 
 EmptyValues::EmptyValues(EmptyValues * parent) : _parent(parent)
 {
 
 }
-
 
 void EmptyValues::resetEmptyValues()
 {
@@ -73,10 +74,10 @@ void EmptyValues::setHasCustomEmptyValues(bool hasCustom)
 
 bool EmptyValues::isEmptyValue(const std::string& val) const
 {
-	return _emptyStrings.contains(val) || ( _parent && _parent->isEmptyValue(val));
+	return _emptyStrings.count(val) || ( _parent && _parent->isEmptyValue(val));
 }
 
 bool EmptyValues::isEmptyValue(const double val) const
 {
-    return _emptyDoubles.contains(val) || ( _parent && _parent->isEmptyValue(val));
+	return _emptyDoubles.count(val) || ( _parent && _parent->isEmptyValue(val));
 }

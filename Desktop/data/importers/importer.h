@@ -35,7 +35,7 @@ protected:
 	bool						initColumnAsNominalOrOrdinal(	QVariant colID,			std::string newName, const std::vector<int>			& values, bool is_ordinal = false)	{ return DataSetPackage::pkg()->initColumnAsNominalOrOrdinal(colID, newName, values, is_ordinal);				}
 
 	///colID can be either an integer (the column index in the data) or a string (the (old) name of the column in the data)
-	std::map<int, std::string>	initColumnAsNominalText(		QVariant colID,			std::string newName, const std::vector<std::string>	& values)							{ return DataSetPackage::pkg()->initColumnAsNominalText(colID, newName, values);									}
+	void						initColumnAsNominalText(		QVariant colID,			std::string newName, const std::vector<std::string>	& values)							{ DataSetPackage::pkg()->initColumnAsNominalText(colID, newName, values);									}
 
 	///colID can be either an integer (the column index in the data) or a string (the (old) name of the column in the data)
 	bool						initColumnAsScale(				QVariant colID,			std::string newName, const std::vector<double>		& values)							{ return DataSetPackage::pkg()->initColumnAsScale(colID, newName, values);										}

@@ -1,7 +1,7 @@
 #include "ploteditoraxismodel.h"
 #include "ploteditormodel.h"
 #include "utilities/qutils.h"
-#include "utilities/jsonutilities.h"
+#include "jsonutilities.h"
 #include "log.h"
 #include "utilities/messageforwarder.h"
 #include "utils.h"

@@ -667,7 +667,7 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 
 				const std::string val = fq(value.toString());
 
-				if(column->setStringValueToRowIfItFits(index.row(), val == ColumnUtils::emptyValue ? "" : val, changed, typeChanged))
+				if(column->setStringValueToRowIfItFits(index.row(), val == EmptyValues::displayString() ? "" : val, changed, typeChanged))
 				{
 					if(changed)
 					{
@@ -1347,71 +1347,19 @@ int DataSetPackage::getColIndex(QVariant colID)
 		return _dataSet->getColumnIndex(fq(colID.toString()));
 }
 
-bool DataSetPackage::convertVecToInt(int colIndex, const std::vector<std::string> &values, std::vector<int> &intValues, std::set<int> &uniqueValues, std::map<int, std::string> &emptyValuesMap)
+bool DataSetPackage::convertVecToInt(int colIndex, const std::vector<std::string> &values, std::vector<int> &intValues, std::set<int> &uniqueValues)
 {
-	JASPTIMER_SCOPE(ColumnUtils::convertVecToInt);
+	JASPTIMER_SCOPE(DataSetPackage::convertVecToInt);
 
-	emptyValuesMap.clear();
-	uniqueValues.clear();
-	intValues.clear();
-	intValues.reserve(values.size());
-
-	int row = 0;
-
-	for (const std::string &value : values)
-	{
-		int intValue = std::numeric_limits<int>::lowest();
-
-		if (_dataSet->column(colIndex)->convertValueToIntForImport(value, intValue))
-		{
-			if (intValue != std::numeric_limits<int>::lowest())	uniqueValues.insert(intValue);
-			else if (!value.empty())							emptyValuesMap.insert(make_pair(row, value));
-
-			intValues.push_back(intValue);
-		}
-		else
-		{
-			std::vector<int>().swap(intValues); //this clears intValues and guarentees its memory is released
-			return false;
-		}
-
-		row++;
-	}
-
-	return true;
+	return _dataSet->column(colIndex)->convertVecToInt(values, intValues, uniqueValues);
 }
 
 
-bool DataSetPackage::convertVecToDouble(int colIndex, const stringvec & values, doublevec & doubleValues, intstrmap & emptyValuesMap)
+bool DataSetPackage::convertVecToDouble(int colIndex, const stringvec & values, doublevec & doubleValues)
 {
 	JASPTIMER_SCOPE(DataSetPackage::convertVecToDouble);
 
-	emptyValuesMap.clear();
-	doubleValues.clear();
-	doubleValues.resize(values.size());
-
-	int row = 0;
-	for (const std::string & value : values)
-	{
-		double doubleValue = static_cast<double>(NAN);
-
-		if (_dataSet->column(colIndex)->convertValueToDoubleForImport(value, doubleValue))
-		{
-			doubleValues[row] = doubleValue;
-
-			if (std::isnan(doubleValue) && value != ColumnUtils::emptyValue)
-				emptyValuesMap.insert(std::make_pair(row, value));
-		}
-		else
-		{
-			std::vector<double>().swap(doubleValues); //this clears doubleValues and guarentees its memory is released
-			return false;
-		}
-
-		row++;
-	}
-
-	return true;
+	return _dataSet->column(colIndex)->convertVecToDouble(values, doubleValues);
 }
 
 
