@@ -187,6 +187,41 @@ std::string	tableBlock::diffToString(const tableBlock & other) const
 	return out.str();
 }
 
+sizetvec tableBlock::stringWidths() const
+{
+	sizetvec out;
+	
+	for(auto & row : rows)
+		if(out.size() == 0)
+			out = row.stringWidths();
+		else
+		{
+			auto widths = row.stringWidths();
+			for (int i = 0; i < out.size(); ++i) 
+				out[i] = std::max(out[i], widths[i]);
+		}
+			
+	return out;
+}
+
+sizetvec tableBlock::stringDiffWidths(const tableBlock & other) const
+{
+	sizetvec out;
+	
+	for(auto & row : rows)
+	{
+		if(out.size() == 0)
+			out = row.stringDiffWidths();
+		else
+		{
+			auto widths = row.stringDiffWidths();
+			for (int i = 0; i < out.size(); ++i) 
+				out[i] = std::max(out[i], widths[i]);
+		}
+	}
+	return out;
+}
+
 
 std::string	table::toString() const
 {

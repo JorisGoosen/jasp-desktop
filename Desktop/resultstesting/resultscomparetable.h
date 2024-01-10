@@ -1,6 +1,7 @@
 #ifndef RESULTSCOMPARETABLE_H
 #define RESULTSCOMPARETABLE_H
 
+#include "utils.h"
 #include <string>
 #include <vector>
 
@@ -21,8 +22,8 @@ public:
 	void				setValue(std::string val)	{ _value = val;		}
 	void				addToValue(std::string val) { _value += val;	}
 
-	std::string			toString() const;
-	std::string			diffToString(const tableCell & other) const;
+	std::string			toString(								int minWidth = -1) const;
+	std::string			diffToString(const tableCell & other,	int minWidth = -1) const;
 
 private:
 	bool		isHeaderCell;
@@ -39,13 +40,16 @@ inline bool operator!=(const tableCell& lhs,	const tableCell& rhs)	{ return !(lh
 class tableRow
 {
 public:
-	bool		isEqual(const tableRow & other) const;
+	bool		isEqual(const tableRow & other)				const;
 	void		genHeaderCell();
 	void		genBodyCell();
 	tableCell &	curCell();
 
-	std::string	toString() const;
-	std::string	diffToString(const tableRow & other) const;
+	std::string	toString()									const;
+	std::string	diffToString(const tableRow & other)		const;
+	
+	sizetvec	stringWidths()								const;
+	sizetvec	stringDiffWidths(const tableRow & other)	const;
 
 private:
 	void		genCell();
@@ -70,6 +74,10 @@ public:
 
 	std::string	toString() const;
 	std::string	diffToString(const tableBlock & other) const;
+	
+	sizetvec	stringWidths()								const;
+	sizetvec	stringDiffWidths(const tableBlock & other)	const;
+	
 
 private:
 	tableRows	rows;
