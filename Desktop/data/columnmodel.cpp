@@ -728,3 +728,16 @@ void ColumnModel::setCompactMode(bool newCompactMode)
 	
 	emit tabsChanged();
 }
+
+bool ColumnModel::filterMissingValues() const
+{
+	return m_filterMissingValues;
+}
+
+void ColumnModel::setFilterMissingValues(bool newFilterMissingValues)
+{
+	if (m_filterMissingValues == newFilterMissingValues)
+		return;
+	m_filterMissingValues = newFilterMissingValues;
+	emit filterMissingValuesChanged();
+}

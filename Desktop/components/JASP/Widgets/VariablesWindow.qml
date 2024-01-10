@@ -288,6 +288,18 @@ FocusScope
 						label:				qsTr("Use custom values")
 						checked:			columnModel.useCustomEmptyValues
 						onCheckedChanged:	columnModel.useCustomEmptyValues = checked
+						anchors.left:		parent.left
+						anchors.leftMargin:	jaspTheme.generalAnchorMargin
+					}
+					
+					CheckBox
+					{
+						id:					filterMissingValues
+						label:				qsTr("Filter missing values out")
+						checked:			columnModel.filterMissingValues
+						onCheckedChanged:	columnModel.filterMissingValues = checked
+						anchors.right:		parent.right
+						anchors.leftMargin:	jaspTheme.generalAnchorMargin
 					}
 
 					PrefsMissingValues
