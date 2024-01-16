@@ -22,7 +22,8 @@
 //
 
 #include "appinfo.h"
-#include <sstream> 
+#include <sstream>
+#include "stringutils.h"
 
 const Version AppInfo::version = Version(@JASP_VERSION_MAJOR@, @JASP_VERSION_MINOR@, @JASP_VERSION_PATCH@, @JASP_VERSION_TWEAK@);
 const std::string AppInfo::name = "JASP";
@@ -30,6 +31,14 @@ const std::string AppInfo::builddate = __DATE__ " " __TIME__ " (Netherlands)" ;
 
 const std::string AppInfo::gitBranch = "@GIT_CURRENT_BRANCH@";
 const std::string AppInfo::gitCommit = "@GIT_CURRENT_COMMIT@";
+
+
+std::string AppInfo::getUniqueBuildID()
+{
+	return		AppInfo::version.asString(4) + "_"
+		   +	AppInfo::gitCommit.substr(0, 7) + "_"
+		   +	stringUtils::replaceBy( stringUtils::replaceBy(AppInfo::builddate, ":", "-"), " ", "");
+}
 
 std::string AppInfo::getShortDesc()
 {

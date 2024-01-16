@@ -33,6 +33,7 @@ public:
 	static const std::string gitBranch;
 	static const std::string gitCommit;
 
+	static std::string getUniqueBuildID();
 	static std::string getShortDesc();
 	static std::string getBuildYear();
 	static std::string getRVersion();

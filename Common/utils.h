@@ -53,10 +53,10 @@ public:
 
 	static Utils::FileType getTypeFromFileName(	const std::string &path);
 
-	static long currentMillis();
-	static long currentSeconds();
-	static long getFileModificationTime(const std::string &filename);
-	static long getFileSize(			const std::string &filename);
+	static uint64_t currentMillis();
+	static uint64_t currentSeconds();
+	static uint64_t getFileModificationTime(const std::string &filename);
+	static uint64_t getFileSize(			const std::string &filename);
 	static void touch(					const std::string &filename);
 	static bool renameOverwrite(		const std::string &oldName, const std::string &newName);
 	static bool removeFile(				const std::string &path);
@@ -65,7 +65,7 @@ public:
 	static std::string osPath(const std::filesystem::path &path);
 
 	static void remove(std::vector<std::string> &target, const std::vector<std::string> &toRemove);
-	static void sleep(int ms);
+	static void sleep(uint64_t ms);
 
 	static bool isEqual(const float a, const float b);
 	static bool isEqual(const double a, const double b);

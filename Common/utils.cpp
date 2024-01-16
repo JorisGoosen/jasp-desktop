@@ -60,17 +60,17 @@ Utils::FileType Utils::getTypeFromFileName(const std::string &path)
 	return filetype;
 }
 
-long Utils::currentMillis()
+uint64_t Utils::currentMillis()
 {
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-long Utils::currentSeconds()
+uint64_t Utils::currentSeconds()
 {
 	return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-long Utils::getFileModificationTime(const std::string &filename)
+uint64_t Utils::getFileModificationTime(const std::string &filename)
 {
 #ifdef _WIN32
 
@@ -115,7 +115,7 @@ long Utils::getFileModificationTime(const std::string &filename)
 #endif
 }
 
-long Utils::getFileSize(const string &filename)
+uint64_t Utils::getFileSize(const string &filename)
 {
 	std::error_code ec;
 	std::filesystem::path path;
@@ -210,7 +210,7 @@ void Utils::remove(vector<string> &target, const vector<string> &toRemove)
 		target.erase(std::remove_if(target.begin(), target.end(), [&remove](const string& str){return (str == remove);}), target.end());
 }
 
-void Utils::sleep(int ms)
+void Utils::sleep(uint64_t ms)
 {
 
 #ifdef _WIN32

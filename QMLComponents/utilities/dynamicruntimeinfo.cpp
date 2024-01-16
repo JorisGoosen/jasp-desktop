@@ -1,13 +1,10 @@
 #include "dynamicruntimeinfo.h"
-#include "json/json.h"
 #include "appinfo.h"
 #include "appdirs.h"
 #include "log.h"
 #include "utilities/qutils.h"
-
 #include <fstream>
 #include <chrono>
-
 
 DynamicRuntimeInfo* DynamicRuntimeInfo::_instance = nullptr;
 const std::string DynamicRuntimeInfo::staticInfoFileName = "staticRuntimeInfo.json";
@@ -26,10 +23,10 @@ bool DynamicRuntimeInfo::bundledModulesInitialized()
 
 	if(_environment == RuntimeEnvironment::MSI || _environment == RuntimeEnvironment::MSIX || _environment == RuntimeEnvironment::ZIP)
 		res = _bundledModulesInitializedSet
-			  && _initializedByCommit == AppInfo::gitCommit
-			  && _initializedByBuildDate == AppInfo::builddate
-			  && _initializedForRVersion == AppInfo::getRVersion()
-			  && _initializedForJaspVersion == AppInfo::version.asString(4);
+			  && _initializedByCommit			== AppInfo::gitCommit
+			  && _initializedByBuildDate		== AppInfo::builddate
+			  && _initializedForRVersion		== AppInfo::getRVersion()
+			  && _initializedForJaspVersion		== AppInfo::version.asString(4);
 
 	return res;
 }
@@ -73,12 +70,8 @@ bool DynamicRuntimeInfo::parseStaticRuntimeInfoFile(const std::string &path)
     Json::Value root;
     in >> root;
 
-	std::string runtimeEnvironmentString = root.get("runtimeEnvironment", "").asString();
-	auto it = StringToRuntimeEnvironmentMap.find(runtimeEnvironmentString);
-	if(it == StringToRuntimeEnvironmentMap.end())
-        _environment = RuntimeEnvironment::UNKNOWN;
-    else 
-        _environment = it->second;
+	try			{ _environment = RuntimeEnvironmentFromString(root.get("runtimeEnvironment", "UNKNOWN").asString());	}
+	catch(...)	{ _environment = RuntimeEnvironment::UNKNOWN; }
 
     return true;
 }
@@ -97,15 +90,14 @@ bool DynamicRuntimeInfo::parseDynamicRuntimeInfoFile(const std::string &path)
     Json::Value root;
     in >> root;
 
-	_bundledModulesInitializedSet = root.get("initialized", false).asBool();
-    _initializedByCommit = root.get("commit", "").asString();
-	_initializedByBuildDate = root.get("buildDate", "").asString();
-    _initializedForRVersion = root.get("RVersion", "").asString();
-	_initializedForJaspVersion = root.get("jaspVersion", "").asString();
-	_initializedOn = root.get("initTimestamp", 0).asUInt64();
+	_bundledModulesInitializedSet	= root.get("initialized",	false	).asBool();
+	_initializedByCommit			= root.get("commit",		""		).asString();
+	_initializedByBuildDate			= root.get("buildDate",		""		).asString();
+	_initializedForRVersion			= root.get("RVersion",		""		).asString();
+	_initializedForJaspVersion		= root.get("jaspVersion",	""		).asString();
+	_initializedOn					= root.get("initTimestamp", 0		).asUInt64();
 
     return true;
-
 }
 
 std::string DynamicRuntimeInfo::staticRuntimeInfoFilePath()
@@ -114,11 +106,11 @@ std::string DynamicRuntimeInfo::staticRuntimeInfoFilePath()
 }
 
 std::string DynamicRuntimeInfo::dynamicRuntimeInfoFilePath()
-{	
-	switch (getRuntimeEnvironment()) {
-	case ZIP:
+{
+	switch (runtimeEnvironment()) {
+	case RuntimeEnvironment::ZIP:
 		return fq(AppDirs::programDir().absoluteFilePath(tq(dynamicInfoFileName)));
-	case MSIX:
+	case RuntimeEnvironment::MSIX:
 		return fq(AppDirs::appData(false) + "/" + tq(dynamicInfoFileName));
 	default:
 		return "";
@@ -136,50 +128,13 @@ bool DynamicRuntimeInfo::writeDynamicRuntimeInfoFile()
     }
 
     Json::Value root;
-	root["jaspVersion"] = AppInfo::version.asString(4);
-    root["initialized"] = true;
-	root["commit"] = AppInfo::gitCommit;
-	root["buildDate"] = AppInfo::builddate;
-	root["RVersion"] = AppInfo::getRVersion();
-	uint64_t timestamp = std::chrono::system_clock::now().time_since_epoch() / std::chrono::milliseconds(1);
-	root["initTimestamp"] = timestamp;
+	root["jaspVersion"]		= AppInfo::version.asString(4);
+	root["initialized"]		= true;
+	root["commit"]			= AppInfo::gitCommit;
+	root["buildDate"]		= AppInfo::builddate;
+	root["RVersion"]		= AppInfo::getRVersion();
+	root["initTimestamp"]	= Utils::currentMillis();
 
 	out << root;
 	return true;
-}
-
-DynamicRuntimeInfo::RuntimeEnvironment DynamicRuntimeInfo::getRuntimeEnvironment()
-{
-	return _environment;
-}
-
-std::string DynamicRuntimeInfo::getRuntimeEnvironmentAsString()
-{
-	auto x =  RuntimeEnvironmentToStringMap.find(_environment);
-	return x != RuntimeEnvironmentToStringMap.end() ? x->second : RuntimeEnvironmentToStringMap.find(UNKNOWN)->second;
-}
-
-uint64_t DynamicRuntimeInfo::bundledModulesInitializedOnTimestamp()
-{
-    return _initializedOn;
-}
-
-std::string DynamicRuntimeInfo::bundledModulesInitializedByCommit()
-{
-	return _initializedByCommit;
-}
-
-std::string DynamicRuntimeInfo::bundledModulesInitializedByBuildDate()
-{
-	return _initializedByBuildDate;
-}
-
-std::string DynamicRuntimeInfo::bundledModulesInitializedRVersion()
-{
-	return _initializedForRVersion;
-}
-
-std::string DynamicRuntimeInfo::bundledModulesInitializedJaspVersion()
-{
-	return _initializedForJaspVersion;
 }

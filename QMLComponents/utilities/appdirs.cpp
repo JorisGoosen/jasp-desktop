@@ -78,15 +78,21 @@ QString AppDirs::bundledModulesDir()
 {
 	static QString folder;
 #ifdef _WIN32
-	auto env = DynamicRuntimeInfo::getInstance()->getRuntimeEnvironment();
-	bool useAppdata =  env != DynamicRuntimeInfo::MSIX;
-	folder = useAppdata ? programDir().absoluteFilePath("Modules") + '/' : appData(false) + "/BundledJASPModules_" + QString(AppInfo::version.asString(4).c_str()) + "_" + QString(AppInfo::gitCommit.substr(0, 7).c_str()) + "_" + QString(AppInfo::builddate.c_str()).replace(":", "-").replace(" ", "") + "/";
+	auto env			= DynamicRuntimeInfo::getInstance()->runtimeEnvironment();
+	bool useAppdata		= env != RuntimeEnvironment::MSIX && env != RuntimeEnvironment::ZIP;
+	folder = useAppdata
+				 ? programDir().absoluteFilePath("Modules") + '/'
+				 : appData(false) + "/BundledJASPModules_" + tq(AppInfo::getUniqueBuildID()) + "/";
+
 #elif __APPLE__
 	 folder = programDir().absoluteFilePath("../Modules/");
+
 #elif FLATPAK_USED
 	folder = "/app/bin/../Modules/";
+
 #else  //Normal linux build
 	folder = programDir().absoluteFilePath("../Modules") + '/';
+
 #endif
 	// @Joris, I think these guys should be one level up,
 	// they are not binaries, so, they should not be in
