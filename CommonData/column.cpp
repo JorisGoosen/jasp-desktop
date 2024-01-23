@@ -33,7 +33,7 @@ void Column::dbLoad(int id, bool getValues)
 	db().columnGetBasicInfo(	_id, _name, _title, _description, _type, _revision, emptyVals);
 	db().columnGetComputedInfo(	_id, _analysisId, _invalidated, _codeType, _rCode, _error, _constructorJson);
 
-	_emptyValues.fromJson(emptyValues);
+	_emptyValues.fromJson(emptyVals);
 
 	db().labelsLoad(this);
 	
@@ -791,9 +791,9 @@ void Column::_sortLabelsByOrder()
 bool Column::setAsNominalText(const stringvec &values, const strstrmap & labels, bool * changedSomething)
 {
 	JASPTIMER_SCOPE(Column::setAsNominalText);
+	
+	bool _changedSomething = type() != columnType::nominalText;
 
-	if(changedSomething != nullptr)
-		*changedSomething = type() != columnType::nominalText;
 	
 	stringvec	unicifiedValues;
 	stringset	foundAlready;
@@ -809,46 +809,32 @@ bool Column::setAsNominalText(const stringvec &values, const strstrmap & labels,
 
 	strintmap labelValueMap = labelsSyncStrings(unicifiedValues, labels, changedSomething);
 
-	if(values.size() != _ints.size() && changedSomething != nullptr)
-			*changedSomething = true;
+	if(values.size() != _ints.size())
+			_changedSomething = true;
 
 	if(_ints.size() < values.size())
 		_ints.resize(values.size());
 
 	//Set the _ints values by iterating
-	size_t i = 0;
-	for(const std::string &value : values)
+	
+	for(size_t i = 0; i<values.size(); i++)
 	{
-		if (isEmptyValue(value))
+		const std::string & value = values[i];
+		if (labelValueMap.find(values[i]) == labelValueMap.end())
 		{
-			if(changedSomething != nullptr && _ints[i] != std::numeric_limits<int>::lowest())
-				*changedSomething = true;
-
-			_ints[i] = std::numeric_limits<int>::lowest();
-
-			if (!value.empty())
-				emptyValuesMap.insert(make_pair(i, value));
-		}
-		else
-		{
-			if (labelValueMap.find(value) == labelValueMap.end())
-			{
-				std::string allLabels;
-				for (auto const& imap: labelValueMap)
-					allLabels += imap.first + ", ";
-				throw std::runtime_error("Error when reading column " + name() + ": cannot convert value " + value + " to Nominal Text (all labels: " + allLabels + ")");
-			}
-
-			if(changedSomething != nullptr && _ints[i] != labelValueMap[value])
-				*changedSomething = true;
-
-			_ints[i] = labelValueMap[value];
+			std::string allLabels;
+			for (auto const& imap: labelValueMap)
+				allLabels += imap.first + ", ";
+			throw std::runtime_error("Error when reading column " + name() + ": cannot convert value " + value + " to Nominal Text (all labels: " + allLabels + ")");
 		}
 
-		i++;
+		if(_ints[i] != labelValueMap[value])
+			_changedSomething = true;
+
+		_ints[i] = labelValueMap[value];
 	}
-
-	for (; i < _ints.size(); i++)
+	
+	for (size_t i = values.size(); i < _ints.size(); i++)
 		_ints[i] = std::numeric_limits<int>::lowest();
 
 	_dbls.clear(); //We can load them later if needed
@@ -857,8 +843,12 @@ bool Column::setAsNominalText(const stringvec &values, const strstrmap & labels,
 	if(!_data->writeBatchedToDB())
 		db().columnSetValues(_id, _ints);
 	incRevision();
-
-	return emptyValuesMap;
+	
+	
+	if(changedSomething != nullptr)
+		*changedSomething = _changedSomething;
+	
+	return _changedSomething;
 }
 
 
@@ -1253,7 +1243,6 @@ bool Column::convertVecToInt(const stringvec &values, intvec & intValues, intset
 {
 	JASPTIMER_SCOPE(ColumnUtils::convertVecToInt);
 
-	emptyValuesMap.clear();
 	uniqueValues.clear();
 	intValues.clear();
 	intValues.reserve(values.size());
@@ -1266,8 +1255,8 @@ bool Column::convertVecToInt(const stringvec &values, intvec & intValues, intset
 
 			if (convertValueToIntForImport(value, intValue))
 			{
-				if (intValue != std::numeric_limits<int>::lowest())	uniqueValues.insert(intValue);
-				else if (!value.empty())							emptyValuesMap.insert(make_pair(row, value));
+				if (intValue != std::numeric_limits<int>::lowest())
+					uniqueValues.insert(intValue);
 
 				intValues.push_back(intValue);
 			}
@@ -1286,8 +1275,7 @@ bool Column::convertVecToInt(const stringvec &values, intvec & intValues, intset
 bool Column::convertVecToDouble(const stringvec & values, doublevec & doubleValues)
 {
 	JASPTIMER_SCOPE(DataSetPackage::convertVecToDouble);
-
-	emptyValuesMap.clear();
+	
 	doubleValues.clear();
 	doubleValues.resize(values.size());
 
@@ -1296,9 +1284,9 @@ bool Column::convertVecToDouble(const stringvec & values, doublevec & doubleValu
 	{
 			double doubleValue = static_cast<double>(NAN);
 
-			if (_dataSet->column(colIndex)->convertValueToDoubleForImport(value, doubleValue))
+			if (convertValueToDoubleForImport(value, doubleValue))
 			{
-			doubleValues[row] = doubleValue;
+				doubleValues[row] = doubleValue;
 
 			if (std::isnan(doubleValue) && value != ColumnUtils::emptyValue)
 				emptyValuesMap.insert(std::make_pair(row, value));

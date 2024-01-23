@@ -25,12 +25,6 @@ public:
 	static void			convertEscapedUnicodeToUTF8(			std::string & inputStr);
 	static std::string	deEuropeaniseForImport(					std::string   value);
 
-	static bool			convertValueToIntForImport(		const	std::string &	strValue, int		& intValue);
-	static bool			convertValueToDoubleForImport(	const	std::string &	strValue, double	& doubleValue);
-	static bool			isEmptyValue(					const	std::string	&	val,		const stringset & emptyValues);
-	static bool			isEmptyValue(					const	double			val,		const doubleset & doubleEmptyValues);
-	static void			convertEscapedUnicodeToUTF8(			std::string &	inputStr);
-	static std::string	deEuropeaniseForImport(					std::string		value);
 	static std::string	doubleToString(			double dbl, int precision = 10);
 
 private:
