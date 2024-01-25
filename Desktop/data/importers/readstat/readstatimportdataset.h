@@ -54,7 +54,8 @@ public:
 	void						setExpectedRows(int rows)	{ _expectedRows = rows; }
 	void						setCurrentRow(int row);
 	void						incrementRow()				{ setCurrentRow(_currentRow + 1); }
-
+	
+	
 private:
 	labelsMapT								_labelMap;
 	int										_var_count			= 0;

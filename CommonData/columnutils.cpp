@@ -98,6 +98,19 @@ bool ColumnUtils::isDoubleValue(const string &value)
 }
 
 
+bool ColumnUtils::convertValueToIntForImport(const std::string &strValue, int &intValue)
+{
+	JASPTIMER_SCOPE(ColumnUtils::convertValueToIntForImport);
+	
+	return ColumnUtils::getIntValue(strValue, intValue);
+}
+
+bool ColumnUtils::convertValueToDoubleForImport(const std::string & strValue, double & doubleValue)
+{
+	return ColumnUtils::getDoubleValue(deEuropeaniseForImport(strValue), doubleValue);
+}
+
+
 std::string ColumnUtils::deEuropeaniseForImport(std::string value)
 {
 	int dots	= 0,

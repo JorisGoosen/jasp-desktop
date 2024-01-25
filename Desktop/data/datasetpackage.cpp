@@ -1378,7 +1378,7 @@ bool DataSetPackage::convertVecToDouble(int colIndex, const stringvec & values, 
 
 
 
-void DataSetPackage::initColumnWithStrings(QVariant colId, const std::string & newName, const stringvec &values, const std::string & title, columnType desiredType)
+bool DataSetPackage::initColumnWithStrings(QVariant colId, const std::string & newName, const stringvec &values, const std::string & title, columnType desiredType)
 {
 	JASPTIMER_SCOPE(DataSetPackage::initColumnWithStrings);
 	
@@ -1393,24 +1393,27 @@ void DataSetPackage::initColumnWithStrings(QVariant colId, const std::string & n
 	size_t	thresholdScale		= Settings::value(Settings::THRESHOLD_SCALE).toUInt();
 
 	JASPTIMER_RESUME(DataSetPackage::initColumnWithStrings preamble);
-	bool valuesAreIntegers		= convertVecToInt(colIndex, values, intValues, uniqueValues, emptyValuesMap);
+	bool valuesAreIntegers		= convertVecToInt(colIndex, values, intValues, uniqueValues);
 		
 	size_t minIntForThresh		= thresholdScale > 2 ? 2 : 0;
 
 	auto isNominalInt			= [&](){ return valuesAreIntegers && (desiredType == columnType::nominal || uniqueValues.size() == minIntForThresh); };
 	auto isOrdinal				= [&](){ return valuesAreIntegers && (desiredType == columnType::ordinal || (uniqueValues.size() >  minIntForThresh && uniqueValues.size() <= thresholdScale)); };
-	auto isScalar				= [&](){ return convertVecToDouble(colIndex, values, doubleValues, emptyValuesMap); };
+	auto isScalar				= [&](){ return convertVecToDouble(colIndex, values, doubleValues); };
 	
 	JASPTIMER_STOP(DataSetPackage::initColumnWithStrings preamble);
 
 	JASPTIMER_RESUME(DataSetPackage::initColumnWithStrings followup - initing columns);
 	
-	if		(isOrdinal())					initColumnAsNominalOrOrdinal(	colIndex,	newName,	intValues,		true	);
-	else if	(isNominalInt())				initColumnAsNominalOrOrdinal(	colIndex,	newName,	intValues,		false	);
-	else if	(isScalar())					initColumnAsScale(				colIndex,	newName,	doubleValues	);
-    else                                	initColumnAsNominalText(		colIndex,	newName,	values			);
+	bool anyChanges = false;
+	if		(isOrdinal())					anyChanges = initColumnAsNominalOrOrdinal(	colIndex,	newName,	intValues,		true	);
+	else if	(isNominalInt())				anyChanges = initColumnAsNominalOrOrdinal(	colIndex,	newName,	intValues,		false	);
+	else if	(isScalar())					anyChanges = initColumnAsScale(				colIndex,	newName,	doubleValues	);
+    else                                	anyChanges = initColumnAsNominalText(		colIndex,	newName,	values			);
 	
 	JASPTIMER_STOP(DataSetPackage::initColumnWithStrings followup - initing columns);
+	
+	return anyChanges;
 }
 
 void DataSetPackage::initializeComputedColumns()
@@ -1772,9 +1775,6 @@ void DataSetPackage::setColumnHasCustomEmptyValues(size_t columnIndex, bool hasC
 	column->setHasCustomEmptyValues(hasCustomEmptyValue);
 
 	emit dataChanged(index(0, columnIndex), index(rowCount() - 1, columnIndex));
-
-	if(!hasCustomEmptyValue)
-		resetMissingData({column});
 }
 
 void DataSetPackage::setColumnCustomEmptyValues(size_t columnIndex, const stringset& customEmptyValues)
@@ -1783,14 +1783,9 @@ void DataSetPackage::setColumnCustomEmptyValues(size_t columnIndex, const string
 		return;
 
 	Column* column = _dataSet->column(columnIndex);
-	if (!column || column->emptyValues() == customEmptyValues)
-		return;
-
-	column->setCustomEmptyValues(customEmptyValues);
-	resetMissingData({column});
-
-	emit dataChanged(index(0, columnIndex), index(rowCount() - 1, columnIndex));
-
+	
+	if(column && column->setCustomEmptyValues(customEmptyValues))
+		emit dataChanged(index(0, columnIndex), index(rowCount() - 1, columnIndex));
 }
 
 void DataSetPackage::setColumnDataInts(size_t columnIndex, const intvec & ints)
@@ -2021,35 +2016,14 @@ void DataSetPackage::setDefaultWorkspaceEmptyValues()
 	setWorkspaceEmptyValues(values);
 }
 
-void DataSetPackage::resetMissingData(const std::vector<Column*>& cols, bool reset)
-{
-	if (isLoaded())
-	{
-		if (reset)
-			beginSynchingData();
-
-		stringvec colChanged;
-
-		for (const auto & it : _dataSet->resetMissingData(cols))
-		{
-			colChanged.push_back(it.first);
-			storeMissingData(it.first, it.second);
-		}
-
-		if (reset)
-			endSynchingDataChangedColumns(colChanged);
-	}
-}
-
-
 void DataSetPackage::setWorkspaceEmptyValues(const stringset &emptyValues, bool reset)
 {
 	if (!_dataSet) return;
-
+	
+	beginResetModel();
 	_dataSet->setWorkspaceEmptyValues(emptyValues);
-
-	resetMissingData(_dataSet->columns(), reset);
-
+	endResetModel();
+	
 	emit workspaceEmptyValuesChanged();
 }
 
@@ -2085,7 +2059,7 @@ void DataSetPackage::pasteSpreadsheet(size_t row, size_t col, const std::vector<
 				if (label)
 					cellVal = (desiredType == columnType::nominalText) ? label->originalValue().asString() : std::to_string(label->value());
 			}
-			colVals[r + row] = cellVal == ColumnUtils::emptyValue ? "" : cellVal;
+			colVals[r + row] = cellVal == EmptyValues::displayString() ? "" : cellVal;
 		}
 
 		initColumnWithStrings(dataCol, colName, colVals, "", desiredType);

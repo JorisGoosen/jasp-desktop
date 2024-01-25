@@ -168,7 +168,7 @@ public:
 			bool					hasCustomEmptyValues()													const;
 	const   EmptyValues    		&	emptyValues()															const { return _emptyValues; }
 			void					setHasCustomEmptyValues(		bool hasCustom);
-			void					setCustomEmptyValues(			const stringset		& customEmptyValues);
+			bool					setCustomEmptyValues(			const stringset		& customEmptyValues); ///<returns whether there was a change
 			
 			bool					isEmptyValue(					const std::string	& val)															const;
 			bool					isEmptyValue(					const double		  val)															const;

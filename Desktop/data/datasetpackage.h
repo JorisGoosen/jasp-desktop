@@ -172,7 +172,6 @@ public:
 				void				setJaspVersion(Version jaspVersion)					{ _jaspVersion					= jaspVersion;		}
 				void				updateDbToCurrentVersion();							///< Should be ran immediately after loading the jasp file
 				void				setMissingData(Json::Value & missingData);
-				void				resetMissingData(const std::vector<Column*>& cols, bool reset = true);
 				void				setWarningMessage(std::string message)				{ _warningMessage				= message;			}
 				void				setDataFilePath(std::string filePath);
 				void				setDatabaseJson(const Json::Value & dbInfo);
@@ -193,12 +192,12 @@ public:
 				bool						initColumnAsScale(				size_t colNo,		const std::string & newName, const doublevec	& values);
 				bool						initColumnAsNominalOrOrdinal(	size_t colNo,		const std::string & newName, const intvec		& values,	const intstrmap &uniqueValues,	bool is_ordinal = false);
 				bool						initColumnAsNominalOrOrdinal(	size_t colNo,		const std::string & newName, const intvec		& values,	bool is_ordinal);
-				void    					initColumnAsNominalText(		size_t colNo,		const std::string & newName, const stringvec	& values,	const strstrmap & labels = strstrmap());
+				bool    					initColumnAsNominalText(		size_t colNo,		const std::string & newName, const stringvec	& values,	const strstrmap & labels = strstrmap());
 				bool						initColumnAsScale(				QVariant colID,		const std::string & newName, const doublevec	& values)																{ return initColumnAsScale(getColIndex(colID), newName, values); }
 				bool						initColumnAsNominalOrOrdinal(	QVariant colID,		const std::string & newName, const intvec		& values,	const intstrmap &uniqueValues,	bool is_ordinal = false)	{ return initColumnAsNominalOrOrdinal(getColIndex(colID), newName, values, uniqueValues, is_ordinal); }
 				bool						initColumnAsNominalOrOrdinal(	QVariant colID,		const std::string & newName, const intvec		& values,	bool is_ordinal)											{ return initColumnAsNominalOrOrdinal(getColIndex(colID), newName, values, is_ordinal); }
-				void    					initColumnAsNominalText(		QVariant colID,		const std::string & newName, const stringvec	& values,	const strstrmap & labels = strstrmap())						{ return initColumnAsNominalText(getColIndex(colID), newName, values, labels); }
-				void						initColumnWithStrings(			QVariant			colId,		const std::string & newName, const stringvec	& values,	const std::string & title = "", columnType desiredType = columnType::unknown);
+				bool    					initColumnAsNominalText(		QVariant colID,		const std::string & newName, const stringvec	& values,	const strstrmap & labels = strstrmap())						{ return initColumnAsNominalText(getColIndex(colID), newName, values, labels); }
+				bool						initColumnWithStrings(			QVariant			colId,		const std::string & newName, const stringvec	& values,	const std::string & title = "", columnType desiredType = columnType::unknown);
 				void						initializeComputedColumns();
 				
 				void						pasteSpreadsheet(size_t row, size_t column, const std::vector<std::vector<QString>> & cells, const intvec & colTypes = intvec(), const QStringList & colNames = {});

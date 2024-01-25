@@ -1,9 +1,8 @@
 #ifndef EMPTYVALUES_H
 #define EMPTYVALUES_H
 
-#include "json/json.h"
 #include "utils.h"
-#include "stringutils.h"
+#include "json/value.h"
 
 class EmptyValues
 {
@@ -25,7 +24,7 @@ public:
             void				setEmptyValues(			const stringset	& values);
 			void				setHasCustomEmptyValues(bool hasCustom);
 			
-	static	void				setDisplayString(const std::string & str);
+			static	void		setDisplayString(const std::string & str) { _displayString = str;}
 	static	std::string		&	displayString() { return _displayString; }
 
 	static	const int			missingValueInteger;

@@ -46,6 +46,7 @@ enum Encryption { NoEncryption, SimpleCryptEncryption };
 //fqj and tqj are for from/to QtJson
 inline	std::string							fq (const QString							 & from)	{ return from.toUtf8().toStdString(); }
 		std::vector<std::string>			fq (const QVector<QString>					 & vec);
+		std::vector<std::string>			fq (const std::vector<QString>				 & vec);
 		std::map<std::string, std::string>	fq (const QMap<QString, QString>			 & map);
 		QMap<QString, QString>				tq (const std::map<std::string, std::string> & map);
 inline	QString								tq (const std::string						 & from)	{ return QString::fromUtf8(from.c_str(), from.length()); }

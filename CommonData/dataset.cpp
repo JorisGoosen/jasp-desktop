@@ -411,6 +411,7 @@ void DataSet::loadOldComputedColumnsJson(const Json::Value &json)
 
 void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 {
+	
 	if (!emptyValues.isMember("workspaceEmptyValues"))
 	{
 		// For backward compatibility we take the default ones if the workspaceEmptyValues are not specified

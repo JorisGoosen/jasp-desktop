@@ -76,7 +76,6 @@ public:
 			DataSetBaseNode		 *	dataNode()		const { return _dataNode; }
 			DataSetBaseNode		 *	filtersNode()	const { return _filtersNode; }
 
-			std::map<std::string, intstrmap > resetMissingData(const std::vector<Column*>& columns);
 			void					setEmptyValuesJson(			const Json::Value & emptyValues, bool updateDB = true);
 	const	stringset			&	workspaceEmptyValues()															const	{ return _emptyValues.emptyStrings();								}
 			void					setWorkspaceEmptyValues(	const stringset& values);

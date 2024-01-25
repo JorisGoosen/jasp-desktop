@@ -159,16 +159,18 @@ void Column::setHasCustomEmptyValues(bool hasCustom)
 	incRevision();
 }
 
-void Column::setCustomEmptyValues(const stringset& customEmptyValues)
+bool Column::setCustomEmptyValues(const stringset& customEmptyValues)
 {
 	JASPTIMER_SCOPE(Column::setCustomEmptyValues);
 
 	if (_emptyValues.hasCustomEmptyValues() && _emptyValues.emptyStrings() == customEmptyValues)
-		return;
+		return false;
 
 	_emptyValues.setEmptyValues(customEmptyValues);
 	
 	incRevision();
+	
+	return true;
 }
 
 void Column::dbUpdateComputedColumnStuff()
@@ -494,39 +496,46 @@ columnTypeChangeResult Column::changeType(columnType colType)
 bool Column::initAsScale(size_t colNo, std::string newName, const doublevec & values)
 {
 	JASPTIMER_SCOPE(Column::initAsScale);
-
+	
+	bool differentName = name() != newName;
 	setName(newName);
 	db().columnSetIndex(_id, colNo);
 
-	return setAsScale(values);
+	return setAsScale(values) || differentName;
 }
 
 
 bool Column::initAsNominalText(size_t colNo, std::string newName, const stringvec & values, const strstrmap & labels)
 {
 	JASPTIMER_SCOPE(Column::initAsNominalText);
-
-	setName(newName);
 	
-	return setAsNominalText(values, labels);
+	bool differentName = name() != newName;
+	setName(newName);
+	db().columnSetIndex(_id, colNo);
+	
+	return setAsNominalText(values, labels) || differentName;
 }
 
 bool Column::initAsNominalOrOrdinal(size_t colNo, std::string newName, const intvec & values, bool is_ordinal)
 {
 	JASPTIMER_SCOPE(Column::initAsNominalOrOrdinal);
-
+	
+	bool differentName = name() != newName;
 	setName(newName);
+	db().columnSetIndex(_id, colNo);
 
-	return setAsNominalOrOrdinal(values, is_ordinal);
+	return setAsNominalOrOrdinal(values, is_ordinal) || differentName;
 }
 
 bool Column::initAsNominalOrOrdinal(size_t colNo, std::string newName, const intvec & values, const intstrmap &uniqueValues, bool is_ordinal)
 {
 	JASPTIMER_SCOPE(Column::initAsNominalOrOrdinal);
-
+	
+	bool differentName = name() != newName;
 	setName(newName);
+	db().columnSetIndex(_id, colNo);
 
-	return setAsNominalOrOrdinal(values, uniqueValues, is_ordinal);
+	return setAsNominalOrOrdinal(values, uniqueValues, is_ordinal) || differentName;
 }
 
 
@@ -1285,16 +1294,11 @@ bool Column::convertVecToDouble(const stringvec & values, doublevec & doubleValu
 			double doubleValue = static_cast<double>(NAN);
 
 			if (convertValueToDoubleForImport(value, doubleValue))
-			{
 				doubleValues[row] = doubleValue;
-
-			if (std::isnan(doubleValue) && value != ColumnUtils::emptyValue)
-				emptyValuesMap.insert(std::make_pair(row, value));
-			}
 			else
 			{
-			std::vector<double>().swap(doubleValues); //this clears doubleValues and guarentees its memory is released
-			return false;
+				std::vector<double>().swap(doubleValues); //this clears doubleValues and guarentees its memory is released
+				return false;
 			}
 
 			row++;
@@ -1303,17 +1307,15 @@ bool Column::convertVecToDouble(const stringvec & values, doublevec & doubleValu
 	return true;
 }
 
-
-
 bool Column::convertValueToIntForImport(const std::string &strValue, int &intValue) const
 {
 	JASPTIMER_SCOPE(Column::convertValueToIntForImport);
 
-	if(isEmptyValue(strValue))
+	/*if(isEmptyValue(strValue))
 	{
 			intValue = std::numeric_limits<int>::lowest();
 			return true;
-	}
+	}*/
 
 	return ColumnUtils::getIntValue(strValue, intValue);
 }
@@ -1323,11 +1325,11 @@ bool Column::convertValueToDoubleForImport(const std::string & strValue, double 
 {
 	std::string v = ColumnUtils::deEuropeaniseForImport(strValue);
 
-	if(isEmptyValue(v))
+	/*if(isEmptyValue(v))
 	{
 			doubleValue = NAN;
 			return true;
-	}
+	}*/
 
 	return ColumnUtils::getDoubleValue(v, doubleValue);
 }

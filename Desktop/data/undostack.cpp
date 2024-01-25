@@ -63,7 +63,7 @@ void SetDataCommand::undo()
 void SetDataCommand::redo()
 {
 	_oldValue = _model->data(_model->index(_row, _col));
-	if(fq(_oldValue.toString()) == ColumnUtils::emptyValue)
+	if(fq(_oldValue.toString()) == EmptyValues::displayString())
 		_oldValue = "";
 
 	_oldColType = _model->data(_model->index(0, _col), int(dataPkgRoles::columnType)).toInt();
@@ -659,7 +659,7 @@ SetCustomEmptyValuesCommand::SetCustomEmptyValuesCommand(QAbstractItemModel *mod
 		Column* col = columnModel->column();
 		_colId = columnModel->chosenColumn();
 		std::string colName = col->name();
-		_oldCustomEmptyValues = col->emptyValues();
+		_oldCustomEmptyValues = col->emptyValues().emptyStrings();
 		_newCustomEmptyValues.clear();
 		for (const QString& val : customEmptyValues)
 			_newCustomEmptyValues.insert(fq(val));
