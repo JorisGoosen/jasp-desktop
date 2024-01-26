@@ -113,22 +113,6 @@ void Engine::initialize()
 		Log::log() << "rbridge_init completed" << std::endl;
 	
 		sendEngineLoadingData();
-
-		//Is there maybe already some data? Like, if we just killed and restarted the engine
-		std::vector<std::string> columns;
-                if(provideAndUpdateDataSet())
-		{
-                    columns = provideAndUpdateDataSet()->getColumnNames();
-			Log::log() << "There is a dataset and got " << columns.size() << " columns in it, loading them into encoder now." << std::endl;
-		}
-		else
-			Log::log() << "No dataset available so resetting columnnames in encoder." << std::endl;
-
-                ColumnEncoder::columnEncoder()->setCurrentColumnNames(provideAndUpdateDataSet() == nullptr ? std::vector<std::string>({}) : provideAndUpdateDataSet()->getColumnNames());
-
-
-
-		Log::log() << "Engine::initialize() done" << std::endl;
 	}
 	catch(std::exception & e)
 	{

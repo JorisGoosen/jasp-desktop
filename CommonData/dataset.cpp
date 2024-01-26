@@ -411,19 +411,25 @@ void DataSet::loadOldComputedColumnsJson(const Json::Value &json)
 
 void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 {
-	
-	if (!emptyValues.isMember("workspaceEmptyValues"))
+	try
 	{
-		// For backward compatibility we take the default ones if the workspaceEmptyValues are not specified
-		Json::Value updatedEmptyValues = emptyValues;
-		Json::Value emptyValuesJson(Json::arrayValue);
-		for (const std::string& val : _defaultEmptyvalues)
-			emptyValuesJson.append(val);
-		updatedEmptyValues["workspaceEmptyValues"] = emptyValuesJson;
-		_emptyValues.fromJson(updatedEmptyValues);
+		if (!emptyValues.isMember("workspaceEmptyValues"))
+		{
+			// For backward compatibility we take the default ones if the workspaceEmptyValues are not specified
+			Json::Value updatedEmptyValues = emptyValues;
+			Json::Value emptyValuesJson(Json::arrayValue);
+			for (const std::string& val : _defaultEmptyvalues)
+				emptyValuesJson.append(val);
+			updatedEmptyValues["workspaceEmptyValues"] = emptyValuesJson;
+			_emptyValues.fromJson(updatedEmptyValues);
+		}
+		else
+			_emptyValues.fromJson(emptyValues);
 	}
-	else
-		_emptyValues.fromJson(emptyValues);
+	catch(std::exception & e)
+	{
+		Log::log() << "DataSet::setEmptyValuesJson got exception: " << e.what() << std::endl;
+	}
 
 	if (updateDB)
 		dbUpdate();
