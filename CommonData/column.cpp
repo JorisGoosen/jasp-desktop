@@ -1653,11 +1653,12 @@ std::string Column::_getLabelDisplayStringByValue(int key) const
 {
 	if (key == std::numeric_limits<int>::lowest())
         return EmptyValues::displayString();
-
-	if(_labelByValueMap.count(key))
-		return _labelByValueMap.at(key)->label(true);
-
-	return std::to_string(key);
+	
+	const std::string label = ! _labelByValueMap.count(key)
+								  ? std::to_string(key)
+								  : _labelByValueMap.at(key)->label(true);
+	
+	return isEmptyValue(label) ? EmptyValues::displayString() : label;
 }
 
 DatabaseInterface & Column::db()

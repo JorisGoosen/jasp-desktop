@@ -51,8 +51,9 @@ const doubleset & EmptyValues::emptyDoubles() const
 
 void EmptyValues::setEmptyValues(const stringset& values)
 {
-	_emptyStrings = values;
-	_emptyDoubles = ColumnUtils::getDoubleValues(values);
+	_emptyStrings	= values;
+	_emptyDoubles	= ColumnUtils::getDoubleValues(values);
+	_hasEmptyValues	= true;
 }
 
 bool EmptyValues::hasEmptyValues() const
@@ -82,5 +83,5 @@ bool EmptyValues::isEmptyValue(const std::string& val) const
 
 bool EmptyValues::isEmptyValue(const double val) const
 {
-	return hasEmptyValues() ? _emptyDoubles.count(val) : ( _parent && _parent->isEmptyValue(val));
+	return hasEmptyValues() ? std::isnan(val) || _emptyDoubles.count(val) : ( _parent && _parent->isEmptyValue(val));
 }

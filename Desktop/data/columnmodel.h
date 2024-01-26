@@ -72,8 +72,8 @@ public:
 	Q_INVOKABLE void resetFilterAllows();
 	Q_INVOKABLE void unselectAll();
 	Q_INVOKABLE bool setChecked(int rowIndex, bool checked);
-	Q_INVOKABLE void addEmptyValue(QString value);
-	Q_INVOKABLE void removeEmptyValue(QString value);
+	Q_INVOKABLE void addEmptyValue(		const QString & value);
+	Q_INVOKABLE void removeEmptyValue(	const QString & value);
 	Q_INVOKABLE void resetEmptyValues();
 	Q_INVOKABLE void setLabel(int rowIndex, QString label);
 	Q_INVOKABLE void undo()				{ _undoStack->undo(); }

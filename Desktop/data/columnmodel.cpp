@@ -174,14 +174,14 @@ void ColumnModel::setCustomEmptyValues(const QStringList& customEmptyValues)
 	_undoStack->pushCommand(new SetCustomEmptyValuesCommand(this, customEmptyValues));
 }
 
-void ColumnModel::addEmptyValue(QString value)
+void ColumnModel::addEmptyValue(const QString & value)
 {
 	QStringList values = emptyValues();
 	values.push_back(value);
 	setCustomEmptyValues(values);
 }
 
-void ColumnModel::removeEmptyValue(QString value)
+void ColumnModel::removeEmptyValue(const QString & value)
 {
 	QStringList values = emptyValues();
 	values.removeAll(value);
