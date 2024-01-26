@@ -4,7 +4,7 @@
 #include "jsonutilities.h"
 
 std::string		EmptyValues::_displayString			= "";
-const int		EmptyValues::missingValueInteger	= std::numeric_limits<int>::lowest();
+const int		EmptyValues::missingValueInteger	= EmptyValues::missingValueInteger;
 const double	EmptyValues::missingValueDouble		= NAN;
 
 EmptyValues::EmptyValues(EmptyValues * parent) : _parent(parent)

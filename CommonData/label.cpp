@@ -8,7 +8,7 @@
 Label::Label(Column * column)
 : DataSetBaseNode(dataSetBaseNodeType::label, column), _column(column)
 {
-	_value = std::numeric_limits<int>::lowest();
+	_value = EmptyValues::missingValueInteger;
 }
 
 Label::Label(Column * column, int value)
@@ -180,8 +180,18 @@ Label &Label::operator=(const Label &label)
 	this->_id				= label._id;
 
 	//this->_column			= label._column; // ???
-
+	
 	return *this;
+}
+
+std::string Label::labelDisplay() const
+{
+	return isEmptyValue() ? EmptyValues::displayString() : label(true);
+}
+
+bool Label::isEmptyValue() const
+{
+	return _column->isEmptyValue(_label);
 }
 
 std::string Label::originalValueAsString(bool fancyEmptyValue) const

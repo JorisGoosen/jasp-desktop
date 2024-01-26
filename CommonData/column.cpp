@@ -348,7 +348,7 @@ columnTypeChangeResult Column::_changeColumnToNominalOrOrdinal(enum columnType n
 
 		for (int key : ints())
 		{
-			int intValue = std::numeric_limits<int>::lowest();
+			int intValue = EmptyValues::missingValueInteger;
 
 			if (labelByValue(key))
 			{
@@ -360,7 +360,7 @@ columnTypeChangeResult Column::_changeColumnToNominalOrOrdinal(enum columnType n
 
 			values.push_back(intValue);
 
-			if (intValue != std::numeric_limits<int>::lowest() && !intLabels.count(intValue))
+			if (intValue != EmptyValues::missingValueInteger && !intLabels.count(intValue))
 					intLabels.insert(make_pair(intValue, _getLabelDisplayStringByValue(key)));
 		}
 
@@ -381,7 +381,7 @@ columnTypeChangeResult Column::_changeColumnToNominalOrOrdinal(enum columnType n
 
 		for (double doubleValue : dbls())
 		{
-			int intValue = std::numeric_limits<int>::lowest();
+			int intValue = EmptyValues::missingValueInteger;
 
 			if (!isEmptyValue(doubleValue) && !ColumnUtils::getIntValue(doubleValue, intValue))
 				break;
@@ -557,8 +557,8 @@ void Column::setDefaultValues(enum columnType columnType)
 	switch(columnType)
 	{
 	case columnType::scale:			setAsScale(				std::vector<double>(		rowCount(),		static_cast<double>(std::nanf(""))));			break;
-	case columnType::ordinal:		setAsNominalOrOrdinal(	std::vector<int>(			rowCount(),		std::numeric_limits<int>::lowest()), true);		break;
-	case columnType::nominal:		setAsNominalOrOrdinal(	std::vector<int>(			rowCount(),		std::numeric_limits<int>::lowest()), false);	break;
+	case columnType::ordinal:		setAsNominalOrOrdinal(	std::vector<int>(			rowCount(),		EmptyValues::missingValueInteger), true);		break;
+	case columnType::nominal:		setAsNominalOrOrdinal(	std::vector<int>(			rowCount(),		EmptyValues::missingValueInteger), false);	break;
 	case columnType::nominalText:	setAsNominalText(		std::vector<std::string>(	rowCount()),	{});											break;
 	case columnType::unknown:		throw std::runtime_error("Trying to set default values of a column with unknown column type...");
 	}
@@ -617,7 +617,7 @@ bool Column::setAsNominalOrOrdinal(const intvec & values, bool is_ordinal)
 	JASPTIMER_SCOPE(Column::setAsNominalOrOrdinal);
 
 	std::set<int> uniqueValues(values.begin(), values.end());
-	uniqueValues.erase(std::numeric_limits<int>::lowest());
+	uniqueValues.erase(EmptyValues::missingValueInteger);
 
 	bool labelChanged	= labelsSyncInts(uniqueValues);
 	bool dataChanged	= _setAsNominalOrOrdinal(values, is_ordinal);
@@ -630,7 +630,7 @@ bool Column::setAsNominalOrOrdinal(const intvec &values, intstrmap uniqueValues,
 	JASPTIMER_SCOPE(Column::setAsNominalOrOrdinal);
 
 	std::set<int> uniqueValuesData(values.begin(), values.end());
-	uniqueValuesData.erase(std::numeric_limits<int>::lowest());
+	uniqueValuesData.erase(EmptyValues::missingValueInteger);
 
 	std::stringstream labelsMissing;
 	int cnt = 0;
@@ -678,7 +678,7 @@ bool Column::overwriteDataWithOrdinal(intvec ordinalData, intstrmap levels)
 		ordinalData.resize(_data->rowCount());
 
 	for(size_t setThis = setVals; setThis<ordinalData.size(); setThis++)
-		ordinalData[setThis] = std::numeric_limits<int>::lowest();
+		ordinalData[setThis] = EmptyValues::missingValueInteger;
 
 	return setAsNominalOrOrdinal(ordinalData, levels, true);
 }
@@ -693,7 +693,7 @@ bool Column::overwriteDataWithOrdinal(intvec ordinalData)
 		ordinalData.resize(_data->rowCount());
 
 	for(size_t setThis = setVals; setThis<ordinalData.size(); setThis++)
-		ordinalData[setThis] = std::numeric_limits<int>::lowest();
+		ordinalData[setThis] = EmptyValues::missingValueInteger;
 
 	return setAsNominalOrOrdinal(ordinalData, true);
 }
@@ -708,7 +708,7 @@ bool Column::overwriteDataWithNominal(intvec nominalData, intstrmap levels)
 		nominalData.resize(_data->rowCount());
 
 	for(size_t setThis = setVals; setThis<nominalData.size(); setThis++)
-		nominalData[setThis] = std::numeric_limits<int>::lowest();
+		nominalData[setThis] = EmptyValues::missingValueInteger;
 
 	return setAsNominalOrOrdinal(nominalData, levels, false);
 }
@@ -723,7 +723,7 @@ bool Column::overwriteDataWithNominal(intvec nominalData)
 		nominalData.resize(_data->rowCount());
 
 	for(size_t setThis = setVals; setThis<nominalData.size(); setThis++)
-		nominalData[setThis] = std::numeric_limits<int>::lowest();
+		nominalData[setThis] = EmptyValues::missingValueInteger;
 
 	return setAsNominalOrOrdinal(nominalData, false);
 }
@@ -768,7 +768,7 @@ bool Column::_setAsNominalOrOrdinal(const intvec &values, bool is_ordinal)
 		}
 
 		for (; i < _ints.size(); i++)
-			_ints[i] = std::numeric_limits<int>::lowest();
+			_ints[i] = EmptyValues::missingValueInteger;
 	}
 
 	_dbls.clear(); //We can load them later if needed
@@ -852,7 +852,7 @@ bool Column::setAsNominalText(const stringvec &values, const strstrmap & labels,
 	}
 	
 	for (size_t i = values.size(); i < _ints.size(); i++)
-		_ints[i] = std::numeric_limits<int>::lowest();
+		_ints[i] = EmptyValues::missingValueInteger;
 
 	_dbls.clear(); //We can load them later if needed
 
@@ -916,7 +916,7 @@ int Column::labelsAdd(int display)
 int Column::labelsAdd(const std::string &display)
 {
 	if(display == "")
-		return std::numeric_limits<int>::lowest();
+		return EmptyValues::missingValueInteger;
 
 	int newValue = 0;
 	for(Label * label : _labels)
@@ -1185,8 +1185,8 @@ bool Column::isValueEqual(size_t row, int value) const
 		return (intValue == value);
 
 	//So we are in a nominalText column
-	if (intValue == std::numeric_limits<int>::lowest())
-		return value == std::numeric_limits<int>::lowest();
+	if (intValue == EmptyValues::missingValueInteger)
+		return value == EmptyValues::missingValueInteger;
 
 	if (row < _labels.size())
 	{
@@ -1212,7 +1212,7 @@ bool Column::isValueEqual(size_t row, const std::string &value) const
 		case columnType::nominal:
 		case columnType::ordinal:	return std::to_string(_ints[row]) == value;
 		default:
-			return	_ints[row] == std::numeric_limits<int>::lowest()
+			return	_ints[row] == EmptyValues::missingValueInteger
 					? isEmptyValue(value)
 					: value == getValue(row);
 	}
@@ -1235,7 +1235,7 @@ std::string Column::getValue(size_t row, bool fancyEmptyValue) const
 		if (_type == columnType::scale)
 			return doubleToDisplayString(_dbls[row], fancyEmptyValue);
 
-		else if (_ints[row] != std::numeric_limits<int>::lowest())
+		else if (_ints[row] != EmptyValues::missingValueInteger)
 		{
 			Label * label = labelByValue(_ints[row]);
 
@@ -1249,7 +1249,7 @@ std::string Column::getValue(size_t row, bool fancyEmptyValue) const
 
 Label * Column::labelByRow(int row) const
 {
-	if (row < rowCount() && _type != columnType::scale && _ints[row] != std::numeric_limits<int>::lowest())
+	if (row < rowCount() && _type != columnType::scale && _ints[row] != EmptyValues::missingValueInteger)
 			return labelByValue(_ints[row]);
 
 	return nullptr;
@@ -1268,11 +1268,11 @@ bool Column::convertVecToInt(const stringvec &values, intvec & intValues, intset
 
 	for (const std::string &value : values)
 	{
-			int intValue = std::numeric_limits<int>::lowest();
+			int intValue = EmptyValues::missingValueInteger;
 
 			if (convertValueToIntForImport(value, intValue))
 			{
-				if (intValue != std::numeric_limits<int>::lowest())
+				if (intValue != EmptyValues::missingValueInteger)
 					uniqueValues.insert(intValue);
 
 				intValues.push_back(intValue);
@@ -1321,7 +1321,7 @@ bool Column::convertValueToIntForImport(const std::string &strValue, int &intVal
 
 	/*if(isEmptyValue(strValue))
 	{
-			intValue = std::numeric_limits<int>::lowest();
+			intValue = EmptyValues::missingValueInteger;
 			return true;
 	}*/
 
@@ -1353,7 +1353,7 @@ bool Column::setStringValueToRowIfItFits(size_t row, const std::string & value, 
 
 	if(convertedSuccesfully && _type != columnType::nominalText)
 	{
-		if(_type == columnType::scale ? setValue(row, NAN) : setValue(row, std::numeric_limits<int>::lowest()))
+		if(_type == columnType::scale ? setValue(row, NAN) : setValue(row, EmptyValues::missingValueInteger))
 			changed = true;
 	}
 	else
@@ -1557,7 +1557,7 @@ void Column::setValues(const doublevec & values)
 void Column::rowInsertEmptyVal(size_t row)
 {
 	if(type() == columnType::scale)	_dbls.insert(_dbls.begin() + row, NAN);
-	else							_ints.insert(_ints.begin() + row, std::numeric_limits<int>::lowest());
+	else							_ints.insert(_ints.begin() + row, EmptyValues::missingValueInteger);
 }
 
 void Column::rowDelete(size_t row)
@@ -1651,14 +1651,13 @@ std::string Column::operator[](size_t row)
 
 std::string Column::_getLabelDisplayStringByValue(int key) const
 {
-	if (key == std::numeric_limits<int>::lowest())
+	if (key == EmptyValues::missingValueInteger)
         return EmptyValues::displayString();
-	
-	const std::string label = ! _labelByValueMap.count(key)
-								  ? std::to_string(key)
-								  : _labelByValueMap.at(key)->label(true);
-	
-	return isEmptyValue(label) ? EmptyValues::displayString() : label;
+
+	if(_labelByValueMap.count(key))
+		return _labelByValueMap.at(key)->labelDisplay();
+
+	return std::to_string(key);
 }
 
 DatabaseInterface & Column::db()

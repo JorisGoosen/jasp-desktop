@@ -924,7 +924,7 @@ bool Engine::setColumnDataAsNominalOrOrdinal(bool isOrdinal, const std::string &
 	if(uniqueInts.size() == levels.size()) //everything was an int!
 	{
 		for(auto & dat : data)
-			if(dat != std::numeric_limits<int>::lowest())
+			if(dat != EmptyValues::missingValueInteger)
 				dat = uniqueInts[dat];
 
                 if(isOrdinal)	return	provideAndUpdateDataSet()->column(columnName)->overwriteDataWithOrdinal(data);

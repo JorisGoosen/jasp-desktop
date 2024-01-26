@@ -185,7 +185,7 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 			{
 				int value = *reinterpret_cast<int*>(buff);
 
-				if (columnType == columnType::nominalText && value != std::numeric_limits<int>::lowest())
+				if (columnType == columnType::nominalText && value != EmptyValues::missingValueInteger)
 					value = mapValues[value];
 
 				ints[r] = value;

@@ -586,7 +586,7 @@ void DatabaseInterface::dataSetBatchedValuesLoad(DataSet *data, std::function<vo
 			if(!sqlite3_column_text(	stmt, colI)) //If string is NULL then column value is NULL, so empty!
 			{
 				if(col->type() == columnType::scale)	col->setValue(row, NAN,									false);
-				else									col->setValue(row, std::numeric_limits<int>::lowest(),	false);
+				else									col->setValue(row, EmptyValues::missingValueInteger,	false);
 			}
 			else
 			{

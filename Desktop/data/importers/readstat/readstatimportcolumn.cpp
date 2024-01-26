@@ -437,6 +437,16 @@ void ReadStatImportColumn::addLabel(const std::string & val, const std::string &
 	_strLabels[val] = label;
 }
 
+bool ReadStatImportColumn::isMissingValue(double d)
+{
+	return isnan(d);
+}
+
+bool ReadStatImportColumn::isMissingValue(int i)
+{
+	return i == EmptyValues::missingValueInteger;
+}
+
 void ReadStatImportColumn::addMissingValue()
 {
 	switch(_type)
@@ -453,6 +463,9 @@ bool ReadStatImportColumn::isMissingValue(std::string s)
 {
 	return s == missingValueString();
 }
+
+int ReadStatImportColumn::missingValueInt()				{ return EmptyValues::missingValueInteger;		}
+double ReadStatImportColumn::missingValueDouble()		{ return EmptyValues::missingValueDouble; }
 
 std::string  ReadStatImportColumn::missingValueString()
 {

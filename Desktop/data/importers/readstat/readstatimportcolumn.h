@@ -35,13 +35,13 @@ public:
 	void						addLabel(const double			& val,	const std::string & label);
 	void						addLabel(const std::string		& val,	const std::string & label);
 
-	static bool						isMissingValue(double d)		{ return isnan(d);				}
-	static bool						isMissingValue(int i)			{ return i == std::numeric_limits<int>::lowest();	}
-	static bool						isMissingValue(std::string s);
+	static bool					isMissingValue(double d);
+	static bool					isMissingValue(int i);
+	static bool					isMissingValue(std::string s);
 
-	static int							missingValueInt()			{ return std::numeric_limits<int>::lowest();		}
-	static double						missingValueDouble()		{ return NAN; }
-	static std::string					missingValueString();
+	static int					missingValueInt();
+	static double				missingValueDouble();
+	static std::string			missingValueString();
 
 	void						addMissingValue();
 	void						addLeadingMissingValues();

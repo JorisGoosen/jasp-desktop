@@ -1802,7 +1802,7 @@ void DataSetPackage::setColumnDataInts(size_t columnIndex, const intvec & ints)
 	for(int value : ints)
 	{
 		//Maybe something went wrong somewhere and we do not have labels for all values...
-		if (value != std::numeric_limits<int>::lowest() && !col->labelByValue(value))
+		if (value != EmptyValues::missingValueInteger && !col->labelByValue(value))
 		{
 			Log::log() << "Value '" << value << "' in column '" << col->name() << "' did not have a corresponding label, adding one now.\n";
 			col->labelsAdd(value, std::to_string(value), true, "", value);

@@ -8,6 +8,7 @@
 #endif
 #include <codecvt>
 #include <regex>
+#include "emptyvalues.h"
 
 using namespace std;
 using namespace boost::posix_time;
@@ -47,7 +48,7 @@ bool ColumnUtils::getIntValue(const double &value, int &intValue)
 
 		if (modf(value, &intPart) == 0.0)
 		{
-			if (intPart <=  std::numeric_limits<int>::max() && intPart >= std::numeric_limits<int>::lowest())
+			if (intPart <=  std::numeric_limits<int>::max() && intPart >= EmptyValues::missingValueInteger)
 			{
 				intValue = int(intPart);
 				return true;
