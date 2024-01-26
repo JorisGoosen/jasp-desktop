@@ -71,13 +71,13 @@ bool ColumnUtils::getDoubleValue(const string &value, double &doubleValue)
 	return false;
 }
 
-doubleset ColumnUtils::getDoubleValues(const stringset & values)
+doubleset ColumnUtils::getDoubleValues(const stringset & values, bool stripNAN)
 {
 	doubleset result;
 	for (const std::string & val : values)
 	{
 		double doubleValue;
-		if (getDoubleValue(val, doubleValue))
+		if (getDoubleValue(val, doubleValue) && !std::isnan(doubleValue))
 			result.insert(doubleValue);
 	}
 

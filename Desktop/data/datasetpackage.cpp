@@ -1771,10 +1771,10 @@ void DataSetPackage::setColumnHasCustomEmptyValues(size_t columnIndex, bool hasC
 	Column* column = _dataSet->column(columnIndex);
 	if (!column || column->hasCustomEmptyValues() == hasCustomEmptyValue)
 		return;
-
+	
+	beginResetModel();
 	column->setHasCustomEmptyValues(hasCustomEmptyValue);
-
-	emit dataChanged(index(0, columnIndex), index(rowCount() - 1, columnIndex));
+	endResetModel();
 }
 
 void DataSetPackage::setColumnCustomEmptyValues(size_t columnIndex, const stringset& customEmptyValues)
@@ -1785,7 +1785,10 @@ void DataSetPackage::setColumnCustomEmptyValues(size_t columnIndex, const string
 	Column* column = _dataSet->column(columnIndex);
 	
 	if(column && column->setCustomEmptyValues(customEmptyValues))
-		emit dataChanged(index(0, columnIndex), index(rowCount() - 1, columnIndex));
+	{
+		beginResetModel();
+		endResetModel();
+	}
 }
 
 void DataSetPackage::setColumnDataInts(size_t columnIndex, const intvec & ints)

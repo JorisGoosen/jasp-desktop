@@ -19,13 +19,13 @@ public:
             bool				isEmptyValue(double				data)           	const;
 			
 	const	stringset		&	emptyStrings()										const;
-	const	doubleset		&	doubleEmptyValues()									const;
-			bool				hasCustomEmptyValues()								const;
-            void				setEmptyValues(			const stringset	& values);
-			void				setHasCustomEmptyValues(bool hasCustom);
+			const	doubleset		&	emptyDoubles()									const;
+			bool				hasEmptyValues()									const;
+			void				setHasCustomEmptyValues(bool hasThem);
+		    void				setEmptyValues(const stringset	& values);
 			
-			static	void		setDisplayString(const std::string & str) { _displayString = str;}
-	static	std::string		&	displayString() { return _displayString; }
+			static	void		setDisplayString(const std::string & str)	{ _displayString = str;}
+	static	std::string		&	displayString()								{ return _displayString; }
 
 	static	const int			missingValueInteger;
 	static	const double		missingValueDouble;
@@ -38,7 +38,7 @@ private:
 			EmptyValues		*	_parent					= nullptr;
 			stringset			_emptyStrings;
 			doubleset			_emptyDoubles;
-			bool				_hasCustomEmptyValues	= false; ///< Only used by EmptyValues with a parent
+			bool				_hasEmptyValues			= false;
 };
 
 #endif // EMPTYVALUES_H

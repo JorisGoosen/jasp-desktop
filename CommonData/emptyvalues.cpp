@@ -16,7 +16,6 @@ void EmptyValues::resetEmptyValues()
 {
 	_emptyStrings.clear();
 	_emptyDoubles.clear();
-	_hasCustomEmptyValues = false;
 }
 
 EmptyValues::~EmptyValues()
@@ -45,7 +44,7 @@ const stringset& EmptyValues::emptyStrings() const
 	return _emptyStrings;
 }
 
-const doubleset & EmptyValues::doubleEmptyValues() const
+const doubleset & EmptyValues::emptyDoubles() const
 {
     return _emptyDoubles;
 }
@@ -54,30 +53,34 @@ void EmptyValues::setEmptyValues(const stringset& values)
 {
 	_emptyStrings = values;
 	_emptyDoubles = ColumnUtils::getDoubleValues(values);
-	
-	if(_parent)
-		_hasCustomEmptyValues = true;
 }
 
-
-bool EmptyValues::hasCustomEmptyValues() const
+bool EmptyValues::hasEmptyValues() const
 {
-	return !_parent || _hasCustomEmptyValues;
+	return !_parent || _hasEmptyValues;
 }
 
-
-void EmptyValues::setHasCustomEmptyValues(bool hasCustom)
+void EmptyValues::setHasCustomEmptyValues(bool hasThem)
 {
-	_hasCustomEmptyValues = hasCustom;
+	if(!hasThem || !_parent)
+	{
+		resetEmptyValues();
+		_hasEmptyValues = false;
+	}
+	else if(_parent)
+	{
+		_emptyStrings	= _parent->emptyStrings();
+		_emptyDoubles	= _parent->emptyDoubles();
+		_hasEmptyValues = true;
+	}
 }
-
 
 bool EmptyValues::isEmptyValue(const std::string& val) const
 {
-	return _emptyStrings.count(val) || ( _parent && _parent->isEmptyValue(val));
+	return hasEmptyValues() ? _emptyStrings.count(val) : ( _parent && _parent->isEmptyValue(val));
 }
 
 bool EmptyValues::isEmptyValue(const double val) const
 {
-	return _emptyDoubles.count(val) || ( _parent && _parent->isEmptyValue(val));
+	return hasEmptyValues() ? _emptyDoubles.count(val) : ( _parent && _parent->isEmptyValue(val));
 }

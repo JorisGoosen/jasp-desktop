@@ -144,7 +144,7 @@ void Column::setType(columnType colType)
 
 bool Column::hasCustomEmptyValues() const
 {
-	return _emptyValues.hasCustomEmptyValues();
+	return _emptyValues.hasEmptyValues();
 }
 
 void Column::setHasCustomEmptyValues(bool hasCustom)
@@ -162,8 +162,8 @@ void Column::setHasCustomEmptyValues(bool hasCustom)
 bool Column::setCustomEmptyValues(const stringset& customEmptyValues)
 {
 	JASPTIMER_SCOPE(Column::setCustomEmptyValues);
-
-	if (_emptyValues.hasCustomEmptyValues() && _emptyValues.emptyStrings() == customEmptyValues)
+	
+	if (_emptyValues.hasEmptyValues() && _emptyValues.emptyStrings() == customEmptyValues)
 		return false;
 
 	_emptyValues.setEmptyValues(customEmptyValues);
