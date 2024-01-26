@@ -5,9 +5,17 @@
 #include "jsonutilities.h"
 #include "databaseinterface.h"
 
-Column::Column(DataSet * data, int id) 
-    : DataSetBaseNode(dataSetBaseNodeType::column, data->dataNode()), _data(data), _id(id), _emptyValues(data->emptyValues())
+Column::Column(DataSet * data, int id)
+	: DataSetBaseNode(dataSetBaseNodeType::column, data->dataNode()),
+	_data(data),
+	_id(id),
+	_emptyValues(new EmptyValues(data->emptyValues()))
 {}
+
+Column::~Column()
+{
+	delete _emptyValues;
+}
 
 void Column::dbCreate(int index)
 {
@@ -32,8 +40,8 @@ void Column::dbLoad(int id, bool getValues)
 	
 	db().columnGetBasicInfo(	_id, _name, _title, _description, _type, _revision, emptyVals);
 	db().columnGetComputedInfo(	_id, _analysisId, _invalidated, _codeType, _rCode, _error, _constructorJson);
-
-	_emptyValues.fromJson(emptyVals);
+	
+	_emptyValues->fromJson(emptyVals);
 
 	db().labelsLoad(this);
 	
@@ -144,7 +152,7 @@ void Column::setType(columnType colType)
 
 bool Column::hasCustomEmptyValues() const
 {
-	return _emptyValues.hasEmptyValues();
+	return _emptyValues->hasEmptyValues();
 }
 
 void Column::setHasCustomEmptyValues(bool hasCustom)
@@ -154,7 +162,7 @@ void Column::setHasCustomEmptyValues(bool hasCustom)
 	if(hasCustomEmptyValues() == hasCustom)
 		return;
 	
-	_emptyValues.setHasCustomEmptyValues(hasCustom);
+	_emptyValues->setHasCustomEmptyValues(hasCustom);
 	
 	incRevision();
 }
@@ -163,10 +171,10 @@ bool Column::setCustomEmptyValues(const stringset& customEmptyValues)
 {
 	JASPTIMER_SCOPE(Column::setCustomEmptyValues);
 	
-	if (_emptyValues.hasEmptyValues() && _emptyValues.emptyStrings() == customEmptyValues)
+	if (_emptyValues->hasEmptyValues() && _emptyValues->emptyStrings() == customEmptyValues)
 		return false;
 
-	_emptyValues.setEmptyValues(customEmptyValues);
+	_emptyValues->setEmptyValues(customEmptyValues);
 	
 	incRevision();
 	
@@ -1837,7 +1845,7 @@ Json::Value Column::serialize() const
 	for (int i : _ints)
 		jsonInts.append(i);
 
-	json["customEmptyValues"]	= _emptyValues.toJson();
+	json["customEmptyValues"]	= _emptyValues->toJson();
 
 	json["labels"]				= jsonLabels;
 	json["dbls"]				= jsonDbls;
@@ -1905,7 +1913,7 @@ void Column::deserialize(const Json::Value &json)
 			labelsAdd(labelJson["value"].asInt(), labelJson["label"].asString(), labelJson["filterAllows"].asBool(), labelJson["description"].asString(), labelJson["originalValue"].asString(), labelJson["order"].asInt(), -1);
 	}
 
-	_emptyValues.fromJson(json["customEmptyValues"]);
+	_emptyValues->fromJson(json["customEmptyValues"]);
 
 	incRevision();
 }
@@ -1951,11 +1959,11 @@ bool Column::isComputedByAnalysis(size_t analysisID)
 
 bool Column::isEmptyValue(const std::string& val) const
 {
-	return _emptyValues.isEmptyValue(val);
+	return _emptyValues->isEmptyValue(val);
 }
 
 bool Column::isEmptyValue(const double val) const
 {
-	return _emptyValues.isEmptyValue(val);
+	return _emptyValues->isEmptyValue(val);
 }
 

@@ -7,7 +7,7 @@
 class EmptyValues
 {
 public:
-								EmptyValues(EmptyValues * parent = nullptr);
+	explicit					EmptyValues(EmptyValues * parent = nullptr);
 								~EmptyValues();
 								
 			void				resetEmptyValues();
@@ -19,7 +19,7 @@ public:
             bool				isEmptyValue(double				data)           	const;
 			
 	const	stringset		&	emptyStrings()										const;
-			const	doubleset		&	emptyDoubles()									const;
+	const	doubleset		&	emptyDoubles()										const;
 			bool				hasEmptyValues()									const;
 			void				setHasCustomEmptyValues(bool hasThem);
 		    void				setEmptyValues(const stringset	& values);

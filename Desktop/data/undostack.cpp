@@ -659,7 +659,7 @@ SetCustomEmptyValuesCommand::SetCustomEmptyValuesCommand(QAbstractItemModel *mod
 		Column* col = columnModel->column();
 		_colId = columnModel->chosenColumn();
 		std::string colName = col->name();
-		_oldCustomEmptyValues = col->emptyValues().emptyStrings();
+		_oldCustomEmptyValues = col->emptyValues()->emptyStrings();
 		_newCustomEmptyValues.clear();
 		for (const QString& val : customEmptyValues)
 			_newCustomEmptyValues.insert(fq(val));

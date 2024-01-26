@@ -26,6 +26,7 @@ class Column : public DataSetBaseNode
 {
 public:
 									Column(DataSet * data, int id = -1);
+									~Column();
 									
 				DatabaseInterface & db();
 		const	DatabaseInterface & db() const;
@@ -53,7 +54,7 @@ public:
 			void					setDefaultValues(enum columnType columnType = columnType::unknown);
 
 			bool					initAsScale(			size_t colNo, std::string newName, const doublevec	& values);
-			bool				initAsNominalText(		size_t colNo, std::string newName, const stringvec	& values, const strstrmap & labels);
+			bool					initAsNominalText(		size_t colNo, std::string newName, const stringvec	& values, const strstrmap & labels);
 			bool					initAsNominalOrOrdinal(	size_t colNo, std::string newName, const intvec		& values,									bool is_ordinal = false);
 			bool					initAsNominalOrOrdinal(	size_t colNo, std::string newName, const intvec		& values, const intstrmap &uniqueValues,	bool is_ordinal = false);
 
@@ -166,7 +167,7 @@ public:
 			std::string				getUniqueName(const std::string& name)									const;
 			std::string				doubleToDisplayString(	double dbl, bool fancyEmptyValue = true)		const; ///< fancyEmptyValue is the user-settable empty value label, for saving to csv this might be less practical though, so turn it off
 			bool					hasCustomEmptyValues()													const;
-	const   EmptyValues    		&	emptyValues()															const { return _emptyValues; }
+	const   EmptyValues    		*	emptyValues()															const { return _emptyValues; }
 			void					setHasCustomEmptyValues(		bool hasCustom);
 			bool					setCustomEmptyValues(			const stringset		& customEmptyValues); ///<returns whether there was a change
 			
@@ -185,13 +186,12 @@ protected:
 			std::string				_getLabelDisplayStringByValue(int key) const;
 			columnTypeChangeResult	_changeColumnToNominalOrOrdinal(enum columnType newColumnType);
 			columnTypeChangeResult	_changeColumnToScale();
-			
 			void					_convertVectorIntToDouble(intvec & intValues, doublevec & doubleValues);
-			
 			void					_resetLabelValueMap();
 
 private:
 			DataSet		*			_data				= nullptr;
+			EmptyValues	*			_emptyValues		= nullptr;			
 			Labels					_labels;
 			columnType				_type				= columnType::unknown,
 									_preEditType		= columnType::unknown;
@@ -210,7 +210,7 @@ private:
 			intvec					_ints;
 			stringset				_dependsOnColumns;
 			std::map<int, Label*>	_labelByValueMap;
-			EmptyValues				_emptyValues;			
+			
 };
 
 #endif // COLUMN_H

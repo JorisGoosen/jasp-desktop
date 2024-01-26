@@ -18,7 +18,8 @@ public:
 	
 			Filter		*	filter()						{ return	_filter;	}
 			Columns		&	columns()			const		{ return	const_cast<Columns&>(_columns);	}
-    const	EmptyValues &	emptyValues()       const		{ return	_emptyValues; }
+    const	EmptyValues *	emptyValues()       const		{ return	_emptyValues; }
+			EmptyValues *	emptyValues()					{ return	_emptyValues; }
 
 			Column		*	column(		const std::string & name);
 			Column		*	column(		size_t				columnIndex);
@@ -77,7 +78,7 @@ public:
 			DataSetBaseNode		 *	filtersNode()	const { return _filtersNode; }
 
 			void					setEmptyValuesJson(			const Json::Value & emptyValues, bool updateDB = true);
-	const	stringset			&	workspaceEmptyValues()															const	{ return _emptyValues.emptyStrings();								}
+	const	stringset			&	workspaceEmptyValues()															const	{ return _emptyValues->emptyStrings();								}
 			void					setWorkspaceEmptyValues(	const stringset& values);
 	const	std::string			&	description()																	const	{ return _description; }
 			void					setDescription(				const std::string& desc);
@@ -87,11 +88,12 @@ private:
 							*	_filtersNode			= nullptr;
 	Columns						_columns;
 	Filter					*	_filter					= nullptr;
+	EmptyValues				*	_emptyValues			= nullptr;
 	int							_dataSetID				= -1,
 								_rowCount				= -1;
 	std::string					_dataFilePath,
 								_databaseJson;
-	EmptyValues					_emptyValues;
+	
 	bool						_writeBatchedToDB		= false,
 								_dataFileSynch			= false;
 	static stringset			_defaultEmptyvalues;	// Default empty values if workspace do not have its own empty values (used for backward compatibility)

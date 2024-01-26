@@ -12,6 +12,7 @@ DataSet::DataSet(int index)
 
 	_dataNode		= new DataSetBaseNode(dataSetBaseNodeType::data,	this);
 	_filtersNode	= new DataSetBaseNode(dataSetBaseNodeType::filters, this);
+	_emptyValues	= new EmptyValues();
 	
 	if(index == -1)         dbCreate();
 	else if(index > 0)		dbLoad(index);
@@ -25,12 +26,16 @@ DataSet::~DataSet()
 		delete col;
 
 	_columns.clear();
-
-	delete _dataNode;
-	_dataNode = nullptr;
 	
+	delete _emptyValues;
+	delete _dataNode;
 	delete _filter;
-	_filter = nullptr;
+	
+	_emptyValues	= nullptr;
+	_dataNode		= nullptr;
+	_filter			= nullptr;
+	
+	
 }
 
 void DataSet::dbDelete()
@@ -208,7 +213,7 @@ void DataSet::dbCreate()
 	db().transactionWriteBegin();
 
 	//The variables are probably empty though:
-	_dataSetID	= db().dataSetInsert(_dataFilePath, _description, _databaseJson, _emptyValues.toJson().toStyledString(), _dataFileSynch);
+	_dataSetID	= db().dataSetInsert(_dataFilePath, _description, _databaseJson, _emptyValues->toJson().toStyledString(), _dataFileSynch);
 	_filter = new Filter(this);
 	_filter->dbCreate();
 	_columns.clear();
@@ -221,7 +226,7 @@ void DataSet::dbCreate()
 void DataSet::dbUpdate()
 {
 	assert(_dataSetID > 0);
-	db().dataSetUpdate(_dataSetID, _description, _dataFilePath, _databaseJson, _emptyValues.toJson().toStyledString(), _dataFileSynch);
+	db().dataSetUpdate(_dataSetID, _description, _dataFilePath, _databaseJson, _emptyValues->toJson().toStyledString(), _dataFileSynch);
 	incRevision();
 }
 
@@ -421,10 +426,10 @@ void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 			for (const std::string& val : _defaultEmptyvalues)
 				emptyValuesJson.append(val);
 			updatedEmptyValues["workspaceEmptyValues"] = emptyValuesJson;
-			_emptyValues.fromJson(updatedEmptyValues);
+			_emptyValues->fromJson(updatedEmptyValues);
 		}
 		else
-			_emptyValues.fromJson(emptyValues);
+			_emptyValues->fromJson(emptyValues);
 	}
 	catch(std::exception & e)
 	{
@@ -438,7 +443,7 @@ void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 void DataSet::setWorkspaceEmptyValues(const stringset &values)
 {
 	_defaultEmptyvalues = values;
-	_emptyValues.setEmptyValues(values);
+	_emptyValues->setEmptyValues(values);
 	dbUpdate();
 }
 

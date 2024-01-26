@@ -9,7 +9,7 @@ const double	EmptyValues::missingValueDouble		= NAN;
 
 EmptyValues::EmptyValues(EmptyValues * parent) : _parent(parent)
 {
-
+	Log::log() << "EmptyValues::EmptyValues(" << (parent ? "a parent" : "null") << ");" << std::endl;
 }
 
 void EmptyValues::resetEmptyValues()
