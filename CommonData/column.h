@@ -114,6 +114,7 @@ public:
 			std::string				getDisplay(	size_t row,	bool fancyEmptyValue = true)	const;
 			std::string				getLabel(	size_t row,	bool fancyEmptyValue = false)	const;
 			stringvec				valuesAsStrings()										const;
+			stringvec				labelsAsStrings()										const;
 			stringvec				displaysAsStrings()										const;
 			stringvec				dataAsRLevels(intvec & values, const boolvec & filter, bool useLabels = true)		const; ///< values is output! If filter is of different length than the data an error is thrown, if length is zero it is ignored. useLabels indicates whether the levels will be based on the label or on the value as specified in the label editor.
 			doublevec				dataAsRDoubles(const boolvec & filter)						const; ///< If filter is of different length than the data an error is thrown, if length is zero it is ignored
@@ -182,7 +183,8 @@ public:
 			
 			
 			qsizetype				getMaximumWidthInCharacters(bool shortenAndFancyEmptyValue, bool valuesPlease);
-			
+			columnType				resetValues(int thresholdScale);
+
 protected:
 			void					_checkForDependencyLoop(stringset foundNames, std::list<std::string> loopList);
 			void					_dbUpdateLabelOrder(bool noIncRevisionWhenBatchedPlease = false);		///< Sets the order of the _labels to label.order and in DB

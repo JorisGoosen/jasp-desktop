@@ -405,7 +405,7 @@ FocusScope
 						verticalAlignment:		Text.AlignVCenter
 						horizontalAlignment:	Text.AlignRight
 						elide:					Text.ElideRight
-						visible:				itemLabel && itemText && itemText !== itemLabel
+						visible:				itemLabel !== undefined && itemText !== undefined && itemText !== itemLabel
 						width:					Math.max(0, parent.width - itemDelegateText.width)
 						anchors
 						{
@@ -555,16 +555,6 @@ FocusScope
 					return String(dataSetModel.getColumnTypesWithIcons()[type]) === "" ? "" : jaspTheme.iconPath + dataSetModel.getColumnTypesWithIcons()[type]
 				}
 
-				Connections
-				{
-					target: dataSetModel
-					function onColumnTypeChanged(colName, colType)
-					{
-						if (headerText === colName)
-							colIcon.source = getColumnTypeIcon(colType)
-					}
-				}
-
 
 				Keys.onPressed: (event) =>
 				{
@@ -598,9 +588,9 @@ FocusScope
 					anchors.margins:		4
 
 
-					source: getColumnTypeIcon(columnType)
-					width:	source == "" ? 0 : headerRoot.__iconDim
-					height: headerRoot.__iconDim
+					source:					getColumnTypeIcon(columnType)
+					width:					source == "" ? 0 : headerRoot.__iconDim
+					height:					headerRoot.__iconDim
 
 					sourceSize {	width:	width * 2
 									height:	height * 2 }
@@ -608,7 +598,7 @@ FocusScope
 
 					function setColumnType(newColumnType)
 					{
-						dataTableView.view.setColumnType(newColumnType)
+						dataTableView.view.setColumnType(columnIndex, newColumnType)
 					}
 
 
