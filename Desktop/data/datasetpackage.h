@@ -171,7 +171,6 @@ public:
 				void				setArchiveVersion(Version archiveVersion)			{ _archiveVersion				= archiveVersion;	}
 				void				setJaspVersion(Version jaspVersion)					{ _jaspVersion					= jaspVersion;		}
 				void				updateDbToCurrentVersion();							///< Should be ran immediately after loading the jasp file
-				void				integrateMissingDataMap(Json::Value & missingData);	///< This reintegrates the missing data map data into the dataset, to update from <0.19 jasp-files
 				void				setWarningMessage(std::string message)				{ _warningMessage				= message;			}
 				void				setDataFilePath(std::string filePath);
 				void				setDatabaseJson(const Json::Value & dbInfo);
