@@ -1772,9 +1772,9 @@ void DataSetPackage::setWorkspaceEmptyValues(const stringset &emptyValues, bool 
 {
 	if (!_dataSet) return;
 	
-	beginResetModel();
+	if(reset)	beginResetModel();
 	_dataSet->setWorkspaceEmptyValues(emptyValues);
-	endResetModel();
+	if(reset)	endResetModel();
 	
 	emit workspaceEmptyValuesChanged();
 }
@@ -2233,12 +2233,6 @@ QString DataSetPackage::windowTitle() const
 	folder = folder == "" ? "" : "      (" + folder + ")";
 
 	return name + (isModified() ? "*" : "") + folder;
-}
-
-void DataSetPackage::integrateMissingDataMap(Json::Value &emptyValues)
-{ 
-	// This is used only for old jasp file that did not have a sqlite database
-	_dataSet->setEmptyValuesJson(emptyValues);
 }
 
 bool DataSetPackage::currentFileIsExample() const

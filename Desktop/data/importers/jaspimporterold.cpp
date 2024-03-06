@@ -110,21 +110,37 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 	Json::Value jsonFilterConstructor = metaData.get("filterConstructorJSON", DEFAULT_FILTER_JSON);
 	DataSetPackage::filter()->setConstructorJson(jsonFilterConstructor.isObject() ? jsonFilterConstructor.toStyledString() : jsonFilterConstructor.asString());
 
-	Json::Value &emptyValuesJson = metaData["emptyValues"];
 	
-	if (emptyValuesJson.isNull())
-		// Really old JASP files: the empty values were '.', 'NaN' & 'nan'
-		packageData->setWorkspaceEmptyValues({"NaN", "nan", "."}, false);
-	else
+	std::map<std::string, intstrmap> columnNameToMissingData;
 	{
+		const Json::Value	& emptyValuesJson	= metaData["emptyValues"],
+							& emptyValuesMap	= dataSetDesc["emptyValuesMap"];
+		
 		stringset emptyValues;
-		for (const Json::Value & emptyValueJson  : emptyValuesJson)
-			emptyValues.insert(emptyValueJson.asString());
+		
+		if (emptyValuesJson.isNull())
+			// Really old JASP files: the empty values were '.', 'NaN' & 'nan'
+			emptyValues = {"NaN", "nan", "."};
+		else
+			for (const Json::Value & emptyValueJson  : emptyValuesJson)
+				emptyValues.insert(emptyValueJson.asString());
+	
+		
+		for(const std::string & columnName : emptyValuesMap.getMemberNames())
+			for(const std::string & rowAsString : emptyValuesMap[columnName].getMemberNames())
+			{
+				int row;
+				
+				if(ColumnUtils::getIntValue(rowAsString, row))
+				{
+					const std::string &	missingValue			= emptyValuesMap[columnName][rowAsString].asString();
+					columnNameToMissingData[columnName][row]	= missingValue;
+					emptyValues									. insert(missingValue);
+				}
+			}
 		packageData->setWorkspaceEmptyValues(emptyValues, false);
 	}
-
-	packageData->integrateMissingDataMap(dataSetDesc["emptyValuesMap"]);
-
+		
 	columnCount = dataSetDesc["columnCount"].asInt();
 	rowCount	= dataSetDesc["rowCount"].asInt();
 	if (rowCount < 0 || columnCount < 0)
@@ -191,7 +207,21 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 			{
 				int value = *reinterpret_cast<int*>(buff);
 
-				Label * label = column->labelByIntsId(value);
+				Label * label = nullptr;
+				
+				if (value != EmptyValues::missingValueInteger)
+					label = column->labelByIntsId(value);
+				else if(columnNameToMissingData.count(column->name()) && columnNameToMissingData[column->name()].count(r))
+				{
+					const std::string & missingValue = columnNameToMissingData[column->name()][r];
+					label = column->labelByDisplay(missingValue);
+					
+					if(!label)
+						label = column->labelByIntsId(column->labelsAdd(missingValue));
+					
+					assert(label);
+				}
+			
 				if(label)
 				{
 					values.push_back(label->originalValueAsString());
