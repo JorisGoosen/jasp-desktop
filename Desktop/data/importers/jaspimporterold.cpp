@@ -28,9 +28,8 @@
 #include <archive_entry.h>
 #include <json/json.h>
 #include "archivereader.h"
+#include "columnutils.h"
 #include "tempfiles.h"
-#include "../exporters/jaspexporter.h"
-
 #include "resultstesting/compareresults.h"
 #include "log.h"
 
@@ -143,7 +142,7 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 
 	for (const Json::Value & columnDesc : columnsDesc)
 	{
-		packageData->columnLabelsFromJsonForJASPFile(xData, columnDesc, i, mapNominalTextValues);
+		columnLabelsFromJsonForJASPFile(xData, columnDesc, i);
 
 		progress = (33.0 * i) / columnCount;
 		if (progress != lastProgress)
@@ -162,15 +161,18 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 
 	char buff[sizeof(double) > sizeof(int) ? sizeof(double) : sizeof(int)];
 
-	std::vector<double>		dbls(rowCount);
-	std::vector<int>		ints(rowCount);
-
-	for (int c = 0; c < columnCount; c++)
+	stringvec	values, labels;
+	int c=0;
+	
+	for(Column * column : packageData->dataSet()->columns())
 	{
-		columnType columnType			= packageData->getColumnType(c);
-		bool isScalar					= columnType == columnType::scale;
-		int typeSize					= isScalar ? sizeof(double) : sizeof(int);
-		std::map<int, int>& mapValues	= mapNominalTextValues[packageData->getColumnName(c)];
+		bool					isScalar	= column->type() == columnType::scale;
+		int						typeSize	= isScalar ? sizeof(double) : sizeof(int);
+		std::map<int, int>	&	mapValues	= mapNominalTextValues[column->name()];
+								values		. clear();
+								labels		. clear();
+								values		. reserve(rowCount);
+								labels		. reserve(rowCount);
 
 		for (size_t r = 0; r < rowCount; r++)
 		{
@@ -181,15 +183,30 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 				throw std::runtime_error("Could not read 'data.bin' in JASP archive.");
 
 			if (isScalar)
-				dbls[r] = *reinterpret_cast<double*>(buff);
+			{
+				values.push_back(ColumnUtils::doubleToString(*reinterpret_cast<double*>(buff)));
+				labels.push_back(values.back());
+			}
 			else
 			{
 				int value = *reinterpret_cast<int*>(buff);
 
-				if (columnType == columnType::nominalText && value != EmptyValues::missingValueInteger)
-					value = mapValues[value];
-
-				ints[r] = value;
+				Label * label = column->labelByIntsId(value);
+				if(label)
+				{
+					values.push_back(label->originalValueAsString());
+					labels.push_back(label->labelDisplay());
+				}
+				else if (value == EmptyValues::missingValueInteger)
+				{
+					values.push_back("");
+					labels.push_back("");
+				}
+				else
+				{
+					values.push_back(std::to_string(value));
+					labels.push_back(std::to_string(value));
+				}
 			}
 
 			progress = 33.0 + ((33.0 * ((c * rowCount) + (r + 1))) / (columnCount * rowCount));
@@ -198,9 +215,11 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 				progressCallback(progress); // fq(tr("Loading Data Set")),
 				lastProgress = progress;
 			}
+			c++;
 		}
+		
+		column->setValues(values, labels, 0);
 
-		throw new std::runtime_error("YOU ARE NOT SETTING THE VALUES ON A COLUMN!!!");
 	}
 
 	dataEntry.close();
@@ -423,5 +442,48 @@ JASPImporterOld::Compatibility JASPImporterOld::isCompatible()
 	return Compatibility::Compatible;
 }
 
+columnType JASPImporterOld::parseColumnTypeForJASPFile(const std::string & name)
+{
+	if (name == "Nominal")				return  columnType::nominal;
+	else if (name == "NominalText")		return  columnType::nominalText;
+	else if (name == "Ordinal")			return  columnType::ordinal;
+	else if (name == "Continuous")		return  columnType::scale;
+	else								return  columnType::unknown;
+}
+
+void JASPImporterOld::columnLabelsFromJsonForJASPFile(Json::Value xData, Json::Value columnDesc, size_t columnIndex)
+{
+	assert(!xData.isNull());
+	
+	std::string     name				= columnDesc["name"].asString();
+	Json::Value &   orgStringValuesDesc	= xData[name]["orgStringValues"],
+				&   labelsDesc			= xData[name]["labels"];
+	Column		*	column				= DataSetPackage::pkg()->dataSet()->column(columnIndex);
+	columnType		columnType			= parseColumnTypeForJASPFile(columnDesc["measureType"].asString());
+
+	column->setName(name);
+	column->setType(columnType == columnType::nominalText ? columnType::nominal : columnType);
+	
+	std::map<int, Label*>	labels;
+
+	for (Json::Value & keyValueFilterTrip : labelsDesc)
+	{
+		int zero			= 0; //MSVC complains on int(0) with: error C2668: 'Json::Value::get': ambiguous call to overloaded function
+		int labelValue		= keyValueFilterTrip.get(zero,		Json::nullValue).asInt();		//Is what is in "ints"
+		std::string label	= keyValueFilterTrip.get(1,			Json::nullValue).asString();	//Is label, if it is different from the "orgStringValue" then look there for the value
+		bool filterAllow	= keyValueFilterTrip.get(2,			true).asBool();
+	
+		labels[labelValue] = column->labelByIntsId(column->labelsAdd(labelValue, label, filterAllow, "", columnType == columnType::nominalText ? Json::Value(label) : Json::Value(labelValue)));
+	}
+
+	for (Json::Value & keyValuePair : orgStringValuesDesc)
+	{
+		int zero		= 0; //MSVC complains on int(0) with: error C2668: 'Json::Value::get': ambiguous call to overloaded function
+		int labelValue	= keyValuePair.get(zero,	Json::nullValue).asInt();
+		std::string val = keyValuePair.get(1,		Json::nullValue).asString();
+		
+		labels[labelValue]->setOriginalValue(val); 
+	}
+}
 
 

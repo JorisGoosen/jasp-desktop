@@ -222,10 +222,7 @@ public:
 
 				int							columnsFilteredCount();
 
-				std::string					getColumnTypeNameForJASPFile(columnType columnType);
 				void						writeDataSetToOStream(std::ostream & out, bool includeComputed);
-				columnType					parseColumnTypeForJASPFile(const std::string & name);
-				void						columnLabelsFromJsonForJASPFile(Json::Value xData, Json::Value columnDesc, size_t columnIndex, std::map<std::string, intintmap > & mapNominalTextValues);
 
 				int							getColumnIndex(						const std::string & name)			const	{ return !_dataSet ? -1 : _dataSet->getColumnIndex(name); }
 				int							getColumnIndex(						const QString	  & name)			const	{ return getColumnIndex(name.toStdString()); }
