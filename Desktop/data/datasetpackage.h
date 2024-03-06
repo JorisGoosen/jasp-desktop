@@ -313,7 +313,8 @@ signals:
 				void				descriptionChanged();
 
 public slots:
-				void				refresh()			{ beginResetModel(); endResetModel(); }
+				void				refresh()							{ beginResetModel(); endResetModel(); }
+				void				refreshWithDelay();
 				void				refreshColumn(						QString columnName);
 				void				columnWasOverwritten(				const std::string & columnName, const std::string & possibleError);
 				void				notifyColumnFilterStatusChanged(	int columnIndex);
@@ -328,8 +329,8 @@ public slots:
 				void				requestColumnCreation(				const std::string & columnName, Analysis * analysis, columnType type);
 				void				requestComputedColumnDestruction(	const std::string & columnName);
 				void				checkDataSetForUpdates();
-
-
+				void				delayedRefresh();
+				
 private:
 				bool				isThisTheSameThreadAsEngineSync();
 				bool				setLabelAllowFilter(	const QModelIndex & index, bool newAllowValue);
@@ -376,7 +377,8 @@ private:
 							*	_filterSubModel,
 							*	_labelsSubModel;
 	
-	QTimer						_databaseIntervalSyncher;
+	QTimer						_databaseIntervalSyncher,
+								_delayedRefreshTimer;
 	UndoStack				*	_undoStack					= nullptr;
 };
 

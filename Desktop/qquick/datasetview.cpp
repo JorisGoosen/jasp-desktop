@@ -1302,7 +1302,7 @@ void DataSetView::columnSelect(int col,	bool shiftPressed, bool rightClicked)
 	setSelectionEnd(QPoint(endCol, _model->rowCount(false) - 1));
 }
 
-void DataSetView::setColumnType(int newColumnType)	
+void DataSetView::setColumnType(int columnIndex, int newColumnType)	
 { 
 	int columnA	= _selectionStart.x(),
 		columnB	= _selectionEnd.x()	!= -1 ? _selectionEnd.x() : _selectionStart.x();
@@ -1310,8 +1310,11 @@ void DataSetView::setColumnType(int newColumnType)
 	if(columnA > columnB)
 		std::swap(columnA, columnB);
 	
-	for	(size_t columnIndex	= columnA; columnIndex <= columnB; columnIndex++)
-	 _model->setColumnType(columnIndex, newColumnType); 
+	if(columnA == -1 || columnB == -1)
+		columnA = columnB = columnIndex;
+	
+	for	(columnIndex	= columnA; columnIndex <= columnB; columnIndex++)
+		_model->setColumnType(columnIndex, newColumnType); 
 }
 
 QString DataSetView::columnInsertBefore(int col, bool computed, bool R)
@@ -1322,7 +1325,6 @@ QString DataSetView::columnInsertBefore(int col, bool computed, bool R)
 		col = _selectionStart.x() != -1 ? _selectionStart.x() : 0;
 
 	_model->insertColumn(col, computed, R);
-	auto a = _model->headerData(col-1, Qt::Horizontal).toString();
 	return _model->headerData(col, Qt::Horizontal).toString();
 }
 

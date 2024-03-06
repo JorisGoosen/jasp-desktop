@@ -378,6 +378,11 @@ void Column::dbUpdateValues(bool labelsTempCanBeMaintained)
 	incRevision(labelsTempCanBeMaintained);
 }
 
+columnType Column::resetValues(int thresholdScale)
+{
+	return setValues(valuesAsStrings(), labelsAsStrings(), thresholdScale);
+}
+
 columnType Column::setValues(const stringvec & values, int thresholdScale, bool * aChange)
 {
 	return setValues(values, values, thresholdScale, aChange);
@@ -1087,6 +1092,17 @@ stringvec Column::valuesAsStrings() const
 	return returnMe;
 }
 
+stringvec Column::labelsAsStrings() const
+{
+	stringvec returnMe;
+	returnMe.resize(_dbls.size());
+	
+	for(size_t i=0; i<returnMe.size(); i++)
+		returnMe[i] = getLabel(i);
+	
+	return returnMe;
+}
+
 stringvec Column::displaysAsStrings() const
 {
 	stringvec returnMe;
@@ -1496,7 +1512,7 @@ bool Column::allLabelsPassFilter() const
 
 bool Column::hasFilter() const
 {
-	return type() != columnType::scale && !allLabelsPassFilter();
+	return !allLabelsPassFilter();
 }
 
 

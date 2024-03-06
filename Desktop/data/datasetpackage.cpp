@@ -61,15 +61,18 @@ DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 	_filterSubModel = new SubNodeModel("filters",	_dataSet->filtersNode());
 	_labelsSubModel = new SubNodeModel("labels");
 	
-	connect(&_databaseIntervalSyncher, &QTimer::timeout, this, &DataSetPackage::synchingIntervalPassed);
+	connect(&_databaseIntervalSyncher,	&QTimer::timeout, this, &DataSetPackage::synchingIntervalPassed);
+	connect(&_delayedRefreshTimer,		&QTimer::timeout, this, &DataSetPackage::delayedRefresh);
 
 	_undoStack = new UndoStack(this);
 }
 
 DataSetPackage::~DataSetPackage() 
 { 
-	_singleton = nullptr; 
 	_databaseIntervalSyncher.stop();
+	_delayedRefreshTimer.stop();
+	
+	_singleton = nullptr; 
 }
 
 Filter * DataSetPackage::filter()
@@ -122,6 +125,7 @@ void DataSetPackage::reset(bool newDataSet)
 {
 	Log::log() << "DataSetPackage::reset()" << std::endl;
 	_databaseIntervalSyncher.stop();
+	_delayedRefreshTimer.stop();
 	
 	beginLoadingData();
 
@@ -583,32 +587,37 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 			return QVariant(section + 1);
 		}
 	else
+	{
+		Column * col = _dataSet ? _dataSet->column(section) : nullptr;
+		
 		switch(role)
 		{
 		case int(specialRoles::maxColString):
 		{
 			//calculate some kind of maximum string to give views an expectation of the width needed for a column
-			QString dummyText = headerData(section, orientation, Qt::DisplayRole).toString() + "XXXXX" + (isColumnComputed(section) ? "XXXXX" : ""); //Bit of padding for filtersymbol and columnIcon
-			qsizetype colWidth = getMaximumColumnWidthInCharacters(section);
+			QString		dummyText	= headerData(section, orientation, Qt::DisplayRole).toString() + "XXXXX" + (isColumnComputed(section) ? "XXXXX" : ""); //Bit of padding for filtersymbol and columnIcon
+			qsizetype	colWidth	= getMaximumColumnWidthInCharacters(section);
 
 			while(colWidth > dummyText.length())
 				dummyText += "X";
 
 			return dummyText;
 		}
-		case int(specialRoles::maxRowHeaderString):				return QString::number(_dataSet->rowCount()) + "XXX";
-		case int(specialRoles::filter):							return		!_dataSet || !_dataSet->column(section) ? false							: _dataSet->column(section)->hasFilter() || isColumnUsedInEasyFilter(_dataSet->column(section)->name());
-		case Qt::DisplayRole:									return tq(	!_dataSet || !_dataSet->column(section) ? "?"							: _dataSet->column(section)->name());
+		case int(specialRoles::maxRowHeaderString):				return QString::number(_dataSet ? _dataSet->rowCount() : 0 ) + "XXX";
 		case Qt::TextAlignmentRole:								return QVariant(Qt::AlignCenter);
-		case int(specialRoles::labelsHasFilter):				return		!_dataSet || !_dataSet->column(section) ? false							: _dataSet->column(section)->hasFilter();
-		case int(specialRoles::columnIsComputed):				return		!_dataSet || !_dataSet->column(section) ? false							: _dataSet->column(section)->isComputed() && _dataSet->column(section)->codeType() != computedColumnType::analysisNotComputed;
-		case int(specialRoles::computedColumnError):			return tq(	!_dataSet || !_dataSet->column(section) ? "?"							: _dataSet->column(section)->error());
-		case int(specialRoles::computedColumnIsInvalidated):	return		!_dataSet || !_dataSet->column(section) ? false							: _dataSet->column(section)->invalidated();
-		case int(specialRoles::columnType):						return int(	!_dataSet || !_dataSet->column(section) ? columnType::unknown			: _dataSet->column(section)->type());
-		case int(specialRoles::computedColumnType):				return int(	!_dataSet || !_dataSet->column(section) ? computedColumnType::notComputed	: _dataSet->column(section)->codeType());
-		case int(specialRoles::description):					return tq(	!_dataSet || !_dataSet->column(section) ? "?"							: _dataSet->column(section)->description());
-		case int(specialRoles::title):							return tq(	!_dataSet || !_dataSet->column(section) ? "?"							: _dataSet->column(section)->title());
+		case int(specialRoles::filter):							return		!col ? false							: col->hasFilter() || isColumnUsedInEasyFilter(col->name());
+		case Qt::DisplayRole:									return tq(	!col ? "?"								: col->name());
+		
+		case int(specialRoles::labelsHasFilter):				return		!col ? false							: col->hasFilter();
+		case int(specialRoles::columnIsComputed):				return		!col ? false							: col->isComputed() && col->codeType() != computedColumnType::analysisNotComputed;
+		case int(specialRoles::computedColumnError):			return tq(	!col ? "?"								: col->error());
+		case int(specialRoles::computedColumnIsInvalidated):	return		!col ? false							: col->invalidated();
+		case int(specialRoles::columnType):						return int(	!col ? columnType::unknown				: col->type());
+		case int(specialRoles::computedColumnType):				return int(	!col ? computedColumnType::notComputed	: col->codeType());
+		case int(specialRoles::description):					return tq(	!col ? "?"								: col->description());
+		case int(specialRoles::title):							return tq(	!col ? "?"								: col->title());
 		}
+	}
 
 	return QVariant();
 }
@@ -1156,9 +1165,21 @@ bool DataSetPackage::setColumnType(int columnIndex, columnType newColumnType)
 	}
 	
 	if(feedback == columnTypeChangeResult::changed)
-		refresh();
+		refreshWithDelay();
 
 	return feedback == columnTypeChangeResult::changed;
+}
+
+void DataSetPackage::refreshWithDelay()
+{
+	_delayedRefreshTimer.setSingleShot(true);
+	_delayedRefreshTimer.setInterval(100);
+	_delayedRefreshTimer.start();	
+}
+
+void DataSetPackage::delayedRefresh()
+{
+	refresh();	
 }
 
 void DataSetPackage::refreshColumn(QString columnName)
@@ -1256,14 +1277,15 @@ void DataSetPackage::dbDelete()
 
 void DataSetPackage::resetVariableTypes()
 {
-	for (int i = 0; i < _dataSet->columnCount(); i++)
+	for (Column * col : _dataSet->columns())
 	{
-		Column* col = _dataSet->column(i);
-		columnType orgType = col->type();
-		stringvec values = getColumnDataStrs(i);
-		initColumnWithStrings(i, col->name(), values);
-		if (col->type() != orgType)
+		columnType guessedType = col->resetValues(PreferencesModel::prefs()->thresholdScale());
+		
+		if(guessedType != col->type() && col->changeType(guessedType) == columnTypeChangeResult::changed)
+		{
 			emit columnDataTypeChanged(tq(col->name()));
+			refreshWithDelay();
+		}
 	}
 }
 
