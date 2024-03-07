@@ -2,6 +2,7 @@
 #include "log.h"
 #include <regex>
 #include "databaseinterface.h"
+#include "jsonutilities.h"
 
 stringset DataSet::_defaultEmptyvalues;
 
@@ -212,7 +213,7 @@ void DataSet::dbUpdate()
 	incRevision();
 }
 
-void DataSet::dbLoad(int index, std::function<void(float)> progressCallback)
+void DataSet::dbLoad(int index, std::function<void(float)> progressCallback, bool do019Fix)
 {
 	//Log::log() << "loadDataSet(index=" << index << "), _dataSetID="<< _dataSetID <<";" << std::endl;
 
@@ -253,7 +254,7 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback)
 			_columns.push_back(new Column(this));
 
 		_columns[i]->dbLoadIndex(i, false);
-
+		
 		progressCallback(0.2 + (i * colProgressMult * 0.3)); //should end at 0.5
 	}
 
@@ -263,11 +264,73 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback)
 	_columns.resize(colCount);
 
 	db().dataSetBatchedValuesLoad(this, [&](float p){ progressCallback(0.5 + p * 0.5); });
-
+	
 	Json::Value emptyValsJson;
 	Json::Reader().parse(emptyVals, emptyValsJson);
 	
-	_emptyValues->fromJson(emptyValsJson);
+	if(do019Fix)	upgradeTo019(emptyValsJson);
+	else			_emptyValues->fromJson(emptyValsJson);
+}
+
+void DataSet::upgradeTo019(const Json::Value & emptyVals)
+{
+	for(Column * column : _columns)
+	{
+		switch(column->type())
+		{
+		case columnType::scale:
+			column->upgradeSetDoubleLabelsInInts();
+			break;
+		
+		case columnType::ordinal:
+		case columnType::nominal:
+		case columnType::nominalText:
+			column->upgradeExtractDoublesIntsFromLabels();
+			break;
+			
+		default:
+			Log::log() << "Column " << column->name() << " has unknown type, id: " << column->id() << std::endl;
+			break;
+		}
+	}
+	
+	//So, 0.18.0, 0.18.1, 0.18.2 jaspfiles cant be loaded in 0.18.3
+	//also, those versions were pretty buggy, so here we will just try to handle the case of 0.18.3
+	//above we made sure _ints and _dbls are synched again.
+	//now we will extract the missing data map and turn it into emptyvalues and proper values
+	
+	// The emptyValues json contains
+	const Json::Value	& emptyValuesPerColumn = emptyVals["emptyValuesPerColumn"], // object, names=columnnames: array of empty value strings
+						& missingDataPerColumn = emptyVals["missingDataPerColumn"], // object, names=columnnames: object { "row#": "original display" }
+						& workspaceEmptyValues = emptyVals["workspaceEmptyValues"]; // array of empty value strings
+	
+	stringset workspaceEmpty = JsonUtilities::jsonStringArrayToSet(workspaceEmptyValues);
+	
+	for(Column * column : _columns)
+	{
+		if(column->type() == columnType::nominalText)
+			column->setType(columnType::nominal);
+		const Json::Value	& missingData = !missingDataPerColumn.isMember(column->name()) ? Json::nullValue : missingDataPerColumn[column->name()],
+							& emptyValues = !emptyValuesPerColumn.isMember(column->name()) ? Json::nullValue : emptyValuesPerColumn[column->name()];
+		
+		stringset emptyValSet;
+		
+		if(emptyValues.isArray())
+			for(const Json::Value & val : emptyValues)
+				emptyValSet.insert(val.asString());
+		
+		if(missingData.isObject())
+		{
+			stringset localEmpties = column->mergeOldMissingDataMap(missingData);
+			emptyValSet.insert(localEmpties.begin(), localEmpties.end());
+		}
+		
+		//If the column and workspace sets are not the same size, and there are actually values here that are not a subset of the workspace values then that means we really do have emptyvalues for this column
+		if(emptyValSet != workspaceEmpty && emptyValSet.size() && !std::includes(workspaceEmpty.begin(), workspaceEmpty.end(), emptyValSet.begin(), emptyValSet.end()))
+			column->setCustomEmptyValues(emptyValSet);		
+	}
+	
+	_emptyValues->setEmptyValues(workspaceEmpty);
 }
 
 int DataSet::columnCount() const

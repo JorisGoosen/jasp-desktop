@@ -218,23 +218,13 @@ public:
 		return useQuotes;
 	}
 	
-	///< Should maybe use some kind of std lib function? Does that exist? (Got no internet here)
+	// Counts "first bytes" and thus hopefully code points, adapted from https://stackoverflow.com/a/4063229
 	static inline uint64_t approximateVisualLength(const std::string & in)
 	{
-		uint64_t	normalL  = 0,
-					specialL = 0;
-		for(const char & kar : in)
-			(kar < 0 ? specialL : normalL)++;
-		return normalL + (specialL / 2); // not really true probably but should be good enough?
-		
-	}
-	
-	static inline bool hasMultiByteChars(const std::string & in)
-	{
-		for(const char & kar : in)
-			if(kar < 0)
-				return true;
-		return false;
+		uint64_t len = 0;
+		for(const char kar : in)
+			len += (kar & 0xc0) != 0x80;
+		return len;
 	}
 
 private:

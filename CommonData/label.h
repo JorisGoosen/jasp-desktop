@@ -21,8 +21,8 @@ class DatabaseInterface;
 class Label : public DataSetBaseNode
 {
 public:	
-	static const int MAX_LABEL_DISPLAY_LENGTH = 64; //we can store the rest in description if necessary
-	static const int DOUBLE_LABEL_VALUE = -1; ///< 
+	static const int MAX_LABEL_DISPLAY_LENGTH;
+	static const int DOUBLE_LABEL_VALUE;
 
 								Label(Column * column);
 								Label(Column * column, int value);

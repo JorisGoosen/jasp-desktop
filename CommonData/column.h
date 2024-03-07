@@ -86,6 +86,9 @@ public:
 			size_t					rowCount()				const	{ return _dbls.size(); }
 			const intvec		&	ints()					const	{ return _ints; }
 			const doublevec		&	dbls()					const	{ return _dbls; }
+			
+			void					upgradeSetDoubleLabelsInInts();			///< Used by upgrade 0.18.* -> 0.19
+			void					upgradeExtractDoublesIntsFromLabels();	///< Used by upgrade 0.18.* -> 0.19
 
 			void					labelsClear();
 			int						labelsAdd(			int display);
@@ -184,6 +187,7 @@ public:
 			
 			qsizetype				getMaximumWidthInCharacters(bool shortenAndFancyEmptyValue, bool valuesPlease);
 			columnType				resetValues(int thresholdScale);
+			stringset				mergeOldMissingDataMap(const Json::Value & missingData); ///< <0.19 JASP collected the removed empty values values in a map in a json object... We need to be able to read at least 0.18.3 so here this function that absorbs such a map and adds any required labels. It does not add the empty values itself though!
 
 protected:
 			void					_checkForDependencyLoop(stringset foundNames, std::list<std::string> loopList);
