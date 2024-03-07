@@ -20,7 +20,6 @@
 #include "utilities/qutils.h"
 #include <QThread>
 #include "engine/enginesync.h"
-#include "jasptheme.h"
 #include "columnencoder.h"
 #include "timers.h"
 #include "utilities/appdirs.h"
@@ -424,7 +423,7 @@ int DataSetPackage::columnCount(const QModelIndex &parent) const
 		
 	case dataSetBaseNodeType::column:
 	{
-		Column * col = dynamic_cast<Column*>(node);
+		//Column * col = dynamic_cast<Column*>(node);
 		
 		return 1;
 	}
@@ -780,22 +779,17 @@ bool DataSetPackage::setLabelDescription(const QModelIndex & index, const QStrin
 	Column		*	column	= dynamic_cast<Column*>(label->parent());
 	QModelIndex		parent	= index.parent();
 	
-	
 	if(!column || index.row() > rowCount(parent))
 		return false;
 	
 	if(column->labelDoubleDummy() == label)
 		label = column->replaceDoubleOnRowWithLabel(index.row());
 
-	int col = column->data()->columnIndex(column);
-
 	label->setDescription(newDescription.toStdString());
 	
 	emit dataChanged(DataSetPackage::index(index.row(), 0, parent),	DataSetPackage::index(index.row(), columnCount(parent), parent), {int(specialRoles::description)});	//Emit dataChanged for filter
 
 	return true;
-	
-	
 }
 
 bool DataSetPackage::setLabelDisplay(const QModelIndex &index, const QString &newLabel)
@@ -873,20 +867,25 @@ bool DataSetPackage::setLabelValue(const QModelIndex &index, const QString &newL
 bool DataSetPackage::setLabelAllowFilter(const QModelIndex & index, bool newAllowValue)
 {
 	JASPTIMER_SCOPE(DataSetPackage::setAllowFilterOnLabel);
+	
+	Column * column = nullptr;
 
-	Label  * label  = dynamic_cast<Label*>(indexPointerToNode(index));
-	Column * column = dynamic_cast<Column*>(label->parent());
+	{
+		Label  *	label  = dynamic_cast<Label*>(indexPointerToNode(index));
+					column = dynamic_cast<Column*>(label->parent());
+		
+		if(column->labelDoubleDummy() == label)
+				label = column->replaceDoubleOnRowWithLabel(index.row());
+	}		
 	
 	if(!column)
 		return false;
 
 	bool atLeastOneRemains = newAllowValue;
 
-
 	QModelIndex parent	= index.parent();
 	size_t		row		= index.row();
-
-
+	
 	if(int(row) > rowCount(parent))
 		return false;
 
