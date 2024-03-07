@@ -1310,7 +1310,7 @@ void DataSetView::setColumnType(int columnIndex, int newColumnType)
 	if(columnA > columnB)
 		std::swap(columnA, columnB);
 	
-	if(columnA == -1 || columnB == -1)
+	if(columnA == -1 || columnB == -1 || !(columnIndex >= columnA && columnIndex <= columnB))
 		columnA = columnB = columnIndex;
 	
 	for	(columnIndex	= columnA; columnIndex <= columnB; columnIndex++)
