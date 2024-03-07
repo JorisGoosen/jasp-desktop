@@ -33,7 +33,7 @@ public:
 
 			void			dbCreate();
 			void			dbUpdate();
-			void			dbLoad(int index = -1, std::function<void(float)> progressCallback = [](float){});
+			void			dbLoad(int index = -1, std::function<void(float)> progressCallback = [](float){}, bool do019Fix = false);
 			void			dbDelete();
 
 			void			beginBatchedToDB();
@@ -80,6 +80,10 @@ public:
 	const	std::string			&	description()																	const	{ return _description; }
 			void					setDescription(				const std::string& desc);
 
+private:			
+			void					upgradeTo019(const Json::Value & emptyVals);
+			
+			
 private:
 	DataSetBaseNode			*	_dataNode				= nullptr, //To make sure we have a pointer to flesh out the node hierarchy we add a "data" node, so we can place it next to the "filters" node in the tree
 							*	_filtersNode			= nullptr;

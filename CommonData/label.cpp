@@ -2,8 +2,10 @@
 #include "column.h"
 #include <sstream>
 #include "databaseinterface.h"
-#include "columnutils.h"
 
+
+const int Label::MAX_LABEL_DISPLAY_LENGTH	= 64; //we can store the rest in description if necessary
+const int Label::DOUBLE_LABEL_VALUE			= -1; 
 
 Label::Label(Column * column)
 : DataSetBaseNode(dataSetBaseNodeType::label, column), _column(column)

@@ -588,7 +588,7 @@ void DatabaseInterface::dataSetBatchedValuesLoad(DataSet *data, std::function<vo
 		{
 			Column * col = data->columns()[colI];
 			
-			if(!sqlite3_column_text(	stmt, colI*2)) //If string is NULL then column value is NULL, so empty!
+			if(!sqlite3_column_text(	stmt, colI*2) && !sqlite3_column_text(	stmt, 1+colI*2)) //If string is NULL then column value is NULL, so empty!
 				col->setValue(row, EmptyValues::missingValueInteger,		EmptyValues::missingValueDouble,		false);
 			else
 				col->setValue(row, sqlite3_column_int(stmt, colI*2),		_doubleTroubleReader(stmt, colI*2 + 1),	false);

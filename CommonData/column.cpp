@@ -383,6 +383,35 @@ columnType Column::resetValues(int thresholdScale)
 	return setValues(valuesAsStrings(), labelsAsStrings(), thresholdScale);
 }
 
+stringset Column::mergeOldMissingDataMap(const Json::Value &missingData)
+{
+	stringset foundEmpty;
+	
+	std::map<std::string, Label*> displayToLabel; //Keep track of which labels we added because only those could possibly be derived from missingDataMap
+	for(qsizetype r=0;	r<_ints.size(); r++)
+	{
+		const std::string row = std::to_string(r);
+		if(missingData.isMember(row))
+		{
+					double			dbl				= EmptyValues::missingValueDouble;
+			const	std::string &	displayValue	= missingData[row].asString();
+									foundEmpty		. insert(displayValue);
+					bool			isDbl			= ColumnUtils::getDoubleValue(	displayValue,	dbl);
+					Label		*	label			= displayToLabel.count(displayValue)										
+													? displayToLabel.at(displayValue)											// Get previously created label, or:
+													: displayToLabel[displayValue]	= isDbl										// Be careful, we add something to the map and use the returnvalue from the assignment to also get it into `label`
+																					? nullptr									// Numbers dont need a label
+																					: labelByIntsId(labelsAdd(displayValue));	// And here we do, because where else are we going to store that string?
+									_ints[r]		= label ? label->intsId() : Label::DOUBLE_LABEL_VALUE;
+									_dbls[r]		= dbl;
+		}
+	}
+	
+	foundEmpty.erase(""); //So for some currently inscrutable reason empty strings were also stored in the missing data map... Remove any occurences.
+	
+	return foundEmpty;
+}
+
 columnType Column::setValues(const stringvec & values, int thresholdScale, bool * aChange)
 {
 	return setValues(values, values, thresholdScale, aChange);
@@ -1559,6 +1588,27 @@ bool Column::checkForUpdates()
 bool Column::isColumnDifferentFromStringValues(const stringvec & strVals) const 
 {
 	return strVals == valuesAsStrings();
+}
+
+void Column::upgradeSetDoubleLabelsInInts()
+{
+	_ints = intvec(_dbls.size(), Label::DOUBLE_LABEL_VALUE);
+	
+	dbUpdateValues();
+}
+
+void Column::upgradeExtractDoublesIntsFromLabels()
+{
+	_dbls.resize(_ints.size());
+	
+	for(qsizetype r=0; r<_dbls.size(); r++)
+	{
+		Label * label = labelByIntsId(_ints[r]);
+		
+		_dbls [r] = ! label || !label->originalValue().isDouble() ? EmptyValues::missingValueDouble : label->originalValue().asDouble();
+	}
+	
+	dbUpdateValues();
 }
 
 void Column::checkForLoopInDependencies(std::string code)

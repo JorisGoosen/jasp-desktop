@@ -31,7 +31,6 @@
 #include "columnutils.h"
 #include "tempfiles.h"
 #include "resultstesting/compareresults.h"
-#include "log.h"
 
 const Version JASPImporterOld::maxSupportedJaspArchiveVersion = Version("3.1.0");
 
@@ -112,6 +111,7 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 
 	
 	std::map<std::string, intstrmap> columnNameToMissingData;
+	
 	{
 		const Json::Value	& emptyValuesJson	= metaData["emptyValues"],
 							& emptyValuesMap	= dataSetDesc["emptyValuesMap"];

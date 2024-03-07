@@ -1313,9 +1313,11 @@ void DataSetPackage::loadDataSet(std::function<void(float)> progressCallback)
 	_db->close();
 	_db->load();		
 	_db->upgradeDBFromVersion(_jaspVersion);
-
+	
+	bool do019Upgrade = _jaspVersion < "0.19"; // A tweak needs to be made to the data as its loaded, see https://github.com/jasp-stats/jasp-desktop/pull/5367
+	
 	_dataSet = new DataSet(0);
-	_dataSet->dbLoad(1, progressCallback); //Right now there can only be a dataSet with ID==1 so lets keep it simple
+	_dataSet->dbLoad(1, progressCallback, do019Upgrade); //Right now there can only be a dataSet with ID==1 so lets keep it simple
 	_dataSubModel->selectNode(_dataSet->dataNode());
 	_filterSubModel->selectNode(_dataSet->filtersNode());
 
