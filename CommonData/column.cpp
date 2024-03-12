@@ -359,6 +359,8 @@ void Column::setDefaultValues(enum columnType columnType)
 {
 	JASPTIMER_SCOPE(Column::setDefaultValues);
 
+	setType(columnType);
+	
 	for(size_t i=0; i<_ints.size(); i++)
 	{
 		_ints[i] =  EmptyValues::missingValueInteger;
