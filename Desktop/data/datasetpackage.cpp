@@ -783,7 +783,7 @@ bool DataSetPackage::setLabelDescription(const QModelIndex & index, const QStrin
 		return false;
 	
 	if(column->labelDoubleDummy() == label)
-		label = column->replaceDoubleOnRowWithLabel(index.row());
+		label = column->replaceDoublesTillLabelsRowWithLabels(index.row());
 
 	label->setDescription(newDescription.toStdString());
 	
@@ -807,7 +807,7 @@ bool DataSetPackage::setLabelDisplay(const QModelIndex &index, const QString &ne
 	
 	if(column->labelDoubleDummy() == label)
 	{
-		label	= column->replaceDoubleOnRowWithLabel(index.row());
+		label	= column->replaceDoublesTillLabelsRowWithLabels(index.row());
 		aChange = true;
 	}
 	
@@ -836,7 +836,7 @@ bool DataSetPackage::setLabelValue(const QModelIndex &index, const QString &newL
 	
 	if(column->labelDoubleDummy() == label)
 	{
-		label = column->replaceDoubleOnRowWithLabel(index.row());
+		label = column->replaceDoublesTillLabelsRowWithLabels(index.row());
 		aChange = true;
 	}
 	
@@ -875,7 +875,7 @@ bool DataSetPackage::setLabelAllowFilter(const QModelIndex & index, bool newAllo
 					column = dynamic_cast<Column*>(label->parent());
 		
 		if(column->labelDoubleDummy() == label)
-				label = column->replaceDoubleOnRowWithLabel(index.row());
+			label = column->replaceDoublesTillLabelsRowWithLabels(index.row());
 	}		
 	
 	if(!column)

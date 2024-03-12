@@ -1258,6 +1258,8 @@ Label *Column::replaceDoubleWithLabel(double dbl)
 
 std::map<double, Label*> Column::replaceDoubleWithLabel(doublevec dbls)
 {
+	JASPTIMER_SCOPE(Column::replaceDoubleWithLabel);
+	
 	std::map<double, Label*	>	doubleLabelMap;
 	std::map<double, int	>	doubleIntIdMap;
 	
@@ -1280,7 +1282,7 @@ std::map<double, Label*> Column::replaceDoubleWithLabel(doublevec dbls)
 	return doubleLabelMap;
 }
 
-Label *Column::replaceDoubleOnRowWithLabel(size_t row)
+Label *Column::replaceDoublesTillLabelsRowWithLabels(size_t row)
 {
 	//row here is in the label editor, not in the data!	
 	if(row < _labels.size())
@@ -1297,7 +1299,7 @@ Label *Column::replaceDoubleOnRowWithLabel(size_t row)
 		if(ColumnUtils::getDoubleValue(_labelsTemp[r], dbl))
 			dbls.push_back(dbl);
 		else
-			throw std::runtime_error("replaceDoubleOnRowWithLabel choked on a temp-label that cant be converted to double???"); //Should never ever occur because it starts from _labels.size!
+			throw std::runtime_error("replaceDoublesTillLabelsRowWithLabels choked on a temp-label that cant be converted to double???"); //Should never ever occur because it starts from _labels.size!
 
 	//the last dbl is the one we want so use it to get the right label from the map:
 	Label * label = replaceDoubleWithLabel(dbls)[dbl];
@@ -1484,16 +1486,18 @@ int Column::labelIndex(const Label *label) const
 
 std::set<size_t> Column::labelsMoveRows(std::vector<qsizetype> rows, bool up)
 {
-	std::vector<Label*> new_labels(_labels.begin(), _labels.end());
-
+	JASPTIMER_SCOPE(Column::labelsMoveRows);
+	
 	int mod = up ? -1 : 1;
 
 	std::sort(rows.begin(), rows.end(), [&](const auto & l, const auto & r) { return up ? l < r : r < l; });
 	
-	replaceDoubleOnRowWithLabel( *(rows.end()-1) );
+	replaceDoublesTillLabelsRowWithLabels(std::min(qsizetype(labelsTempCount() - 1), rows.back() + 1));
+	
+	std::vector<Label*> new_labels(_labels.begin(), _labels.end());
 
 	for (size_t row : rows)
-		if(int(row) + mod < 0 || int(row) + mod >= int(_labels.size()))
+		if(int(row) + mod < 0 || int(row) + mod >= int(labelsTempCount()))
 			return {}; //Because we can't move *out* of our _labels for obvious reasons
 
 	std::set<size_t> rowsChanged;
@@ -1506,7 +1510,8 @@ std::set<size_t> Column::labelsMoveRows(std::vector<qsizetype> rows, bool up)
 	}
 
 	_labels = new_labels;
-
+	
+	labelsTempReset();
 	_dbUpdateLabelOrder();
 
 	return rowsChanged;
@@ -1514,11 +1519,12 @@ std::set<size_t> Column::labelsMoveRows(std::vector<qsizetype> rows, bool up)
 
 void Column::labelsReverse()
 {
-	replaceDoubleOnRowWithLabel(labelsTempCount()-1);
+	JASPTIMER_SCOPE(Column::labelsReverse);
+	
+	replaceDoublesTillLabelsRowWithLabels(labelsTempCount()-1);
 	std::reverse(_labels.begin(), _labels.end());
 	
 	labelsTempReset();
-
 	_dbUpdateLabelOrder();
 }
 
