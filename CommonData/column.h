@@ -123,7 +123,7 @@ public:
 			doublevec				dataAsRDoubles(const boolvec & filter)						const; ///< If filter is of different length than the data an error is thrown, if length is zero it is ignored
 			std::map<double,Label*>	replaceDoubleWithLabel(doublevec dbls);
 			Label				* 	replaceDoubleWithLabel(double dbl);
-			Label				* 	replaceDoubleOnRowWithLabel(size_t row);
+                        Label				* 	replaceDoublesTillLabelsRowWithLabels(size_t row);
 			void					labelValueChanged(Label * label, double aDouble); ///< Pass NaN for non-convertible values
 			void					labelValueChanged(Label * label, int	anInteger) { labelValueChanged(label, double(anInteger)); }
 			void					labelDisplayChanged(Label * label);
