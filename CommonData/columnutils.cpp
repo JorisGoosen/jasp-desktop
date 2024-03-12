@@ -64,7 +64,7 @@ bool ColumnUtils::getDoubleValue(const string &value, double &doubleValue)
 {
 	try
 	{
-		doubleValue = boost::lexical_cast<double>(value);
+		doubleValue = boost::lexical_cast<double>(deEuropeaniseForImport(value));
 		return true;
 	}
 	catch (...) {}
