@@ -183,12 +183,21 @@ bool ColumnUtils::isEmptyValue(const double val, const doubleset & doubleEmptyVa
 	return false;
 }
 
+bool ColumnUtils::decimalWithComma = false;
+
+//https://en.cppreference.com/w/cpp/locale/numpunct
+struct commaDecimals : std::numpunct<char>
+{
+    char do_decimal_point() const override { return ','; }
+};
+
 std::string ColumnUtils::doubleToString(double dbl, int precision)
 {
 	JASPTIMER_SCOPE(ColumnUtils::doubleToString);
 	
 	std::stringstream conv; //Use this instead of std::to_string to make sure there are no trailing zeroes (and to get full precision)
 	conv << std::setprecision(precision);
+	conv.imbue(std::locale(conv.getloc(), new commaDecimals));
 	conv << dbl;
 	return conv.str();
 }

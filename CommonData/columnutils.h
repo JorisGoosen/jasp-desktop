@@ -28,6 +28,9 @@ public:
 	static void			convertEscapedUnicodeToUTF8(			std::string &	inputStr);
 	static std::string	deEuropeaniseForImport(					std::string		value);
 	static std::string	doubleToString(			double dbl, int precision = 10);
+	
+	static bool			decimalWithComma; ///< If true will make doubleToString return decimals formatted with a comma, otherwise a dot
+	
 
 private:
 	static std::string _convertEscapedUnicodeToUTF8(	std::string hex);
