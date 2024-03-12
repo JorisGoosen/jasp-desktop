@@ -29,12 +29,11 @@
 #include <map>
 #include <set>
 #include <regex>
-#include <boost/function.hpp>
 #include "dataset.h"
 #include "jasprcpp_interface.h"
-#include "r_functionwhitelist.h"
 #include "columnencoder.h"
-#include "appinfo.h"
+
+class Engine;
 
 /// The R Bridge provides functions to the R analyses;
 /// i.e. functions to read the data set from shared memory
@@ -82,7 +81,7 @@ extern "C" {
 
 	typedef std::function<std::string (const std::string &, int progress)> RCallback;
 
-	void rbridge_init(sendFuncDef sendToDesktopFunction, pollMessagesFuncDef pollMessagesFunction, ColumnEncoder * encoder, const char * resultFont);
+	void rbridge_init(Engine * engine, sendFuncDef sendToDesktopFunction, pollMessagesFuncDef pollMessagesFunction, ColumnEncoder * encoder, const char * resultFont);
 	void rbridge_junctionHelper(bool collectNotRestore, const std::string & modulesFolder, const std::string& linkFolder, const std::string& junctionFilePath);
 
 	void rbridge_setFileNameSource(			std::function<void(const std::string &, std::string &, std::string &)> source);
