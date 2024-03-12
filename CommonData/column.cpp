@@ -1295,7 +1295,7 @@ Label *Column::replaceDoubleOnRowWithLabel(size_t row)
 		if(ColumnUtils::getDoubleValue(_labelsTemp[r], dbl))
 			dbls.push_back(dbl);
 		else
-			throw std::runtime_error("replaceDoubleOnRowWithLabel choked on a temp-label that cant be converted to double???"); //Should never ever occur!
+			throw std::runtime_error("replaceDoubleOnRowWithLabel choked on a temp-label that cant be converted to double???"); //Should never ever occur because it starts from _labels.size!
 
 	//the last dbl is the one we want so use it to get the right label from the map:
 	Label * label = replaceDoubleWithLabel(dbls)[dbl];

@@ -625,9 +625,9 @@ void DatabaseInterface::columnSetValues(int columnId, const intvec &ints, const 
 
 			bindParamStore = [&](sqlite3_stmt * stmt)
 			{
-				sqlite3_bind_int(stmt,	1, ints[rowOutside]);
-				sqlite3_bind_int(stmt,	2, dbls[rowOutside]);
-				sqlite3_bind_int(stmt,	3, rowOutside+1);
+				sqlite3_bind_int(	stmt,	1, ints[rowOutside]);
+				_doubleTroubleBinder(stmt,	2, dbls[rowOutside]);
+				sqlite3_bind_int(	stmt,	3, rowOutside+1);
 			};
 
 			(*bindParameters) = &bindParamStore;
@@ -647,9 +647,9 @@ void DatabaseInterface::columnSetValue(int columnId, size_t row, int valueInt, d
 
 	runStatements(updateStatement, [&](sqlite3_stmt * stmt)
 	{
-		sqlite3_bind_int(	stmt,	1, valueInt);
-		sqlite3_bind_int(	stmt,	2, valueDbl);
-		sqlite3_bind_int(	stmt,	3, row+1);
+		sqlite3_bind_int(		stmt,	1, valueInt);
+		_doubleTroubleBinder(	stmt,	2, valueDbl);
+		sqlite3_bind_int(		stmt,	3, row+1);
 	});
 }
 
