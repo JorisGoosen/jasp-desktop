@@ -13,9 +13,26 @@ class Analysis;
 
 /// A column of data
 /// 
-/// Stores the integers or doubles of the current column (both might be stored in the DB but only the relevant one is loaded)
-/// It can also have its own labels which are in the child _labels that mirrors the relevant entries from table Labels.
-/// Relevant being that they have a link to this column.
+/// It can have 3 columnTypes, scalar, ordinal or nominal (nominalText is a relict of the past).
+/// 
+/// The data itself is stored in a hybrid fashion, where any values are stored in double (and thus int)-format in _dbls.
+/// Anything with a label on it will have a Label-object in Column and the "intsId" of this label is entered in the corresponding _ints row.
+/// If the originalValue of that label is convertible to double/int it will *also* be stored in _dbls. (Which is different from how <0.19 JASPs did it)
+/// 
+/// If no label exists _ints simply contains Label::DOUBLE_LABEL_VALUE (-1) and it tells JASP that _dbl should be used.
+/// We do want users to be able to edit them, or to set "filter allows" or something on it.
+/// To this end labelsTempCount() can be called to get the total of "labels" a column has.
+/// The shown labels are stored in a temporary internal representation (stringvec).
+/// 
+/// What this means is that a column could have "labels" visible in the label-editor, but _labels.size() == 0!
+/// This is great because changing a column with 1million unique doubles doesnt need 1 million new labels, but no operations at all.
+/// Pretty nice
+/// 
+/// However, this does mean that things like reversing labels or disabling filterAllows on a labels requires creating all those labels.
+/// This is done with Column::replaceDoubleWithLabel(*) and co.
+/// 
+/// The logic of getting "labels" or "values" from a column is now in Column::dataAsRLevels Column::dataAsRDoubles instead of in rbridge.
+/// Although the conversion to whatever R expects is still done there (rbridge_readDataSet). But perhaps it could be moved further to the jaspRcpp side of things.
 /// 
 /// It has a variety of utility functions to modify, reorder or init values in the column.
 /// As well as UI support functions for modifying the labels and such.
