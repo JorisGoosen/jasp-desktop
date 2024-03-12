@@ -106,6 +106,7 @@ private: // Methods:
 	void sendRCodeResult(		const std::string & rCodeResult,	int rCodeRequestId);
 	void sendRCodeError(		int rCodeRequestId);
 
+public:
 	DataSet * provideAndUpdateDataSet();
 
 	void provideTempFileName(		const std::string & extension,		std::string & root,	std::string & relativePath);

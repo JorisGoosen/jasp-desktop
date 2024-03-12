@@ -79,24 +79,6 @@ Engine::Engine(int slaveNo, unsigned long parentPID)
 	if(parentPID != 0) //Otherwise we are just running to fix R packages
 		_db = new DatabaseInterface();
 
-	rbridge_setDataSetSource(			boost::bind(&Engine::provideAndUpdateDataSet,		this));
-	rbridge_setFileNameSource(			boost::bind(&Engine::provideTempFileName,			this, _1, _2, _3));
-	rbridge_setSpecificFileNameSource(	boost::bind(&Engine::provideSpecificFileName,		this, _1, _2, _3));
-
-	rbridge_setStateFileSource(			boost::bind(&Engine::provideStateFileName,			this, _1, _2));
-	rbridge_setJaspResultsFileSource(	boost::bind(&Engine::provideJaspResultsFileName,	this, _1, _2));
-
-	rbridge_setColumnFunctionSources(	boost::bind(&Engine::getColumnType,					this, _1),
-										boost::bind(&Engine::getColumnAnalysisId,			this, _1),
-										boost::bind(&Engine::setColumnDataAsScale,			this, _1, _2),
-										boost::bind(&Engine::setColumnDataAsOrdinal,		this, _1, _2, _3),
-										boost::bind(&Engine::setColumnDataAsNominal,		this, _1, _2, _3),
-										boost::bind(&Engine::setColumnDataAsNominalText,	this, _1, _2),
-										boost::bind(&Engine::createColumn,					this, _1),
-										boost::bind(&Engine::deleteColumn,					this, _1));
-
-	rbridge_setGetDataSetRowCountSource( boost::bind(&Engine::dataSetRowCount, this));
-	
 	_extraEncodings = new ColumnEncoder("JaspExtraOptions_");
 }
 
@@ -109,7 +91,7 @@ void Engine::initialize()
 		std::string memoryName = "JASP-IPC-" + std::to_string(_parentPID);
 		_channel = new IPCChannel(memoryName, _slaveNo, true);
 
-		rbridge_init(SendFunctionForJaspresults, PollMessagesFunctionForJaspResults, _extraEncodings, _resultFont.c_str());
+		rbridge_init(this, SendFunctionForJaspresults, PollMessagesFunctionForJaspResults, _extraEncodings, _resultFont.c_str());
 
 		Log::log() << "rbridge_init completed" << std::endl;
 	
