@@ -56,11 +56,16 @@ size_t _logWriteFunction(const void * buf, size_t len)
 	return len;
 }
 
+void rbridge_setEngine(Engine * engine)
+{
+	rbridge_engine = engine;
+}
+
 void rbridge_init(Engine * engine, sendFuncDef sendToDesktopFunction, pollMessagesFuncDef pollMessagesFunction, ColumnEncoder * extraEncoder, const char * resultFont)
 {
 	JASPTIMER_SCOPE(rbridge_init);
 	
-	rbridge_engine = engine;
+	rbridge_setEngine(engine);
 	
 	Log::log() << "Setting extraEncodings." << std::endl;
 	extraEncodings = extraEncoder;
@@ -83,10 +88,7 @@ void rbridge_init(Engine * engine, sendFuncDef sendToDesktopFunction, pollMessag
 		rbridge_createColumn,
 		rbridge_deleteColumn,
 		rbridge_getColumnAnalysisId,
-		rbridge_setColumnAsScale,
-		rbridge_setColumnAsOrdinal,
-		rbridge_setColumnAsNominal,
-		rbridge_setColumnAsNominalText,
+		rbridge_setColumnDataAndType,
 		rbridge_dataSetRowCount,
 		rbridge_encodeColumnName,
 		rbridge_decodeColumnName,
@@ -566,48 +568,13 @@ extern "C" bool STDCALL rbridge_deleteColumn(const char * columnName)
 	return rbridge_engine->deleteColumn(columnName);
 }
 
-extern "C" bool STDCALL rbridge_setColumnAsScale(const char* columnName, double * scalarData, size_t length)
-{
-	JASP_COLUMN_DECODE_HERE_STORED_colName;
-
-	std::vector<double> scalars(scalarData, scalarData + length);
-
-	return rbridge_engine->setColumnDataAsScale(colName, scalars);
-}
-
-extern "C" bool STDCALL rbridge_setColumnAsOrdinal(const char* columnName, int * ordinalData, size_t length, const char ** levels, size_t numLevels)
-{
-	JASP_COLUMN_DECODE_HERE_STORED_colName;
-
-	std::vector<int> ordinals(ordinalData, ordinalData + length);
-
-	std::map<int, std::string> labels;
-	for(size_t lvl=0; lvl<numLevels; lvl++)
-		labels[lvl + 1] = levels[lvl];
-
-	return rbridge_engine->setColumnDataAsOrdinal(colName, ordinals, labels);
-}
-
-extern "C" bool STDCALL rbridge_setColumnAsNominal(const char* columnName, int * nominalData, size_t length, const char ** levels, size_t numLevels)
-{
-	JASP_COLUMN_DECODE_HERE_STORED_colName;
-
-	std::vector<int> nominals(nominalData, nominalData + length);
-
-	std::map<int, std::string> labels;
-	for(size_t lvl=0; lvl<numLevels; lvl++)
-		labels[lvl + 1] = levels[lvl];
-
-	return rbridge_engine->setColumnDataAsNominal(colName, nominals, labels);
-}
-
-extern "C" bool STDCALL rbridge_setColumnAsNominalText(const char* columnName, const char ** nominalData, size_t length)
+extern "C" bool STDCALL rbridge_setColumnDataAndType(const char* columnName, const char ** nominalData, size_t length, int _columnType)
 {
 	JASP_COLUMN_DECODE_HERE_STORED_colName;
 
 	std::vector<std::string> nominals(nominalData, nominalData + length);
 
-	return rbridge_engine->setColumnDataAsNominalText(colName, nominals);
+	return rbridge_engine->setColumnDataAndType(colName, nominals, columnType(_columnType));
 }
 
 extern "C" int	STDCALL rbridge_dataSetRowCount()

@@ -40,10 +40,7 @@ DataSetRowCount					dataSetRowCount;
 CreateColumn					dataSetCreateColumn;
 DeleteColumn					dataSetDeleteColumn;
 GetColumnType					dataSetGetColumnType;
-SetColumnAsScale				dataSetColumnAsScale;
-SetColumnAsOrdinal				dataSetColumnAsOrdinal;
-SetColumnAsNominal				dataSetColumnAsNominal;
-SetColumnAsNominalText			dataSetColumnAsNominalText;
+SetColumnDataAndType			dataSetColumnDataAndType;
 GetColumnAnalysisId				dataSetGetColumnAnalysisId;
 
 EnDecodeDef						encodeColumnName,
@@ -90,18 +87,15 @@ void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCa
 	RInside &rInside = rinside->instance();
 
 	requestJaspResultsFileSourceCB				= callbacks->requestJaspResultsFileSourceCB;
-	dataSetColumnAsNominalText					= callbacks->dataSetColumnAsNominalText;
 	dataSetGetColumnAnalysisId					= callbacks->dataSetGetColumnAnalysisId;
+	dataSetColumnDataAndType					= callbacks->dataSetColumnAsDataAndType;
 	requestSpecificFileNameCB					= callbacks->requestSpecificFileNameCB;
 	readFullFilteredDataSetCB					= callbacks->readFullFilteredDataSetCB;
 	requestStateFileSourceCB					= callbacks->requestStateFileSourceCB;
 	readDataSetDescriptionCB					= callbacks->readDataSetDescriptionCB;
-	dataSetColumnAsNominal						= callbacks->dataSetColumnAsNominal;
-	dataSetColumnAsOrdinal						= callbacks->dataSetColumnAsOrdinal;
 	requestTempRootNameCB						= callbacks->requestTempRootNameCB;
 	requestTempFileNameCB						= callbacks->requestTempFileNameCB;
 	readDataColumnNamesCB						= callbacks->readDataColumnNamesCB;
-	dataSetColumnAsScale						= callbacks->dataSetColumnAsScale;
 	dataSetGetColumnType						= callbacks->dataSetGetColumnType;
 	dataSetCreateColumn							= callbacks->dataSetCreateColumn;
 	dataSetDeleteColumn							= callbacks->dataSetDeleteColumn;
@@ -147,7 +141,6 @@ void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCa
 	rInside[".postProcessLibraryModule"]		= Rcpp::InternalFunction(&jaspRCPP_postProcessLocalPackageInstall);
 	rInside[".requestTempFileNameNative"]		= Rcpp::InternalFunction(&jaspRCPP_requestTempFileNameSEXP);
 	rInside[".requestTempRootNameNative"]		= Rcpp::InternalFunction(&jaspRCPP_requestTempRootNameSEXP);
-	rInside[".setColumnDataAsNominalText"]		= Rcpp::InternalFunction(&jaspRCPP_setColumnDataAsNominalText);
 	rInside[".requestStateFileNameNative"]		= Rcpp::InternalFunction(&jaspRCPP_requestStateFileNameSEXP);
 	rInside[".readFullFilteredDatasetToEnd"]	= Rcpp::InternalFunction(&jaspRCPP_readFullFilteredDataSet);
 	rInside[".requestSpecificFileNameNative"]	= Rcpp::InternalFunction(&jaspRCPP_requestSpecificFileNameSEXP);
@@ -175,7 +168,6 @@ void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCa
 	static setColumnDataFuncDef		_setColumnDataAsScale		= jaspRCPP_setColumnDataAsScale;
 	static setColumnDataFuncDef		_setColumnDataAsOrdinal		= jaspRCPP_setColumnDataAsOrdinal;
 	static setColumnDataFuncDef		_setColumnDataAsNominal		= jaspRCPP_setColumnDataAsNominal;
-	static setColumnDataFuncDef		_setColumnDataAsNominalText	= jaspRCPP_setColumnDataAsNominalText;
 	static shouldEnDecodeFuncDef	_shouldEncodeColumnName		= jaspRCPP_shouldEncodeColumnName;
 	static shouldEnDecodeFuncDef	_shouldDecodeColumnName		= jaspRCPP_shouldDecodeColumnName;
 	
@@ -193,7 +185,6 @@ void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCa
 	rInside[".setColumnDataAsScalePtr"]			= Rcpp::XPtr<setColumnDataFuncDef>(	& _setColumnDataAsScale);
 	rInside[".setColumnDataAsOrdinalPtr"]		= Rcpp::XPtr<setColumnDataFuncDef>(	& _setColumnDataAsOrdinal);
 	rInside[".setColumnDataAsNominalPtr"]		= Rcpp::XPtr<setColumnDataFuncDef>(	& _setColumnDataAsOrdinal);
-	rInside[".setColumnDataAsNominalTextPtr"]	= Rcpp::XPtr<setColumnDataFuncDef>(	& _setColumnDataAsNominalText);
 	rInside[".shouldEncodeColName"]				= Rcpp::XPtr<shouldEnDecodeFuncDef>(& _shouldEncodeColumnName);
 	rInside[".shouldDecodeColName"]				= Rcpp::XPtr<shouldEnDecodeFuncDef>(& _shouldDecodeColumnName);
 	rInside[".encodeColName"]					= Rcpp::XPtr<enDecodeFuncDef>(		& _encodeColumnName);
@@ -211,7 +202,7 @@ void STDCALL jaspRCPP_init(const char* buildYear, const char* version, RBridgeCa
 	//jaspRCPP_parseEvalQNT("options(encoding = 'UTF-8')");
 
 	//Pass a whole bunch of pointers to jaspBase
-	jaspRCPP_parseEvalQNT("jaspBase:::setColumnFuncs(		.setColumnDataAsScalePtr, .setColumnDataAsOrdinalPtr, .setColumnDataAsNominalPtr, .setColumnDataAsNominalTextPtr, .getColumnType, .getColumnAnalysisId, .createColumn, .deleteColumn, .getColumnExists, .encodeColName, .decodeColName, .shouldEncodeColName, .shouldDecodeColName)");
+	jaspRCPP_parseEvalQNT("jaspBase:::setColumnFuncs(		.setColumnDataAsScalePtr, .setColumnDataAsOrdinalPtr, .setColumnDataAsNominalPtr, .getColumnType, .getColumnAnalysisId, .createColumn, .deleteColumn, .getColumnExists, .encodeColName, .decodeColName, .shouldEncodeColName, .shouldDecodeColName)");
 	jaspRCPP_parseEvalQNT("jaspBase:::setJaspLogFunction(	.logString					)");
 	jaspRCPP_parseEvalQNT("jaspBase:::setSendFunc(			.sendToDesktopFunction)");
 	jaspRCPP_parseEvalQNT("jaspBase:::setPollMessagesFunc(	.pollMessagesFunction)");
@@ -311,7 +302,6 @@ const char* STDCALL jaspRCPP_runModuleCall(const char* name, const char* title, 
 	rInside["resultsMeta"]			= "null";
 	rInside["requiresInit"]			= false;
 	
-
 	_setJaspResultsInfo(analysisID, analysisRevision, developerMode);
 
 	static std::string str;
@@ -742,135 +732,28 @@ bool jaspRCPP_getColumnExists(std::string columnName)
 	return false;
 }
 
-bool jaspRCPP_columnIsScale(		std::string columnName) { return jaspRCPP_getColumnType(columnName) == columnType::scale;		}
-bool jaspRCPP_columnIsOrdinal(		std::string columnName) { return jaspRCPP_getColumnType(columnName) == columnType::ordinal;		}
-bool jaspRCPP_columnIsNominal(		std::string columnName) { return jaspRCPP_getColumnType(columnName) == columnType::nominal;		}
+bool jaspRCPP_columnIsScale(		const std::string & columnName) { return jaspRCPP_getColumnType(columnName) == columnType::scale;		}
+bool jaspRCPP_columnIsOrdinal(		const std::string & columnName) { return jaspRCPP_getColumnType(columnName) == columnType::ordinal;		}
+bool jaspRCPP_columnIsNominal(		const std::string & columnName) { return jaspRCPP_getColumnType(columnName) == columnType::nominal;		}
 
-bool jaspRCPP_setColumnDataAsScale(std::string columnName, Rcpp::RObject scalarData)
+bool jaspRCPP_setColumnDataAsScale(const std::string & columnName, Rcpp::RObject scalarData)
 {
-	//columnName = decodeColumnName(columnName.c_str()); // decoded in rbridge
-
-	if(Rcpp::is<Rcpp::Vector<REALSXP>>(scalarData))
-		return _jaspRCPP_setColumnDataAsScale(columnName, Rcpp::as<Rcpp::Vector<REALSXP>>(scalarData));
-
-	static Rcpp::Function asNumeric("as.numeric");
-
-	try
-	{
-		return _jaspRCPP_setColumnDataAsScale(columnName, Rcpp::as<Rcpp::Vector<REALSXP>>(asNumeric(scalarData)));
-	}
-	catch(...)
-	{
-		Rf_error("Something went wrong with the conversion to scalar..");
-	}
-}
-
-bool _jaspRCPP_setColumnDataAsScale(std::string columnName, Rcpp::Vector<REALSXP> scalarData)
-{
-	double *scales = new double[scalarData.size()];
-	for(int i=0; i<scalarData.size(); i++)
-		scales[i] = scalarData[i];
-
-	bool somethingChanged = dataSetColumnAsScale(columnName.c_str(), scales, static_cast<size_t>(scalarData.size()));
-
-	delete[] scales;
-
-	return somethingChanged;
+	return _jaspRCPP_setColumnDataAndType(columnName, Rf_isNull(scalarData) ? Rcpp::Vector<STRSXP>() : Rcpp::as<Rcpp::Vector<STRSXP>>(scalarData), columnType::scale);
 }
 
 
-bool jaspRCPP_setColumnDataAsOrdinal(std::string columnName, Rcpp::RObject ordinalData)
+bool jaspRCPP_setColumnDataAsOrdinal(const std::string & columnName, Rcpp::RObject ordinalData)
 {
-	//columnName = decodeColumnName(columnName.c_str()); // decoded in rbridge
-
-	if(Rcpp::is<Rcpp::Vector<INTSXP>>(ordinalData))
-		return _jaspRCPP_setColumnDataAsOrdinal(columnName, Rcpp::as<Rcpp::Vector<INTSXP>>(ordinalData));
-
-	static Rcpp::Function asFactor("as.factor");
-
-	try
-	{
-		return _jaspRCPP_setColumnDataAsOrdinal(columnName, Rcpp::as<Rcpp::Vector<INTSXP>>(asFactor(ordinalData)));
-	}
-	catch(...)
-	{
-		Rf_error("Something went wrong with the conversion to ordinal..");
-	}
-}
-
-bool _jaspRCPP_setColumnDataAsOrdinal(std::string columnName, Rcpp::Vector<INTSXP> ordinalData)
-{
-	int *ordinals = new int[ordinalData.size()];
-	for(int i=0; i<ordinalData.size(); i++)
-		ordinals[i] = ordinalData[i];
-
-	size_t			numLevels;
-	const char **	labelPointers;
-	std::string *	labels;
-
-	jaspRCPP_setColumnDataHelper_FactorsLevels(ordinalData, ordinals, numLevels, labelPointers, labels);
-
-	bool somethingChanged =  dataSetColumnAsOrdinal(columnName.c_str(), ordinals, static_cast<size_t>(ordinalData.size()), labelPointers, numLevels);
-
-	delete[] ordinals;
-	delete[] labels;
-	delete[] labelPointers;
-
-	return somethingChanged;
-}
-
-bool jaspRCPP_setColumnDataAsNominal(std::string columnName, Rcpp::RObject nominalData)
-{
-	//columnName = decodeColumnName(columnName.c_str()); // decoded in rbridge
-
-	if(Rcpp::is<Rcpp::Vector<INTSXP>>(nominalData))
-		return _jaspRCPP_setColumnDataAsNominal(columnName, Rcpp::as<Rcpp::Vector<INTSXP>>(nominalData));
-
-	static Rcpp::Function asFactor("as.factor");
-
-	try
-	{
-		return _jaspRCPP_setColumnDataAsNominal(columnName, Rcpp::as<Rcpp::Vector<INTSXP>>(asFactor(nominalData)));
-	}
-	catch(...)
-	{
-		Rf_error("Something went wrong with the conversion to nominal..");
-	}
-}
-
-bool _jaspRCPP_setColumnDataAsNominal(std::string columnName, Rcpp::Vector<INTSXP> nominalData)
-{
-	int *nominals = new int[nominalData.size()];
-	for(int i=0; i<nominalData.size(); i++)
-		nominals[i] = nominalData[i];
-
-	size_t			numLevels;
-	const char **	labelPointers;
-	std::string *	labels;
-
-	jaspRCPP_setColumnDataHelper_FactorsLevels(nominalData, nominals, numLevels, labelPointers, labels);
-
-	bool somethingChanged =  dataSetColumnAsNominal(columnName.c_str(), nominals, static_cast<size_t>(nominalData.size()), labelPointers, numLevels);
-
-	delete[] nominals;
-	delete[] labels;
-	delete[] labelPointers;
-
-	return somethingChanged;
-}
-
-bool jaspRCPP_setColumnDataAsNominalText(std::string columnName, Rcpp::RObject nominalData)
-{
-	//columnName = decodeColumnName(columnName.c_str()); // decoded in rbridge
-
-	if(Rf_isNull(nominalData))
-		return _jaspRCPP_setColumnDataAsNominalText(columnName, Rcpp::Vector<STRSXP>());
-
-	return _jaspRCPP_setColumnDataAsNominalText(columnName, Rcpp::as<Rcpp::Vector<STRSXP>>(nominalData));
+	return _jaspRCPP_setColumnDataAndType(columnName, Rf_isNull(ordinalData) ? Rcpp::Vector<STRSXP>() : Rcpp::as<Rcpp::Vector<STRSXP>>(ordinalData), columnType::ordinal);
 }
 
 
-bool _jaspRCPP_setColumnDataAsNominalText(std::string columnName, Rcpp::Vector<STRSXP> nominalData)
+bool jaspRCPP_setColumnDataAsNominal(const std::string & columnName, Rcpp::RObject nominalData)
+{
+	return _jaspRCPP_setColumnDataAndType(columnName, Rf_isNull(nominalData) ? Rcpp::Vector<STRSXP>() : Rcpp::as<Rcpp::Vector<STRSXP>>(nominalData), columnType::nominal);
+}
+
+bool _jaspRCPP_setColumnDataAndType(const std::string & columnName, Rcpp::Vector<STRSXP> nominalData, columnType colType)
 {
 	std::vector<std::string> convertedStrings(nominalData.begin(), nominalData.end());
 
@@ -879,7 +762,7 @@ bool _jaspRCPP_setColumnDataAsNominalText(std::string columnName, Rcpp::Vector<S
 	for(size_t i=0; i<convertedStrings.size(); i++)
 		nominals[i] = convertedStrings[i].c_str();
 
-	return dataSetColumnAsNominalText(columnName.c_str(), nominals, static_cast<size_t>(nominalData.size()));
+	return dataSetColumnDataAndType(columnName.c_str(), nominals, static_cast<size_t>(nominalData.size()), int(colType));
 }
 
 

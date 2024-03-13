@@ -73,10 +73,7 @@ public:
 			bool					setAsNominalOrOrdinal(	const intvec	& values,									bool	is_ordinal = false);
 			bool					setAsNominalOrOrdinal(	const intvec	& values, intstrmap uniqueValues,			bool	is_ordinal = false);
 
-
-			bool					overwriteDataWithScale(				doublevec	scalarData);
-			bool					overwriteDataWithOrdinalOrNominal(	bool is_ordinal, intvec		ordinalData, intstrmap levels = {});
-			bool					overwriteDataWithNominal(			stringvec	nominalData);
+			bool					overwriteDataAndType(	stringvec		data, columnType colType);
 			
 			bool					allLabelsPassFilter()	const;
 			bool					hasFilter()				const;

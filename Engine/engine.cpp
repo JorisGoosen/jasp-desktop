@@ -18,15 +18,11 @@
 #include "engine.h"
 
 #include <sstream>
-#include <cstdio>
 
-//#include "../Common/analysisloader.h"
-#include <boost/bind.hpp>
 #include "tempfiles.h"
 #include "utils.h"
 #include "columnutils.h"
-#include <csignal>
-
+#include "processinfo.h"
 #include "rbridge.h"
 #include "timers.h"
 #include "log.h"
@@ -46,7 +42,7 @@ bool PollMessagesFunctionForJaspResults()
 			case engineAnalysisStatus::changed:
 			case engineAnalysisStatus::aborted:
 			case engineAnalysisStatus::stopped:
-				Log::log() << "Analysis status changed for engine #" << Engine::theEngine()->slaveNo() << " to: " << engineAnalysisStatusToString(Engine::theEngine()->getAnalysisStatus()) << std::endl;
+			Log::log() << "Analysis status changed for engine #" << Engine::theEngine()->engineNum() << " to: " << engineAnalysisStatusToString(Engine::theEngine()->getAnalysisStatus()) << std::endl;
 				return true;
 				
 			default:							
@@ -66,7 +62,7 @@ bool PollMessagesFunctionForJaspResults()
 Engine * Engine::_EngineInstance = NULL;
 
 Engine::Engine(int slaveNo, unsigned long parentPID)
-	: _slaveNo(slaveNo), _parentPID(parentPID)
+	: _engineNum(slaveNo), _parentPID(parentPID)
 {
 	JASPTIMER_SCOPE(Engine Constructor);
 	assert(_EngineInstance == NULL);
@@ -89,7 +85,7 @@ void Engine::initialize()
 	try
 	{
 		std::string memoryName = "JASP-IPC-" + std::to_string(_parentPID);
-		_channel = new IPCChannel(memoryName, _slaveNo, true);
+		_channel = new IPCChannel(memoryName, _engineNum, true);
 
 		rbridge_init(this, SendFunctionForJaspresults, PollMessagesFunctionForJaspResults, _extraEncodings, _resultFont.c_str());
 
@@ -343,7 +339,7 @@ void Engine::runRCode(const std::string & rCode, int rCodeRequestId, bool whiteL
 	std::string rCodeResult = whiteListed ? rbridge_evalRCodeWhiteListed(rCode.c_str(), true) : jaspRCPP_evalRCode(rCode.c_str(), true);
 
 	if (rCodeResult == "null")	sendRCodeError(rCodeRequestId);
-	else						sendRCodeResult(rCodeResult, rCodeRequestId);
+	else						sendRCodeResult(rCodeRequestId, rCodeResult);
 
 	_engineState = engineState::idle;
 }
@@ -373,13 +369,13 @@ void Engine::runRCodeCommander(std::string rCode)
 		rCodeResult = ColumnEncoder::decodeAll(rCodeResult);
 	}
 
-	sendRCodeResult(rCodeResult, -1);
+	sendRCodeResult(-1, rCodeResult);
 
 	_engineState = engineState::idle;
 }
 
 
-void Engine::sendRCodeResult(const std::string & rCodeResult, int rCodeRequestId)
+void Engine::sendRCodeResult(int rCodeRequestId, const std::string & rCodeResult)
 {
 	Json::Value rCodeResponse(Json::objectValue);
 
@@ -778,36 +774,12 @@ bool Engine::deleteColumn(const std::string &columnName)
 	return true;
 }
 
-bool Engine::setColumnDataAsScale(const std::string &columnName, const std::vector<double> &scalarData)
+bool Engine::setColumnDataAndType(const std::string &columnName, const std::vector<std::string> &data, columnType colType)
 {
 	if(!isColumnNameOk(columnName))
 		return false;
 
-	return provideAndUpdateDataSet()->column(columnName)->overwriteDataWithScale(scalarData);
-}
-
-bool Engine::setColumnDataAsOrdinal(const std::string &columnName, std::vector<int> &ordinalData, const std::map<int, std::string> &levels)
-{
-	if(!isColumnNameOk(columnName))
-		return false;
-
-	return setColumnDataAsNominalOrOrdinal(true,  columnName, ordinalData, levels);
-}
-
-bool Engine::setColumnDataAsNominal(const std::string &columnName, std::vector<int> &nominalData, const std::map<int, std::string> &levels)
-{
-	if(!isColumnNameOk(columnName))
-		return false;
-
-	return setColumnDataAsNominalOrOrdinal(false, columnName, nominalData, levels);
-}
-
-bool Engine::setColumnDataAsNominalText(const std::string &columnName, const std::vector<std::string> &nominalData)
-{
-	if(!isColumnNameOk(columnName))
-		return false;
-
-	return provideAndUpdateDataSet()->column(columnName)->overwriteDataWithNominal(nominalData);
+	return provideAndUpdateDataSet()->column(columnName)->overwriteDataAndType(data, colType);
 }
 
 void Engine::sendAnalysisResults()
@@ -895,17 +867,12 @@ void Engine::provideTempFileName(const std::string & extension, std::string & ro
 	TempFiles::create(extension, _analysisId, root, relativePath);
 }
 
-bool Engine::isColumnNameOk(std::string columnName)
+bool Engine::isColumnNameOk(const std::string & columnName)
 {
     if(columnName == "" || !provideAndUpdateDataSet())
 		return false;
 
     return provideAndUpdateDataSet()->column(columnName);
-}
-
-bool Engine::setColumnDataAsNominalOrOrdinal(bool isOrdinal, const std::string & columnName, std::vector<int> & data, const std::map<int, std::string> & levels)
-{
-	return	provideAndUpdateDataSet()->column(columnName)->overwriteDataWithOrdinalOrNominal(isOrdinal, data, levels);
 }
 
 void Engine::stopEngine()

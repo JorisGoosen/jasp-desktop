@@ -578,87 +578,19 @@ bool Column::setDescriptions(strstrmap labelToDescriptionMap)
 }
 
 
-bool Column::overwriteDataWithScale(doublevec scalarData)
+bool Column::overwriteDataAndType(stringvec data, columnType colType)
 {
-	JASPTIMER_SCOPE(Column::overwriteDataWithScale);
-		
-	size_t origSize = scalarData.size();
-	if(scalarData.size() != _data->rowCount())
-		scalarData.resize(_data->rowCount());
+	JASPTIMER_SCOPE(Column::overwriteDataAndType);
+
+	if(data.size() != _data->rowCount())
+		data.resize(_data->rowCount());
+
+	bool changes = _type != colType;
+	setValues(data,0, & changes);
+	setType(colType);
 	
-	for(size_t i=origSize; i<scalarData.size(); i++)
-		scalarData[i] = EmptyValues::missingValueDouble;
-	
-	columnType	oldType		= type();
-	stringvec	oldStrings	= valuesAsStrings(),
-				newStrings;
-
-	labelsClear();
-
-	size_t setVals = scalarData.size();
-
-	if(scalarData.size() != _data->rowCount())
-		scalarData.resize(_data->rowCount());
-
-	for(size_t setThis = setVals; setThis<scalarData.size(); setThis++)
-		scalarData[setThis] = static_cast<double>(std::nanf(""));
-
-	bool doublesDiffer = _dbls != scalarData;
-	_dbls = scalarData;
-	db().columnSetValues(_id, _ints, _dbls);
-	setType(columnType::scale);
-	incRevision();
-	
-	return oldType != type() || oldStrings != newStrings;
+	return changes;
 }
-
-
-bool Column::overwriteDataWithOrdinalOrNominal(bool is_ordinal, intvec ordinalData, intstrmap levels)
-{
-	JASPTIMER_SCOPE(Column::setAsNominalOrOrdinal);
-	
-	if(levels.size() > 0)
-		throw std::runtime_error("HIER MOET JE REKENING HOUDEN MET DE LEVEL VOLGORDE. MAAR DIE WORDT ONDERSTAAND WEGGEGOOID");
-	
-	size_t origSize = ordinalData.size();
-	if(ordinalData.size() != _data->rowCount())
-		ordinalData.resize(_data->rowCount());
-	
-	for(size_t i=origSize; i<ordinalData.size(); i++)
-		ordinalData[i] = EmptyValues::missingValueInteger;
-
-	columnType	oldType		= type();
-	stringvec	oldStrings	= valuesAsStrings(),
-				newStrings;
-	
-	newStrings.resize(ordinalData.size());
-	
-	for(size_t i=0; i<ordinalData.size(); i++)
-		if(levels.size() > 0)		newStrings[i] = levels[ordinalData[i]];
-		else				 		newStrings[i] = ordinalData[i];
-	
-	setValues(newStrings, 0);
-	setType(is_ordinal ? columnType::ordinal : columnType::nominal);
-	
-	return oldType != type() || newStrings != oldStrings;
-}
-
-bool Column::overwriteDataWithNominal(stringvec nominalData)
-{
-	JASPTIMER_SCOPE(Column::overwriteDataWithNominal);
-
-	if(nominalData.size() != _data->rowCount())
-		nominalData.resize(_data->rowCount());
-
-	columnType	oldType		= type();
-	stringvec	oldStrings	= valuesAsStrings();
-	
-	setValues(nominalData, 0);
-	setType(columnType::nominal);
-	
-	return oldType != type() || nominalData != oldStrings;
-}
-
 
 void Column::_dbUpdateLabelOrder(bool noIncRevisionWhenBatchedPlease)
 {
