@@ -63,7 +63,14 @@ bool EmptyValues::hasEmptyValues() const
 
 void EmptyValues::setHasCustomEmptyValues(bool hasThem)
 {
+	if(_hasEmptyValues == hasThem)
+		return;
+	
 	_hasEmptyValues = hasThem;
+	
+	if(_parent)
+		setEmptyValues(!_hasEmptyValues ? stringset() : _parent->_emptyStrings);
+		
 }
 
 bool EmptyValues::isEmptyValue(const std::string& val) const
