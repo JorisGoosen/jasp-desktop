@@ -219,13 +219,13 @@ protected:
 			void					labelsTempReset();
 
 private:
-			DataSet		*			_data				= nullptr;
-			EmptyValues	*			_emptyValues		= nullptr;			
+			DataSet			* const	_data;
+			EmptyValues		* const	_emptyValues;
 			Labels					_labels;
-			Label		*			_doubleDummy;		///< Only used to work around node problems in DataSetPackage. Should probably be replaced with something less hacky later on. (when rewriting DataSetPackage models)
+			Label			* const	_doubleDummy;		///< Only used to work around node problems in DataSetPackage. Should probably be replaced with something less hacky later on. (when rewriting DataSetPackage models)
 			columnType				_type				= columnType::unknown;
 			int						_id					= -1,
-									_analysisId			= -1,		// Actually initialized in DatabaseInterface::columnInsert
+									_analysisId			= -1,	// Actually initialized in DatabaseInterface::columnInsert
 									_labelsTempRevision	= -1;	///< When were the "temporary labels" created?
 			qsizetype				_labelsTempMaxWidth = 0;
 			stringvec				_labelsTemp;				///< Contains displaystring for labels. Used to allow people to edit "double" labels. Initialized when necessary
