@@ -31,7 +31,7 @@
 #include "timers.h"
 #include "log.h"
 #include "databaseinterface.h"
-
+#include "r_functionwhitelist.h"
 
 void SendFunctionForJaspresults(const char * msg) { Engine::theEngine()->sendString(msg); }
 bool PollMessagesFunctionForJaspResults()
