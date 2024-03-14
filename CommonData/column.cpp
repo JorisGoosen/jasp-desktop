@@ -173,10 +173,10 @@ bool Column::setCustomEmptyValues(const stringset& customEmptyValues)
 {
 	JASPTIMER_SCOPE(Column::setCustomEmptyValues);
 	
-	if (_emptyValues->hasEmptyValues() && _emptyValues->emptyStrings() == customEmptyValues)
+	if (_emptyValues->emptyStrings() == customEmptyValues)
 		return false;
 
-	_emptyValues->setEmptyValues(customEmptyValues);
+	_emptyValues->setEmptyValues(customEmptyValues, _emptyValues->hasEmptyValues());
 	db().columnSetEmptyVals(_id, _emptyValues->toJson().toStyledString());
 	
 	incRevision();
