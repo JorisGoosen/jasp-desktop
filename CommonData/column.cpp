@@ -657,15 +657,23 @@ void Column::endBatchedLabelsDB(bool wasWritingBatch)
 
 int Column::labelsAdd(int display)
 {
-	return labelsAdd(display, std::to_string(display), true, "", display);
+	return labelsAdd(std::to_string(display));
 }
 
 int Column::labelsAdd(const std::string &display)
 {
 	if(display == "")
 		return EmptyValues::missingValueInteger;
+	
+	int		anInt;
+	double	aDouble;
+	
+	Json::Value original = display;
+	
+	if		(ColumnUtils::getIntValue(		display, anInt))	original = anInt;
+	else if	(ColumnUtils::getDoubleValue(	display, aDouble))	original = aDouble;
 
-	return labelsAdd(display, "", display);
+	return labelsAdd(display, "", original);
 }
 
 int Column::labelsAdd(const std::string & display, const std::string & description, const Json::Value & originalValue)
@@ -843,6 +851,14 @@ double Column::labelsTempValueDouble(size_t tempLabelIndex)
 	
 	//So its not from a Label, this means its from _dbls
 	return _labelsTempDbls[tempLabelIndex];
+}
+
+int Column::labelsDoubleValueIsTempLabelRow(double dbl)
+{
+	for(size_t r=0; r<labelsTempCount(); r++)
+		if(Utils::isEqual(dbl, _labelsTempDbls[r]))
+			return r;
+	return -1;
 }
 
 void Column::_resetLabelValueMap()
