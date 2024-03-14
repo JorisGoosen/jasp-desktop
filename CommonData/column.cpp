@@ -1398,7 +1398,7 @@ bool Column::setValue(size_t row, int valueInt, double valueDbl, bool writeToDB)
 	if(writeToDB)
 	{
 		db().columnSetValue(_id, row, valueInt, valueDbl);
-		incRevision();
+		incRevision(false);
 	}
 	
 	return changed;

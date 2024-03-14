@@ -653,12 +653,10 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 
 						setManualEdits(true); //Don't synch with external file after editing
 
-						stringvec	changedCols = {column->name()},
-									missing;
-						strstrmap	changeName;
-
+						stringvec	changedCols = {column->name()};
+	
 						emit dataChanged(DataSetPackage::index(index.row(), index.column(), index.parent()), DataSetPackage::index(index.row(), index.column(), index.parent()));
-						emit datasetChanged(tq(changedCols), tq(missing), tq(changeName), false, false);
+						emit datasetChanged(tq(changedCols), {}, {}, false, false);
 
 						emit labelsReordered(tq(column->name()));
 						
