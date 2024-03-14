@@ -145,9 +145,9 @@ signals:
 	void compactModeChanged();
 	
 private:
-	std::vector<qsizetype> getSortedSelection()					const;
-	void				setValueMaxWidth();
-	void				clearVirtual();
+	std::vector<qsizetype>	getSortedSelection()					const;
+	void					setValueMaxWidth();
+	void					clearVirtual();
 
 	struct
 	{
