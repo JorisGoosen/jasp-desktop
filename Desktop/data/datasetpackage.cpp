@@ -902,6 +902,8 @@ bool DataSetPackage::setLabelAllowFilter(const QModelIndex & index, bool newAllo
 			else if(i == row && labels[i]->filterAllows() == newAllowValue) //Did not change!
 				return true;
 		}
+	
+	atLeastOneRemains = atLeastOneRemains || column->labelsTempCount() > labels.size();
 
 	if(atLeastOneRemains)
 	{
