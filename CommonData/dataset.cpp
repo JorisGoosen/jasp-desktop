@@ -490,20 +490,23 @@ void DataSet::loadOldComputedColumnsJson(const Json::Value &json)
 		col->findDependencies();
 }
 
+void DataSet::setEmptyValuesJsonOldStuff(const Json::Value &emptyValues)
+{
+	// For backward compatibility we take the default ones if the workspaceEmptyValues are not specified
+	Json::Value updatedEmptyValues = emptyValues;
+	Json::Value emptyValuesJson(Json::arrayValue);
+	for (const std::string& val : _defaultEmptyvalues)
+		emptyValuesJson.append(val);
+	updatedEmptyValues["workspaceEmptyValues"] = emptyValuesJson;
+	_emptyValues->fromJson(updatedEmptyValues);
+}
+
 void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 {
 	try
 	{
 		if (emptyValues.isMember("workspaceEmptyValues"))
-		{
-			// For backward compatibility we take the default ones if the workspaceEmptyValues are not specified
-			Json::Value updatedEmptyValues = emptyValues;
-			Json::Value emptyValuesJson(Json::arrayValue);
-			for (const std::string& val : _defaultEmptyvalues)
-				emptyValuesJson.append(val);
-			updatedEmptyValues["workspaceEmptyValues"] = emptyValuesJson;
-			_emptyValues->fromJson(updatedEmptyValues);
-		}
+			setEmptyValuesJsonOldStuff(emptyValues);
 		else
 			_emptyValues->fromJson(emptyValues);
 	}

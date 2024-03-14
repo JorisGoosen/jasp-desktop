@@ -23,6 +23,7 @@ public:
 			bool				hasEmptyValues()									const;
 			void				setHasCustomEmptyValues(bool hasThem);
 		    void				setEmptyValues(const stringset	& values);
+			void				setEmptyValues(const stringset	& values, bool custom);
 			
 			static	void		setDisplayString(const std::string & str)	{ _displayString = str;}
 	static	std::string		&	displayString()								{ return _displayString; }

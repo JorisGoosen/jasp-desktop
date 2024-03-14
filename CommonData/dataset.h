@@ -75,6 +75,7 @@ public:
 			DataSetBaseNode		 *	filtersNode()	const { return _filtersNode; }
 
 			void					setEmptyValuesJson(			const Json::Value & emptyValues, bool updateDB = true);
+			
 	const	stringset			&	workspaceEmptyValues()															const	{ return _emptyValues->emptyStrings();								}
 			void					setWorkspaceEmptyValues(	const stringset& values);
 	const	std::string			&	description()																	const	{ return _description; }
@@ -82,6 +83,7 @@ public:
 
 private:			
 			void					upgradeTo019(const Json::Value & emptyVals);
+			void					setEmptyValuesJsonOldStuff(	const Json::Value & emptyValues);
 			
 			
 private:
