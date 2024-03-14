@@ -135,7 +135,7 @@ FocusScope
 						{
 							anchors.fill:		selectionRectangle
 							acceptedButtons:	Qt.LeftButton
-							cursorShape:		Qt.PointingHandCursor
+							cursorShape:		Qt.CrossCursor	
 							z:					0
 							hoverEnabled: 		true
 
@@ -152,33 +152,34 @@ FocusScope
 
 						Row
 						{
-							QTC.Button
+							MouseArea
 							{
 								id:						filterCheckButton
-								checkable:				true
-								checked:				itemFiltered
 								height:					backroundItem.height
 								width:					levelsTableView.filterColWidth;
 								anchors.top:			parent.top
 								anchors.topMargin:		levelsTableView.itemVerticalPadding
 								z:						-1
+								cursorShape:			Qt.PointingHandCursor
+								
 
-								onClicked:				if (!columnModel.setChecked(rowIndex, checked)) checked = true; // Case when all labels are unchecked.
-
-								background: Item
+								onClicked:				
 								{
-									Image
+									columnModel.setChecked(rowIndex, !itemFiltered); // Case when all labels are unchecked.
+									columnModel.setSelected(rowIndex,true);
+								}
+
+								Image
+								{
+									source:					jaspTheme.iconPath + (itemFiltered ? "check-mark.png" : "cross.png")
+									sourceSize.width:		Math.max(40, width)
+									sourceSize.height:		Math.max(40, height)
+									width:					height
+									anchors
 									{
-										source:					filterCheckButton.checked ? jaspTheme.iconPath + "check-mark.png" : jaspTheme.iconPath + "cross.png"
-										sourceSize.width:		Math.max(40, width)
-										sourceSize.height:		Math.max(40, height)
-										width:					height
-										anchors
-										{
-											top:				parent.top
-											bottom:				parent.bottom
-											horizontalCenter:	parent.horizontalCenter
-										}
+										top:				filterCheckButton.top
+										bottom:				filterCheckButton.bottom										
+										horizontalCenter:	filterCheckButton.horizontalCenter
 									}
 								}
 							}
@@ -236,6 +237,7 @@ FocusScope
 									{
 										chosenColumnWas = columnModel.chosenColumn
 										columnModel.removeAllSelected()
+										columnModel.setSelected(rowIndex,true);
 									}
 								}
 
@@ -303,6 +305,7 @@ FocusScope
 									{
 										chosenColumnWas = columnModel.chosenColumn
 										columnModel.removeAllSelected()
+										columnModel.setSelected(rowIndex,true);
 									}
 								}
 
