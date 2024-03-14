@@ -827,29 +827,42 @@ bool DataSetPackage::setLabelValue(const QModelIndex &index, const QString &newL
 	Column			*	column		= dynamic_cast<Column*>(label->parent());
 	QModelIndex			parent		= index.parent();
 	stringvec			changedCols	;
-	bool				aChange		= false;
+	bool				aChange		= false,
+						aNumber		= false;
 	
 	if(!column || index.row() > rowCount(parent))
 		return false;
 	
 	beginSynchingData(false);
 	
-	if(column->labelDoubleDummy() == label)
-	{
-		label = column->replaceDoublesTillLabelsRowWithLabels(index.row());
-		aChange = true;
-	}
-	
 	Json::Value originalValue = newLabelValue.toStdString();
 	
 	int		anInteger;
 	double	aDouble;
+
+	if(	(aNumber =	ColumnUtils::getDoubleValue(newLabelValue.toStdString(), aDouble))	)	originalValue = aDouble;
+	if(				ColumnUtils::getIntValue(	newLabelValue.toStdString(), anInteger)	)	originalValue = anInteger;
 	
-	if(ColumnUtils::getIntValue(newLabelValue.toStdString(), anInteger))
-		originalValue = anInteger;
 	
-	else if(ColumnUtils::getDoubleValue(newLabelValue.toStdString(), aDouble))
-		originalValue = aDouble;
+	if(column->labelDoubleDummy() == label)
+	{
+		if(aNumber && column->replaceDoubleLabelFromRowWithDouble(index.row(), aDouble))
+		{
+			changedCols = {column->name()};
+			setManualEdits(true); //A value change is a manual edit for sure as that changes the data itself
+			endSynchingDataChangedColumns(changedCols, false, false);
+			
+			return true;
+		}
+		
+		label = column->replaceDoublesTillLabelsRowWithLabels(index.row());
+		aChange = true;
+	}
+	
+	//If the user is changing the value of a column with a integer/double value we want the display/label to also change
+	//But only if its the same
+	if(	label->originalValue() == label->labelDisplay() && label->originalValue().isDouble() && originalValue.isDouble())
+		aChange = label->setLabel(originalValue.asString()) || aChange;
 	
 	aChange = label->setOriginalValue(originalValue) || aChange;
 	

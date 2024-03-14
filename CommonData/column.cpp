@@ -756,8 +756,9 @@ void Column::labelsRemoveBeyond(size_t indexToStartRemoving)
 
 void Column::labelsTempReset()
 {
-	_labelsTemp.clear();
-	_labelsTempToIndex.clear();
+	_labelsTemp			. clear();
+	_labelsTempDbls		. clear();
+	_labelsTempToIndex	. clear();
 	_labelsTempRevision = -1;
 	_labelsTempMaxWidth = 0;
 }
@@ -768,14 +769,17 @@ int Column::labelsTempCount()
 	{
 		//first collect the labels that are actually Label
 		_labelsTemp			. clear();
+		_labelsTempDbls		. clear();
 		_labelsTemp			. reserve(_labels.size());
+		_labelsTempDbls		. reserve(_labels.size());
 		_labelsTempToIndex	. clear();
 		_labelsTempMaxWidth = 0;
 		
 		for(size_t r=0; r<_labels.size(); r++)
 			if(!_labels[r]->isEmptyValue())
 			{
-				_labelsTemp.push_back(_labels[r]->label());
+				_labelsTemp.push_back(		_labels[r]->label());
+				_labelsTempDbls.push_back(	_labels[r]->originalValue().isDouble() ? _labels[r]->originalValue().asDouble() : EmptyValues::missingValueDouble);
 				_labelsTempToIndex[_labelsTemp[_labelsTemp.size()-1]]	= _labelsTemp.size()-1; //We store the index in _labelsTemp in a map.
 			}
 		
@@ -788,6 +792,7 @@ int Column::labelsTempCount()
 				if(!doubleLabel.empty() && !_labelsTempToIndex.count(doubleLabel))
 				{
 					_labelsTemp						. push_back(doubleLabel);
+					_labelsTempDbls					. push_back(_dbls[r]);
 					_labelsTempToIndex[doubleLabel] = _labelsTemp.size()-1;
 					_labelsTempMaxWidth				= std::max(_labelsTempMaxWidth, qsizetype(_labelsTemp[_labelsTemp.size()-1].size()));
 				}
@@ -826,6 +831,18 @@ std::string Column::labelsTempValue(size_t tempLabelIndex, bool fancyEmptyValue)
 	//So its not from a Label, this means its from _dbls
 	//So that means the display value is actually the same as the value so:
 	return _labelsTemp[tempLabelIndex];
+}
+
+double Column::labelsTempValueDouble(size_t tempLabelIndex)
+{
+	if(labelsTempCount() <= tempLabelIndex)
+		return EmptyValues::missingValueDouble;
+	
+	if(tempLabelIndex < _labels.size())
+		return _labels[tempLabelIndex]->originalValue().isDouble() ? _labels[tempLabelIndex]->originalValue().asDouble() : EmptyValues::missingValueDouble;
+	
+	//So its not from a Label, this means its from _dbls
+	return _labelsTempDbls[tempLabelIndex];
 }
 
 void Column::_resetLabelValueMap()
@@ -1238,6 +1255,34 @@ Label *Column::replaceDoublesTillLabelsRowWithLabels(size_t row)
 		_labelsTempRevision = _revision;
 	
 	return label;
+}
+
+bool Column::replaceDoubleLabelFromRowWithDouble(size_t row, double dbl)
+{
+	if(row < _labels.size())
+	{
+		bool willWork = _labels[row]->originalValue().isDouble() && _labels[row]->labelDisplay() == _labels[row]->originalValueAsString(false);
+		if(willWork)
+		{
+			_labels[row]			-> setOriginalValue(	dbl	);
+			_labels[row]			-> setLabel(			_labels[row]->originalValueAsString(false));
+			_labelsTemp[row]		=  _labels[row]->label();
+			_labelsTempDbls[row]	=  dbl;
+		}
+		
+		return willWork;
+	}
+			
+	double	originalDbl = _labelsTempDbls[row];
+	if(!std::isnan(originalDbl))
+		for(double & dblsRef : _dbls)
+			if(Utils::isEqual(dblsRef, originalDbl))
+				dblsRef = dbl;
+	
+	_labelsTempDbls[row]	=  dbl;
+	_labelsTemp[row]		=  ColumnUtils::doubleToString(dbl);
+	
+	return true;
 }
 
 void Column::labelValueChanged(Label *label, double aDouble)

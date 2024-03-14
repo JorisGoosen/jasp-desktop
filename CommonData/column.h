@@ -115,8 +115,9 @@ public:
 			
 			int						labelsTempCount(); ///< Generates the labelsTemp also!
 			const stringvec		&	labelsTemp();
-			std::string				labelsTempDisplay(	size_t tempLabelIndex);
-			std::string				labelsTempValue(	size_t tempLabelIndex, bool fancyEmptyValue = false);
+			std::string				labelsTempDisplay(		size_t tempLabelIndex);
+			std::string				labelsTempValue(		size_t tempLabelIndex, bool fancyEmptyValue = false);
+			double					labelsTempValueDouble(	size_t tempLabelIndex);
 			Label				*	labelDoubleDummy()		{ return _doubleDummy; }
 
 			bool					labelsSyncInts(		const intset	& dataValues);
@@ -135,9 +136,12 @@ public:
 			stringvec				displaysAsStrings()										const;
 			stringvec				dataAsRLevels(intvec & values, const boolvec & filter, bool useLabels = true)		const; ///< values is output! If filter is of different length than the data an error is thrown, if length is zero it is ignored. useLabels indicates whether the levels will be based on the label or on the value as specified in the label editor.
 			doublevec				dataAsRDoubles(const boolvec & filter)						const; ///< If filter is of different length than the data an error is thrown, if length is zero it is ignored
+
 			std::map<double,Label*>	replaceDoubleWithLabel(doublevec dbls);
 			Label				* 	replaceDoubleWithLabel(double dbl);
-                        Label				* 	replaceDoublesTillLabelsRowWithLabels(size_t row);
+            Label				* 	replaceDoublesTillLabelsRowWithLabels(size_t row);
+			bool					replaceDoubleLabelFromRowWithDouble(size_t row, double dbl); ///< Returns true if succes
+
 			void					labelValueChanged(Label * label, double aDouble); ///< Pass NaN for non-convertible values
 			void					labelValueChanged(Label * label, int	anInteger) { labelValueChanged(label, double(anInteger)); }
 			void					labelDisplayChanged(Label * label);
@@ -202,7 +206,7 @@ public:
 			qsizetype				getMaximumWidthInCharacters(bool shortenAndFancyEmptyValue, bool valuesPlease); ///< Tries to take into consideration that utf-8 can have more characters than codepoints and compensates for it
 			columnType				resetValues(int thresholdScale); ///< "Reimport" the values it already has with a possibly different threshold of values 
 			stringset				mergeOldMissingDataMap(const Json::Value & missingData); ///< <0.19 JASP collected the removed empty values values in a map in a json object... We need to be able to read at least 0.18.3 so here this function that absorbs such a map and adds any required labels. It does not add the empty values itself though!
-
+			
 protected:
 			void					_checkForDependencyLoop(stringset foundNames, std::list<std::string> loopList);
 			void					_dbUpdateLabelOrder(bool noIncRevisionWhenBatchedPlease = false);		///< Sets the order of the _labels to label.order and in DB
@@ -226,6 +230,7 @@ private:
 									_labelsTempRevision	= -1;	///< When were the "temporary labels" created?
 			qsizetype				_labelsTempMaxWidth = 0;
 			stringvec				_labelsTemp;				///< Contains displaystring for labels. Used to allow people to edit "double" labels. Initialized when necessary
+			doublevec				_labelsTempDbls;
 			strintmap				_labelsTempToIndex;
 			bool					_invalidated		= false,
 									_batchedLabel		= false;
