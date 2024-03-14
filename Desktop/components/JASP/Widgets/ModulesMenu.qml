@@ -28,10 +28,10 @@ FocusScope
 		ribbon.focus = true;
 	}
 
-	Keys.onTabPressed: { increaseIndex(); }
-	Keys.onBacktabPressed: { decreaseIndex(); }
-	Keys.onDownPressed: { increaseIndex(); }
-	Keys.onUpPressed: { decreaseIndex(); }
+	Keys.onTabPressed:		{ increaseIndex(); }
+	Keys.onBacktabPressed:	{ decreaseIndex(); }
+	Keys.onDownPressed:		{ increaseIndex(); }
+	Keys.onUpPressed:		{ decreaseIndex(); }
 
 	function increaseIndex()
 	{

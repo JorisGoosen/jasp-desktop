@@ -655,7 +655,7 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 
 						stringvec	changedCols = {column->name()};
 	
-						emit dataChanged(DataSetPackage::index(index.row(), index.column(), index.parent()), DataSetPackage::index(index.row(), index.column(), index.parent()));
+						refresh();
 						emit datasetChanged(tq(changedCols), {}, {}, false, false);
 
 						emit labelsReordered(tq(column->name()));
@@ -844,22 +844,34 @@ bool DataSetPackage::setLabelValue(const QModelIndex &index, const QString &newL
 	
 	if(column->labelDoubleDummy() == label)
 	{
-		if(aNumber && column->replaceDoubleLabelFromRowWithDouble(index.row(), aDouble))
+		int replaceTill	= -1;
+		if(aNumber)
 		{
-			changedCols = {column->name()};
-			setManualEdits(true); //A value change is a manual edit for sure as that changes the data itself
-			endSynchingDataChangedColumns(changedCols, false, false);
-			
-			return true;
+			int		newHasRow	= column->labelsDoubleValueIsTempLabelRow(aDouble);
+					
+			if(!Utils::isEqual(aDouble, column->labelsTempValueDouble(index.row())))
+			{
+				assert(newHasRow != index.row()); //Because it shouldnt be the same after all
+				replaceTill = std::max(index.row(), newHasRow);
+			}
+					
+			if(replaceTill < 0 && column->replaceDoubleLabelFromRowWithDouble(index.row(), aDouble))
+			{
+				changedCols = {column->name()};
+				setManualEdits(true); //A value change is a manual edit for sure as that changes the data itself
+				endSynchingDataChangedColumns(changedCols, false, false);
+				
+				return true;
+			}
 		}
 		
-		label = column->replaceDoublesTillLabelsRowWithLabels(index.row());
+		label = column->replaceDoublesTillLabelsRowWithLabels(replaceTill > -1 ? replaceTill : index.row());
 		aChange = true;
 	}
 	
 	//If the user is changing the value of a column with a integer/double value we want the display/label to also change
 	//But only if its the same
-	if(	label->originalValue() == label->labelDisplay() && label->originalValue().isDouble() && originalValue.isDouble())
+	if(	label->originalValueAsString(false) == label->labelDisplay() && label->originalValue().isDouble() && originalValue.isDouble())
 		aChange = label->setLabel(originalValue.asString()) || aChange;
 	
 	aChange = label->setOriginalValue(originalValue) || aChange;
