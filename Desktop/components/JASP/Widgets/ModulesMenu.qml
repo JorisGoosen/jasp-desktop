@@ -145,6 +145,13 @@ FocusScope
 						undoModel:			columnModel
 						useTabAsSpaces:		false
 						nextTabItem:		missingValues
+						wrapMode:			TextEdit.Wrap
+						anchors
+						{
+							left:			parent.left
+							right:			parent.right
+							margins:		jaspTheme.generalAnchorMargin
+						}
 
 					}
 				}
