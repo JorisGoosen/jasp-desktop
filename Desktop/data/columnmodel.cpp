@@ -665,6 +665,9 @@ void ColumnModel::unselectAll()
 bool ColumnModel::setChecked(int rowIndex, bool checked)
 {
 	JASPTIMER_SCOPE(ColumnModel::setChecked);
+	
+	if(checked == data(index(rowIndex,0), int(DataSetPackage::specialRoles::filter)).toBool())
+		return true; //Its already that value
 
 	_editing = true;
 	_undoStack->pushCommand(new FilterLabelCommand(this, rowIndex, checked));
@@ -675,6 +678,11 @@ bool ColumnModel::setChecked(int rowIndex, bool checked)
 
 void ColumnModel::setValue(int rowIndex, const QString &value)
 {
+	JASPTIMER_SCOPE(ColumnModel::setValue);
+	
+	if(value == data(index(rowIndex,0), int(DataSetPackage::specialRoles::value)).toString())
+		return; //Its already that value
+	
 	_editing = true;
 	_undoStack->pushCommand(new SetLabelOriginalValueCommand(this, rowIndex, value));
 	_editing = false;
@@ -682,6 +690,11 @@ void ColumnModel::setValue(int rowIndex, const QString &value)
 
 void ColumnModel::setLabel(int rowIndex, QString label)
 {
+	JASPTIMER_SCOPE(ColumnModel::setLabel);
+	
+	if(label == data(index(rowIndex,0), int(DataSetPackage::specialRoles::label)).toString())
+		return; //Its already that value
+	
 	_editing = true;
 	_undoStack->pushCommand(new SetLabelCommand(this, rowIndex, label));
 	_editing = false;
