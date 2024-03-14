@@ -875,7 +875,7 @@ bool DataSetPackage::setLabelAllowFilter(const QModelIndex & index, bool newAllo
 					column = dynamic_cast<Column*>(label->parent());
 		
 		if(column->labelDoubleDummy() == label)
-			label = column->replaceDoublesTillLabelsRowWithLabels(index.row());
+			column->replaceDoublesTillLabelsRowWithLabels(index.row());
 	}		
 	
 	if(!column)

@@ -1032,10 +1032,8 @@ std::string Column::getLabel(size_t row, bool fancyEmptyValue) const
 
 std::string Column::doubleToDisplayString(double dbl, bool fancyEmptyValue) const
 {
-	if (dbl > std::numeric_limits<double>::max())				return "∞";
-	else if (dbl < std::numeric_limits<double>::lowest())		return "-∞";
-	else if (isEmptyValue(dbl))									return fancyEmptyValue ? EmptyValues::displayString() : "";
-	else														return ColumnUtils::doubleToString(dbl);
+	if (isEmptyValue(dbl))									return fancyEmptyValue ? EmptyValues::displayString() : "";
+	else													return ColumnUtils::doubleToString(dbl);
 }
 
 std::string Column::operator[](size_t row)

@@ -62,6 +62,12 @@ bool ColumnUtils::getIntValue(const double &value, int &intValue)
 
 bool ColumnUtils::getDoubleValue(const string &value, double &doubleValue)
 {
+	if(value == "∞" || value == "-∞")
+	{
+		doubleValue = std::numeric_limits<double>::infinity() * (value == "-∞" ? -1 : 1);
+		return true;
+	}
+	
 	try
 	{
 		doubleValue = boost::lexical_cast<double>(deEuropeaniseForImport(value));
@@ -85,17 +91,10 @@ doubleset ColumnUtils::getDoubleValues(const stringset & values, bool stripNAN)
 	return result;
 }
 
-
 bool ColumnUtils::isDoubleValue(const string &value)
 {
-	try
-	{
-		boost::lexical_cast<double>(value);
-		return true;
-	}
-	catch (...)	{}
-
-	return false;
+	static double last;
+	return getDoubleValue(value, last);
 }
 
 
@@ -210,6 +209,9 @@ std::string ColumnUtils::deEuropeaniseForImport(std::string value)
 std::string ColumnUtils::doubleToString(double dbl, int precision)
 {
 	JASPTIMER_SCOPE(ColumnUtils::doubleToString);
+	
+	if (dbl > std::numeric_limits<double>::max())		return "∞";
+	if (dbl < std::numeric_limits<double>::lowest())	return "-∞";
 	
 	std::stringstream conv; //Use this instead of std::to_string to make sure there are no trailing zeroes (and to get full precision)
 	conv << std::setprecision(precision);
