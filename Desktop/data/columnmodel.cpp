@@ -55,6 +55,8 @@ QVariantList ColumnModel::computedTypeValues() const
 	case computedColumnType::analysisNotComputed:
 		return analysisNotComputedChoice;
 	}
+	
+	return {};
 }
 
 QVariantList ColumnModel::columnTypeValues() const
