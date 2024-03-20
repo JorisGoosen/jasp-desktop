@@ -1007,14 +1007,18 @@ strintmap Column::labelsSyncStrings(const stringvec &new_values, const strstrmap
 	return result;
 }
 
-std::string Column::_getLabelDisplayStringByValue(int key) const
+std::string Column::_getLabelDisplayStringByValue(int key, bool ignoreEmptyValue) const
 {
 	if (key == EmptyValues::missingValueInteger)
 		return EmptyValues::displayString();
 	
 	if(_labelByIntsIdMap.count(key))
-		return _labelByIntsIdMap.at(key)->labelDisplay();
-	
+	{
+		return	ignoreEmptyValue 
+			?	_labelByIntsIdMap.at(key)->labelIgnoreEmpty()
+			:	_labelByIntsIdMap.at(key)->labelDisplay();
+	}
+
 	return std::to_string(key);
 }
 
@@ -1050,22 +1054,24 @@ std::string Column::getDisplay(size_t row, bool fancyEmptyValue) const
 	return fancyEmptyValue ? EmptyValues::displayString() : "";
 }
 
-std::string Column::getLabel(size_t row, bool fancyEmptyValue) const
+std::string Column::getLabel(size_t row, bool fancyEmptyValue, bool ignoreEmptyValue) const
 {
 	if (row < rowCount())
 	{
 		if (_ints[row] == Label::DOUBLE_LABEL_VALUE)
-			return doubleToDisplayString(_dbls[row], fancyEmptyValue);
+			return doubleToDisplayString(_dbls[row], fancyEmptyValue, ignoreEmptyValue);
 		else
-			return _getLabelDisplayStringByValue(_ints[row]);
+			return _getLabelDisplayStringByValue(_ints[row], ignoreEmptyValue);
 	}
 	
 	return fancyEmptyValue ? EmptyValues::displayString() : "";
 }
 
-std::string Column::doubleToDisplayString(double dbl, bool fancyEmptyValue) const
+std::string Column::doubleToDisplayString(double dbl, bool fancyEmptyValue, bool ignoreEmptyValue) const
 {
-	if (isEmptyValue(dbl))									return fancyEmptyValue ? EmptyValues::displayString() : "";
+	ignoreEmptyValue = ignoreEmptyValue && !std::isnan(dbl);
+	
+	if (isEmptyValue(dbl) && !ignoreEmptyValue)				return fancyEmptyValue ? EmptyValues::displayString() : "";
 	else													return ColumnUtils::doubleToString(dbl);
 }
 

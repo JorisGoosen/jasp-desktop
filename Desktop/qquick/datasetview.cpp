@@ -151,6 +151,7 @@ void DataSetView::modelDataChanged(const QModelIndex &topLeft, const QModelIndex
 					QQmlContext* context = itemCon->context;
 					if (roles.contains(int(DataSetPackage::specialRoles::selected)))
 						context->setContextProperty("itemSelected",	_model->data(row, col, _model->getRole("selected")));
+					
 					if (roles.contains(Qt::DisplayRole))
 					{
 						context->setContextProperty("itemText",		_model->data(row, col));
