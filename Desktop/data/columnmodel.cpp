@@ -16,27 +16,24 @@ QMap<computedColumnType, QString> ColumnModel::columnTypeFriendlyName =
 QVariantList ColumnModel::computedTypeValues() const
 {
 	static QVariantList computedChoices, analysisChoice, analysisNotComputedChoice;
+	typedef QMap<QString, QVariant> localMap;
 
 	if (computedChoices.isEmpty())
-	{
-		QMap<QString, QVariant> notComputedChoice =		{ std::make_pair("value", computedColumnTypeToQString(computedColumnType::notComputed)),		std::make_pair("label", columnTypeFriendlyName[computedColumnType::notComputed])};
-		QMap<QString, QVariant> rCodeChoice =			{ std::make_pair("value", computedColumnTypeToQString(computedColumnType::rCode)),				std::make_pair("label", columnTypeFriendlyName[computedColumnType::rCode])};
-		QMap<QString, QVariant> constructorCodeChoice = { std::make_pair("value", computedColumnTypeToQString(computedColumnType::constructorCode)),	std::make_pair("label", columnTypeFriendlyName[computedColumnType::constructorCode])};
-		computedChoices.push_back(notComputedChoice);
-		computedChoices.push_back(rCodeChoice);
-		computedChoices.push_back(constructorCodeChoice);
-	}
+		computedChoices =
+		{
+										localMap({ std::make_pair("value", computedColumnTypeToQString(computedColumnType::notComputed)),		std::make_pair("label", columnTypeFriendlyName[computedColumnType::notComputed])		}),
+										localMap({ std::make_pair("value", computedColumnTypeToQString(computedColumnType::rCode)),				std::make_pair("label", columnTypeFriendlyName[computedColumnType::rCode])				}),
+										localMap({ std::make_pair("value", computedColumnTypeToQString(computedColumnType::constructorCode)),	std::make_pair("label", columnTypeFriendlyName[computedColumnType::constructorCode])	})
+		};
 
 	if (analysisChoice.isEmpty())
-	{
-		QMap<QString, QVariant> uniqueChoice =			{ std::make_pair("value", computedColumnTypeToQString(computedColumnType::analysis)),			std::make_pair("label", columnTypeFriendlyName[computedColumnType::analysis])};
-		analysisChoice.push_back(uniqueChoice);
-	}
+		analysisChoice = {				localMap({ std::make_pair("value", computedColumnTypeToQString(computedColumnType::analysis)),			std::make_pair("label", columnTypeFriendlyName[computedColumnType::analysis])})};
+	
 
 	if (analysisNotComputedChoice.isEmpty())
 	{
-		QMap<QString, QVariant> uniqueChoice =			{ std::make_pair("value", computedColumnTypeToQString(computedColumnType::analysisNotComputed)), std::make_pair("label", columnTypeFriendlyName[computedColumnType::analysisNotComputed])};
-		analysisNotComputedChoice.push_back(uniqueChoice);
+		analysisNotComputedChoice = {	localMap({ std::make_pair("value", computedColumnTypeToQString(computedColumnType::analysisNotComputed)), std::make_pair("label", columnTypeFriendlyName[computedColumnType::analysisNotComputed])}) };
+		
 		analysisNotComputedChoice.append(computedChoices);
 	}
 
