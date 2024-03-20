@@ -137,7 +137,7 @@ void ColumnModel::setColumnTitle(const QString & newColumnTitle)
 	if (_virtual)
 		_dummyColumn.title = newColumnTitle;
 
-	if(column())
+	if(column() && column()->title() != fq(newColumnTitle))
 		_undoStack->pushCommand(new SetColumnPropertyCommand(this, newColumnTitle, SetColumnPropertyCommand::ColumnProperty::Title));
 }
 
@@ -260,7 +260,7 @@ void ColumnModel::setColumnDescription(const QString & newColumnDescription)
 	if (_virtual)
 		_dummyColumn.description = newColumnDescription;
 
-	if(column())
+	if(column() && column()->description() != fq(newColumnDescription))
 		_undoStack->pushCommand(new SetColumnPropertyCommand(this, newColumnDescription, SetColumnPropertyCommand::ColumnProperty::Description));
 }
 

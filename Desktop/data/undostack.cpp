@@ -357,6 +357,7 @@ SetLabelCommand::SetLabelCommand(QAbstractItemModel *model, int labelIndex, QStr
 
 void SetLabelCommand::undo()
 {
+	assert(_columnModel && _model);
 	_columnModel->setChosenColumn(_colId);
 	_model->setData(_model->index(_labelIndex, 0), _oldLabel, int(DataSetPackage::specialRoles::label));
 	_columnModel->setLabelMaxWidth();
@@ -364,6 +365,7 @@ void SetLabelCommand::undo()
 
 void SetLabelCommand::redo()
 {
+	assert(_columnModel && _model);
 	_columnModel->setChosenColumn(_colId);
 	_model->setData(_model->index(_labelIndex, 0), _newLabel, int(DataSetPackage::specialRoles::label));
 	_columnModel->setLabelMaxWidth();
