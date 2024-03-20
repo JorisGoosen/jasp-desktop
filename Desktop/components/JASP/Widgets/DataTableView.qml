@@ -511,9 +511,7 @@ FocusScope
 			rowNumberDelegate:
 				Rectangle
 				{
-					//gradient: Gradient{	GradientStop { position: 0.0;	color: "#EEEEEE" }	GradientStop { position: 0.75;	color: "#EEEEEE" }
-					//					GradientStop { position: 0.77;	color: "#DDDDDD" }	GradientStop { position: 1.0;	color: "#DDDDDD" }	}
-					color:	ribbonModel.dataMode && (dataTableView.view.selectionStart.y === rowIndex) ? jaspTheme.itemSelectedNoFocusColor : jaspTheme.uiBackground
+					color:	ribbonModel.dataMode && (dataTableView.view.selectionMin.y <= rowIndex && dataTableView.view.selectionMax.y >= rowIndex) ? jaspTheme.itemSelectedNoFocusColor : jaspTheme.uiBackground
 					Text {
 						text:				rowNumber
 						font:				jaspTheme.font
@@ -545,7 +543,11 @@ FocusScope
 			columnHeaderDelegate: Rectangle
 			{
 				id:		headerRoot
-				color:	(!ribbonModel.dataMode && columnModel.chosenColumn === columnIndex && columnModel.visible) || (ribbonModel.dataMode && (dataTableView.view.selectionStart.x === columnIndex)) ? jaspTheme.itemSelectedNoFocusColor : jaspTheme.uiBackground
+				color:	(!ribbonModel.dataMode || dataTableView.view.selectionMin.x == -1
+							? columnModel.chosenColumn === columnIndex && columnModel.visible 
+							: (dataTableView.view.selectionMin.x <= columnIndex && dataTableView.view.selectionMax.x >= columnIndex)
+						) 
+							  ? jaspTheme.itemSelectedNoFocusColor : jaspTheme.uiBackground
 
 							property real	iconTextPadding:	10
 				readonly	property int	__iconDim:			baseBlockDim * preferencesModel.uiScale

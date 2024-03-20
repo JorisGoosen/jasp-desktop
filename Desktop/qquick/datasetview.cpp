@@ -46,6 +46,11 @@ DataSetView::DataSetView(QQuickItem *parent)
 	connect(this,						&DataSetView::itemSizeChanged,					this, &DataSetView::reloadTextItems);
 	connect(this,						&DataSetView::itemSizeChanged,					this, &DataSetView::reloadRowNumbers);
 	connect(this,						&DataSetView::itemSizeChanged,					this, &DataSetView::reloadColumnHeaders);
+	
+	connect(this,						&DataSetView::selectionStartChanged,			this, &DataSetView::selectionMinChanged);
+	connect(this,						&DataSetView::selectionStartChanged,			this, &DataSetView::selectionMaxChanged);
+	connect(this,						&DataSetView::selectionEndChanged,				this, &DataSetView::selectionMinChanged);
+	connect(this,						&DataSetView::selectionEndChanged,				this, &DataSetView::selectionMaxChanged);
 
 	connect(PreferencesModel::prefs(),	&PreferencesModel::uiScaleChanged,				this, &DataSetView::resetItems,			Qt::QueuedConnection);
 	connect(PreferencesModel::prefs(),	&PreferencesModel::interfaceFontChanged,		this, &DataSetView::resetItems,			Qt::QueuedConnection);
@@ -1277,6 +1282,38 @@ QPoint DataSetView::selectionTopLeft() const
 	return QPoint(c, r);
 }
 
+QPoint DataSetView::selectionMin() const	
+{ 
+	QPoint p(_selectionStart);
+	
+	if(_selectionEnd.x() > -1 && _selectionEnd.y() > -1)
+	{
+		if(p.x() == -1 || p.x() > _selectionEnd.x())
+			p.setX(_selectionEnd.x());
+		
+		if(p.y() == -1 || p.y() > _selectionEnd.y())
+			p.setY(_selectionEnd.y());
+	}
+		
+	return p;		
+}
+
+QPoint DataSetView::selectionMax() const	
+{ 
+	QPoint p(_selectionStart);
+	
+	if(_selectionEnd.x() > -1 && _selectionEnd.y() > -1)
+	{
+		if(p.x() == -1 || p.x() < _selectionEnd.x())
+			p.setX(_selectionEnd.x());
+		
+		if(p.y() == -1 || p.y() < _selectionEnd.y())
+			p.setY(_selectionEnd.y());
+	}
+		
+	return p;										
+}
+
 
 void DataSetView::columnSelect(int col,	bool shiftPressed, bool rightClicked)
 {
@@ -1294,7 +1331,7 @@ void DataSetView::columnSelect(int col,	bool shiftPressed, bool rightClicked)
 	}
 	else if (rightClicked)
 	{
-		if (_selectionModel->isColumnSelected(col))
+		if (_selectionModel->columnIntersectsSelection(col))
 			return;
 	}
 
@@ -1383,7 +1420,7 @@ void DataSetView::rowSelect(int row, bool shiftPressed, bool rightClicked)
 	}
 	else if (rightClicked)
 	{
-		if (_selectionModel->isRowSelected(row))
+		if (_selectionModel->rowIntersectsSelection(row))
 			return;
 	}
 
