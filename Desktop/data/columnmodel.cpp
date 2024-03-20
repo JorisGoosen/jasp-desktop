@@ -164,7 +164,7 @@ void ColumnModel::setUseCustomEmptyValues(bool useCustom)
 
 QStringList ColumnModel::emptyValues() const
 {
-	return (_virtual || !column()) ? QStringList() : tql(column()->emptyValues()->emptyStrings());
+	return (_virtual || !column()) ? QStringList() : tql(column()->emptyValues()->emptyStringsColumnModel());
 }
 
 void ColumnModel::setCustomEmptyValues(const QStringList& customEmptyValues)

@@ -19,6 +19,7 @@ public:
             bool				isEmptyValue(double				data)           	const;
 			
 	const	stringset		&	emptyStrings()										const;
+	const	stringset		&	emptyStringsColumnModel()							const;
 	const	doubleset		&	emptyDoubles()										const;
 			bool				hasEmptyValues()									const;
 			void				setHasCustomEmptyValues(bool hasThem);

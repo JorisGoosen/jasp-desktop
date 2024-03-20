@@ -48,6 +48,11 @@ const stringset& EmptyValues::emptyStrings() const
 	return _emptyStrings;
 }
 
+const stringset &EmptyValues::emptyStringsColumnModel() const
+{
+	return !_parent ? _emptyStrings : !_hasEmptyValues ? _parent->_emptyStrings : _emptyStrings;
+}
+
 const doubleset & EmptyValues::emptyDoubles() const
 {
     return _emptyDoubles;
