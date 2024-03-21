@@ -29,7 +29,7 @@ DataSetView::DataSetView(QQuickItem *parent)
 	_material.setColor(Qt::gray);
 
 	connect(this,						&DataSetView::parentChanged,					this, &DataSetView::myParentChanged);
-
+	
 	connect(this,						&DataSetView::viewportXChanged,					this, &DataSetView::viewportChanged);
 	connect(this,						&DataSetView::viewportYChanged,					this, &DataSetView::viewportChanged);
 	connect(this,						&DataSetView::viewportWChanged,					this, &DataSetView::viewportChanged);
@@ -52,13 +52,12 @@ DataSetView::DataSetView(QQuickItem *parent)
 	connect(this,						&DataSetView::selectionEndChanged,				this, &DataSetView::selectionMinChanged);
 	connect(this,						&DataSetView::selectionEndChanged,				this, &DataSetView::selectionMaxChanged);
 
-	connect(PreferencesModel::prefs(),	&PreferencesModel::uiScaleChanged,				this, &DataSetView::resetItems,			Qt::QueuedConnection);
-	connect(PreferencesModel::prefs(),	&PreferencesModel::interfaceFontChanged,		this, &DataSetView::resetItems,			Qt::QueuedConnection);
+	connect(PreferencesModel::prefs(),	&PreferencesModel::uiScaleChanged,				this, &DataSetView::resetItems,				Qt::QueuedConnection);
+	connect(PreferencesModel::prefs(),	&PreferencesModel::interfaceFontChanged,		this, &DataSetView::resetItems,				Qt::QueuedConnection);
 
 	connect(DataSetPackage::pkg(),		&DataSetPackage::dataModeChanged,				this, &DataSetView::onDataModeChanged);
 	connect(_model,						&ExpandDataProxyModel::undoChanged,				this, &DataSetView::undoChanged);
-
-
+	
 	setZ(10);
 
 	_lastInstancedDataSetView = this;
@@ -183,20 +182,26 @@ void DataSetView::modelHeaderDataChanged(Qt::Orientation, int, int)
 
 void DataSetView::modelAboutToBeReset()
 {
-	//Log::log() << "void DataSetView::modelAboutToBeReset()" << std::endl;
-	//Ok, this weird hack is because if I do not recreate the selectionmodel after resetting everything crashes real hard. Maybe there is a bug in Qt?
-	delete _selectionModel;
-	_selectionModel = nullptr;
 	_storedLineFlags.clear();
 	_storedDisplayText.clear();
 }
 
 void DataSetView::modelWasReset()
 {
-	//Log::log() << "void DataSetView::modelWasReset()" << std::endl;
-	_selectionModel = new QItemSelectionModel(_model->sourceModel(), this);
-
 	calculateCellSizes();
+	
+	QModelIndex startIndex	= _model->index(_selectionStart.y(),	_selectionStart.x()),
+				endIndex	= _model->index(_selectionEnd.y(),		_selectionEnd.x());
+	
+	if(!endIndex.isValid())
+	{
+		if(!startIndex.isValid())
+			_selectionModel->clear();
+		else
+			_selectionModel->select(startIndex, QItemSelectionModel::ClearAndSelect);
+	}
+	else
+		_selectionModel->select(QItemSelection(startIndex, endIndex), QItemSelectionModel::ClearAndSelect);
 }
 
 void DataSetView::resetItems()
@@ -1211,13 +1216,13 @@ void DataSetView::_copy(QPoint where, bool clear)
 
 void DataSetView::paste(QPoint where)
 {
-	if (where.isNull())
-		where = selectionTopLeft();
+	if (where == QPoint(-1, -1))
+ 		where = selectionMin();
 
 	QString clipboardStr = QGuiApplication::clipboard()->text();
 
 	if (_lastJaspCopyIntoClipboard != clipboardStr)
-		// The text in the clipboard does not come from a JASP copy. So clear the reference to the copied columns, so that they are not used for the paste action.
+		// The text in the clipboard was not copied from the currently running JASP. So clear the reference to the "copied columns", so that they are not used for the paste action.
 		_copiedColumns.clear();
 
 	if (isColumnHeader(where) && where.x() >= 0 && _copiedColumns.size() > 0)

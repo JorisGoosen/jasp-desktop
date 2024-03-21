@@ -200,9 +200,6 @@ public slots:
 	bool		isRowHeader		(const QPoint& p) { return p.x() == -1	&& p.y() >= 0;	}
 	bool		isCell			(const QPoint& p) { return p.x() >= 0	&& p.y() >= 0;	}
 
-
-
-
 	void		cut(	QPoint where = QPoint(-1,-1)) { _copy(where, true);  }
 	void		copy(	QPoint where = QPoint(-1,-1)) { _copy(where, false); }
 	void		paste(	QPoint where = QPoint(-1,-1));
@@ -310,7 +307,7 @@ protected:
 	std::map<size_t, std::map<size_t, unsigned char>>		_storedLineFlags;
 	std::map<size_t, std::map<size_t, QString>>				_storedDisplayText;
 	static DataSetView									*	_lastInstancedDataSetView;
-	bool													_cacheItems				= true,
+	bool													_cacheItems				= false,
 															_recalculateCellSizes	= false,
 															_ignoreViewpoint		= true,
 															_linesWasChanged		= false,

@@ -203,6 +203,30 @@ FocusScope
 						dataTableView.view.selectAll();
 					}
 					break;
+									
+				case Qt.Key_C:
+					if(controlPressed && dataTableView.view.selectionMin.x >= 0 && dataTableView.view.selectionMin.y >= 0)
+					{
+						dataTableView.view.copy();
+						event.accepted = true;
+					}
+					break;
+		
+				case Qt.Key_X:
+					if(controlPressed && dataTableView.view.selectionMin.x >= 0 && dataTableView.view.selectionMin.y >= 0)
+					{
+						dataTableView.view.cut();
+						event.accepted = true;
+					}
+					break;
+		
+				case Qt.Key_V:
+					if(controlPressed && dataTableView.view.selectionMin.x >= 0 && dataTableView.view.selectionMin.y >= 0)
+					{
+						dataTableView.view.paste();
+						event.accepted = true;
+					}
+					break;
 
 				case Qt.Key_Home:
 						event.accepted = true;

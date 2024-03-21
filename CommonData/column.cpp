@@ -1839,9 +1839,6 @@ qsizetype Column::getMaximumWidthInCharacters(bool shortenAndFancyEmptyValue, bo
 			maxWidth	= std::max(maxWidth, qsizetype(stringUtils::approximateVisualLength(takeWidth)));
 		}
 	
-	if(maxWidth > 30 || _labelsTempMaxWidth>30)
-		Log::log() << "Doing getMaximumWidthInCharacters on column " << name() << std::endl;
-	
 	
 	return std::max(maxWidth, _labelsTempMaxWidth) + extraPad;
 }

@@ -62,7 +62,7 @@ Item
 
 				if(!shiftPressed)
 				{
-					if (!rightPressed || !isSelected)
+					if (!rightPressed && !isSelected)
 						dataTableView.view.selectionStart = Qt.point(columnIndex, rowIndex)
 				}
 				else
