@@ -1346,7 +1346,7 @@ Label * Column::labelByRow(int row) const
 	return nullptr;
 }
 
-bool Column::setStringValueToRowIfItFits(size_t row, const std::string & userEntered)
+bool Column::setStringValueToRow(size_t row, const std::string & userEntered)
 {
     JASPTIMER_SCOPE(Column::setStringValueToRowIfItFits);
     
@@ -1391,6 +1391,50 @@ bool Column::setStringValueToRowIfItFits(size_t row, const std::string & userEnt
 	else
 		//there is no new label yet for this and it is not a double so we need to make a label
 		return setValue(row, labelsAdd(userEntered));
+}
+
+bool Column::setValue(size_t row, const std::string & value, const std::string & label)
+{
+	JASPTIMER_SCOPE(Column::setValue(size_t row, const std::string & value, const std::string & label));
+    
+	//If value != "" and label == "" that means we got copy pasted stuff in the viewer. And we just dont have labels, but we can treat it like we are editing
+	//if both are "" we just want to clear the cell
+	//the assumption is that this is not direct user-input, but internal jasp stuff.
+	if(value == "" && label == "")
+		return setValue(row, EmptyValues::missingValueDouble);
+	
+	if(label == "")
+		return setStringValueToRow(row, value);
+	
+	bool	labelIsValue	= value == label;
+	double	newDoubleToSet	= EmptyValues::missingValueDouble,
+			oldDouble		= _dbls[row];	
+	bool	itsADouble		= ColumnUtils::getDoubleValue(value, newDoubleToSet);
+	Label * newLabel		= labelByValueAndDisplay(value, label);
+	Label * oldLabel		= _ints[row] == Label::DOUBLE_LABEL_VALUE ? nullptr : labelByIntsId(_ints[row]);
+		
+	if(!oldLabel && !newLabel && itsADouble) //no labels and it is a double, easy peasy
+		return setValue(row, newDoubleToSet);
+
+	if(newLabel)
+		return setValue(row, newLabel->intsId(), newDoubleToSet);
+		
+	if(itsADouble && labelIsValue)
+	{
+		//There is no new label, an oldLabel AND we have a non-empty double in _dbls
+		//This should mean that the label has this old double as a original value!
+		if(	oldLabel
+			&& !std::isnan(oldDouble)
+			&& (	!oldLabel->originalValue().isDouble()
+				|| !Utils::isEqual(_dbls[row], oldLabel->originalValue().asDouble())
+				))
+			Log::log() << "bool Column::setValue(" << row << ", '" << value << "', '" << label << "') had differences between _dbls[" << row << "](" << _dbls[row] << ") and oldLabel originalValue: '" << oldLabel->originalValueAsString() << "'" << std::endl;
+		
+		return setValue(row, newDoubleToSet);
+	}
+	else
+		//there is no new label yet for this and it is not a double (or the label is different from the value) so we need to make a label
+		return setValue(row, labelsAdd(label, "", itsADouble ? Json::Value(newDoubleToSet) : value));
 }
 
 bool Column::setValue(size_t row, int value, bool writeToDB)
@@ -1468,6 +1512,17 @@ Label *Column::labelByValue(const std::string & value) const
 
 	for(Label * label : _labels)
 		if(label->originalValueAsString() == value)
+			return label;
+
+	return nullptr;
+}
+
+Label *Column::labelByValueAndDisplay(const std::string &value, const std::string &labelText) const
+{
+	JASPTIMER_SCOPE(Column::labelByValueAndDisplay);
+
+	for(Label * label : _labels)
+		if(label->originalValueAsString() == value && label->label() == labelText)
 			return label;
 
 	return nullptr;

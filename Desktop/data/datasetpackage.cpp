@@ -647,7 +647,7 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 			{				
 				const std::string val = fq(value.toString());
 
-				if(column->setStringValueToRowIfItFits(index.row(), val == EmptyValues::displayString() ? "" : val))
+				if(column->setStringValueToRow(index.row(), val == EmptyValues::displayString() ? "" : val))
 				{
 						JASPTIMER_SCOPE(DataSetPackage::setData reset model);
 
@@ -1805,12 +1805,12 @@ void DataSetPackage::setWorkspaceEmptyValues(const stringset &emptyValues, bool 
 	emit workspaceEmptyValuesChanged();
 }
 
-void DataSetPackage::pasteSpreadsheet(size_t row, size_t col, const std::vector<std::vector<QString>> & cells, const intvec & coltypes, const QStringList & colNames)
+void DataSetPackage::pasteSpreadsheet(size_t row, size_t col, const std::vector<std::vector<QString>> & values, const std::vector<std::vector<QString>> &  labels, const intvec & coltypes, const QStringList & colNames)
 {
 	JASPTIMER_SCOPE(DataSetPackage::pasteSpreadsheet);
 
-	int		rowMax			= ( cells.size() > 0 ? cells[0].size() : 0), 
-			colMax			= cells.size();
+	int		rowMax			= ( values.size() > 0 ? values[0].size() : 0), 
+			colMax			= values.size();
 	bool	rowCountChanged = int(row + rowMax) > dataRowCount()	,
 			colCountChanged = int(col + colMax) > dataColumnCount()	;
 
@@ -1820,33 +1820,32 @@ void DataSetPackage::pasteSpreadsheet(size_t row, size_t col, const std::vector<
 		setDataSetSize(std::max(size_t(dataColumnCount()), colMax + col), std::max(size_t(dataRowCount()), rowMax + row));
 	
 	stringvec changed;
+	strstrmap changeNameColumns;
 
 	for(int c=0; c<colMax; c++)
 	{
-		int			dataCol		= c + col;
-		stringvec	colVals		= getColumnDataStrs(dataCol);
-		columnType	desiredType	= coltypes.size() > c ? columnType(coltypes[c]) : columnType::unknown;
-		std::string colName		= (colNames.size() > c && !colNames[c].isEmpty()) ? fq(colNames[c]) : getColumnName(dataCol);
+		Column	*	column		= _dataSet->column(c + col);
+		columnType	desiredType	= coltypes.size() > c ? columnType(coltypes[c]) : column->type();
+					desiredType = desiredType == columnType::unknown ? columnType::scale : desiredType;
+		std::string colName		= (colNames.size() > c && !colNames[c].isEmpty()) ? fq(colNames[c]) : column->name();
 
+		bool aChange = false;
 		for(int r=0; r<rowMax; r++)
-		{
-			std::string cellVal = fq(cells[c][r]);
-			if (desiredType != columnType::unknown && desiredType != columnType::scale)
-			{
-				Label* label = _dataSet->columns()[dataCol]->labelByDisplay(cellVal);
-				if (label)
-					cellVal = (desiredType == columnType::nominalText) ? label->originalValue().asString() : std::to_string(label->intsId());
-			}
-			colVals[r + row] = cellVal == EmptyValues::displayString() ? "" : cellVal;
-		}
+			aChange = column->setValue(r+row, fq(values[c][r]), labels.size() <= c || labels[c].size() <= r ? "" : fq(labels[c][r])) || aChange;
+			
+		aChange = aChange || colName != column->name() || desiredType != column->type();
+		
+		if(colName != column->name())
+			changeNameColumns[column->name()] = colName;
+		
+		column->setName(colName);
+		column->setType(desiredType);
 
-		initColumnWithStrings(dataCol, colName, colVals, {}, "", desiredType);
-
-		changed.push_back(colName);
-
+		if(aChange)
+			changed.push_back(colName);
 	}
 
-	strstrmap		changeNameColumns;
+	
 	stringvec		missingColumns;
 
 	endSynchingData(changed, missingColumns, changeNameColumns, rowCountChanged, colCountChanged, false);

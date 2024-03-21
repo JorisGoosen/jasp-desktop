@@ -147,7 +147,8 @@ public:
 			void					labelValueChanged(Label * label, int	anInteger) { labelValueChanged(label, double(anInteger)); }
 			void					labelDisplayChanged(Label * label);
 			
-			bool					setStringValueToRowIfItFits(size_t row, const std::string & value);
+			bool					setStringValueToRow(size_t row, const std::string & value);
+			bool					setValue(					size_t row, const std::string & value, const std::string & label);
 			bool					setValue(					size_t row, int					value, bool writeToDB = true);
 			bool					setValue(					size_t row, double				value, bool writeToDB = true);
 			bool					setValue(					size_t row, int					valueInt, double valueDbl, bool writeToDB = true);
@@ -158,13 +159,14 @@ public:
 			void					rowDelete(size_t row);
 			void					setRowCount(size_t row);
 
-			Labels				&	labels()															{ return _labels; }
-			const Labels		&	labels()													const	{ return _labels; }
-			Label				*	labelByIntsId(			int						intsId)		const; ///< Might be nullptr for missing label
-			Label				*	labelByDisplay(			const std::string	&	display)	const; ///< Might be nullptr for missing label
-			Label				*	labelByValue(			const std::string	&	value)		const; ///< Might be nullptr for missing label
-			Label				*	labelByRow(				int						row)		const; ///< Might be nullptr for missing label
-			int						labelIndex(				const Label			*	label)		const;
+			Labels				&	labels()																						{ return _labels; }
+			const Labels		&	labels()																				const	{ return _labels; }
+			Label				*	labelByIntsId(			int						intsId)									const; ///< Might be nullptr for missing label
+			Label				*	labelByDisplay(			const std::string	&	display)								const; ///< Might be nullptr for missing label
+			Label				*	labelByValue(			const std::string	&	value)									const; ///< Might be nullptr for missing label
+			Label				*	labelByValueAndDisplay(	const std::string	&	value, const std::string &	label)		const; ///< Might be nullptr for missing label
+			Label				*	labelByRow(				int						row)									const; ///< Might be nullptr for missing label
+			int						labelIndex(				const Label			*	label)									const;
 
 			bool					isValueEqual(size_t row, double value)				 const;
 			bool					isValueEqual(size_t row, int value)					 const;

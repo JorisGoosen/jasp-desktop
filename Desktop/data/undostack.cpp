@@ -152,7 +152,7 @@ void RemoveRowsCommand::undo()
 	DataSetTableModel* dataSetTable = qobject_cast<DataSetTableModel*>(_model);
 
 	if (dataSetTable)
-		dataSetTable->pasteSpreadsheet(_start, 0, _values, _colTypes);
+		dataSetTable->pasteSpreadsheet(_start, 0, _values, _labels, _colTypes);
 	else
 	{
 		for (int i = 0; i < _model->columnCount() && i < _values.size(); i++)
@@ -163,24 +163,29 @@ void RemoveRowsCommand::undo()
 
 void RemoveRowsCommand::redo()
 {
-	_values.clear();
-	_colTypes.clear();
+	_values		. clear();
+	_labels		. clear();
+	_colTypes	. clear();
 
 	for (int i = 0; i < _model->columnCount(); i++)
 	{
-		_values.push_back(std::vector<QString>());
-		_colTypes.push_back(_model->data(_model->index(0, i), int(dataPkgRoles::columnType)).toInt());
+		_values		. push_back(std::vector<QString>());
+		_labels		. push_back(std::vector<QString>());
+		_colTypes	. push_back(_model->data(_model->index(0, i), int(dataPkgRoles::columnType)).toInt());
 
 		for (int j = _start; j < _start + _count; j++)
 			if (j < _model->rowCount())
-				_values[i].push_back(_model->data(_model->index(j, i)).toString());
+			{
+				_values[i]	. push_back(_model->data(_model->index(j, i), int(dataPkgRoles::value)).toString());
+				_labels[i]	. push_back(_model->data(_model->index(j, i), int(dataPkgRoles::label)).toString());
+			}
 	}
 
 	_model->removeRows(_start, _count);
 }
 
-PasteSpreadsheetCommand::PasteSpreadsheetCommand(QAbstractItemModel *model, int row, int col, const std::vector<std::vector<QString> > &cells, const QStringList& colNames)
-	: UndoModelCommand(model), _row{row}, _col{col}, _newCells{cells}, _newColNames{colNames}
+PasteSpreadsheetCommand::PasteSpreadsheetCommand(QAbstractItemModel *model, int row, int col, const std::vector<std::vector<QString> > & values, const std::vector<std::vector<QString> > & labels, const QStringList& colNames)
+	: UndoModelCommand(model), _row{row}, _col{col}, _newValues{values}, _newLabels{labels}, _newColNames{colNames}
 {
 	setText(QObject::tr("Paste values at row %1 column '%2'").arg(rowName(_row)).arg(columnName(_col)));
 }
@@ -190,24 +195,30 @@ void PasteSpreadsheetCommand::undo()
 	DataSetTableModel* dataSetTable = qobject_cast<DataSetTableModel*>(_model);
 
 	if (dataSetTable)
-		dataSetTable->pasteSpreadsheet(_row, _col, _oldCells, {}, _oldColNames);
+		dataSetTable->pasteSpreadsheet(_row, _col, _oldValues, _oldLabels, {}, _oldColNames);
 }
 
 void PasteSpreadsheetCommand::redo()
 {
-	_oldCells.clear();
-	for (int c = 0; c < _newCells.size(); c++)
+	_oldValues.clear();
+	_oldLabels.clear();
+	for (int c = 0; c < _newValues.size(); c++)
 	{
-		_oldCells.push_back(std::vector<QString>());
+		_oldValues.push_back(std::vector<QString>());
+		_oldLabels.push_back(std::vector<QString>());
+		
 		_oldColNames.push_back(_model->headerData(_col + c, Qt::Horizontal).toString());
-		for (int r = 0; r < _newCells[c].size(); r++)
-			_oldCells[c].push_back(_model->data(_model->index(_row + r, _col + c)).toString());
+		for (int r = 0; r < _newValues[c].size(); r++)
+		{
+			_oldValues[c].push_back(_model->data(_model->index(_row + r, _col + c),	int(DataSetPackage::specialRoles::value)).toString());
+			_oldLabels[c].push_back(_model->data(_model->index(_row + r, _col + c),	int(DataSetPackage::specialRoles::label)).toString());
+		}
 	}
 
 	DataSetTableModel* dataSetTable = qobject_cast<DataSetTableModel*>(_model);
 
 	if (dataSetTable)
-		dataSetTable->pasteSpreadsheet(_row, _col, _newCells, {}, _newColNames);
+		dataSetTable->pasteSpreadsheet(_row, _col, _newValues, _newLabels, {}, _newColNames);
 }
 
 

@@ -1199,17 +1199,15 @@ void DataSetView::_copy(QPoint where, bool clear)
 		else
 		{
 			Log::log() << "DataSetView about to clear at row: " << topLeft.y() << " and col: " << topLeft.x() << std::endl;
-			_model->pasteSpreadsheet(
-						topLeft.y(),
-						topLeft.x(),
-						std::vector<std::vector<QString>>(
-							(maxCol - minCol) + 1,
-							std::vector<QString>(
-								rowsSelected,
-								""
-							)
-						)
-			);
+			auto emptyCells = 	std::vector<std::vector<QString>>(
+											 (maxCol - minCol) + 1,
+											 std::vector<QString>(
+												 rowsSelected,
+												 ""
+											 )
+										 );
+			
+			_model->pasteSpreadsheet(topLeft.y(), topLeft.x(), emptyCells, emptyCells);
 		}
 	}
 }
@@ -1259,7 +1257,7 @@ void DataSetView::paste(QPoint where)
 		for(auto& column : newData)
 			column.resize(row); // Make sure that all columns have the same number of rows
 
-		_model->pasteSpreadsheet(isColumnHeader(where) ? 0 : where.y(), where.x(), newData, colNames);
+		_model->pasteSpreadsheet(isColumnHeader(where) ? 0 : where.y(), where.x(), newData, {}, colNames);
 	}
 }
 
@@ -1485,7 +1483,7 @@ void DataSetView::cellsClear()
 
 	std::vector<std::vector<QString>> cells(cols, std::vector<QString>(rows, QString("")));
 
-	_model->pasteSpreadsheet(row0, col0, cells);
+	_model->pasteSpreadsheet(row0, col0, cells, cells);
 }
 ;
 void DataSetView::columnsAboutToBeInserted(const QModelIndex & parent, int first, int last)
