@@ -1139,7 +1139,8 @@ void DataSetView::_copy(QPoint where, bool clear)
 
 	QModelIndexList selected = _selectionModel->selectedIndexes();
 
-	std::vector<QStringList>	rows;
+	std::vector<QStringList>	valRowsText,
+								labRowsText;
 
 	int minCol = _model->columnCount(), maxCol = 0;
 
@@ -1148,45 +1149,66 @@ void DataSetView::_copy(QPoint where, bool clear)
 	for(const QModelIndex & selectee : selected) //How do I know this is the right order? Random SO post. It does however seem to work and it would be surprising for it to suddenly change.
 	{
 		if(selectee.row() != previousRow)
-			rows.push_back({});
+		{
+			valRowsText.push_back({});
+			labRowsText.push_back({});
+		}
 
 		minCol = std::min(minCol, selectee.column());
 		maxCol = std::max(maxCol, selectee.column());
 
-		QVariant valVar = _model->data(selectee.row(), selectee.column());
-		std::string val = fq(valVar.toString());
+		QVariant	valVar	= _model->data(selectee.row(), selectee.column(), int(DataSetPackage::specialRoles::value)),
+					labVar	= _model->data(selectee.row(), selectee.column(), int(DataSetPackage::specialRoles::label));
+		QString		value	= valVar.toString(),
+					label	= labVar.toString();
 
-		rows[ rows.size()-1 ].append(
-						valVar.type() == QVariant::Double				?
-						QLocale::system().toString(valVar.toDouble())	: //To make sure commas etc are formatted as the system expects.
-						tq(val).replace('\n', ' ').replace('\t', ' ') )	; //Because Excel/etc use tab/newline for cell/row we make sure they are not in the cells at least.
+		std::function<void(std::vector<QStringList> & rows, QVariant var, QString text)> appendRow = [&](std::vector<QStringList> & rows, QVariant var, QString text)
+		{
+			rows[ rows.size() - 1 ]	.	append(	var.type() == QVariant::Double	
+									?	QLocale::system().toString(var.toDouble()) //To make sure commas etc are formatted as the system expects.
+									:	text.replace('\n', ' ').replace('\t', ' ') ); //Because Excel/etc use tab/newline for cell/row we make sure they are not in the cells at least.
+		};
+		appendRow(valRowsText, valVar, value);
+		appendRow(labRowsText, labVar, label);
 		previousRow = selectee.row();
 	}
 
-	if(rows.size() == 0)
+	if(valRowsText.size() == 0)
 		return; //Nothing to copy
 
 	_copiedColumns.clear();
 
-	int rowsSelected = rows.size();
+	int rowsSelected = valRowsText.size();
 
 	if(isColumnHeader(where))
 	{
-		rows.insert(rows.begin(), tq(std::vector<std::string>(maxCol - minCol + 1, "")));
+		valRowsText.insert(valRowsText.begin(), tq(std::vector<std::string>(maxCol - minCol + 1, "")));
+		labRowsText.insert(valRowsText.begin(), tq(std::vector<std::string>(maxCol - minCol + 1, "")));
 		for(int c=minCol; c<=maxCol; c++)
 		{
 			_copiedColumns.push_back(_model->serializedColumn(c));
-			rows[0][c-minCol] = _model->headerData(c, Qt::Horizontal).toString();
+			valRowsText[0][c-minCol] = _model->headerData(c, Qt::Horizontal).toString();
+			labRowsText[0][c-minCol] = _model->headerData(c, Qt::Horizontal, int(DataSetPackage::specialRoles::title)).toString();
 		}
 	}
 
 	QStringList	all;
-	for(const auto & row : rows)
+	for(const auto & row : valRowsText)
 		all.append(row.join("\t"));
 	QString copyThis = all.join("\n");
 
 	QGuiApplication::clipboard()->setText(copyThis);
 	_lastJaspCopyIntoClipboard = copyThis;
+	
+	QStringList	allLabels;
+	for(const auto & row : labRowsText)
+		allLabels.append(row.join("\t"));
+	QString copyTheseLabels = allLabels.join("\n");
+	QMimeData *  mime = new QMimeData();
+	
+	mime->setData("text/labels", copyTheseLabels.toUtf8());
+	QGuiApplication::clipboard()->setMimeData(mime);
+	
 
 	if(clear)
 	{
