@@ -288,7 +288,7 @@ std::vector<qsizetype> ColumnModel::getSortedSelection() const
 	std::map<QString, qsizetype> mapValueToRow;
 
 	for(qsizetype r=0; r<qsizetype(rowCount()); r++)
-		mapValueToRow[data(index(r, 0), int(DataSetPackage::specialRoles::value)).toString()] = r;
+		mapValueToRow[data(index(r, 0), int(DataSetPackage::specialRoles::valueMaxPrec)).toString()] = r;
 
 	std::vector<qsizetype> out;
 
@@ -365,7 +365,7 @@ QVariant ColumnModel::data(	const QModelIndex & index, int role) const
 {
 	if(role == int(DataSetPackage::specialRoles::selected))
 	{
-		bool s = _selected.count(data(index, int(DataSetPackage::specialRoles::value)).toString()) > 0;
+		bool s = _selected.count(data(index, int(DataSetPackage::specialRoles::valueMaxPrec)).toString()) > 0;
 		return s;
 	}
 
@@ -600,7 +600,7 @@ void ColumnModel::removeAllSelected()
 	QMap<QString, qsizetype> mapValueToRow;
 
 	for(qsizetype r=0; r<qsizetype(rowCount()); r++)
-		mapValueToRow[data(index(r, 0), int(DataSetPackage::specialRoles::value)).toString()] = r;
+		mapValueToRow[data(index(r, 0), int(DataSetPackage::specialRoles::valueMaxPrec)).toString()] = r;
 
 	QVector<QString> selectedValues;
 	for (const QString& s : _selected)
@@ -626,20 +626,20 @@ void ColumnModel::setSelected(int row, int modifier)
 		int end = start == _lastSelected ? row : _lastSelected;
 		for (int i = start; i <= end; i++)
 		{
-			QString rowValue = data(index(i, 0), int(DataSetPackage::specialRoles::value)).toString();
+			QString rowValue = data(index(i, 0), int(DataSetPackage::specialRoles::valueMaxPrec)).toString();
 			_selected.insert(rowValue);
 			emit dataChanged(ColumnModel::index(i, 0), ColumnModel::index(i, 0), {int(DataSetPackage::specialRoles::selected)});
 		}
 	}
 	else if (modifier & Qt::ControlModifier)
 	{
-		QString rowValue = data(index(row, 0), int(DataSetPackage::specialRoles::value)).toString();
+		QString rowValue = data(index(row, 0), int(DataSetPackage::specialRoles::valueMaxPrec)).toString();
 		_selected.insert(rowValue);
 		emit dataChanged(ColumnModel::index(row, 0), ColumnModel::index(row, 0), {int(DataSetPackage::specialRoles::selected)});
 	}
 	else
 	{
-		QString rowValue = data(index(row, 0), int(DataSetPackage::specialRoles::value)).toString();
+		QString rowValue = data(index(row, 0), int(DataSetPackage::specialRoles::valueMaxPrec)).toString();
 		bool disableCurrent = _selected.count(rowValue) > 0;
 		removeAllSelected();
 		if (!disableCurrent)	_selected.insert(rowValue);
@@ -675,7 +675,7 @@ void ColumnModel::setValue(int rowIndex, const QString &value)
 {
 	JASPTIMER_SCOPE(ColumnModel::setValue);
 	
-	if(value == data(index(rowIndex,0), int(DataSetPackage::specialRoles::value)).toString())
+	if(value == data(index(rowIndex,0), int(DataSetPackage::specialRoles::value)).toString() || value == data(index(rowIndex,0), int(DataSetPackage::specialRoles::valueMaxPrec)).toString())
 		return; //Its already that value
 	
 	_editing = true;

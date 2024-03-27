@@ -116,15 +116,11 @@ public:
 			int						labelsTempCount(); ///< Generates the labelsTemp also!
 			const stringvec		&	labelsTemp();
 			std::string				labelsTempDisplay(		size_t tempLabelIndex);
-			std::string				labelsTempValue(		size_t tempLabelIndex, bool fancyEmptyValue = false);
+			std::string				labelsTempValue(		size_t tempLabelIndex, bool fancyEmptyValue = false, bool maximumPrecision = false);
 			double					labelsTempValueDouble(	size_t tempLabelIndex);
 			int						labelsDoubleValueIsTempLabelRow(double dbl);
 			Label				*	labelDoubleDummy()		{ return _doubleDummy; }
-
-			bool					labelsSyncInts(		const intset	& dataValues);
-			bool					labelsSyncIntsMap(	const intstrmap	& dataValues);
-			strintmap				labelsSyncStrings(	const stringvec	& new_values, const strstrmap &new_labels, bool * changedSomething = nullptr);
-
+			
 			std::set<size_t>		labelsMoveRows(std::vector<qsizetype> rows, bool up);
 			void					labelsReverse();
 

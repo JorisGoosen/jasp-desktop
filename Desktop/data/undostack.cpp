@@ -176,7 +176,7 @@ void RemoveRowsCommand::redo()
 		for (int j = _start; j < _start + _count; j++)
 			if (j < _model->rowCount())
 			{
-				_values[i]	. push_back(_model->data(_model->index(j, i), int(dataPkgRoles::value)).toString());
+				_values[i]	. push_back(_model->data(_model->index(j, i), int(dataPkgRoles::valueMaxPrec)).toString());
 				_labels[i]	. push_back(_model->data(_model->index(j, i), int(dataPkgRoles::label)).toString());
 			}
 	}
@@ -210,7 +210,7 @@ void PasteSpreadsheetCommand::redo()
 		_oldColNames.push_back(_model->headerData(_col + c, Qt::Horizontal).toString());
 		for (int r = 0; r < _newValues[c].size(); r++)
 		{
-			_oldValues[c].push_back(_model->data(_model->index(_row + r, _col + c),	int(DataSetPackage::specialRoles::value)).toString());
+			_oldValues[c].push_back(_model->data(_model->index(_row + r, _col + c),	int(DataSetPackage::specialRoles::valueMaxPrec)).toString());
 			_oldLabels[c].push_back(_model->data(_model->index(_row + r, _col + c),	int(DataSetPackage::specialRoles::label)).toString());
 		}
 	}
@@ -388,10 +388,10 @@ SetLabelOriginalValueCommand::SetLabelOriginalValueCommand(QAbstractItemModel *m
 	_columnModel = qobject_cast<ColumnModel*>(model);
 	if (_columnModel)
 	{
-		_colId = _columnModel->chosenColumn();
-		_oldOriginalValue = _model->data(_model->index(_labelIndex, 0)).toString();
-		QString value = _model->data(_model->index(_labelIndex, 0), int(DataSetPackage::specialRoles::value)).toString();
-		setText(QObject::tr("Set label for value '%1' of column '%2' from '%3' to '%4'").arg(value).arg(_columnModel->columnNameQ()).arg(_oldOriginalValue).arg(_newOriginalValue));
+		_colId				= _columnModel->chosenColumn();
+		_oldOriginalValue	= _model->data(_model->index(_labelIndex, 0), int(DataSetPackage::specialRoles::valueMaxPrec)).toString();
+		_oldLabel			= _model->data(_model->index(_labelIndex, 0), int(DataSetPackage::specialRoles::label)).toString();
+		setText(QObject::tr("Set original value  from '%3' to '%4' for label '%1' of column '%2'").arg(_oldLabel).arg(_columnModel->columnNameQ()).arg(_oldOriginalValue).arg(_newOriginalValue));
 	}
 	else
 	{
@@ -403,7 +403,8 @@ SetLabelOriginalValueCommand::SetLabelOriginalValueCommand(QAbstractItemModel *m
 void SetLabelOriginalValueCommand::undo()
 {
 	_columnModel->setChosenColumn(_colId);
-	_model->setData(_model->index(_labelIndex, 0), _oldOriginalValue, int(DataSetPackage::specialRoles::value));
+	_model->setData(_model->index(_labelIndex, 0), _oldOriginalValue,	int(DataSetPackage::specialRoles::value));
+	_model->setData(_model->index(_labelIndex, 0), _oldLabel,			int(DataSetPackage::specialRoles::label));
 	_columnModel->setLabelMaxWidth();
 }
 

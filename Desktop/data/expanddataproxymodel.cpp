@@ -43,6 +43,7 @@ QVariant ExpandDataProxyModel::data(int row, int col, int role) const
 		return DataSetPackage::getDataSetViewLines(col>0, row>0, true, true);
 	}
 	case int(dataPkgRoles::value):					return "";
+	case int(dataPkgRoles::valueMaxPrec):			return "";
 	case int(dataPkgRoles::columnType):				return int(columnType::scale);
 //	case int(dataPkgRoles::itemInputValue):			return "string"; ???
 	default:										return QVariant();

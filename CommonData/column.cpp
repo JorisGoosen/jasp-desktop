@@ -828,17 +828,17 @@ std::string Column::labelsTempDisplay(size_t tempLabelIndex)
 	return _labelsTemp[tempLabelIndex];
 }
 
-std::string Column::labelsTempValue(size_t tempLabelIndex, bool fancyEmptyValue)
+std::string Column::labelsTempValue(size_t tempLabelIndex, bool fancyEmptyValue, bool maximumPrecision)
 {
 	if(labelsTempCount() <= tempLabelIndex)
 		return "";
 	
 	if(tempLabelIndex < _labels.size())
-		return _labels[tempLabelIndex]->originalValueAsString(fancyEmptyValue);
+		return _labels[tempLabelIndex]->originalValueAsString(fancyEmptyValue, maximumPrecision);
 	
 	//So its not from a Label, this means its from _dbls
 	//So that means the display value is actually the same as the value so:
-	return _labelsTemp[tempLabelIndex];
+	return doubleToDisplayString(_labelsTempDbls[tempLabelIndex], fancyEmptyValue, false, maximumPrecision);
 }
 
 double Column::labelsTempValueDouble(size_t tempLabelIndex)
@@ -868,143 +868,6 @@ void Column::_resetLabelValueMap()
 		_labelByIntsIdMap[label->intsId()] = label;
 	
 	labelsTempReset();
-}
-
-bool Column::labelsSyncIntsMap(const intstrmap &labelPerKey)
-{
-	JASPTIMER_SCOPE(Column::labelsSyncInts);
-	
-	beginBatchedLabelsDB();
-
-	std::set<int> keys;
-	for (const auto &keyLabel : labelPerKey)
-		keys.insert(keyLabel.first);
-
-	bool changed = labelsSyncInts(keys);
-
-	for (Label * label : _labels)
-	{
-		int					key					= label->intsId();
-		const std::string &	new_string_label	= labelPerKey.at(key),
-							old_string_label	= label->label();
-
-		if (new_string_label != old_string_label)
-		{
-			label->setLabel(new_string_label);
-			changed = true;
-		}
-	}
-
-	endBatchedLabelsDB();
-
-	return changed;
-}
-
-bool Column::labelsSyncInts(const std::set<int> &uniqueValues)
-{
-	JASPTIMER_SCOPE(Column::labelsSyncInts);
-	
-	bool wasBatched = _batchedLabel; //we can be called from labelsSyncIntsMap
-	if(!wasBatched)
-		beginBatchedLabelsDB();
-
-	intintmap	modifiedValues;
-	intset		valuesToAdd		= uniqueValues,
-				valuesToRemove;
-	bool		isChanged		= false;
-
-	for (Label * label : _labels)
-	{
-		if(label->originalValue().type() != Json::intValue)
-		{
-			isChanged = true;
-			if(label->label() == "") //if missing label set it now
-				label->setLabel(label->originalValueAsString());
-
-			// this behaviour was there in the original Labels::syncInts(const std::set<int> &values) function.
-			// Not sure if this is what we want though. (this would be the equivalent of setting _hasInt = true)
-			label->setOriginalValue(label->intsId());
-		}
-		
-		if(uniqueValues.count(label->intsId()))	valuesToAdd.erase(label->intsId());
-		else									valuesToRemove.insert(label->intsId());
-	}
-
-	labelsRemoveValues(valuesToRemove);
-
-	for (int value : valuesToAdd)
-		labelsAdd(value);
-
-
-	if(!wasBatched)
-		endBatchedLabelsDB();
-
-	return isChanged || (valuesToAdd.size() + valuesToRemove.size() > 0);
-}
-
-
-//This function could be simplified or at least made a bit more readable...
-strintmap Column::labelsSyncStrings(const stringvec &new_values, const strstrmap &new_labels, bool *changedSomething)
-{
-	JASPTIMER_SCOPE(Column::labelsSyncStrings);
-	
-	beginBatchedLabelsDB();
-
-	//Prepare a list of values we might have to add, labeltext -> labelkey, if they aren't there yet.
-	stringset	valuesToAdd;
-	intset		valuesToRemove;
-	strintmap	result;
-
-	for (const std::string& v : new_values)
-		valuesToAdd.insert(v);
-
-	//Check whether the entries in mapValuesToAdd are already there, or using originalValue because the datafile doesnt know what the user did
-	for (const Label * label : _labels)
-	{
-		std::string labelText	= label->originalValueAsString();
-		int labelValue			= label->intsId();
-
-		auto it = valuesToAdd.find(labelText);
-		if (it != valuesToAdd.end())
-		{
-			result[labelText] = labelValue;
-			valuesToAdd.erase(labelText);
-		}
-		else
-			valuesToRemove.insert(labelValue); //It it no longer present in the datafile
-	}
-
-	if(changedSomething != nullptr && (valuesToRemove.size() > 0 || valuesToAdd.size() > 0))
-		*changedSomething = true;
-
-	if (valuesToRemove.size() > 0)
-	{
-		labelsRemoveValues(valuesToRemove);
-		//result = labelsResetValues(maxLabelKey);
-	}
-
-	for (const std::string & newLabel : valuesToAdd)
-		result[newLabel] = labelsAdd(newLabel);
-
-	//Now all thats left is to use the new_labels mapping. As far as I can see during this refactor it is only used when importing from ReadStat
-	//And there we can have string-value and string-label in the same datafile that can be different.
-	//Perhaps the label changed there, if so overwrite it so the user gets to see it.
-	for (Label * label : _labels)
-	{
-		std::string origLabel = label->originalValueAsString();
-
-		if(new_labels.count(origLabel) && new_labels.at(origLabel) != label->label())
-		{
-				label->setLabel(new_labels.at(origLabel));
-
-				if(changedSomething != nullptr)
-					*changedSomething = true;
-		}
-	}
-
-	endBatchedLabelsDB();
-
-	return result;
 }
 
 std::string Column::_getLabelDisplayStringByValue(int key, bool ignoreEmptyValue) const
@@ -1314,7 +1177,7 @@ void Column::labelValueChanged(Label *label, double aDouble)
 	for(size_t r=0; r<_dbls.size(); r++)
 		if(_ints[r] == label->intsId())
 		{
-			if(_dbls[r] == aDouble)
+			if(Utils::isEqual(_dbls[r], aDouble))
 				return;
 			
 			_dbls[r] = aDouble;

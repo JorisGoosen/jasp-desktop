@@ -510,6 +510,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		case int(specialRoles::valuesDblList):		return getColumnValuesAsDoubleList(getColumnIndex(column->name()));
 		case int(specialRoles::inEasyFilter):		return isColumnUsedInEasyFilter(column->name());
 		case int(specialRoles::value):				return tq(column->getValue(index.row()));
+		case int(specialRoles::valueMaxPrec):		return tq(column->getValue(index.row(), false, true));
 		case int(specialRoles::name):				return tq(column->name());
 		case int(specialRoles::title):				return tq(column->title());
 		case int(specialRoles::filter):				return getRowFilter(index.row());
@@ -547,6 +548,7 @@ QVariant DataSetPackage::data(const QModelIndex &index, int role) const
 		{
 		case int(specialRoles::filter):				return index.row() >= labels.size() || labels[index.row()]->filterAllows();
 		case int(specialRoles::value):				return tq(column->labelsTempValue(index.row(), true));
+		case int(specialRoles::valueMaxPrec):		return tq(column->labelsTempValue(index.row(), true, true));
 		case int(specialRoles::description):		return index.row() >= labels.size() ? "" : tq(labels[index.row()]->description());
 		case int(specialRoles::labelsStrList):		return getColumnLabelsAsStringList(column->name());
 		case int(specialRoles::valuesDblList):		return getColumnValuesAsDoubleList(getColumnIndex(column->name()));
@@ -834,7 +836,7 @@ bool DataSetPackage::setLabelValue(const QModelIndex &index, const QString &newL
 	beginSynchingData(false);
 	
 	Json::Value originalValue = newLabelValue.toStdString();
-	
+
 	int		anInteger;
 	double	aDouble;
 
@@ -872,7 +874,7 @@ bool DataSetPackage::setLabelValue(const QModelIndex &index, const QString &newL
 	//If the user is changing the value of a column with a integer/double value we want the display/label to also change
 	//But only if its the same
 	if(	label->originalValueAsString(false) == label->labelDisplay() && label->originalValue().isDouble() && originalValue.isDouble())
-		aChange = label->setLabel(originalValue.asString()) || aChange;
+		aChange = label->setLabel(column->doubleToDisplayString(originalValue.asDouble(), false, false, false)) || aChange;
 	
 	aChange = label->setOriginalValue(originalValue) || aChange;
 	
