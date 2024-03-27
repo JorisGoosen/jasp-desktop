@@ -226,7 +226,7 @@ bool Label::isEmptyValue() const
 	return _column->isEmptyValue(_label);
 }
 
-std::string Label::originalValueAsString(bool fancyEmptyValue) const
+std::string Label::originalValueAsString(bool fancyEmptyValue, bool maximumPrecision) const
 {
 	switch(_originalValue.type())
 	{
@@ -237,7 +237,7 @@ std::string Label::originalValueAsString(bool fancyEmptyValue) const
 		return std::to_string(_originalValue.asInt());
 
 	case Json::realValue:
-		return _column->doubleToDisplayString(_originalValue.asDouble(), fancyEmptyValue);
+		return _column->doubleToDisplayString(_originalValue.asDouble(), fancyEmptyValue, false, maximumPrecision);
 
 	case Json::stringValue:
 		return _originalValue.asString();

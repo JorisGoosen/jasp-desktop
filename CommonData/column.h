@@ -129,10 +129,10 @@ public:
 			void					labelsReverse();
 
 			std::string				operator[](	size_t row); ///< Display value/label for row
-			std::string				getValue(	size_t row,	bool fancyEmptyValue = false)									const; ///< Returns the ("original") value. Basically whatever the user would like to see as value. Stored internally as json
+			std::string				getValue(	size_t row,	bool fancyEmptyValue = false, bool maximumPrecision = false)	const; ///< Returns the ("original") value. Basically whatever the user would like to see as value. Stored internally as json
 			std::string				getDisplay(	size_t row,	bool fancyEmptyValue = true)									const;
 			std::string				getLabel(	size_t row,	bool fancyEmptyValue = false, bool ignoreEmptyValue = false)	const;
-			stringvec				valuesAsStrings()																		const;
+			stringvec				valuesAsStrings(bool maximumPrecision = false)											const;
 			stringvec				labelsAsStrings()																		const;
 			stringvec				displaysAsStrings()																		const;
 			stringvec				dataAsRLevels(intvec & values, const boolvec & filter, bool useLabels = true)			const; ///< values is output! If filter is of different length than the data an error is thrown, if length is zero it is ignored. useLabels indicates whether the levels will be based on the label or on the value as specified in the label editor.
@@ -196,7 +196,7 @@ public:
 			Json::Value				serialize()																const;
 			void					deserialize(const Json::Value& info);
 			std::string				getUniqueName(const std::string& name)									const;
-			std::string				doubleToDisplayString(	double dbl, bool fancyEmptyValue = true, bool ignoreEmptyValues = false)		const; ///< fancyEmptyValue is the user-settable empty value label, for saving to csv this might be less practical though, so turn it off
+			std::string				doubleToDisplayString(	double dbl, bool fancyEmptyValue = true, bool ignoreEmptyValues = false, bool maximumPrecision = false)		const; ///< fancyEmptyValue is the user-settable empty value label, for saving to csv this might be less practical though, so turn it off
 			bool					hasCustomEmptyValues()													const;
 	const   EmptyValues    		*	emptyValues()															const { return _emptyValues; }
 			void					setHasCustomEmptyValues(		bool hasCustom);

@@ -46,7 +46,7 @@ public:
 			bool				filterAllows()				const	{ return _filterAllows;		}
 	const	Json::Value		&	originalValue()				const	{ return _originalValue;	}
 
-			std::string			originalValueAsString(bool fancyEmptyValue = false)		const;
+			std::string			originalValueAsString(bool fancyEmptyValue = false, bool maximumPrecision = false)		const;
 			std::string			str() const;
 			
 			void				setIntsId(			int value);

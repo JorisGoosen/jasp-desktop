@@ -382,7 +382,7 @@ void Column::dbUpdateValues(bool labelsTempCanBeMaintained)
 
 columnType Column::resetValues(int thresholdScale)
 {
-	return setValues(valuesAsStrings(), labelsAsStrings(), thresholdScale);
+	return setValues(valuesAsStrings(true), labelsAsStrings(), thresholdScale);
 }
 
 stringset Column::mergeOldMissingDataMap(const Json::Value &missingData)
@@ -1022,19 +1022,19 @@ std::string Column::_getLabelDisplayStringByValue(int key, bool ignoreEmptyValue
 	return std::to_string(key);
 }
 
-std::string Column::getValue(size_t row, bool fancyEmptyValue) const
+std::string Column::getValue(size_t row, bool fancyEmptyValue, bool maximumPrecision) const
 {
 	if (row < rowCount())
 	{
 		if (_type == columnType::scale || _ints[row] == Label::DOUBLE_LABEL_VALUE)
-			return doubleToDisplayString(_dbls[row], fancyEmptyValue);
+			return doubleToDisplayString(_dbls[row], fancyEmptyValue, false, maximumPrecision);
 
 		else if (_ints[row] != EmptyValues::missingValueInteger)
 		{
 			Label * label = labelByIntsId(_ints[row]);
 
 			if(label)
-				return label->originalValueAsString();
+				return label->originalValueAsString(fancyEmptyValue, maximumPrecision);
 		}
 	}
 	
@@ -1067,12 +1067,12 @@ std::string Column::getLabel(size_t row, bool fancyEmptyValue, bool ignoreEmptyV
 	return fancyEmptyValue ? EmptyValues::displayString() : "";
 }
 
-std::string Column::doubleToDisplayString(double dbl, bool fancyEmptyValue, bool ignoreEmptyValue) const
+std::string Column::doubleToDisplayString(double dbl, bool fancyEmptyValue, bool ignoreEmptyValue, bool maximumPrecision) const
 {
 	ignoreEmptyValue = ignoreEmptyValue && !std::isnan(dbl);
 	
 	if (isEmptyValue(dbl) && !ignoreEmptyValue)				return fancyEmptyValue ? EmptyValues::displayString() : "";
-	else													return ColumnUtils::doubleToString(dbl);
+	else													return maximumPrecision ? ColumnUtils::doubleToStringMaxPrec(dbl) : ColumnUtils::doubleToString(dbl);
 }
 
 std::string Column::operator[](size_t row)
@@ -1080,14 +1080,13 @@ std::string Column::operator[](size_t row)
 	return getDisplay(row);
 }
 
-
-stringvec Column::valuesAsStrings() const
+stringvec Column::valuesAsStrings(bool maximumPrecision) const
 {
 	stringvec returnMe;
 	returnMe.resize(_dbls.size());
 	
 	for(size_t i=0; i<returnMe.size(); i++)
-		returnMe[i] = getValue(i);
+		returnMe[i] = getValue(i, false, maximumPrecision);
 	
 	return returnMe;
 }
@@ -1236,8 +1235,8 @@ std::map<double, Label*> Column::replaceDoubleWithLabel(doublevec dbls)
 	for(double dbl : dbls)
 		if(!doubleIntIdMap.count(dbl))
 		{
-			assert(!std::isnan(dbl)); //Because why would it be?
-			doubleIntIdMap[dbl] = labelsAdd(doubleToDisplayString(dbl, false));
+			assert(!std::isnan(dbl)); //Because why would we be replacing it then?
+			doubleIntIdMap[dbl] = labelsAdd(doubleToDisplayString(dbl, false), "", dbl);
 			doubleLabelMap[dbl] = labelByIntsId(doubleIntIdMap[dbl]);
 		}
 	endBatchedLabelsDB();
