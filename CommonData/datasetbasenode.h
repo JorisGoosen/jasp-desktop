@@ -20,7 +20,7 @@ class DataSetBaseNode
 public:
 			typedef std::set<DataSetBaseNode*> NodeSet;
 	
-									DataSetBaseNode(dataSetBaseNodeType typeNode, DataSetBaseNode * parent);
+									DataSetBaseNode(dataSetBaseNodeType typeNode, DataSetBaseNode * parent, bool specialNonDbCopy = false);
 									~DataSetBaseNode();
 	
 			dataSetBaseNodeType		nodeType() const { return _type; }
@@ -28,6 +28,7 @@ public:
 			void					registerChild(	DataSetBaseNode * child);
 			void					unregisterChild(DataSetBaseNode * child);
 			bool					nodeStillExists(DataSetBaseNode * node)		const;
+			bool					specialNonDbCopy() const { return _specialNonDbCopy;}
 	
 			DataSetBaseNode		*	parent() const { return _parent; }
 	
@@ -41,10 +42,11 @@ public:
 protected:
 			void					checkForChanges();
 			
-			dataSetBaseNodeType		_type		= dataSetBaseNodeType::unknown;
-			DataSetBaseNode		*	_parent		= nullptr;
+			dataSetBaseNodeType		_type				= dataSetBaseNodeType::unknown;
+			DataSetBaseNode		*	_parent				= nullptr;
 			NodeSet					_children;
-			int						_revision	= 1; ///< We use revision both inside the database to track whether a node should be reloaded. but also to set packageModified in DataSetPackage on changes
+			int						_revision			= 1; ///< We use revision both inside the database to track whether a node should be reloaded. but also to set packageModified in DataSetPackage on changes
+			bool					_specialNonDbCopy	= false; ///< For things like undo it is desirable to have a quick way to copy stuff, this boolean can track whether an object is such an object (and then block all db operation)
 			
 private:
 			int						_previousNestedRevision;

@@ -1,4 +1,4 @@
-#include "label.h"
+﻿#include "label.h"
 #include "column.h"
 #include <sstream>
 #include "databaseinterface.h"
@@ -33,6 +33,27 @@ Label::Label(Column * column, const std::string &label, int value, bool filterAl
 
 	if(id == -1)	dbCreate();
 	else			_dbId = id;
+}
+
+Label::Label(Column *column, const Label * const copyThis)
+: DataSetBaseNode(dataSetBaseNodeType::label, column, true), _column(column)
+{
+	copyFrom(copyThis);
+}
+
+void Label::copyFrom(const Label * const copyThis)
+{
+	JASPTIMER_SCOPE(Label::copyFrom);
+	
+	_label			= copyThis -> _label			;
+	_intsId			= copyThis -> _intsId			;
+	_filterAllows	= copyThis -> _filterAllows		;
+	_description	= copyThis -> _description		;
+	_originalValue	= copyThis -> _originalValue	;
+	_order			= copyThis -> _order			;
+	
+	if(!specialNonDbCopy())
+		incRevision();
 }
 
 void Label::dbDelete()

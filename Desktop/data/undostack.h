@@ -229,23 +229,24 @@ private:
 	std::map<int, Json::Value>	_serializedColumns;
 };
 
-
+class DataSet;
+class DataSetTableModel;
 class PasteSpreadsheetCommand : public UndoModelCommand
 {
 public:
 	PasteSpreadsheetCommand(QAbstractItemModel *model, int row, int col, const std::vector<std::vector<QString>>& values, const std::vector<std::vector<QString>>& labels, const std::vector<boolvec> & selected, const QStringList & colNames);
-
+	~PasteSpreadsheetCommand();
+	
 	void undo()					override;
 	void redo()					override;
 
 private:
+	DataSetTableModel				*	_dataSetTableModel;
+	DataSet							*	_dataSetBefore = nullptr;
 	std::vector<std::vector<QString>>	_newValues,
-										_newLabels,
-										_oldValues,
-										_oldLabels;
+										_newLabels;
 	std::vector<boolvec>				_selected;
-	QStringList							_newColNames,
-										_oldColNames;
+	QStringList							_newColNames;
 	int									_row = -1,
 										_col = -1;
 };

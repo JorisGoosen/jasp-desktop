@@ -218,6 +218,13 @@ void ExpandDataProxyModel::_expandIfNecessary(int row, int col)
 	for (int colNr = _sourceModel->columnCount(); colNr <= col; colNr++)
 		insertColumn(colNr, false, false);
 	
+	{
+		int colNr = _sourceModel->columnCount(),
+			colC  = 1 + col - colNr;
+		
+		if(colC > 0 && col )
+			insertColumns(colNr, colC);
+	
 	int rowNr = _sourceModel->rowCount(),
 		rowC  = 1 + row - rowNr;
 	
@@ -239,7 +246,7 @@ void ExpandDataProxyModel::pasteSpreadsheet(int row, int col, const std::vector<
 	if (!_sourceModel || row < 0 || col < 0 || values.size() == 0 || values[0].size() == 0 )
 		return;
 
-	_expandIfNecessary(row + values[0].size() - 1, col + values.size() - 1);
+	_expandIfNecessary(row + values[0].size(), col + values.size());
 	_undoStack->endMacro(new PasteSpreadsheetCommand(_sourceModel, row, col, values, labels, selected, colNames));
 }
 

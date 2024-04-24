@@ -19,6 +19,36 @@ DataSet::DataSet(int index)
 	else if(index > 0)		dbLoad(index);
 }
 
+DataSet::DataSet(const DataSet * const copyThis)
+	: DataSetBaseNode(dataSetBaseNodeType::dataSet, nullptr, true)
+{
+	_dataNode		= new DataSetBaseNode(dataSetBaseNodeType::data,	this);
+	_filtersNode	= new DataSetBaseNode(dataSetBaseNodeType::filters, this);
+	_emptyValues	= new EmptyValues();
+	
+	copyFrom(copyThis);
+	
+}
+
+void DataSet::copyFrom(const DataSet * const copyThis)
+{	
+	JASPTIMER_SCOPE(DataSet::copyFrom);
+
+	_emptyValues->setEmptyValues(	copyThis->workspaceEmptyValues())	;
+	_rowCount					=	copyThis->rowCount()				;
+	_description				=	copyThis->description()				;
+			
+	beginBatchedToDB();
+	for(size_t l=0; l<copyThis->columns().size(); l++)
+		if(_columns.size() > l)	_columns[l]->copyFrom(copyThis->columns()[l]);
+		else					_columns.push_back(new Column(this, copyThis->columns()[l]));
+	
+	for(size_t l=copyThis->columns().size(); l<_columns.size(); l++)
+		delete _columns[l];
+	_columns.resize(copyThis->columns().size());
+	endBatchedToDB();
+}
+
 DataSet::~DataSet()
 {
 	JASPTIMER_SCOPE(DataSet::~DataSet);
@@ -71,6 +101,9 @@ void DataSet::endBatchedToDB(std::function<void(float)> progressCallback, Column
 {
 	assert(_writeBatchedToDB);
 	_writeBatchedToDB = false;
+	
+	if(specialNonDbCopy())
+		return;
 	
 	if(columns.size() == 0)
 		columns = _columns;

@@ -1,8 +1,8 @@
 #define ENUM_DECLARATION_CPP
 #include "datasetbasenode.h"
 
-DataSetBaseNode::DataSetBaseNode(dataSetBaseNodeType typeNode, DataSetBaseNode * parent) 
-	: _type(typeNode), _parent(parent)
+DataSetBaseNode::DataSetBaseNode(dataSetBaseNodeType typeNode, DataSetBaseNode * parent, bool specialNonDbCopy) 
+	: _type(typeNode), _parent(parent), _specialNonDbCopy(specialNonDbCopy)
 {
 	if(_parent)
 		_parent->registerChild(this);
@@ -60,6 +60,9 @@ void DataSetBaseNode::setModifiedCallback(std::function<void ()> callback)
 
 void DataSetBaseNode::checkForChanges()
 {
+	if(specialNonDbCopy())
+		return;
+	
 	if(_parent)
 		_parent->checkForChanges();
 	

@@ -10,7 +10,9 @@ class DataSet : public DataSetBaseNode
 {
 public:
 							DataSet(int index = -1); ///< index==-1: create a new dataSet, >0: load that dataSet, 0: do nothing
+							DataSet(const DataSet * const copyMe);
 							~DataSet();
+			void			copyFrom(const DataSet * const copyThis);
 	
 			Filter		*	filter()						{ return	_filter;	}
 			Columns		&	columns()			const		{ return	const_cast<Columns&>(_columns);	}
@@ -80,7 +82,7 @@ public:
 			void					setWorkspaceEmptyValues(	const stringset& values);
 	const	std::string			&	description()																	const	{ return _description; }
 			void					setDescription(				const std::string& desc);
-
+			
 private:			
 			void					upgradeTo019(const Json::Value & emptyVals);
 			void					setEmptyValuesJsonOldStuff(	const Json::Value & emptyValues);

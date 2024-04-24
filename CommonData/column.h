@@ -42,7 +42,10 @@ class Column : public DataSetBaseNode
 {
 public:
 									Column(DataSet * data, int id = -1);
+									Column(DataSet * const copyParent, const Column * const copyThis);
 									~Column();
+			
+			void					copyFrom(const Column * const copyThis);
 									
 				DatabaseInterface & db();
 		const	DatabaseInterface & db() const;
@@ -212,8 +215,6 @@ public:
 			columnType				resetValues(int thresholdScale); ///< "Reimport" the values it already has with a possibly different threshold of values 
 			stringset				mergeOldMissingDataMap(const Json::Value & missingData); ///< <0.19 JASP collected the removed empty values values in a map in a json object... We need to be able to read at least 0.18.3 so here this function that absorbs such a map and adds any required labels. It does not add the empty values itself though!
 			
-			
-
 protected:
 			void					_checkForDependencyLoop(stringset foundNames, std::list<std::string> loopList);
 			void					_dbUpdateLabelOrder(bool noIncRevisionWhenBatchedPlease = false);		///< Sets the order of the _labels to label.order and in DB

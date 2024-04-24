@@ -12,6 +12,16 @@ Column::Column(DataSet * data, int id)
 	_doubleDummy(new Label(this))
 {}
 
+
+Column::Column(DataSet * const copyParent, const Column * const copyThis)
+	: DataSetBaseNode(dataSetBaseNodeType::column, copyParent->dataNode(), true),
+	_data(copyParent),
+	_emptyValues(new EmptyValues(_data->emptyValues())),
+	_doubleDummy(new Label(this))	
+{
+	copyFrom(copyThis);
+}
+
 Column::~Column()
 {
 	labelsTempReset();
@@ -19,11 +29,46 @@ Column::~Column()
 	delete _doubleDummy;
 }
 
+void Column::copyFrom(const Column * const copyThis)
+{
+	JASPTIMER_SCOPE(Column::copyFrom);
+	
+	_type				=	copyThis ->	_type;
+	_id					=	copyThis ->	_id;
+	_analysisId			=	copyThis ->	_analysisId;
+	_invalidated		=	copyThis ->	_invalidated;
+	_batchedLabel		=	copyThis ->	_batchedLabel;
+	_forceTypes			=	copyThis ->	_forceTypes;
+	_codeType			=	copyThis ->	_codeType;
+	_name				=	copyThis ->	_name;
+	_title				=	copyThis ->	_title;
+	_description		=	copyThis ->	_description;
+	_error				=	copyThis ->	_error;
+	_rCode				=	copyThis ->	_rCode;
+	_constructorJson	=	copyThis ->	_constructorJson;
+	_dbls				=	copyThis ->	_dbls;
+	_ints				=	copyThis ->	_ints;
+	_dependsOnColumns	=	copyThis ->	_dependsOnColumns;
+	_labelByIntsIdMap	=	copyThis ->	_labelByIntsIdMap;
+	
+	_emptyValues->fromJson(	copyThis -> emptyValues()->toJson());
+	
+	beginBatchedLabelsDB();
+	for(size_t l=0; l<copyThis->labels().size(); l++)
+		if(_labels.size() > l)	_labels[l]->copyFrom(copyThis->labels()[l]);
+		else					_labels.push_back(new Label(this, copyThis->labels()[l]));
+	
+	for(size_t l=copyThis->labels().size(); l<_labels.size(); l++)
+		delete _labels[l];
+	_labels.resize(copyThis->labels().size());
+	endBatchedLabelsDB();
+}
+
 void Column::dbCreate(int index)
 {
 	JASPTIMER_SCOPE(Column::dbCreate);
 
-	assert(_id == -1);
+	assert(_id == -1 && !specialNonDbCopy());
 	db().columnInsert(_id, index);
 }
 
@@ -31,7 +76,7 @@ void Column::dbLoad(int id, bool getValues)
 {
 	JASPTIMER_SCOPE(Column::dbLoad);
 
-	assert(_id == id || (id != -1 && _id == -1) || _id != -1);
+	assert(!specialNonDbCopy() && (_id == id || (id != -1 && _id == -1) || _id != -1));
 
 	if(id != -1)
 		_id = id;
@@ -58,6 +103,7 @@ void Column::dbLoad(int id, bool getValues)
 void Column::dbLoadIndex(int index, bool getValues)
 {
 	JASPTIMER_SCOPE(Column::dbLoadIndex);
+	assert(!specialNonDbCopy());
 
 	_id = db().columnIdForIndex(_data->id(), index);
 
@@ -66,7 +112,7 @@ void Column::dbLoadIndex(int index, bool getValues)
 
 void Column::dbDelete(bool cleanUpRest)
 {
-	assert(_id != -1);
+	assert(_id != -1 && !specialNonDbCopy());
 
 	labelsClear();
 	db().columnDelete(_id, cleanUpRest);
@@ -112,7 +158,8 @@ void Column::setName(const std::string &name)
 	if(_title.empty() || _title == orgName)
 		setTitle(_name);
 
-	db().columnSetName(_id, _name);
+	if(!specialNonDbCopy())
+		db().columnSetName(_id, _name);
 	incRevision();
 }
 
@@ -124,7 +171,8 @@ void Column::setTitle(const std::string &title)
 		return;
 
 	_title = title;
-	db().columnSetTitle(_id, _title);
+	if(!specialNonDbCopy())
+		db().columnSetTitle(_id, _title);
 	incRevision();
 }
 
@@ -136,7 +184,8 @@ void Column::setDescription(const std::string &description)
 		return;
 
 	_description = description;
-	db().columnSetDescription(_id, _description);
+	if(!specialNonDbCopy())
+		db().columnSetDescription(_id, _description);
 	incRevision();
 }
 
@@ -148,7 +197,8 @@ void Column::setType(columnType colType)
 		return;
 	
 	_type = colType;
-	db().columnSetType(_id, _type);
+	if(!specialNonDbCopy())
+		db().columnSetType(_id, _type);
 	incRevision();
 }
 
@@ -165,7 +215,8 @@ void Column::setHasCustomEmptyValues(bool hasCustom)
 		return;
 	
 	_emptyValues->setHasCustomEmptyValues(hasCustom);
-	db().columnSetEmptyVals(_id, _emptyValues->toJson().toStyledString());
+	if(!specialNonDbCopy())
+		db().columnSetEmptyVals(_id, _emptyValues->toJson().toStyledString());
 	
 	incRevision();
 }
@@ -178,7 +229,8 @@ bool Column::setCustomEmptyValues(const stringset& customEmptyValues)
 		return false;
 
 	_emptyValues->setEmptyValues(customEmptyValues, _emptyValues->hasEmptyValues());
-	db().columnSetEmptyVals(_id, _emptyValues->toJson().toStyledString());
+	if(!specialNonDbCopy())
+		db().columnSetEmptyVals(_id, _emptyValues->toJson().toStyledString());
 	
 	incRevision();
 	
@@ -186,7 +238,10 @@ bool Column::setCustomEmptyValues(const stringset& customEmptyValues)
 }
 
 void Column::dbUpdateComputedColumnStuff()
-{
+{	
+	if(specialNonDbCopy())
+		return;
+
 	db().columnSetComputedInfo(_id, _analysisId, _invalidated, _forceTypes, _codeType, _rCode, _error, constructorJsonStr());
 	incRevision();
 }
@@ -199,7 +254,8 @@ void Column::setInvalidated(bool invalidated)
 		return;
 	
 	_invalidated = invalidated;
-	db().columnSetInvalidated(_id, _invalidated);
+	if(!specialNonDbCopy())
+		db().columnSetInvalidated(_id, _invalidated);
 	incRevision(false);
 }
 
@@ -211,7 +267,8 @@ void Column::setForceType(bool force)
 		return;
 	
 	_forceTypes = force;
-	db().columnSetForceSourceColType(_id, _forceTypes);
+	if(!specialNonDbCopy())
+		db().columnSetForceSourceColType(_id, _forceTypes);
 	incRevision(false);
 }
 
@@ -389,6 +446,9 @@ void Column::setDefaultValues(enum columnType columnType)
 
 void Column::dbUpdateValues(bool labelsTempCanBeMaintained)
 {
+	if(specialNonDbCopy())
+		return;
+	
 	if(!_data->writeBatchedToDB())
 		db().columnSetValues(_id, _ints, _dbls);
 	
@@ -611,6 +671,9 @@ void Column::_dbUpdateLabelOrder(bool noIncRevisionWhenBatchedPlease)
 {
 	JASPTIMER_SCOPE(Column::_dbUpdateLabelOrder);
 	
+	if(specialNonDbCopy())
+		return;
+	
 	if(batchedLabel())
 	{
 		if(!noIncRevisionWhenBatchedPlease)
@@ -638,7 +701,8 @@ void Column::_sortLabelsByOrder()
 
 void Column::labelsClear()
 {
-	db().labelsClear(_id);
+	if(!specialNonDbCopy())
+		db().labelsClear(_id);
 	_labels.clear();
 	_labelByIntsIdMap.clear();
 	
@@ -661,13 +725,11 @@ void Column::endBatchedLabelsDB(bool wasWritingBatch)
 	for(size_t i=0; i<_labels.size(); i++)
 		_labels[i]->setOrder(i);
 
-	if(wasWritingBatch)
+	if(wasWritingBatch && !specialNonDbCopy())
 	{
 		db().labelsWrite(this);
 		incRevision(); //Should trigger reload at engine end
 	}
-	else
-		_sortLabelsByOrder();
 }
 
 int Column::labelsAdd(int display)
@@ -1595,6 +1657,9 @@ void Column::resetFilter()
 void Column::incRevision(bool labelsTempCanBeMaintained)
 {
 	assert(_id != -1);
+	
+	if(specialNonDbCopy())
+		return;
 
 	if(!_data->writeBatchedToDB())
 	{

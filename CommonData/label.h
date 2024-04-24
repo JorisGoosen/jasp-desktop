@@ -27,11 +27,14 @@ public:
 								Label(Column * column);
 								Label(Column * column, int value);
 								Label(Column * column, const std::string & label, int value, bool filterAllows = true, const std::string & description = "", const Json::Value & originalValue = Json::nullValue, int order = -1, int id = -1);
+								Label(Column * column, const Label * const copyThis);
 
 			void				dbDelete();
 			void				dbCreate();
 			void				dbLoad(int labelId = -1);
 			void				dbUpdate();
+			
+			void				copyFrom(const Label * const copyThis);
 
 			Label			&	operator=(const Label &label);
 			
