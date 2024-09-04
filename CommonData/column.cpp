@@ -854,6 +854,39 @@ int Column::labelsTempCount()
 	return _labelsTemp.size();
 }
 
+int Column::countTotalNonFilteredNumerics()
+{
+	doubleset numerics;
+	
+	for(size_t r=0; r<_data->rowCount(); r++)
+		if(_data->filter()->filtered()[r] && !std::isnan(_dbls[r]))
+				numerics.insert(_dbls[r]);
+				
+	return numerics.size();		
+}
+
+int Column::countTotalNonFilteredLevels()
+{
+	Labelset	labels;
+	doubleset	numerics;
+	
+	for(size_t r=0; r<_data->rowCount(); r++)
+		if(_data->filter()->filtered()[r])
+		{
+			if(_ints[r] != Label::DOUBLE_LABEL_VALUE)
+			{
+				Label * label = labelByIntsId(_ints[r]);
+				if(!label->isEmptyValue())
+					labels.insert(label);
+			}
+			else if(!std::isnan(_dbls[r]))
+				numerics.insert(_dbls[r]);
+		}
+
+				
+	return numerics.size() + labels.size();		
+}
+
 int Column::labelsTempNumerics()
 {
 	labelsTempCount(); //generate the list if need be
@@ -2187,5 +2220,4 @@ stringvec Column::previewTransform(columnType transformType)
 	
 	return out;
 }
-
 
