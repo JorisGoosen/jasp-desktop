@@ -1367,7 +1367,7 @@ void DataSetPackage::dbDelete()
 {
 	JASPTIMER_SCOPE(DataSetPackage::dbDelete);
 	if(_dataSet && _dataSet->id() != -1)
-		_dataSet->dbDelete();
+		_dataSet->db().resetDb();
 }
 
 void DataSetPackage::resetVariableTypes()
@@ -1387,7 +1387,7 @@ void DataSetPackage::resetVariableTypes()
 void DataSetPackage::createDataSet()
 {
 	JASPTIMER_SCOPE(DataSetPackage::createDataSet);
-					
+			
 	dbDelete();
 	deleteDataSet();
 	_dataSet = new DataSet();

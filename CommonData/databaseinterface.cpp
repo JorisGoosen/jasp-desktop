@@ -351,6 +351,8 @@ int DatabaseInterface::filterIncRevision(int filterIndex)
 	int rev =	runStatementsId("SELECT revision FROM Filters			WHERE id=?;", prepare);
 
 	transactionWriteEnd();
+	
+	doWALCheckpoint();
 
 	return rev;
 }
@@ -439,10 +441,9 @@ int DatabaseInterface::columnInsert(int dataSetId, int index, const std::string 
 
 void DatabaseInterface::dataSetCreateTable(DataSet * dataSet)
 {
-	runStatements("DROP TABLE " + dataSetName(dataSet->id()) + ";");
-	
 	std::stringstream statements;
-	statements <<  "CREATE TABLE " + dataSetName(dataSet->id()) + " (rowNumber INTEGER PRIMARY KEY, "+ filterName(dataSet->filter()->id()) + " INT NOT NULL DEFAULT 1";
+	statements << "DROP TABLE " + dataSetName(dataSet->id()) + ";\n" 
+			   <<  "CREATE TABLE " + dataSetName(dataSet->id()) + " (rowNumber INTEGER PRIMARY KEY, "+ filterName(dataSet->filter()->id()) + " INT NOT NULL DEFAULT 1";
 	
 	for(Column * column : dataSet->columns())
 		statements << ", " << columnBaseName(column->id()) << "_DBL REAL NULL, " << columnBaseName(column->id()) << "_INT INT NULL";
@@ -828,6 +829,8 @@ int DatabaseInterface::dataSetIncRevision(int dataSetId)
 	int rev =	runStatementsId("SELECT revision FROM DataSets				WHERE id=?;", prepare);
 
 	transactionWriteEnd();
+	
+	doWALCheckpoint();
 
 	return rev;
 }
@@ -949,6 +952,8 @@ int DatabaseInterface::columnIncRevision(int columnId)
 	int rev =	runStatementsId("SELECT revision FROM Columns			WHERE id=?;", prepare);
 
 	transactionWriteEnd();
+	
+	doWALCheckpoint();
 
 	return rev;
 }
@@ -1636,9 +1641,37 @@ void DatabaseInterface::close()
 	JASPTIMER_SCOPE(DatabaseInterface::close);
 	if(_db)
 	{
+		doWALCheckpoint();
 		sqlite3_close(_db);
 		_db = nullptr;
 	}
+}
+
+void DatabaseInterface::resetDb()
+{
+	JASPTIMER_SCOPE(DatabaseInterface::resetDb);
+	
+	int dataSetId = dataSetGetId();
+	if(dataSetId > -1)
+		runStatements("DROP TABLE " + dataSetName(dataSetId) + ";");
+	
+	runStatements(
+R"MULTI(
+DROP TABLE Labels;
+DROP TABLE Columns;
+DROP TABLE Filters;
+DROP TABLE DataSets;				  
+)MULTI");
+	
+
+	
+	doWALCheckpoint();
+	
+	transactionWriteBegin();
+	runStatements(_dbConstructionSql);
+	transactionWriteEnd();
+	
+	doWALCheckpoint();
 }
 
 bool DatabaseInterface::tableHasColumn(const std::string &tableName, const std::string &columnName)

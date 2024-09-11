@@ -290,9 +290,12 @@ void Engine::runFilter(const std::string & filter, const std::string & generated
 		_dataSet->filter()->setErrorMsg(error);
 		_dataSet->filter()->incRevision();
 		_dataSet->db().transactionWriteEnd();
-
+		
 		sendFilterError(filterRequestId, error);
 	}
+	
+	if(DatabaseInterface::singleton())
+		DatabaseInterface::singleton()->doWALCheckpoint();
 
 	_engineState = engineState::idle;
 }
@@ -468,6 +471,9 @@ void Engine::runComputeColumn(const std::string & computeColumnName, const std::
 		computeColumnResponse["result"]			= "fail";
 		computeColumnResponse["error"]			= "No DataSet loaded in engine!";
 	}
+	
+	if(DatabaseInterface::singleton())
+		DatabaseInterface::singleton()->doWALCheckpoint();
 
 	sendString(computeColumnResponse.toStyledString());
 	
@@ -630,7 +636,7 @@ void Engine::runAnalysis()
 	default:	break;
 	}
 
-        provideAndUpdateDataSet();
+	provideAndUpdateDataSet();
 	Log::log() << "Analysis will be run now." << std::endl;
 
 	Json::Value encodedAnalysisOptions = _analysisOptions;
@@ -852,21 +858,26 @@ void Engine::removeNonKeepFiles(const Json::Value & filesToKeepValue)
 
 DataSet * Engine::provideAndUpdateDataSet()
 {
-	JASPTIMER_RESUME(Engine::provideAndUpdateDataSet());
+	JASPTIMER_SCOPE(Engine::provideAndUpdateDataSet());
 	//Log::log() << "Engine::provideAndUpdateDataSet()" << std::endl;
 
-	bool setColumnNames = !_dataSet;
-
-	if(!_dataSet && _db->dataSetGetId() != -1)
-		_dataSet = new DataSet(_db->dataSetGetId());
-
-	if(_dataSet)
-		setColumnNames |= _dataSet->checkForUpdates();
-
-	if(_dataSet && setColumnNames)
-		ColumnEncoder::columnEncoder()->setCurrentNames(_dataSet->getColumnNames());
-
-	JASPTIMER_STOP(Engine::provideDataSet());
+	try
+	{
+		bool setColumnNames = !_dataSet;
+	
+		if(!_dataSet && _db->dataSetGetId() != -1)
+			_dataSet = new DataSet(_db->dataSetGetId());
+	
+		if(_dataSet)
+			setColumnNames |= _dataSet->checkForUpdates();
+	
+		if(_dataSet && setColumnNames)
+			ColumnEncoder::columnEncoder()->setCurrentNames(_dataSet->getColumnNames());
+	}
+	catch(...)
+	{
+		Log::log() << "Had unknown/unchecked exception in Engine::provideAndUpdateDataSet, ignoring it." << std::endl;
+	}
 
 	return _dataSet;
 }
@@ -966,7 +977,7 @@ void Engine::receiveReloadData()
 	//First send state, then load data
 	sendEngineLoadingData();
 
-        provideAndUpdateDataSet(); //Also triggers loading from DB
+	provideAndUpdateDataSet(); //Also triggers loading from DB
 
 	reloadColumnNames();
 
@@ -1014,6 +1025,9 @@ void Engine::sendEngineLoadingData()
 	
 	Json::Value response	= Json::objectValue;
 	response["typeRequest"]	= engineStateToString(engineState::reloadData);
+	
+	if(DatabaseInterface::singleton())
+		DatabaseInterface::singleton()->doWALCheckpoint();
 
 	sendString(response.toStyledString());
 }

@@ -25,6 +25,7 @@ void Filter::dbUpdate()
 
 	incRevision();
 	db().transactionWriteEnd();
+	db().doWALCheckpoint();
 }
 
 void Filter::dbUpdateErrorMsg()

@@ -171,6 +171,7 @@ private:
 	void		create();										///< Creates a new sqlite database in sessiondir and loads it
 	void		load();											///< Loads a sqlite database from sessiondir (after loading a jaspfile)
 	void		close();										///< Closes the loaded database and disconnects
+	void		resetDb();										///< Drop everything and become fresh
 	bool		tableHasColumn(const std::string & tableName, const std::string & columnName);
 	void		dbStartUpPragmas();
 

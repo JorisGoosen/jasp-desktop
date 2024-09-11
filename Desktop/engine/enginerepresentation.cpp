@@ -1048,6 +1048,9 @@ void EngineRepresentation::sendReloadData()
 	setState(engineState::reloadData);
 	Json::Value msg			= Json::objectValue;
 	msg["typeRequest"]		= engineStateToString(_engineState);
+	
+	if(DatabaseInterface::singleton())
+		DatabaseInterface::singleton()->doWALCheckpoint();
 
 	sendString(msg.toStyledString());
 }

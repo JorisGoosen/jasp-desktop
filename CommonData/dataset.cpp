@@ -232,6 +232,7 @@ void DataSet::dbCreate()
 	_columns.clear();
 
 	db().transactionWriteEnd();
+	db().doWALCheckpoint();
 
 	_rowCount		= 0;
 }
