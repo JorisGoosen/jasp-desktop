@@ -22,7 +22,6 @@
 #include <QAbstractItemModel>
 #include <QFileInfo>
 #include <QUrl>
-#include "common.h"
 #include "version.h"
 #include <map>
 #include <json/json.h>
@@ -96,13 +95,13 @@ public:
 
 		void				beginLoadingData(	bool informEngines = true);
 		void				endLoadingData(		bool informEngines = true);
-		void				beginSynchingData(	bool informEngines = true);
-		void				endSynchingDataChangedColumns(stringvec	&	changedColumns,		bool hasNewColumns = false, bool informEngines = true);
+		void				beginSynchingData(	bool informEngines = false);
+		void				endSynchingDataChangedColumns(stringvec	&	changedColumns,		bool hasNewColumns = false, bool informEngines = false);
 		void				endSynchingData(const stringvec		&	changedColumns,
 											const stringvec		&	missingColumns,
 											const strstrmap		&	changeNameColumns,  //origname -> newname
 											bool										rowCountChanged,
-											bool										hasNewColumns,		bool informEngines = true);
+											bool										hasNewColumns,		bool informEngines = false);
 
 		
 		

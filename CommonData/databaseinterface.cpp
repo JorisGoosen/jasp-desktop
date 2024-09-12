@@ -450,7 +450,9 @@ void DatabaseInterface::dataSetCreateTable(DataSet * dataSet)
 
 	statements << ");";
 	
+	transactionWriteBegin();
 	runStatements(statements.str());
+	transactionWriteEnd();
 }
 
 int DatabaseInterface::columnGetDataSetId(int columnId)
@@ -1651,24 +1653,20 @@ void DatabaseInterface::resetDb()
 {
 	JASPTIMER_SCOPE(DatabaseInterface::resetDb);
 	
+	transactionWriteBegin();
+	
 	int dataSetId = dataSetGetId();
 	if(dataSetId > -1)
 		runStatements("DROP TABLE " + dataSetName(dataSetId) + ";");
 	
 	runStatements(
 R"MULTI(
-DROP TABLE Labels;
-DROP TABLE Columns;
-DROP TABLE Filters;
-DROP TABLE DataSets;				  
+DELETE FROM Labels;
+DELETE FROM Columns;
+DELETE FROM Filters;
+DELETE FROM DataSets;				  
 )MULTI");
 	
-
-	
-	doWALCheckpoint();
-	
-	transactionWriteBegin();
-	runStatements(_dbConstructionSql);
 	transactionWriteEnd();
 	
 	doWALCheckpoint();

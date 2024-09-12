@@ -857,7 +857,7 @@ bool DataSetPackage::setLabelDisplay(const QModelIndex &index, const QString &ne
 	if(!column || index.row() > rowCount(parent))
 		return false;
 	
-	beginSynchingData(false);
+	beginSynchingData();
 	
 	if(column->labelDoubleDummy() == label)
 	{
@@ -896,7 +896,7 @@ bool DataSetPackage::setLabelValue(const QModelIndex &index, const QString &newL
 	if(!column || index.row() > rowCount(parent))
 		return false;
 	
-	beginSynchingData(false);
+	beginSynchingData();
 	
 	Json::Value originalValue = newLabelValue.toStdString();
 
@@ -1338,7 +1338,8 @@ void DataSetPackage::beginLoadingData(bool informEngines)
 {
 	JASPTIMER_SCOPE(DataSetPackage::beginLoadingData);
 
-	enginesPrepareForData();
+	if(informEngines)
+		enginesPrepareForData();
 	beginResetModel();
 }
 
@@ -1349,7 +1350,8 @@ void DataSetPackage::endLoadingData(bool informEngines)
 	Log::log() << "DataSetPackage::endLoadingData" << std::endl;
 
 	endResetModel();
-	enginesReceiveNewData();
+	if(informEngines)
+		enginesReceiveNewData();
 
 	emit modelInit();
 }
@@ -1958,7 +1960,7 @@ void DataSetPackage::pasteSpreadsheet(size_t row, size_t col, const std::vector<
 		return selected.size() == 0 || 	selected[col][row];
 	};
 
-	beginSynchingData(false);
+	beginSynchingData();
 	_dataSet->beginBatchedToDB();
 	
 	if(colCountChanged || rowCountChanged)	
@@ -2216,13 +2218,11 @@ Column * DataSetPackage::createColumn(const std::string & name, columnType colum
 
 	size_t newColumnIndex	= dataColumnCount();
 
-	enginesPrepareForData();
 	beginResetModel();
 	_dataSet->insertColumn(newColumnIndex);
 	_dataSet->column(newColumnIndex)->setName(name);
 	_dataSet->column(newColumnIndex)->setDefaultValues(columnType);
 	endResetModel();
-	enginesReceiveNewData();
 
 	return _dataSet->column(newColumnIndex);
 }

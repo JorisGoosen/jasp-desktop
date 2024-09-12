@@ -976,6 +976,9 @@ void Engine::receiveReloadData()
 
 	//First send state, then load data
 	sendEngineLoadingData();
+	
+	delete _dataSet;
+	_dataSet = nullptr;
 
 	provideAndUpdateDataSet(); //Also triggers loading from DB
 

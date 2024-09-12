@@ -1156,33 +1156,12 @@ void EngineSync::enginesPrepareForData()
 {
 	JASPTIMER_SCOPE(EngineSync::enginesPrepareForData);
 
-	/*
-	//make sure we process any received messages first.
-	for(auto * engine : _engines)
-		engine->processReplies();
-
-	std::set<EngineRepresentation *> pauseOrKillThese;
-
-	for(EngineRepresentation * e : _engines)
-		if(e->busyWithData())
-		{
-			pauseOrKillThese.insert(e);
-			e->pauseEngine(true);
-		}
-
-	long tryTill = Utils::currentMillis() + ENGINE_KILLTIME;
-
-	while(!allEnginesPaused(pauseOrKillThese) && tryTill >= Utils::currentMillis())
-		for (auto * engine : pauseOrKillThese)
-			engine->processReplies();
-
-	for (auto * engine : pauseOrKillThese)
-		if(!engine->paused())
-			engine->killEngine();*/
+	pauseEngines(true);
 }
 
 void EngineSync::enginesReceiveNewData()
 {
+	resumeEngines();
 	emit reloadData();
 }
 

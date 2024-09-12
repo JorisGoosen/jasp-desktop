@@ -251,6 +251,8 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback, boo
 	JASPTIMER_SCOPE(DataSet::dbLoad);
 
 	assert(_dataSetID == -1 || _dataSetID == index || (_dataSetID != -1 && index == -1));
+	
+	db().doWALCheckpoint();
 
 	if(index != -1 && !db().dataSetExists(index))
 	{
