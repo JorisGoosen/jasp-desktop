@@ -310,6 +310,11 @@ Item
 			clip:                   true
 			anchors.fill:			parent
 			anchors.leftMargin:		1
+			
+			Accessible.role:			Accessible.WebDocument
+			Accessible.name:			qsTr("Results")
+			Accessible.description:		qsTr("Results")
+			
 
 			url:					resultsJsInterface.resultsPageUrl
 

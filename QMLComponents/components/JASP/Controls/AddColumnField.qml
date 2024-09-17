@@ -23,6 +23,8 @@ import JASP 1.0
 TextField
 {
 	inputType:			"addColumn"
+	
+	Accessible.description:		info === undefined || info == "" ? toolTip !== undefined && toolTip != "" ? toolTip :  qsTr("Add a column textfield %1").arg(title) : info
 
 	property int columnType: columnTypeScale //Or columnTypeNominal, or columnTypeOrdinal
 }

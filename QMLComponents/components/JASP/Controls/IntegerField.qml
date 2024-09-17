@@ -34,6 +34,8 @@ TextField
 					validator:			JASPDoubleValidator { id: intValidator; bottom: min; top: max; decimals: 0 }
 					cursorShape:		Qt.IBeamCursor
 					fieldWidth:			jaspTheme.numericFieldWidth
+					
+	Accessible.description:		info === undefined || info == "" ? toolTip !== undefined && toolTip != "" ? toolTip :  qsTr("Integer entry field %1").arg(title) : info
 
 	onDefaultValueChanged:
 	{

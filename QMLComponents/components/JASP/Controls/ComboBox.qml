@@ -33,6 +33,11 @@ ComboBoxBase
 	onControlMinWidthChanged: _resetWidth(textMetrics.width)
 	
 	
+	Accessible.role:			Accessible.ComboBox
+	Accessible.name:			label
+	Accessible.description:		info === undefined || info == "" ? toolTip !== undefined && toolTip != "" ? toolTip :  qsTr("A dropdown %1").arg(title) : info
+	Accessible.onPressAction:	click()
+	Accessible.onToggleAction:	toggle()
 
 	function resetWidth(values)
 	{

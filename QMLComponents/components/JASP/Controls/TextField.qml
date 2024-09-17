@@ -31,6 +31,7 @@ TextInputBase
 	innerControl:		control
 	title:				text
 	
+
 	property alias	control:			control
 	property alias	text:				textField.label
 	property alias	displayValue:		control.text	///< In onEditingFinished this contains the "value" entered by the user
@@ -175,6 +176,11 @@ TextInputBase
 		QTC.ToolTip.timeout		: jaspTheme.toolTipTimeout
 		QTC.ToolTip.delay		: !hovered ? 0 : jaspTheme.toolTipDelay
 		QTC.ToolTip.visible		: contentWidth > width - leftPadding - rightPadding && (hovered || control.activeFocus)
+		
+		Accessible.role:			Accessible.EditableText
+		Accessible.name:			text
+		Accessible.description:		textField.info === undefined || textField.info == "" ? qsTr("Textfield %1").arg(textField.title) : textField.info
+		
 
 		// The acceptableInput is checked even if the user is still typing in the TextField.
 		// In this case, the error should not appear immediately (only when the user is pressing the return key, or going out of focus),

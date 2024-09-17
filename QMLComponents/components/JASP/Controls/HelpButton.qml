@@ -32,4 +32,10 @@ MenuButton
 	_scaledDim:			22 * preferencesModel.uiScale
 	Layout.alignment: 	Qt.AlignRight
 	onClicked: 			helpModel.showOrToggleParticularPageForAnalysis(jaspAnalysis, helpPage)
+	
+	Accessible.role:			Accessible.Button
+	Accessible.name:			text
+	Accessible.description:		info === undefined || info == "" ? toolTip !== undefined && toolTip != "" ? toolTip :  qsTr("Helpbutton %1").arg(title) : info
+	Accessible.onPressAction:	clicked()
+	
 }

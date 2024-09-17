@@ -29,6 +29,12 @@ FocusScope
 	clip				: true
 	L.Layout.columnSpan	: jaspForm ? jaspForm.columns : 1
 	objectName			: "Section"
+	
+	Accessible.role:			Accessible.Section
+	Accessible.name:			title
+	Accessible.description:		info === undefined || info == "" ? toolTip !== undefined && toolTip != "" ? toolTip :  qsTr("Analysis Section %1").arg(title) : info
+	Accessible.onPressAction:	click()
+	Accessible.onToggleAction:	toggle()
 
 	ALTNavigation.enabled:			visible
 	ALTNavigation.showChildren:		true

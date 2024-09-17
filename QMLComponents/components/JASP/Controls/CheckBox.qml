@@ -52,7 +52,12 @@ CheckBoxBase
 
 	function click()	{ control.toggle(); }
 	function toggle()	{ control.toggle(); }
-
+	
+	Accessible.role:			Accessible.CheckBox
+	Accessible.name:			control.text
+	Accessible.description:		info === undefined || info == "" ? toolTip !== undefined && toolTip != "" ? toolTip :  qsTr("A checkbox %1").arg(title) : info
+	Accessible.onPressAction:	click()
+	Accessible.onToggleAction:	toggle()
 
 	CheckBox
 	{

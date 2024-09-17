@@ -24,4 +24,9 @@ Label
 {
 	font:	jaspTheme.font
 	color:	enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled
+	
+	Accessible.role:			Accessible.StaticText
+	Accessible.name:			text
+	Accessible.description:		qsTr("A label")
+	
 }

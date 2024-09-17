@@ -45,6 +45,12 @@ Rectangle
 	property alias	font:				buttonText.font
 	property alias	icon:				buttonIcon
 	property real	centerParentX:		(parent.width / 2) - x
+	
+	
+	Accessible.role:			Accessible.Button
+	Accessible.name:			text
+	Accessible.description:		qsTr("A button")
+	Accessible.onPressAction:	clicked()
 
 	//on_ScaledDimChanged: console.log("Button " + text + ": " + _scaledDim + ", text height: " + buttonText.height + ", content height: " + buttonText.contentHeight + ", padding: " + buttonPadding)
 
