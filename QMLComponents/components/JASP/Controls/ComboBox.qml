@@ -33,11 +33,7 @@ ComboBoxBase
 	onControlMinWidthChanged: _resetWidth(textMetrics.width)
 	
 	
-	Accessible.role:			Accessible.ComboBox
-	Accessible.name:			label
-	Accessible.description:		info === undefined || info == "" ? toolTip !== undefined && toolTip != "" ? toolTip :  qsTr("A dropdown %1").arg(title) : info
-	Accessible.onPressAction:	click()
-	Accessible.onToggleAction:	toggle()
+
 
 	function resetWidth(values)
 	{
@@ -114,6 +110,12 @@ ComboBoxBase
 		property bool	showEmptyValueStyle:	!comboBox.showEmptyValueAsNormal && isEmptyValue
 		property double realFieldWidth:			width
 		property double maxTextWidth:			0
+						
+		Accessible.role:			Accessible.ButtonDropDown
+		Accessible.name:			label
+		Accessible.description:		comboBox.info === undefined || comboBox.info == "" ? comboBox.toolTip !== undefined && toolTip != "" ? comboBox.toolTip :  qsTr("A dropdown %1").arg(comboBox.title) : info
+		Accessible.onPressAction:	click()
+		Accessible.onToggleAction:	toggle()
 
 		TextMetrics
 		{

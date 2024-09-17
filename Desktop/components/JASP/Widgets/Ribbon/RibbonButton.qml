@@ -41,6 +41,11 @@ Rectangle
 	property var	menu		: []
 	property bool	myMenuOpen	: false
 	property bool	showPressed	: ribbonButton.activeFocus || myMenuOpen
+	
+	Accessible.role:			Accessible.Button
+	Accessible.name:			text
+	Accessible.description:		toolTip
+	
 
 	onMyMenuOpenChanged: if(!myMenuOpen) myMenuOpen = false; //Break the binding
 
