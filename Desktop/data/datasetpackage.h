@@ -124,7 +124,7 @@ public:
 				QString				appendColumnSpecial(			const QMap<QString, QVariant>& props);
 
 				QModelIndex			indexForSubNode(DataSetBaseNode * node)														const;
-				int					filteredRowCount()																			const { return _dataSet->filter()->filteredRowCount(); }
+                                int					filteredRowCount()																			const { return _dataSet->defaultFilter()->filteredRowCount(); }
 	static		QVariant			getDataSetViewLines(bool up=false, bool left=false, bool down=true, bool right=true);
 
 				int					dataRowCount()		const;
@@ -256,7 +256,7 @@ public:
 				bool						setFilterData(const std::string & filter, const boolvec & filterResult);
 				void						resetAllFilters();
 				std::vector<bool>			filterVector();
-				void						setFilterVectorWithoutModelUpdate(std::vector<bool> newFilterVector) { if(_dataSet) _dataSet->filter()->setFilterVector(newFilterVector); }
+                                void						setFilterVectorWithoutModelUpdate(std::vector<bool> newFilterVector) { if(_dataSet) _dataSet->defaultFilter()->setFilterVector(newFilterVector); }
 				
 				const stringset&			workspaceEmptyValues()										const;
 				void						setWorkspaceEmptyValues(const stringset& emptyValues, bool resetModel = true);

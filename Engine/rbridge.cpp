@@ -376,7 +376,7 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSet(RBridgeColumnType* colHead
 	datasetColMax = colMax;
 	datasetStatic = static_cast<RBridgeColumn*>(calloc(datasetColMax + 1, sizeof(RBridgeColumn)));
 
-	size_t filteredRowCount = obeyFilter ? rbridge_dataSet->filter()->filteredRowCount() : rbridge_dataSet->rowCount();
+        size_t filteredRowCount = obeyFilter ? rbridge_dataSet->defaultFilter()->filteredRowCount() : rbridge_dataSet->rowCount();
 
 	// lets make some rownumbers/names for R that takes into account being filtered or not!
 	datasetStatic[colMax].ints		= filteredRowCount == 0 ? nullptr : static_cast<int*>(calloc(filteredRowCount, sizeof(int)));
@@ -387,7 +387,7 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSet(RBridgeColumnType* colHead
 	for(size_t i=0; i<rbridge_dataSet->rowCount() && filteredRow < datasetStatic[colMax].nbRows; i++)
 		if(
 				!obeyFilter ||
-				(rbridge_dataSet->filter()->filtered().size() > i && rbridge_dataSet->filter()->filtered()[i])
+                        (rbridge_dataSet->defaultFilter()->filtered().size() > i && rbridge_dataSet->defaultFilter()->filtered()[i])
 			)
 			datasetStatic[colMax].ints[filteredRow++] = int(i + 1); //R needs 1-based index
 
@@ -417,7 +417,7 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSet(RBridgeColumnType* colHead
 			
 			boolvec filterToUse;
 			if(obeyFilter)
-				filterToUse = rbridge_dataSet->filter()->filtered();
+                            filterToUse = rbridge_dataSet->defaultFilter()->filtered();
 
 			for(double value : column->dataAsRDoubles(filterToUse))
 				resultCol.doubles[rowNo++] = value;
@@ -431,7 +431,7 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSet(RBridgeColumnType* colHead
 			intvec vals;
 			boolvec filterToUse;
 			if(obeyFilter)
-				filterToUse = rbridge_dataSet->filter()->filtered();
+                            filterToUse = rbridge_dataSet->defaultFilter()->filtered();
 			
 			stringvec levels = column->dataAsRLevels(vals, filterToUse, true);
 			

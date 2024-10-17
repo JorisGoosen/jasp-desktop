@@ -382,13 +382,13 @@ void Engine::runFilter(const std::string & filter, const std::string & generated
 		std::vector<bool> filterResult	= rbridge_applyFilter(strippedFilter, generatedFilter);
 		std::string RPossibleWarning	= jaspRCPP_getLastErrorMsg();
 
-		Log::log() << "Engine::runFilter ran:\n\t" << strippedFilter << "\n\tRPossibleWarning='" << RPossibleWarning << "'\n\t\tfor revision " << _dataSet->filter()->revision() << std::endl;
+                Log::log() << "Engine::runFilter ran:\n\t" << strippedFilter << "\n\tRPossibleWarning='" << RPossibleWarning << "'\n\t\tfor revision " << _dataSet->defaultFilter()->revision() << std::endl;
 
 		_dataSet->db().transactionWriteBegin();
-		_dataSet->filter()->setRFilter(filter);
-		_dataSet->filter()->setFilterVector(filterResult);
-		_dataSet->filter()->setErrorMsg(RPossibleWarning);
-		_dataSet->filter()->incRevision();
+                _dataSet->defaultFilter()->setRFilter(filter);
+                _dataSet->defaultFilter()->setFilterVector(filterResult);
+                _dataSet->defaultFilter()->setErrorMsg(RPossibleWarning);
+                _dataSet->defaultFilter()->incRevision();
 		_dataSet->db().transactionWriteEnd();
 
 
@@ -400,8 +400,8 @@ void Engine::runFilter(const std::string & filter, const std::string & generated
 		std::string error = std::string(e.what()).length() > 0 ? e.what() : "Something went wrong with the filter but it is unclear what.";
 
 		_dataSet->db().transactionWriteBegin();
-		_dataSet->filter()->setErrorMsg(error);
-		_dataSet->filter()->incRevision();
+                _dataSet->defaultFilter()->setErrorMsg(error);
+                _dataSet->defaultFilter()->incRevision();
 		_dataSet->db().transactionWriteEnd();
 
 		sendFilterError(filterRequestId, error);

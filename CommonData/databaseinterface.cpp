@@ -510,7 +510,7 @@ void DatabaseInterface::dataSetCreateTable(DataSet * dataSet)
 	runStatements("DROP TABLE " + dataSetName(dataSet->id()) + ";");
 	
 	std::stringstream statements;
-	statements <<  "CREATE TABLE " + dataSetName(dataSet->id()) + " (rowNumber INTEGER PRIMARY KEY, "+ filterTableName(dataSet->filter()->id()) + " INT NOT NULL DEFAULT 1";
+        statements <<  "CREATE TABLE " + dataSetName(dataSet->id()) + " (rowNumber INTEGER PRIMARY KEY, "+ filterTableName(dataSet->defaultFilter()->id()) + " INT NOT NULL DEFAULT 1";
 	
 	for(Column * column : dataSet->columns())
 		statements << ", " << columnBaseName(column->id()) << "_DBL REAL NULL, " << columnBaseName(column->id()) << "_INT INT NULL";
@@ -591,7 +591,7 @@ void DatabaseInterface::dataSetBatchedValuesUpdate(DataSet * data, Columns colum
 	}
 
 	//And the filtername and rowNumber
-	statement << filterTableName(data->filter()->id()) << ", " << "rowNumber) VALUES (";
+        statement << filterTableName(data->defaultFilter()->id()) << ", " << "rowNumber) VALUES (";
 
 	for(size_t i=0; i<columns.size(); i++)
 		statement << "?, ?, ";
@@ -608,7 +608,7 @@ void DatabaseInterface::dataSetBatchedValuesUpdate(DataSet * data, Columns colum
 			sqlite3_bind_int(		stmt,	i++, col->ints()[rowOutside]);
 		}
 
-		sqlite3_bind_int(stmt,	i++, data->filter()->filtered()[rowOutside]);
+                sqlite3_bind_int(stmt,	i++, data->defaultFilter()->filtered()[rowOutside]);
 		sqlite3_bind_int(stmt,	i++, rowOutside+1);
 	};
 
@@ -647,10 +647,10 @@ void DatabaseInterface::dataSetBatchedValuesLoad(DataSet *data, std::function<vo
 {
 	JASPTIMER_SCOPE(DatabaseInterface::dataSetBatchedValuesLoad);
 
-	if(data->filter()->id() == -1)
-		data->filter()->setId(dataSetGetFilter(data->id()));
+        if(data->defaultFilter()->id() == -1)
+            data->defaultFilter()->setId(dataSetGetFilter(data->id()));
 
-	if(data->columns().size() == 0 && data->filter()->id() == -1)
+        if(data->columns().size() == 0 && data->defaultFilter()->id() == -1)
 		return;
 
 	transactionReadBegin();
@@ -662,7 +662,7 @@ void DatabaseInterface::dataSetBatchedValuesLoad(DataSet *data, std::function<vo
 	for(Column * col : data->columns())
 		statement << "Column_" << col->id() << "_INT" << ", Column_" << col->id() << "_DBL, ";
 
-	statement << filterTableName(data->filter()->id()) << " FROM " << dataSetName(data->id()) << " ORDER BY rowNumber";
+        statement << filterTableName(data->defaultFilter()->id()) << " FROM " << dataSetName(data->id()) << " ORDER BY rowNumber";
 
 	std::function<void(sqlite3_stmt *stmt)>  prepare = [&](sqlite3_stmt *stmt) {};
 
@@ -671,7 +671,7 @@ void DatabaseInterface::dataSetBatchedValuesLoad(DataSet *data, std::function<vo
 	for(Column * col : data->columns())
 		col->setRowCount(rowCount);
 
-	data->filter()->setRowCount(rowCount);
+        data->defaultFilter()->setRowCount(rowCount);
 
     size_t rowPercent = std::max(1, int(rowCount) / 100);
 
@@ -694,7 +694,7 @@ void DatabaseInterface::dataSetBatchedValuesLoad(DataSet *data, std::function<vo
 				col->setValue(row, sqlite3_column_int(stmt, colI*2),		_doubleTroubleReader(stmt, colI*2 + 1),	false);
 		}
 
-		data->filter()->setFilterValueNoDB(row, sqlite3_column_int(stmt, colCount - 1));
+                data->defaultFilter()->setFilterValueNoDB(row, sqlite3_column_int(stmt, colCount - 1));
 	};
 
 	runStatements(statement.str(), prepare, processRow);
@@ -910,6 +910,33 @@ int DatabaseInterface::dataSetGetFilter(int dataSetId)
 {
 	JASPTIMER_SCOPE(DatabaseInterface::dataSetGetFilter);
 	return runStatementsId("SELECT id FROM Filters WHERE dataSet=? LIMIT 1;", [&](sqlite3_stmt *stmt) { sqlite3_bind_int(stmt, 1, dataSetId); });
+}
+
+stringvec DatabaseInterface::dataSetGetFilterNames(int dataSetId)
+{
+	JASPTIMER_SCOPE(DatabaseInterface::dataSetGetFilterNames);
+	
+	std::function<void(sqlite3_stmt *stmt)>  prepare = [&](sqlite3_stmt *stmt)
+	{
+		sqlite3_bind_int(stmt, 1, dataSetId);
+	};
+	
+	stringvec names;
+
+	std::function<void(size_t row, sqlite3_stmt *stmt)> processRow = [&](size_t row, sqlite3_stmt *stmt)
+	{
+		int colCount = sqlite3_column_count(stmt);
+
+		assert(colCount == 1);
+
+		std::string	name					= _wrap_sqlite3_column_text(stmt,	0);
+		
+		names.push_back(name);
+	};
+
+	runStatements("SELECT name FROM Filters WHERE dataSet = ? ORDER BY name;", prepare, processRow);
+	
+	return names;
 }
 
 std::string DatabaseInterface::filterTableName(int filterIndex) const

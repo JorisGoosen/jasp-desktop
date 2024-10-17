@@ -52,10 +52,10 @@
 #include "utilities/reporter.h"
 #include "utilities/codepageswindows.h"
 #include "widgets/filemenu/filemenu.h"
-#include "data/workspacemodel.h"
-
 #include "utilities/languagemodel.h"
+#include "data/workspacemodel.h"
 #include <vector>
+
 
 using namespace std;
 
@@ -80,7 +80,7 @@ class MainWindow : public QObject
 	Q_PROPERTY(bool			welcomePageVisible	READ welcomePageVisible		WRITE setWelcomePageVisible		NOTIFY welcomePageVisibleChanged	)
 	Q_PROPERTY(QString		downloadNewJASPUrl	READ downloadNewJASPUrl		WRITE setDownloadNewJASPUrl		NOTIFY downloadNewJASPUrlChanged	)
 	Q_PROPERTY(bool			contactVisible		READ contactVisible			WRITE setContactVisible			NOTIFY contactVisibleChanged		)
-	Q_PROPERTY(bool			communityVisible	READ communityVisible		WRITE setCommunityVisible		NOTIFY communityVisibleChanged	)
+	Q_PROPERTY(bool			communityVisible	READ communityVisible		WRITE setCommunityVisible		NOTIFY communityVisibleChanged		)
 	Q_PROPERTY(QString		commUrl				READ commUrl												CONSTANT							)
 	Q_PROPERTY(QString		commGold			READ commGold												CONSTANT							)
 	Q_PROPERTY(QString		commSilver			READ commSilver												CONSTANT							)
@@ -328,19 +328,15 @@ private:
 	WorkspaceModel				*	_workspaceModel			= nullptr;
 
 	QSettings						_settings;
-
 	int								_progressBarProgress,	//Runs from 0 to 100
 									_screenPPI				= 1;
-
 	QString							_openOnLoadFilename,
 									_fatalError				= "The engine crashed...",
 									_progressBarStatus,
 									_downloadNewJASPUrl		= "";
 	Json::Value						_openOnLoadDbJson		= Json::nullValue;
-
 	AsyncLoader					*	_loader					= nullptr;
 	AsyncLoaderThread				_loaderThread;
-
 	bool							_applicationExiting		= false,
 									_resultsPageLoaded		= false,
 									_qmlLoaded				= false,
@@ -354,7 +350,6 @@ private:
 									_checkAutomaticSync		= false,
 									_contactVisible			= false,
 									_communityVisible		= false;
-									
 	QFont							_defaultFont;
 };
 

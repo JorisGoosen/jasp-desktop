@@ -599,9 +599,9 @@ bool Column::overwriteDataAndType(stringvec data, columnType colType)
 
 	if(data.size() != _data->rowCount())
 	{
-		if(data.size() == _data->filter()->filteredRowCount())
+            if(data.size() == _data->defaultFilter()->filteredRowCount())
 		{
-			const boolvec & filtered = _data->filter()->filtered();
+                const boolvec & filtered = _data->defaultFilter()->filtered();
 			stringvec		newData;
 							newData	 . reserve(filtered.size());
 			
@@ -894,7 +894,7 @@ int Column::nonFilteredNumericsCount()
 		doubleset numerics;
 
 		for(size_t r=0; r<_data->rowCount(); r++)
-			if(_data->filter()->filtered()[r] && !isEmptyValue(_dbls[r]))
+                    if(_data->defaultFilter()->filtered()[r] && !isEmptyValue(_dbls[r]))
 					numerics.insert(_dbls[r]);
 
 		_nonFilteredNumericsCount = numerics.size();
@@ -908,7 +908,7 @@ stringset Column::nonFilteredLevels()
 	if (_nonFilteredLevels.empty())
 	{
 		for(size_t r=0; r<_data->rowCount(); r++)
-			if(_data->filter()->filtered()[r])
+                    if(_data->defaultFilter()->filtered()[r])
 			{
 				if(_ints[r] != Label::DOUBLE_LABEL_VALUE)
 				{

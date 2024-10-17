@@ -86,6 +86,7 @@ public:
 	int			dataSetIncRevision(		int dataSetId);
 	int			dataSetGetRevision(		int dataSetId);
 	int			dataSetGetFilter(		int dataSetId);
+	stringvec	dataSetGetFilterNames(	int dataSetId);
 	void		dataSetInsertEmptyRow(	int dataSetId, size_t row);
 	void		dataSetCreateTable(		DataSet * dataSet); ///< Assumes you are importing fresh data and havent created any DataSet_? table yet
 

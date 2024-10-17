@@ -11,7 +11,9 @@ FilterModel::FilterModel(labelFilterGenerator * labelFilterGenerator)
 	reset();
 	connect(this,					&FilterModel::rFilterChanged,	this, &FilterModel::rescanRFilterForColumns	);
 	connect(DataSetPackage::pkg(),	&DataSetPackage::modelReset,	this, &FilterModel::dataSetPackageResetDone	);
-	connect(DataSetPackage::pkg(),	&DataSetPackage::modelInit,		this, &FilterModel::modelInit				);
+	connect(DataSetPackage::pkg(),	&DataSetPackage::modelReset,	this, &FilterModel::dataSetPackageResetDone	);
+	connect(DataSetPackage::pkg(),	&DataSetPackage::modelReset,	this, &FilterModel::filterNamesChanged		);
+	connect(DataSetPackage::pkg(),	&DataSetPackage::modelInit,		this, &FilterModel::tabsChanged				);
 }
 
 QString FilterModel::rFilter()			const	{ return !DataSetPackage::filter() ? defaultRFilter()		: tq(DataSetPackage::filter()->rFilter());					}
@@ -19,7 +21,19 @@ QString FilterModel::constructorR()		const	{ return !DataSetPackage::filter() ? 
 QString FilterModel::filterErrorMsg()	const	{ return !DataSetPackage::filter() ? ""						: tq(DataSetPackage::filter()->errorMsg());					}
 QString FilterModel::generatedFilter()	const	{ return !DataSetPackage::filter() ? DEFAULT_FILTER_GEN		: tq(DataSetPackage::filter()->generatedFilter());			}
 QString FilterModel::constructorJson()	const	{ return !DataSetPackage::filter() ? DEFAULT_FILTER_JSON	: tq(DataSetPackage::filter()->constructorJson());			}
+QStringList FilterModel::filterNames()	const	{ return !DataSetPackage::pkg()->dataSet() ? QStringList()	: tq(DataSetPackage::pkg()->dataSet()->filterNames());		}
 
+QVariantList FilterModel::tabs() const
+{
+	QVariantList tabs;
+	
+	tabs.push_back(QMap<QString, QVariant>({  std::make_pair("name", ""), std::make_pair("title", tr("Default filter"))}));
+	
+	for(const QString & name : filterNames())
+		tabs.push_back(QMap<QString, QVariant>({  std::make_pair("name", name), std::make_pair("title", name)}));
+
+	return tabs;
+}
 const char * FilterModel::defaultRFilter()
 {
 	static std::string defaultFilter;
@@ -190,11 +204,11 @@ void FilterModel::processFilterResult(int requestId)
 	if((requestId < _lastSentRequestId))
 		return;
 
-	if(!(DataSetPackage::pkg()->dataSet() || DataSetPackage::pkg()->dataSet()->filter()))
+        if(!(DataSetPackage::pkg()->dataSet() || DataSetPackage::pkg()->dataSet()->defaultFilter()))
 		return;
 
 	//Load new filter values from database
-	if(DataSetPackage::pkg()->dataSet()->filter()->dbLoadResultAndError())
+        if(DataSetPackage::pkg()->dataSet()->defaultFilter()->dbLoadResultAndError())
 	{
 		emit filterErrorMsgChanged();
 		emit refreshAllAnalyses();

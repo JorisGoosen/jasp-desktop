@@ -76,4 +76,7 @@ private:
 	std::vector<bool>		_filtered;
 };
 
+typedef std::vector<Filter*>			Filters;
+typedef std::map<std::string, Filter*>	FiltersByName;
+
 #endif // FILTER_H

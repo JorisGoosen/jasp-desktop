@@ -78,7 +78,7 @@ DataSetPackage::~DataSetPackage()
 
 Filter * DataSetPackage::filter()
 {
-	return !pkg()->_dataSet ? nullptr : pkg()->_dataSet->filter();
+    return !pkg()->_dataSet ? nullptr : pkg()->_dataSet->defaultFilter();
 }
 
 void DataSetPackage::setEngineSync(EngineSync * engineSync)
@@ -244,7 +244,7 @@ QModelIndex DataSetPackage::index(int row, int column, const QModelIndex &parent
 			{
 				//Later on we should support multiple filters here by selecting a filter per column
 				DataSet * data = dynamic_cast<DataSet*>(parentNode->parent());
-				pointer = dynamic_cast<const void*>(data->filter());
+                                pointer = dynamic_cast<const void*>(data->defaultFilter());
 				break;
 			}
 				
@@ -303,7 +303,7 @@ QModelIndex DataSetPackage::indexForSubNode(DataSetBaseNode * node) const
 
 		case dataSetBaseNodeType::filter: //Doesnt really make sense to have this as the parent of a subnodemodel but whatever
 		{
-			return createIndex(0, 0, dynamic_cast<void*>(_dataSet->filter()));
+                    return createIndex(0, 0, dynamic_cast<void*>(_dataSet->defaultFilter()));
 		}
 
 		default:
@@ -1414,7 +1414,7 @@ void DataSetPackage::createDataSet()
 	_dataSubModel->selectNode(_dataSet->dataNode());
 	_filterSubModel->selectNode(_dataSet->filtersNode());
 	
-	_dataSet->filter()->setRFilter(FilterModel::defaultRFilter());
+        _dataSet->defaultFilter()->setRFilter(FilterModel::defaultRFilter());
 	
 	_dataSet->setModifiedCallback([&](){ setModified(true); }); //DataSet and co dont use Qt so instead we just use a callback
 }
@@ -1776,7 +1776,7 @@ bool DataSetPackage::setFilterData(const std::string & rFilter, const boolvec & 
 	bool someFilterValueChanged = filter()->setFilterVector(filterResult);
 	
 	if(_dataSet)
-		_dataSet->filter()->setFilterVector(filterResult);
+            _dataSet->defaultFilter()->setFilterVector(filterResult);
 
 	if(someFilterValueChanged) //We could also send exactly those cells that were changed if we were feeling particularly inclined to write the code...
 	{
@@ -2268,7 +2268,7 @@ boolvec DataSetPackage::filterVector()
 	boolvec out;
 
 	if(_dataSet)
-		out = boolvec(_dataSet->filter()->filtered().begin(), _dataSet->filter()->filtered().end());
+            out = boolvec(_dataSet->defaultFilter()->filtered().begin(), _dataSet->defaultFilter()->filtered().end());
 	
 	return out;
 }

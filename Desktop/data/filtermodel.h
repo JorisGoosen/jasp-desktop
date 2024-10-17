@@ -11,14 +11,16 @@ class FilterModel : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY( QString generatedFilter		READ generatedFilter	WRITE setGeneratedFilter	NOTIFY generatedFilterChanged	)
-	Q_PROPERTY( QString rFilter				READ rFilter			WRITE setRFilter			NOTIFY rFilterChanged			)
-	Q_PROPERTY( QString constructorJson		READ constructorJson	WRITE setConstructorJson	NOTIFY constructorJsonChanged	)
-	Q_PROPERTY( QString constructorR		READ constructorR		WRITE setConstructorR		NOTIFY constructorRChanged		)
-	Q_PROPERTY( QString statusBarText		READ statusBarText									NOTIFY statusBarTextChanged		)
-	Q_PROPERTY( QString filterErrorMsg		READ filterErrorMsg									NOTIFY filterErrorMsgChanged	)
-	Q_PROPERTY( bool 	hasFilter			READ hasFilter										NOTIFY hasFilterChanged			)
-	Q_PROPERTY( QString defaultRFilter		READ defaultRFilter									NOTIFY defaultRFilterChanged	)
+	Q_PROPERTY( QString			generatedFilter		READ generatedFilter	WRITE setGeneratedFilter	NOTIFY generatedFilterChanged	)
+	Q_PROPERTY( QString			rFilter				READ rFilter			WRITE setRFilter			NOTIFY rFilterChanged			)
+	Q_PROPERTY( QString			constructorJson		READ constructorJson	WRITE setConstructorJson	NOTIFY constructorJsonChanged	)
+	Q_PROPERTY( QString			constructorR		READ constructorR		WRITE setConstructorR		NOTIFY constructorRChanged		)
+	Q_PROPERTY( QString			statusBarText		READ statusBarText									NOTIFY statusBarTextChanged		)
+	Q_PROPERTY( QString			filterErrorMsg		READ filterErrorMsg									NOTIFY filterErrorMsgChanged	)
+	Q_PROPERTY( bool			hasFilter			READ hasFilter										NOTIFY hasFilterChanged			)
+	Q_PROPERTY( QString			defaultRFilter		READ defaultRFilter									NOTIFY defaultRFilterChanged	)
+	Q_PROPERTY( QStringList		filterNames			READ filterNames									NOTIFY filterNamesChanged		)
+	Q_PROPERTY( QVariantList	tabs				READ tabs											NOTIFY tabsChanged				)
 
 public:
 	explicit					FilterModel(labelFilterGenerator * labelfilterGenerator);
@@ -31,6 +33,10 @@ public:
 				QString			filterErrorMsg()		const;
 				QString			generatedFilter()		const;
 				QString			constructorJson()		const;
+				QStringList		filterNames()			const;
+				QVariantList	tabs()					const;
+				
+				
 	static		const char *	defaultRFilter();
 
 				bool			hasFilter()				const	{ return rFilter() != defaultRFilter() || constructorJson() != DEFAULT_FILTER_JSON; }
@@ -76,6 +82,8 @@ signals:
 	void filterErrorMsgChanged();
 	void generatedFilterChanged();
 	void constructorJsonChanged();
+	void filterNamesChanged();
+	void tabsChanged();
 
 	void updateColumnsUsedInConstructedFilter(std::set<std::string> columnNames);
 

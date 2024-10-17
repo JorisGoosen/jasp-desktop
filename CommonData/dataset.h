@@ -12,29 +12,31 @@ public:
 							DataSet(int index = -1); ///< index==-1: create a new dataSet, >0: load that dataSet, 0: do nothing
 							~DataSet();
 	
-			Filter		*	filter()						{ return	_filter;	}
+			Filter		*	defaultFilter()					{ return	_defaultFilter;	}
 			Columns		&	columns()			const		{ return	const_cast<Columns&>(_columns);	}
     const	EmptyValues *	emptyValues()       const		{ return	_emptyValues; }
 			EmptyValues *	emptyValues()					{ return	_emptyValues; }
-
 			Column		*	column(		const std::string & name);
 			Column		*	column(		size_t				columnIndex);
-
-			Column		*	operator[](	size_t				columnIndex)	{ return column(columnIndex); }
-			Column		*	operator[](	const std::string &	columnName)		{ return column(columnName); }
+			Column		*	operator[](	size_t				columnIndex)	{ return column(columnIndex);	}
+			Column		*	operator[](	const std::string &	columnName)		{ return column(columnName);	}
+			FiltersByName&	filtersByName();
+			Filter		*	filter(const std::string & name);
+			stringvec		filterNames();
 	
 			int				id()					const { return _dataSetID;				}
-			int				columnCount()			const ;
 			int				rowCount()				const ;
-			bool			dataFileSynch()			const { return _dataFileSynch;			}
+			int				columnCount()			const ;
 	const	std::string &	dataFilePath()			const { return _dataFilePath;			}
-			int				dataFileTimestamp()		const { return _dataFileTimestamp;		}
 	const	std::string &	databaseJson()			const { return _databaseJson;			}
+			bool			dataFileSynch()			const { return _dataFileSynch;			}
 			bool			writeBatchedToDB()		const { return _writeBatchedToDB;		}
+			int				dataFileTimestamp()		const { return _dataFileTimestamp;		}
 
 			void			dbCreate();
 			void			dbUpdate();
 			void			dbLoad(int index = -1, std::function<void(float)> progressCallback = [](float){}, bool do019Fix = false);
+			void			dbLoadFilters(std::function<void(float)> progressCallback);
 			void			dbDelete();
 
 			void			beginBatchedToDB();
@@ -92,14 +94,14 @@ private:
 	DataSetBaseNode			*	_dataNode				= nullptr, //To make sure we have a pointer to flesh out the node hierarchy we add a "data" node, so we can place it next to the "filters" node in the tree
 							*	_filtersNode			= nullptr;
 	Columns						_columns;
-	Filter					*	_filter					= nullptr;
+	Filter					*	_defaultFilter			= nullptr;
+	FiltersByName				_filtersByName;		///< Excludes defaultFilter 
 	EmptyValues				*	_emptyValues			= nullptr;
 	int							_dataSetID				= -1,
 								_rowCount				= -1;
 	long						_dataFileTimestamp		= 0;
 	std::string					_dataFilePath,
 								_databaseJson;
-	
 	bool						_writeBatchedToDB		= false,
 								_dataFileSynch			= false;
 	static stringset			_defaultEmptyvalues;	// Default empty values if workspace do not have its own empty values (used for backward compatibility)

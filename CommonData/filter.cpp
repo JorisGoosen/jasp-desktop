@@ -15,6 +15,9 @@ Filter::Filter(DataSet * data, const std::string & name, bool createIfMissing, i
 	if(db().filterGetId(_name) > -1)	dbLoad();
 	else if(createIfMissing)			dbCreate();
 	else								throw std::runtime_error("Filter by name '" + _name + "' but it doesnt exist and createIfMissing=false!\nAre you sure this filter should exist?");
+	
+	if(createIfMissing)
+		_data->incRevision();
 }
 
 void Filter::dbCreate()

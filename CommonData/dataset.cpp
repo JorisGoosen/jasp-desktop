@@ -31,11 +31,11 @@ DataSet::~DataSet()
 	
 	delete _emptyValues;
 	delete _dataNode;
-	delete _filter;
+        delete _defaultFilter;
 	
 	_emptyValues	= nullptr;
 	_dataNode		= nullptr;
-	_filter			= nullptr;
+        _defaultFilter			= nullptr;
 	
 	
 }
@@ -48,9 +48,9 @@ void DataSet::dbDelete()
 
 	db().transactionWriteBegin();
 
-	if(_filter && _filter->id() != -1)
-		_filter->dbDelete();
-	_filter = nullptr;
+        if(_defaultFilter && _defaultFilter->id() != -1)
+            _defaultFilter->dbDelete();
+        _defaultFilter = nullptr;
 
 	for(Column * col : _columns)
 		col->dbDelete(false);
@@ -142,6 +142,26 @@ Column *DataSet::column(size_t index)
 	return _columns[index];
 }
 
+FiltersByName &DataSet::filtersByName()
+{
+	return _filtersByName;
+}
+
+Filter *DataSet::filter(const std::string &name)
+{
+	return _filtersByName.count(name) ? _filtersByName.at(name) : nullptr;
+}
+
+stringvec DataSet::filterNames()
+{
+	stringvec names;
+	
+	for(const auto & nameFilter : _filtersByName)
+		names.push_back(nameFilter.first);
+	
+	return names;
+}
+
 void DataSet::removeColumn(size_t index)
 {
 	assert(_dataSetID > 0);
@@ -221,14 +241,14 @@ void DataSet::dbCreate()
 {
 	JASPTIMER_SCOPE(DataSet::dbCreate);
 
-	assert(!_filter && _dataSetID == -1);
+        assert(!_defaultFilter && _dataSetID == -1);
 
 	db().transactionWriteBegin();
 
 	//The variables are probably empty though:
 	_dataSetID	= db().dataSetInsert(_dataFilePath, _dataFileTimestamp, _description, _databaseJson, _emptyValues->toJson().toStyledString(), _dataFileSynch);
-	_filter = new Filter(this);
-	_filter->dbCreate();
+	_defaultFilter = new Filter(this);
+	_defaultFilter->dbCreate();
 	_columns.clear();
 
 	db().transactionWriteEnd();
@@ -267,11 +287,8 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback, boo
 	db().dataSetLoad(_dataSetID, _dataFilePath, _dataFileTimestamp, _description, _databaseJson, emptyVals, _revision, _dataFileSynch);
 	progressCallback(0.1);
 
-	if(!_filter)
-		_filter = new Filter(this);
-	_filter->dbLoad();
-	progressCallback(0.2);
-
+	dbLoadFilters(progressCallback);
+	
 	int colCount	= db().dataSetColCount(_dataSetID);
 	_rowCount		= db().dataSetRowCount(_dataSetID);
 	//Log::log() << "colCount: " << colCount << ", " << "rowCount: " << rowCount() << std::endl;
@@ -300,6 +317,37 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback, boo
 	
 	if(do019Fix)	upgradeTo019(emptyValsJson);
 	else			_emptyValues->fromJson(emptyValsJson);
+}
+
+void DataSet::dbLoadFilters(std::function<void(float)> progressCallback)
+{
+	if(!_defaultFilter)
+		_defaultFilter = new Filter(this);
+	_defaultFilter->dbLoad();
+	progressCallback(0.125);
+	
+	stringvec filterNames = db().dataSetGetFilterNames(_dataSetID);
+	
+	for(const std::string & name : filterNames)
+		if(!name.empty() && _filtersByName.count(name) == 0)
+			_filtersByName[name] = new Filter(this, name, false);
+	
+	progressCallback(0.15);
+	
+	stringset	filterNamesSet(filterNames.begin(), filterNames.end()),
+				removeUs;
+	
+	for(const auto & nameFilter : _filtersByName)
+		if(filterNamesSet.count(nameFilter.first) == 0)
+		{
+			delete nameFilter.second;
+			removeUs.insert(nameFilter.first);
+		}
+	
+	for(const std::string & name : removeUs)
+		_filtersByName.erase(name);	
+	
+	progressCallback(0.2);
 }
 
 void DataSet::upgradeTo019(const Json::Value & emptyVals)
@@ -413,7 +461,7 @@ void DataSet::setRowCount(size_t rowCount)
 		dbLoad(); //Make sure columns have the right data in them
 	}
 
-	_filter->reset();
+        _defaultFilter->reset();
 }
 
 void DataSet::incRevision()
@@ -468,7 +516,7 @@ bool DataSet::checkForUpdates(stringvec * colsChanged, stringvec * colsRemoved, 
 	}
 	else
 	{
-		bool somethingChanged = _filter->checkForUpdates();
+            bool somethingChanged = _defaultFilter->checkForUpdates();
 
 		for(Column * col : _columns)
 			if(col->checkForUpdates())
