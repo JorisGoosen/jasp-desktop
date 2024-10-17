@@ -5,6 +5,7 @@
 #include "log.h"
 #include "controls/jaspcontrol.h"
 #include "filter.h"
+#include "analysisform.h"
 
 
 ListModelFilteredDataEntry::ListModelFilteredDataEntry(TableViewBase * parent)
@@ -171,6 +172,8 @@ void ListModelFilteredDataEntry::initTableTerms(const TableTerms& terms)
 {
 	//std::cout << "ListModelFilteredDataEntry::initValues(OptionsTable * bindHere)" << std::endl;
 
+	int analysisId = _tableView->form()->analysisId();
+	
 	if (terms.values.size() > 1)
 		Log::log() << "Too many values in ListModelFilteredDataEntry" << std::endl;
 	
@@ -178,12 +181,12 @@ void ListModelFilteredDataEntry::initTableTerms(const TableTerms& terms)
 	{
 		//We dont apparently have a previous filterName, so this is a fresh one, we need a new filter!
 		assert(!_filter && !_filterName.empty());
-		_filter = new Filter(VariableInfo::info()->dataSet(), _filterName, true);
+		_filter = new Filter(VariableInfo::info()->dataSet(), _filterName, true, analysisId);
 	}
 	else if(!_filter)
 	{
 		_filterName = fq(terms.filterName);
-		_filter		= new Filter(VariableInfo::info()->dataSet(), _filterName, true);
+		_filter		= new Filter(VariableInfo::info()->dataSet(), _filterName, true, analysisId);
 	}
 
 	if (terms.colName.isEmpty())

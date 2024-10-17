@@ -20,19 +20,15 @@
 #define ANALYSISFORM_H
 
 #include <QMap>
+#include <queue>
 #include <QQuickItem>
-
-#include "boundcontrols/boundcontrol.h"
 #include "analysisbase.h"
 #include "models/listmodel.h"
-#include "models/listmodeltermsavailable.h"
-#include "utilities/messageforwarder.h"
 #include "utilities/qutils.h"
-#include <queue>
 
 class ListModelTermsAssigned;
-class JASPControl;
 class ExpanderButtonBase;
+class JASPControl;
 class RSyntax;
 
 ///
@@ -83,6 +79,7 @@ public:
 	void					blockValueChangeSignal(bool block, bool notifyOnceUnblocked = true);
 	QString					title()							const	{ return _analysis ? tq(_analysis->title())		: "";		}
 	QString					name()							const	{ return _analysis ? tq(_analysis->name())		: "";		}
+	int						analysisId()					const	{ return _analysis ?    _analysis->id()			: -1;		}
 	QString					module()						const	{ return _analysis ? tq(_analysis->module())	: "";		}
 	QString					version()						const	{ return _analysis ? tq(_analysis->moduleVersion().asString()) : "";	}
 	bool					hasVolatileNotes()				const	{ return _hasVolatileNotes;									}

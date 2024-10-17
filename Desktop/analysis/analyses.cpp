@@ -548,9 +548,12 @@ void Analyses::rCodeReturned(QString result, int requestId, bool hasError)
 
 void Analyses::filterByNameDone(QString name, QString error)
 {
+	int analysisId = DatabaseInterface::singleton()->filterGetAnalysisId(fq(name));
+	
 	applyToAll([&](Analysis * a)
 	{
-		a->filterByNameDone(name, error);
+		if(a->id() == analysisId)
+			a->filterByNameDone(name, error);
 	});
 }
 

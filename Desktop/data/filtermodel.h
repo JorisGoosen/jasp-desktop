@@ -62,7 +62,7 @@ public slots:
 	void computeColumnSucceeded(QString columnName, QString warning, bool dataChanged);
 
 	void dataSetPackageResetDone();
-	void datasetChanged(	QStringList				changedColumns,
+	void datasetChanged(QStringList				changedColumns,
 						QStringList				missingColumns,
 						QMap<QString, QString>	changeNameColumns,
 						bool					rowCountChanged,
@@ -93,12 +93,9 @@ private:
 private:
 	labelFilterGenerator	*	_labelFilterGenerator	= nullptr;
 	QString						_statusBarText			= "";
-
-	std::set<std::string>		_columnsUsedInConstructedFilter,
+	stringset					_columnsUsedInConstructedFilter,
 								_columnsUsedInRFilter;
-
 	int							_lastSentRequestId		= 0;
-
 	UndoStack*					_undoStack				= nullptr;
 };
 

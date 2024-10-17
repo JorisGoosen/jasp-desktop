@@ -7,8 +7,8 @@ Filter::Filter(DataSet * data)
 	: DataSetBaseNode(dataSetBaseNodeType::filter, data), _data(data)
 { }
 
-Filter::Filter(DataSet * data, const std::string & name, bool createIfMissing)
-	: DataSetBaseNode(dataSetBaseNodeType::filter), _data(data), _name(name)
+Filter::Filter(DataSet * data, const std::string & name, bool createIfMissing, int analysisId)
+	: DataSetBaseNode(dataSetBaseNodeType::filter), _data(data), _name(name), _analysisId(analysisId)
 {
 	assert(_name != "");
 
@@ -20,7 +20,7 @@ Filter::Filter(DataSet * data, const std::string & name, bool createIfMissing)
 void Filter::dbCreate()
 {
 	assert(_id == -1);
-	_id = db().filterInsert(_data->id(), _rFilter, _generatedFilter, _constructorJson, _constructorR, _name);
+	_id = db().filterInsert(_data->id(), _rFilter, _generatedFilter, _constructorJson, _constructorR, _name, _analysisId);
 }
 
 void Filter::dbUpdate()
@@ -31,7 +31,7 @@ void Filter::dbUpdate()
 
 	db().transactionWriteBegin();
 	if(!_data->writeBatchedToDB())
-		db().filterUpdate(_id, _rFilter, _generatedFilter, _constructorJson, _constructorR, _name);
+		db().filterUpdate(_id, _rFilter, _generatedFilter, _constructorJson, _constructorR, _name,_analysisId);
 
 	incRevision();
 	db().transactionWriteEnd();
@@ -58,7 +58,7 @@ void Filter::dbLoad()
 	db().transactionReadBegin();
 	
 	std::string nameInDB = "";
-	db().filterLoad(_id, _rFilter, _generatedFilter, _constructorJson, _constructorR, _revision, nameInDB);
+	db().filterLoad(_id, _rFilter, _generatedFilter, _constructorJson, _constructorR, _revision, nameInDB, _analysisId);
 	assert(nameInDB == _name);
 
 	_filteredRowCount	= 0;

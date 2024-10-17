@@ -22,7 +22,7 @@ class Filter : public DataSetBaseNode
 {
 public:
 	Filter(DataSet * data);
-	Filter(DataSet * data, const std::string & name, bool createIfMissing = true);
+	Filter(DataSet * data, const std::string & name, bool createIfMissing = true, int analysisId = -1);
 
 	DataSet					*	data()				const { return _data;					}
 	int							id()				const { return _id;						}
@@ -65,7 +65,8 @@ public:
 private:
 	DataSet				*	_data				= nullptr;
 	int						_id					= -1,
-							_filteredRowCount	= 0;
+							_filteredRowCount	= 0,
+							_analysisId			= -1;
 	std::string				_rFilter			= "",
 							_generatedFilter	= "",
 							_constructorJson	= "",

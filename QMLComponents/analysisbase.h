@@ -26,6 +26,7 @@ public:
 	virtual				bool				isDuplicate()												const	{ return false;				}
 	virtual				bool				wasUpgraded()												const	{ return false;				}
 	virtual				bool				needsRefresh()												const	{ return false;				}
+	virtual				size_t				id()														const	{ return 0;					}
 	virtual				const std::string & module()													const	{ return emptyString;		}
 	virtual				const std::string & name()														const	{ return emptyString;		}
 	virtual				const std::string & title()														const	{ return emptyString;		}
@@ -61,7 +62,7 @@ public:
 						const QString	  &	qmlError()													const;
 						void				setQmlError(const QString &newQmlError);
 						void				sendRScript(const QString & script, const QString & controlName, bool whiteListedVersion)		{ emit sendRScriptSignal(script, controlName, whiteListedVersion, tq(module())); }
-						void				sendFilter(	const QString & name)																{ emit sendFilterSignal(name, tq(module())); }
+						void				sendFilter(	const QString & name);
 
 
 public slots:

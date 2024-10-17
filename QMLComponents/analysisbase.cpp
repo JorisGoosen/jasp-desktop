@@ -1,6 +1,8 @@
+#include "log.h"
+#include <exception>
 #include "analysisbase.h"
 #include "analysisform.h"
-#include "log.h"
+#include "databaseinterface.h"
 #include "utilities/qmlutils.h"
 
 const std::string AnalysisBase::emptyString;
@@ -112,6 +114,14 @@ void AnalysisBase::setQmlError(const QString &newQmlError)
 		return;
 	_qmlError = newQmlError;
 	emit qmlErrorChanged();
+}
+
+void AnalysisBase::sendFilter(	const QString & name)
+{
+	if(DatabaseInterface::singleton()->filterGetAnalysisId(fq(name)) != id())
+		throw std::runtime_error(fq(QString("Analysis %1 tries to run filter %2 but it doesnt own it...").arg(id()).arg(name)));
+	
+	emit sendFilterSignal(name, tq(module())); 
 }
 
 // This method tries to find the parent keys in _boundValues Json object

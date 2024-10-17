@@ -69,7 +69,7 @@ public:
 	bool						infoAddControlType()						const	override	{ return true; }
 	void						filterDoneHandler(const QString & name, const QString & error)				override;
 
-	ItemType itemTypePerItem(int col = -1, int row = -1) const;
+	ItemType					itemTypePerItem(int col = -1, int row = -1) const;
 
 	JASPControl::ModelType		modelType()									const				{ return _modelType;									}
 	JASPControl::ItemType		itemType()									const				{ return _itemType;										}
@@ -96,13 +96,13 @@ public:
 	void						setColumnCount(int columns)										{ setSize(-1, columns);									}
 	QString						friendlyName()								const	override;
 
-	Q_INVOKABLE void addColumn(int col = -1, bool left = true);
-	Q_INVOKABLE void removeColumn(int col);
-	Q_INVOKABLE void addRow();
-	Q_INVOKABLE void removeRow(int row);
-	Q_INVOKABLE void setSize(int rows, int columns);
-	Q_INVOKABLE void reset();
-	Q_INVOKABLE void itemChanged(int col, int row, QString value, QString type);
+	Q_INVOKABLE void			addColumn(int col = -1, bool left = true);
+	Q_INVOKABLE void			removeColumn(int col);
+	Q_INVOKABLE void			addRow();
+	Q_INVOKABLE void			removeRow(int row);
+	Q_INVOKABLE void			setSize(int rows, int columns);
+	Q_INVOKABLE void			reset();
+	Q_INVOKABLE void			itemChanged(int col, int row, QString value, QString type);
 
 
 signals:

@@ -15,19 +15,20 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "analysis.h"
-#include <boost/bind.hpp>
-#include "tempfiles.h"
-#include "appinfo.h"
+#include "log.h"
 #include "dirs.h"
+#include "utils.h"
+#include "appinfo.h"
+#include "analysis.h"
 #include "analyses.h"
+#include "tempfiles.h"
+//#include <boost/bind.hpp>
 #include "analysisform.h"
 #include "utilities/qutils.h"
-#include "log.h"
-#include "utils.h"
 #include "utilities/settings.h"
-#include "gui/preferencesmodel.h"
 #include "utilities/reporter.h"
+#include "gui/preferencesmodel.h"
+#include "utilities/messageforwarder.h"
 #include "results/resultsjsinterface.h"
 
 Analysis::Analysis(size_t id, Modules::AnalysisEntry * analysisEntry, std::string title, std::string moduleVersion, Json::Value *data) :

@@ -97,7 +97,7 @@ public:
 	const	std::string		&	title()				const	override	{ return _title;							}
 	const	std::string		&	rfile()				const				{ return _rfile;							}
 	const	std::string		&	module()			const	override	{ return _moduleData->dynamicModule()->name();	}
-			size_t				id()				const				{ return _id;								}
+			size_t				id()				const	override	{ return _id;								}
 			Status				status()			const				{ return _status;							}
 			QString				statusQ()			const				{ return tq(statusToString(_status));		}
 			int					revision()			const				{ return _revision;							}
