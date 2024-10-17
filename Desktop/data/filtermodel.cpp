@@ -158,11 +158,24 @@ void FilterModel::setGeneratedFilter(QString newGeneratedFilter)
 bool FilterModel::_setGeneratedFilter(const QString& newGeneratedFilter)
 {
 	JASPTIMER_SCOPE(FilterModel::_setGeneratedFilter);
+	
+	QStringList newGeneratedFilterAllInclusive;
+		
+	if(DataSetPackage::filter() && !DataSetPackage::filter()->constructorR().empty())
+		newGeneratedFilterAllInclusive << tq(DataSetPackage::filter()->constructorR()).replace("\n","");
+	
+	if(!newGeneratedFilter.isEmpty())
+		newGeneratedFilterAllInclusive << QString(newGeneratedFilter).replace("\n","");		
+	
+	if(newGeneratedFilterAllInclusive.size() == 0)
+		newGeneratedFilterAllInclusive << DEFAULT_FILTER_GEN;
+	
+	QString allInc = "generatedFilter <- " + newGeneratedFilterAllInclusive.join(" & ");
 
-	if (newGeneratedFilter != generatedFilter())
+	if (allInc != generatedFilter())
 	{
 		if(DataSetPackage::filter())
-			DataSetPackage::filter()->setGeneratedFilter(fq(newGeneratedFilter));
+			DataSetPackage::filter()->setGeneratedFilter(fq(allInc));
 
 		emit generatedFilterChanged(); //does nothing?
 		return true;

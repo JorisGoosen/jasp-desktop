@@ -21,37 +21,24 @@ std::string labelFilterGenerator::generateFilter()
 			neededFilters++;
 
 	std::stringstream newGeneratedFilter;
-	Filter* filter = DataSetPackage::pkg()->filter();
-	std::string filterRScript = filter ? filter->constructorR() : "";
-
-	newGeneratedFilter << "generatedFilter <- ";
-
+	
 	if(neededFilters == 0)
-	{
-		if(filterRScript == "")	return DEFAULT_FILTER_GEN;
-		else					newGeneratedFilter << "("<< filterRScript <<")";
-	}
-	else
-	{
-		bool moreThanOne = neededFilters > 1, first = true;
+		return "";
+	
+	bool moreThanOne = neededFilters > 1, first = true;
 
-		if(moreThanOne)
-			newGeneratedFilter << "(";
+	if(moreThanOne)
+		newGeneratedFilter << "(";
 		
-		
-		for(size_t col=0; col<pkg->dataColumnCount(); col++)
-			if(pkg->labelNeedsFilter(col))
-			{
-				newGeneratedFilter << (first ? "" : " & ") << generateLabelFilter(col);
-				first = false;
-			}
+	for(size_t col=0; col<pkg->dataColumnCount(); col++)
+		if(pkg->labelNeedsFilter(col))
+		{
+			newGeneratedFilter << (first ? "" : " & ") << generateLabelFilter(col);
+			first = false;
+		}
 
-		if(moreThanOne)
-			newGeneratedFilter << ")";
-
-		if(filterRScript != "")
-				newGeneratedFilter << " & \n("<<filterRScript<<")";
-	}
+	if(moreThanOne)
+		newGeneratedFilter << ")";
 
 	return newGeneratedFilter.str();
 }
