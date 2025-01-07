@@ -34,7 +34,6 @@
 #include "data/fileevent.h"
 #include "data/filtermodel.h"
 #include "data/columnmodel.h"
-#include "data/labelfiltergenerator.h"
 #include "engine/enginesync.h"
 #include "gui/aboutmodel.h"
 #include "models/columntypesmodel.h"
@@ -300,7 +299,6 @@ private:
 	DataSetPackage				*	_package				= nullptr;
 	DataSetTableModel			*	_datasetTableModel		= nullptr,
 								*	_dataSetModelVarInfo	= nullptr;
-	labelFilterGenerator		*	_labelFilterGenerator	= nullptr;
 	ColumnsModel				*	_columnsModel			= nullptr;
 	ComputedColumnModel			*	_computedColumnsModel	= nullptr;
 	FilterModel					*	_filterModel			= nullptr;

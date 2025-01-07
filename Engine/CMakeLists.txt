@@ -39,7 +39,8 @@ add_dependencies(JASPEngine R-Interface)
 
 target_include_directories(
 	JASPEngine
-	PUBLIC ${PROJECT_SOURCE_DIR}/R-Interface
+	PUBLIC
+	${PROJECT_SOURCE_DIR}/R-Interface
 	${PROJECT_SOURCE_DIR}/CommonData
 	${PROJECT_SOURCE_DIR}/Common
 	${PROJECT_SOURCE_DIR}/Common/jaspColumnEncoder

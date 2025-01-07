@@ -18,11 +18,11 @@ void Column::setAutoSortByValuesByDefault(bool autoSort)
 }
 
 Column::Column(DataSet * data, int id)
-:	DataSetBaseNode(dataSetBaseNodeType::column, data->dataNode()),
+:	DataSetBaseNode(dataSetBaseNodeType::column, data),
 	_data(				data),
 	_id(				id),
 	_emptyValues(		new EmptyValues(data->emptyValues())),
-	_doubleDummy(		new Label(this)),
+	_doubleDummy(		_createLabel()),
 	_autoSortByValue(	_autoSortByValuesByDefault)
 {
 	if(_id != -1)
@@ -169,6 +169,8 @@ void Column::setType(columnType colType)
 	_type = colType;
 	db().columnSetType(_id, _type);
 	incRevision();
+
+	_emitTypeChanged();
 }
 
 bool Column::hasCustomEmptyValues() const
@@ -601,9 +603,9 @@ bool Column::overwriteDataAndType(stringvec data, columnType colType)
 
 	if(data.size() != _data->rowCount())
 	{
-		if(data.size() == _data->filter()->filteredRowCount())
+            if(data.size() == _data->shownFilter()->filteredRowCount())
 		{
-			const boolvec & filtered = _data->filter()->filtered();
+                const boolvec & filtered = _data->shownFilter()->filtered();
 			stringvec		newData;
 							newData	 . reserve(filtered.size());
 			
@@ -688,6 +690,8 @@ void Column::_sortLabelsByOrder()
 void Column::labelsClear(bool doIncRevision)
 {
 	db().labelsClear(_id);
+	for(Label * l : _labels)
+		delete l;
 	_labels.clear();
 	_labelByIntsIdMap.clear();
 	_labelByValDis.clear();
@@ -762,6 +766,22 @@ int Column::_labelMapIt(Label * label)
 	return label->intsId();
 }
 
+Label * Column::_createLabel()
+{
+	return new Label(this);
+}
+
+Label * Column::_createLabel(int value)
+{
+	return new Label(this, value);
+}
+
+Label * Column::_createLabel(const std::string &label, int value, bool filterAllows, const std::string &description, const Json::Value &originalValue, int order, int id)
+{
+	return new Label(this, label, value, filterAllows, description, originalValue, order, id);
+}
+
+
 int Column::labelsAdd(int value, const std::string & display, bool filterAllows, const std::string & description, const Json::Value & originalValue, int order, int id)
 {
 	JASPTIMER_SCOPE(Column::labelsAdd lotsa arg);
@@ -771,8 +791,11 @@ int Column::labelsAdd(int value, const std::string & display, bool filterAllows,
 	if(_labelByValDis.count(valDisplay))
 		return _labelByValDis.at(valDisplay)->intsId();
 
-	Label * label = new Label(this, display, value, filterAllows, description, originalValue, order, id);
+	Label * label = _createLabel(display, value, filterAllows, description, originalValue, order, id);
 	_labels.push_back(label);
+
+	if(hasLabelFilter())
+		_emitLabelFilterChanged();
 	
 	return _labelMapIt(label);
 }
@@ -797,7 +820,7 @@ int Column::labelsSet(int labelIndex, int value, const std::string &display, boo
 
 		if(_labels.size() < labelIndex+1)
 			_labels			. resize(labelIndex+1);
-		_labels[labelIndex]	= new Label(this, display, value, filterAllows, description, originalValue, order, id);
+		_labels[labelIndex]	= _createLabel(display, value, filterAllows, description, originalValue, order, id);
 		label				= _labels[labelIndex];
 	}
 
@@ -952,6 +975,16 @@ int Column::labelsTempCount()
 	return _labelsTemp.size();
 }
 
+int Column::labelsTempCount() const
+{
+#ifdef JASP_DEBUG
+	if(_revision != _labelsTempRevision)
+		throw std::runtime_error("labelsTempCount() const was not initialized");
+#endif
+	
+	return _labelsTemp.size();
+}
+
 int Column::nonFilteredNumericsCount()
 {
 	if (_nonFilteredNumericsCount == -1)
@@ -959,7 +992,7 @@ int Column::nonFilteredNumericsCount()
 		doubleset numerics;
 
 		for(size_t r=0; r<_data->rowCount(); r++)
-			if(_data->filter()->filtered()[r] && !isEmptyValue(_dbls[r]))
+                    if(_data->shownFilter()->filtered()[r] && !isEmptyValue(_dbls[r]))
 					numerics.insert(_dbls[r]);
 
 		_nonFilteredNumericsCount = numerics.size();
@@ -968,19 +1001,35 @@ int Column::nonFilteredNumericsCount()
 	return _nonFilteredNumericsCount;
 }
 
+int Column::nonFilteredNumericsCount() const
+{
+#ifdef JASP_DEBUG
+	if(_nonFilteredNumericsCount == -1)
+		throw std::runtime_error("nonFilteredNumericsCount() const was not initialized");
+#endif
+	
+	return _nonFilteredNumericsCount;
+}
+
 stringvec Column::nonFilteredLevels()
 {
 	if (_nonFilteredLevels.empty())
 	{
-        stringset levels;
+        stringset	levels;
+		intset		collected;
 		for(size_t r=0; r<_data->rowCount(); r++)
-			if(_data->filter()->filtered()[r])
+			if(_data->shownFilter()->filtered()[r])
 			{
 				if(_ints[r] != Label::DOUBLE_LABEL_VALUE)
 				{
-					Label * label = labelByIntsId(_ints[r]);
-					if(label && !label->isEmptyValue())
-                        levels.insert(label->label());
+					if(!collected.count(_ints[r]))
+					{
+						Label * label = labelByIntsId(_ints[r]);
+						if(label && !label->isEmptyValue())
+							levels.insert(label->label());
+						
+						collected.insert(_ints[r]);
+					}
 				}
 				else if(!isEmptyValue(_dbls[r]))
                     levels.insert(ColumnUtils::doubleToString(_dbls[r]));
@@ -988,11 +1037,21 @@ stringvec Column::nonFilteredLevels()
 
         // Use the right label order
         for (std::string& label : _labelsTemp)
-            if (levels.find(label) != levels.end())
+            if (levels.count(label))
                 _nonFilteredLevels.push_back(label);
     }
 
-    return _nonFilteredLevels;
+	return _nonFilteredLevels;
+}
+
+stringvec Column::nonFilteredLevels() const
+{
+#ifdef JASP_DEBUG
+	if(_nonFilteredLevels.empty())
+		throw std::runtime_error("nonFilteredLevels() const was not initialized");
+#endif
+	
+	return _nonFilteredLevels;
 }
 
 void Column::nonFilteredCountersReset()
@@ -1011,11 +1070,27 @@ int Column::labelsTempNumerics()
 const stringvec &Column::labelsTemp()
 {
 	labelsTempCount(); //generate the list if need be
-	
+
+	return _labelsTemp;
+}
+
+
+const stringvec &Column::labelsTemp() const
+{
+	labelsTempCount(); //wont generate the list if need be, instead it will crash on debug if its not yet generated
+
 	return _labelsTemp;
 }
 
 std::string Column::labelsTempDisplay(size_t tempLabelIndex)
+{
+	if(labelsTempCount() <= tempLabelIndex)
+		return "";
+	
+	return _labelsTemp[tempLabelIndex];
+}
+
+std::string Column::labelsTempDisplay(size_t tempLabelIndex) const
 {
 	if(labelsTempCount() <= tempLabelIndex)
 		return "";
@@ -1045,6 +1120,21 @@ size_t Column::labelCountNotEmpty() const
 }
 
 std::string Column::labelsTempValue(size_t tempLabelIndex, bool fancyEmptyValue)
+{
+	if(labelsTempCount() <= tempLabelIndex)
+		return "";
+	
+	Label * label = labelByIndexNotEmpty(tempLabelIndex);
+	
+	if(label)
+		return label->originalValueAsString(fancyEmptyValue);
+	
+	//So its not from a Label, this means its from _dbls
+	//So that means the display value is actually the same as the value so:
+	return doubleToDisplayString(_labelsTempDbls[tempLabelIndex], fancyEmptyValue);
+}
+
+std::string Column::labelsTempValue(size_t tempLabelIndex, bool fancyEmptyValue) const
 {
 	if(labelsTempCount() <= tempLabelIndex)
 		return "";
@@ -1113,7 +1203,10 @@ std::string Column::_getLabelDisplayStringByValue(int key, bool ignoreEmptyValue
 std::string Column::getValue(size_t row, bool fancyEmptyValue, bool ignoreEmptyValue, columnType asType) const
 {
 	if(asType == columnType::unknown)
+	{
 		asType = _type;
+		_emitTypeChanged();
+	}
 	
 	if (row < rowCount())
 	{
@@ -1564,7 +1657,7 @@ bool Column::setValue(size_t row, const std::string & value, const std::string &
 {
 	JASPTIMER_SCOPE(Column::setValue(size_t row, const std::string & value, const std::string & label, writeToDB));
     
-	//If value != "" and label == "" that means we got copy pasted stuff in the viewer. And we just dont have labels, but we can treat it like we are editing
+	//If value != "" and label == "" that means we got copy pasted stuff in the viewer, and we just dont have labels, but we can treat it like we are editing.
 	//if both are "" we just want to clear the cell
 	//the assumption is that this is not direct user-input, but internal jasp stuff.
 	if(value == "" && label == "")
@@ -1958,7 +2051,7 @@ bool Column::allLabelsPassFilter() const
 	return true;
 }
 
-bool Column::hasFilter() const
+bool Column::hasLabelFilter() const
 {
 	return !allLabelsPassFilter();
 }
@@ -2137,6 +2230,8 @@ void Column::deserializeLabelsForCopy(const Json::Value & labels)
 	beginBatchedLabelsDB();
 	_labelByIntsIdMap.clear();
 	_labelByValDis.clear();
+	for(Label * l : _labels)
+		delete l;
 	_labels.clear();
 
 	if (labels.isArray())
@@ -2158,6 +2253,7 @@ void Column::deserializeLabelsForRevert(const Json::Value & labels)
 {
  	labelsTempReset();
 	
+	_beginResetModel();
 	beginBatchedLabelsDB();
 	
 	//intset	updatedLbls;
@@ -2201,7 +2297,8 @@ void Column::deserializeLabelsForRevert(const Json::Value & labels)
 			missingLbls.insert(idLabel.first);*/
 	
 	endBatchedLabelsDB();
-	
+	_endResetModel();
+
 	/* The following is already implied by endBatchedLabelsDB because it deletes all labels first anyway
 	for(int id : missingLbls)
 	{
@@ -2227,33 +2324,25 @@ void Column::deserialize(const Json::Value &json)
 	std::string name	= json["name"].asString(),
 				title	= json["title"].asString();
 
-	_name				= getUniqueName(name);
-	db().columnSetName(_id, _name);
+	setName(getUniqueName(name));
 
 	// If title was equal to name, then they should still stay the same if the name is changed to be unique.
-	_title				= name == title ? _name : title;
-	db().columnSetTitle(_id, _title);
+	setTitle(								name == title ? _name : title);
+	setDescription(							json["description"]		.asString()	);
+	setType(			columnType(			json["type"]			.asInt())	);
+	setInvalidated(							json["invalidated"]		.asBool()	);
+	setCodeType(		computedColumnType(	json["codeType"]		.asInt())	);
+	setRCode(								json["rCode"]			.asString()	);
+	setError(								json["error"]			.asString()	);
+	setAnalysisId(							json["analysisId"]		.asInt()	);
+	setConstructorJson(						json["constructorJson"]				);
+	setAutoSortByValue(						json["autoSortByValue"]	.asBool()	);
 
-	_description		= json["description"].asString();
-	db().columnSetDescription(_id, _description);
-
-	_type				= columnType(json["type"].asInt());
-	db().columnSetType(_id, _type);
-
-	_invalidated		= json["invalidated"].asBool();
-	_codeType			= computedColumnType(json["codeType"].asInt());
-	_rCode				= json["rCode"].asString();
-	_error				= json["error"].asString();
-	_analysisId			= json["analysisId"].asInt();
-	_constructorJson	= json["constructorJson"];
-	_autoSortByValue	= json["autoSortByValue"].asBool();
-
-	db().columnSetComputedInfo(_id, _analysisId, _invalidated, _codeType, _rCode, _error, constructorJsonStr());
-	
 	deserializeLabelsForCopy(json["labels"]);
 
 	_emptyValues->fromJson(json["customEmptyValues"]);
-	
+
+	_beginResetModel();
 	size_t i=0;
 	_dbls.resize(json["dbls"].size());
 	for (const Json::Value& dblJson : json["dbls"])
@@ -2263,6 +2352,7 @@ void Column::deserialize(const Json::Value &json)
 	_ints.resize(json["ints"].size());
 	for (const Json::Value& intJson : json["ints"])
 		_ints[i++] = intJson.asInt();
+	_endResetModel();
 	
 	assert(_ints.size() == _dbls.size());
 	

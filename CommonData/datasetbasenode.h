@@ -3,7 +3,7 @@
 
 #include "enumutilities.h"
 
-DECLARE_ENUM(dataSetBaseNodeType,	unknown, dataSet, data, filters, filter, column, label);
+DECLARE_ENUM(dataSetBaseNodeType,	unknown, dataSet, filter, column, label);
 
 
 /// Special class to be used as nodes in the overall "data"-structure, also used in QModelIndex pointer in DataSetPackage

@@ -19,12 +19,12 @@
 #ifndef DATASETTABLEMODEL_H
 #define DATASETTABLEMODEL_H
 
-#include "datasettableproxy.h"
-
+#include "datasetpackage.h"
+#include <QSortFilterProxyModel>
 
 ///
 /// Makes sure that the data from DataSetPackage is properly filtered (and possible sorted) and then passed on as a normal table-model to QML
-class DataSetTableModel : public DataSetTableProxy
+class DataSetTableModel : public QSortFilterProxyModel
 {
 	Q_OBJECT
 	Q_PROPERTY(int	columnsFilteredCount	READ columnsFilteredCount							NOTIFY columnsFilteredCountChanged)
@@ -63,6 +63,7 @@ signals:
 
 public slots:
 	void					setShowInactive(bool showInactive);
+	void					handleDataSetQChange();
 				//void		onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles) { if( roles.count(int(DataSetPackage::specialRoles::filter)) > 0) invalidateFilter(); }
 
 

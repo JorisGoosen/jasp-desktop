@@ -267,8 +267,8 @@ void Engine::runFilterByName(const std::string & name)
 {
 	provideAndUpdateDataSet();
 	
-	Filter		localFilter			(_dataSet, name, false);
-	std::string strippedFilter		= stringUtils::stripRComments(localFilter.rFilter());
+	Filter	*	localFilter			(_dataSet->createFilter(name, false));
+	std::string strippedFilter		= stringUtils::stripRComments(localFilter->rFilter());
 	boolvec		filterResult;
 	std::string RPossibleWarning;
 	try
@@ -289,10 +289,12 @@ void Engine::runFilterByName(const std::string & name)
 
 
 	DatabaseInterface::singleton()->transactionWriteBegin();
-	localFilter.setFilterVector(filterResult);
-	localFilter.setErrorMsg(RPossibleWarning);
-	localFilter.incRevision();
+	localFilter->setFilterVector(filterResult);
+	localFilter->setErrorMsg(RPossibleWarning);
+	localFilter->incRevision();
 	DatabaseInterface::singleton()->transactionWriteEnd();
+
+	delete localFilter;
 
 	sendFilterByNameDone(name, RPossibleWarning);
 
@@ -334,7 +336,7 @@ void Engine::updateOptionsAccordingToMeta(Json::Value & encodedOptions)
 				if(!col)
 					return;
 				
-				Filter			*	filter	= new Filter(data, filterN, false);
+				Filter			*	filter	= data->createFilter(filterN, false);
 				
 				if(col && filter)
 				{
@@ -375,13 +377,13 @@ void Engine::runFilter(const std::string & filter, const std::string & generated
 		std::vector<bool> filterResult	= rbridge_applyFilter(strippedFilter, generatedFilter);
 		std::string RPossibleWarning	= jaspRCPP_getLastErrorMsg();
 
-		Log::log() << "Engine::runFilter ran:\n\t" << strippedFilter << "\n\tRPossibleWarning='" << RPossibleWarning << "'\n\t\tfor revision " << _dataSet->filter()->revision() << std::endl;
+                Log::log() << "Engine::runFilter ran:\n\t" << strippedFilter << "\n\tRPossibleWarning='" << RPossibleWarning << "'\n\t\tfor revision " << _dataSet->shownFilter()->revision() << std::endl;
 
 		_dataSet->db().transactionWriteBegin();
-		_dataSet->filter()->setRFilter(filter);
-		_dataSet->filter()->setFilterVector(filterResult);
-		_dataSet->filter()->setErrorMsg(RPossibleWarning);
-		_dataSet->filter()->incRevision();
+                _dataSet->shownFilter()->setRFilter(filter);
+                _dataSet->shownFilter()->setFilterVector(filterResult);
+                _dataSet->shownFilter()->setErrorMsg(RPossibleWarning);
+                _dataSet->shownFilter()->incRevision();
 		_dataSet->db().transactionWriteEnd();
 
 
@@ -393,8 +395,8 @@ void Engine::runFilter(const std::string & filter, const std::string & generated
 		std::string error = std::string(e.what()).length() > 0 ? e.what() : "Something went wrong with the filter but it is unclear what.";
 
 		_dataSet->db().transactionWriteBegin();
-		_dataSet->filter()->setErrorMsg(error);
-		_dataSet->filter()->incRevision();
+                _dataSet->shownFilter()->setErrorMsg(error);
+                _dataSet->shownFilter()->incRevision();
 		_dataSet->db().transactionWriteEnd();
 
 		sendFilterError(filterRequestId, error);

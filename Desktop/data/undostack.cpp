@@ -1,10 +1,11 @@
-#include "undostack.h"
 #include "log.h"
-#include "datasettablemodel.h"
+#include "undostack.h"
 #include "columnmodel.h"
-#include "filtermodel.h"
-#include "computedcolumnmodel.h"
+#include "models/filterq.h"
 #include "utilities/qutils.h"
+#include "datasettablemodel.h"
+#include "datasetpackageenums.h"
+#include "computedcolumnmodel.h"
 
 UndoStack* UndoStack::_undoStack = nullptr;
 
@@ -224,8 +225,8 @@ PasteSpreadsheetCommand::PasteSpreadsheetCommand(QAbstractItemModel *model, int 
 		_oldColNames.push_back(_model->headerData(_col + c, Qt::Horizontal).toString());
 		for (int r = 0; r < _newValues[c].size(); r++)
 		{
-			_oldValues[c].push_back(!isSelected(r,c) ? "" : _model->data(_model->index(_row + r, _col + c),	int(DataSetPackage::specialRoles::value)).toString());
-			_oldLabels[c].push_back(!isSelected(r,c) ? "" : _model->data(_model->index(_row + r, _col + c),	int(DataSetPackage::specialRoles::label)).toString());
+			_oldValues[c].push_back(!isSelected(r,c) ? "" : _model->data(_model->index(_row + r, _col + c),	int(dataPkgRoles::value)).toString());
+			_oldLabels[c].push_back(!isSelected(r,c) ? "" : _model->data(_model->index(_row + r, _col + c),	int(dataPkgRoles::label)).toString());
 		}
 	}
 }
@@ -470,7 +471,7 @@ SetLabelCommand::SetLabelCommand(QAbstractItemModel *model, int labelIndex, QStr
 	if (_columnModel)
 	{
 		_oldLabel = _model->data(_model->index(_labelIndex, 0)).toString();
-		QString value = _model->data(_model->index(_labelIndex, 0), int(DataSetPackage::specialRoles::label)).toString();
+		QString value = _model->data(_model->index(_labelIndex, 0), int(dataPkgRoles::label)).toString();
 		setText(QObject::tr("Set label for value '%1' of column '%2' from '%3' to '%4'").arg(value).arg(columnName()).arg(_oldLabel).arg(_newLabel));
 	}
 	else
@@ -483,7 +484,7 @@ SetLabelCommand::SetLabelCommand(QAbstractItemModel *model, int labelIndex, QStr
 void SetLabelCommand::redo()
 {
 	UndoModelCommandLabelChange::redo();
-	_model->setData(_model->index(_labelIndex, 0), _newLabel, int(DataSetPackage::specialRoles::label));
+	_model->setData(_model->index(_labelIndex, 0), _newLabel, int(dataPkgRoles::label));
 	_columnModel->setLabelMaxWidth();
 }
 
@@ -492,8 +493,8 @@ SetLabelOriginalValueCommand::SetLabelOriginalValueCommand(QAbstractItemModel *m
 {
 	if (_columnModel)
 	{
-		_oldOriginalValue	= _model->data(_model->index(_labelIndex, 0), int(DataSetPackage::specialRoles::value)).toString();
-		_oldLabel			= _model->data(_model->index(_labelIndex, 0), int(DataSetPackage::specialRoles::label)).toString();
+		_oldOriginalValue	= _model->data(_model->index(_labelIndex, 0), int(dataPkgRoles::value)).toString();
+		_oldLabel			= _model->data(_model->index(_labelIndex, 0), int(dataPkgRoles::label)).toString();
 		setText(QObject::tr("Set original value  from '%3' to '%4' for label '%1' of column '%2'").arg(_oldLabel).arg(columnName()).arg(_oldOriginalValue).arg(_newOriginalValue));
 	}
 	else
@@ -506,7 +507,7 @@ SetLabelOriginalValueCommand::SetLabelOriginalValueCommand(QAbstractItemModel *m
 void SetLabelOriginalValueCommand::redo()
 {
 	UndoModelCommandLabelChange::redo();
-	_model->setData(_model->index(_labelIndex, 0), _newOriginalValue, int(DataSetPackage::specialRoles::value));
+	_model->setData(_model->index(_labelIndex, 0), _newOriginalValue, int(dataPkgRoles::value));
 	_columnModel->setLabelMaxWidth();
 }
 
@@ -536,13 +537,13 @@ FilterLabelCommand::FilterLabelCommand(QAbstractItemModel *model, int labelIndex
 void FilterLabelCommand::undo()
 {
 	_columnModel->setChosenColumn(_colId);
-	_model->setData(_model->index(_labelIndex, 0), !_checked, int(DataSetPackage::specialRoles::filter));
+	_model->setData(_model->index(_labelIndex, 0), !_checked, int(dataPkgRoles::filter));
 }
 
 void FilterLabelCommand::redo()
 {
 	_columnModel->setChosenColumn(_colId);
-	_model->setData(_model->index(_labelIndex, 0), _checked, int(DataSetPackage::specialRoles::filter));
+	_model->setData(_model->index(_labelIndex, 0), _checked, int(dataPkgRoles::filter));
 }
 
 MoveLabelCommand::MoveLabelCommand(QAbstractItemModel *model, const std::vector<qsizetype> &indexes, bool up)
@@ -630,25 +631,25 @@ void ReverseLabelCommand::redo()
 	DataSetPackage::pkg()->labelReverse(_colId); //through DataSetPackage to make sure signals get sent
 }
 
-SetJsonFilterCommand::SetJsonFilterCommand(QAbstractItemModel *model, FilterModel* filterModel, const QString& newJsonValue)
-	: UndoModelCommand(model), _filterModel{filterModel}, _newJsonValue{newJsonValue}
+SetJsonFilterCommand::SetJsonFilterCommand(FilterQ * filter, const QString& newJsonValue)
+	: UndoModelCommand(), _filter{filter}, _newJsonValue{newJsonValue}
 {
 	setText(QObject::tr("Change drag and drop filter"));
 }
 
 void SetJsonFilterCommand::undo()
 {
-	_filterModel->setConstructorJson(_oldJsonValue);
+	_filter->setConstructorJson(_oldJsonValue);
 }
 
 void SetJsonFilterCommand::redo()
 {
-	_oldJsonValue = _filterModel->constructorJson();
-	_filterModel->setConstructorJson(_newJsonValue);
+	_oldJsonValue = _filter->constructorJson();
+	_filter->setConstructorJson(_newJsonValue);
 }
 
-SetRFilterCommand::SetRFilterCommand(QAbstractItemModel *model, FilterModel* filterModel, const QString& newRFilter)
-	: UndoModelCommand(model), _filterModel{filterModel}, _newRFilter{newRFilter}
+SetRFilterCommand::SetRFilterCommand(FilterQ * filter, const QString& newRFilter)
+	: UndoModelCommand(), _filter{filter}, _newRFilter{newRFilter}
 {
 	setText(QObject::tr("Change R filter"));
 }

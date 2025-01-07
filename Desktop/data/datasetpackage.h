@@ -18,31 +18,26 @@
 #ifndef FILEPACKAGE_H
 #define FILEPACKAGE_H
 
-#include <cstddef>
-#include <QAbstractItemModel>
-#include <QFileInfo>
-#include <QUrl>
-#include "common.h"
-#include "version.h"
 #include <map>
-#include <json/json.h>
+#include <QUrl>
 #include <QTimer>
-#include "databaseinterface.h"
-#include "dataset.h"
-#include "datasetpackageenums.h"
+#include <cstddef>
+#include "version.h"
+#include <QFileInfo>
+#include <json/json.h>
 #include "undostack.h"
+#include "models/datasetq.h"
+#include "databaseinterface.h"
+#include <QSortFilterProxyModel>
 
 class EngineSync;
-class DataSetPackageSubNodeModel;
 
 ///
-/// This class is meant as the single bottleneck between the main application and Qt and the data stored in sqlite.
-/// To this end a clean separation has been attempted between any access of the data so that it can easily be controlled.
+/// DataSetPackage is a utility class that should probably have been called Workspace
 ///
-/// In order to have all that data available through this class a tree-model has been chosen here.
-///
-/// The structure of this tree should be described here...
-class DataSetPackage : public QAbstractItemModel //Not QAbstractTableModel because of: https://stackoverflow.com/a/38999940 (And this being a tree model)
+/// It handles loading and creation of DataSet(Q) which handles interaction with the database via itself and the other DataSetBaseNodes
+/// 
+class DataSetPackage : public QObject
 {
 	Q_OBJECT
 	Q_PROPERTY(int			columnsFilteredCount	READ columnsFilteredCount								NOTIFY columnsFilteredCountChanged	)
@@ -54,18 +49,16 @@ class DataSetPackage : public QAbstractItemModel //Not QAbstractTableModel becau
 	Q_PROPERTY(bool			dataMode				READ dataMode											NOTIFY dataModeChanged				)
 	Q_PROPERTY(bool			synchingExternally		READ synchingExternally		WRITE setSynchingExternally NOTIFY synchingExternallyChanged	) //might have to be moved to dataset when we have multiple datasets, alse CurrentDataFile in FileMenu will need to be looked at...
 	Q_PROPERTY(bool			manualEdits				READ manualEdits			WRITE setManualEdits		NOTIFY manualEditsChanged			) ///< Did the user change something in the data in such a way that external synching should be disabled if enabled?
-
-	typedef DataSetPackageSubNodeModel							SubNodeModel;
-
+	Q_PROPERTY(DataSetQ *	dataSet					READ dataSet											NOTIFY dataSetQChanged				)
+	
 public:
-	typedef dataPkgRoles specialRoles;
-
+	
 	static DataSetPackage *	pkg() { return _singleton; }
 
 							DataSetPackage(QObject * parent);
 							~DataSetPackage();
 		static Filter	*	filter();
-		DataSet			*	dataSet() { return _dataSet; }
+		DataSetQ		*	dataSet() { return _dataSet; }
 		void				setEngineSync(EngineSync * engineSync);
 		void				reset(bool newDataSet = true);
 		void				setDataSetSize(size_t columnCount, size_t rowCount);
@@ -74,24 +67,16 @@ public:
 		void				increaseDataSetColCount(size_t rowCount)			{ setDataSetSize(dataColumnCount() + 1,	rowCount); }
 
 		void				createDataSet();	///< Creates *OR* recreates a dataset in database
+		void				connectDataSet();
         void                loadDataSet(std::function<void(float)> progressCallback = [](float){});      ///< Assumes internal.sqlite has just been loaded from a JASPFile and will init DataSet etc with it.
 		void				deleteDataSet();	///< Deletes dataset from memory but not from database
 		bool				hasDataSet() { return _dataSet; }
 
 		void				pauseEngines();
 		void				resumeEngines();
-		void				enginesPrepareForData();
 		void				enginesReceiveNewData();
 		bool				enginesInitializing()	{ return emit enginesInitializingSignal();	}
 
-		SubNodeModel	*	dataSubModel	() { return _dataSubModel;		}
-		SubNodeModel	*	filterSubModel	() { return _filterSubModel;	}
-		SubNodeModel	*	labelsSubModel	() { return _labelsSubModel;	}
-		UndoStack		*	undoStack		() { return _undoStack;			}
-		
-		DataSetBaseNode *	indexPointerToNode(			const QModelIndex	& index	) const;
-		bool				dataSetBaseNodeStillExists(	DataSetBaseNode		* node	) const;
-		
 		void				waitForExportResultsReady();
 
 		void				beginLoadingData(	bool informEngines = true);
@@ -104,28 +89,8 @@ public:
 											bool										rowCountChanged,
 											bool										hasNewColumns,		bool informEngines = true);
 
-		
-		
-
-		QHash<int, QByteArray>		roleNames()																						const	override;
-				int					rowCount(		const QModelIndex &parent = QModelIndex())										const	override;
-				int					columnCount(	const QModelIndex &parent = QModelIndex())										const	override;
-				QVariant			data(			const QModelIndex &index, int role = Qt::DisplayRole)							const	override;
-				QVariant			headerData(		int section, Qt::Orientation orientation, int role = Qt::DisplayRole )			const	override;
-				bool				setData(		const QModelIndex &index, const QVariant &value, int role)								override;
-				Qt::ItemFlags		flags(			const QModelIndex &index)														const	override;
-				QModelIndex			parent(			const QModelIndex & index)														const	override;
-				QModelIndex			index(			int row,		int column, const QModelIndex & parent = QModelIndex())			const	override;
-				bool				insertRows(		int row,		int count, const QModelIndex & aparent = QModelIndex())					override;
-				bool				insertColumns(	int column,		int count, const QModelIndex & aparent = QModelIndex())					override;
-				bool				removeRows(		int row,		int count, const QModelIndex & aparent = QModelIndex())					override;
-				bool				removeColumns(	int column,		int count, const QModelIndex & aparent = QModelIndex())					override;
 				QString				insertColumnSpecial(int column, const QMap<QString, QVariant>& props);
 				QString				appendColumnSpecial(			const QMap<QString, QVariant>& props);
-
-				QModelIndex			indexForSubNode(DataSetBaseNode * node)														const;
-				int					filteredRowCount()																			const { return _dataSet->filter()->filteredRowCount(); }
-	static		QVariant			getDataSetViewLines(bool up=false, bool left=false, bool down=true, bool right=true);
 
 				int					dataRowCount()		const;
 				int					dataColumnCount()	const;
@@ -178,11 +143,11 @@ public:
 				void				setAnalysesHTML(const QString & html)				{ _analysesHTML					= html;				}
 				void				setIsJaspFile(bool isJaspFile)						{ _isJaspFile					= isJaspFile;		}
 				void				setHasAnalysesWithoutData()							{ _hasAnalysesWithoutData		= true;				}
-				void				setModified(bool value);
+				void				setModified(bool value = true);
 				void				setAnalysesHTMLReady()								{ _analysesHTMLReady			= true;				}
 				void				setId(std::string id)								{ _id							= id;				}
 				void				setWaitingForReady()								{ _analysesHTMLReady			= false;			}
-				void				setManualEdits(bool newManualEdits);
+				void				setManualEdits(bool newManualEdits = true);
 				void				setLoaded(bool loaded = true);
 				void				setDescription(const QString& description);
 				
@@ -216,7 +181,7 @@ public:
 
 				bool						isColumnInvalidated(		size_t					colIndex)	const;
 
-				bool						setColumnType(int		columnIndex,	columnType newColumnType);
+
 				bool						setColumnTypes(intset	columnIndexes,	columnType newColumnType);
 				
 
@@ -241,22 +206,17 @@ public:
 				void						columnsReverseValues(				intset				columnIndex);
 				void						columnsSetAutoSortForColumns(		std::map<int,bool>	columnutoSort);
 				qsizetype					getMaximumColumnWidthInCharacters(	int					columnIndex)				const;
-				QStringList					getColumnLabelsAsStringList(		size_t				columnIndex)				const;
-				stringvec					getColumnLabelsAsStrVec(			size_t				columnIndex)				const;
-				boolvec						getColumnFilterAllows(				size_t				columnIndex)				const;
 				QList<QVariant>				getColumnValuesAsDoubleList(		size_t				columnIndex)				const;
 				Json::Value					serializeColumn(					const std::string & columnName)					const;
 				void						deserializeColumn(					const std::string & columnName, const Json::Value& col);
 
 				void						resetFilterAllows(					size_t				columnIndex);
 				int							filteredOut(						size_t				columnIndex)				const;
-				bool						labelNeedsFilter(					size_t				columnIndex)				const;
 				void						labelMoveRows(						size_t				columnIndex, std::vector<qsizetype> rows, bool up);
 				void						labelReverse(						size_t				columnIndex);
-				bool						setFilterData(const std::string & filter, const boolvec & filterResult);
 				void						resetAllFilters();
 				std::vector<bool>			filterVector();
-				void						setFilterVectorWithoutModelUpdate(std::vector<bool> newFilterVector) { if(_dataSet) _dataSet->filter()->setFilterVector(newFilterVector); }
+				void						setFilterVectorWithoutModelUpdate(std::vector<bool> newFilterVector) { if(_dataSet) _dataSet->shownFilter()->setFilterVector(newFilterVector); }
 				
 				const stringset&			workspaceEmptyValues()										const;
 				void						setWorkspaceEmptyValues(const stringset& emptyValues, bool resetModel = true);
@@ -268,7 +228,7 @@ public:
 				void						checkComputedColumnDependenciesForAnalysis(	Analysis * analysis);
 				stringset					columnsCreatedByAnalysis(					Analysis * analysis);
 				std::string					freeNewColumnName(size_t startHere);
-				void						dbDelete();
+				
 				void						resetVariableTypes();
 
 
@@ -289,7 +249,7 @@ signals:
 				void				columnAddedManually(	QString columnName);
 				void				chooseColumn(			int		colId);
 				void				isModifiedChanged();
-				void				enginesPrepareForDataSignal();
+				
 				void				enginesReceiveNewDataSignal();
 				bool				enginesInitializingSignal();
 				void				filteredOutChanged(int column);
@@ -311,14 +271,12 @@ signals:
 				void				columnsBeingRemoved(				int columnIndex, int count);
 				void				workspaceEmptyValuesChanged();
 				void				descriptionChanged();
+				void				dataSetQChanged();
 
 public slots:
-				void				refresh()							{ beginResetModel(); endResetModel(); }
-				void				refreshWithDelay();
 				void				refreshColumn(						QString columnName);
 				void				columnWasOverwritten(				const std::string & columnName, const std::string & possibleError);
 				void				notifyColumnFilterStatusChanged(	int columnIndex);
-				void				setColumnsUsedInEasyFilter(			stringset usedColumns);
 				void				setCurrentFile(						QString currentFile);
 				void				setFolder(							QString folder);
 				void				generateEmptyData();
@@ -334,19 +292,14 @@ public slots:
 				
 private:
 				bool				isThisTheSameThreadAsEngineSync();
-				bool				setLabelAllowFilter(	const QModelIndex & index, bool newAllowValue);
-				bool				setLabelDescription(	const QModelIndex & index, const QString & newDescription);
-				bool				setLabelDisplay(		const QModelIndex & index, const QString & newLabel);
-				bool				setLabelValue(			const QModelIndex & index, const QString & newLabel);
-				QModelIndex			lastCurrentCell();
-				int					getColIndex(QVariant colID);
-				void				columnsApply(intset columnIndexes, std::function<bool (Column *)> applyThis);
-				void				columnsApply(intset columnIndexes, std::function<bool (Column *, int)> applyThis);
+				void				columnsApply(intset columnIndexes, std::function<bool (Column *)>		applyThis);
+				void				columnsApply(intset columnIndexes, std::function<bool (Column *, int)>	applyThis);
+				void				dbDelete();
 
 private:
 	static DataSetPackage	*	_singleton;
 	DatabaseInterface		*	_db							= nullptr;
-	DataSet					*	_dataSet					= nullptr;
+	DataSetQ				*	_dataSet					= nullptr;
 	EngineSync				*	_engineSync					= nullptr;
 
 	QString						_currentFile,
@@ -363,7 +316,6 @@ private:
 								_hasAnalysesWithoutData		= false,
 								_analysesHTMLReady			= false,
 								_filterShouldRunInit		= false,
-								_dataMode					= false,
 								_manualEdits				= false;
 
 	Json::Value					_analysesData,
@@ -372,16 +324,8 @@ private:
 								_jaspVersion;
 
 	bool						_synchingData				= false;
-	std::map<std::string, bool> _columnNameUsedInEasyFilter;
 
-	SubNodeModel			*	_dataSubModel,
-							*	_filterSubModel,
-							*	_labelsSubModel;
-	
-	QTimer						_databaseIntervalSyncher,
-								_delayedRefreshTimer;
-	UndoStack				*	_undoStack					= nullptr;
-	
+	QTimer						_databaseIntervalSyncher;
 };
 
 #endif // FILEPACKAGE_H

@@ -42,9 +42,13 @@ class Column : public DataSetBaseNode
 {
 public:
 	typedef std::map<std::pair<std::string, std::string>, Label*>	LabelByStrStr;
+	friend DataSet;
 
-									Column(DataSet * data, int id = -1);
-									~Column();
+protected:
+									Column(DataSet * data, int id = -1);	///< Dont use directly! Use DataSet::_createColumn
+
+public:
+									~Column();			
 									
 				DatabaseInterface & db();
 		const	DatabaseInterface & db() const;
@@ -80,7 +84,7 @@ public:
 			bool					overwriteDataAndType(	stringvec		data, columnType colType);
 			
 			bool					allLabelsPassFilter()	const;
-			bool					hasFilter()				const;
+                        bool					hasLabelFilter()				const;
 			void					resetFilter();
 			void					incRevision(bool labelsTempCanBeMaintained = true);
 			bool					checkForUpdates();
@@ -120,17 +124,23 @@ public:
 			void					labelsRemoveBeyond( size_t indexToStartRemoving);
 			
 			int						labelsTempCount(); ///< Generates the labelsTemp also!
+			int						labelsTempCount() const; ///< Does not generate the labelsTemp also
 			int						labelsTempNumerics(); ///< Also calls labelsTempCount() to be sure it has some info
 			const stringvec		&	labelsTemp();
+			const stringvec		&	labelsTemp()	const;
 			void					labelsTempReset();
 			std::string				labelsTempDisplay(		size_t tempLabelIndex);
+			std::string				labelsTempDisplay(		size_t tempLabelIndex)										const;
 			std::string				labelsTempValue(		size_t tempLabelIndex, bool fancyEmptyValue = false);
+			std::string				labelsTempValue(		size_t tempLabelIndex, bool fancyEmptyValue = false)		const;
 			double					labelsTempValueDouble(	size_t tempLabelIndex);
 			int						labelsDoubleValueIsTempLabelRow(double dbl);
 			Label				*	labelDoubleDummy()		{ return _doubleDummy; }
 
 			int						nonFilteredNumericsCount();
+			int						nonFilteredNumericsCount()	const;
             stringvec				nonFilteredLevels();
+            stringvec				nonFilteredLevels()			const;
 			void					nonFilteredCountersReset();
 
 			std::set<size_t>		labelsMoveRows(std::vector<qsizetype> rows, bool up);
@@ -246,6 +256,24 @@ protected:
 			doublevec				valuesNumericOrdered();			
 			std::map<Label*,size_t> valuesAlphabeticalOffsets();
 			int						_labelMapIt(Label *label);
+	virtual	Label *					_createLabel();
+	virtual	Label *					_createLabel(int value);
+	virtual	Label *					_createLabel(
+					const std::string & label, 
+					int					value, 
+					bool				filterAllows	= true, 
+					const std::string & description		= "", 
+					const Json::Value & originalValue	= Json::nullValue, 
+					int					order			= -1, 
+					int					id				= -1);
+			
+			
+protected:
+			std::function<void()>	_emitLabelFilterChanged;
+			std::function<void()>	_emitTypeChanged;
+			std::function<void()>	_beginResetModel;
+			std::function<void()>	_endResetModel;
+
 
 private:
 			DataSet			* const	_data;

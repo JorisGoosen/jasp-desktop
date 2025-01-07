@@ -12,7 +12,7 @@ public:
 							DataSet(int index = -1); ///< index==-1: create a new dataSet, >0: load that dataSet, 0: do nothing
 							~DataSet();
 	
-			Filter		*	filter()						{ return	_filter;	}
+			Filter		*	shownFilter()		const 		{ return	_filter;	}
 			Columns		&	columns()			const		{ return	const_cast<Columns&>(_columns);	}
     const	EmptyValues *	emptyValues()       const		{ return	_emptyValues; }
 			EmptyValues *	emptyValues()					{ return	_emptyValues; }
@@ -31,6 +31,8 @@ public:
 			int				dataFileTimestamp()		const { return _dataFileTimestamp;		}
 	const	std::string &	databaseJson()			const { return _databaseJson;			}
 			bool			writeBatchedToDB()		const { return _writeBatchedToDB;		}
+
+			int				columnsFilteredCount()	const;
 
 			void			dbCreate();
 			void			dbUpdate();
@@ -55,9 +57,10 @@ public:
 			qsizetype		getMaximumColumnWidthInCharacters(size_t columnIndex) const;
 			stringvec		getColumnNames();
 
-			void			setDataFile( const std::string & dataFilePath, long timestamp)	{ _dataFilePath	= dataFilePath;	_dataFileTimestamp = timestamp; dbUpdate(); }
-			void			setDatabaseJson(	const std::string & databaseJson)	{ _databaseJson		= databaseJson;			dbUpdate(); }
-			void			setDataFileSynch(	bool synchronizing)					{ _dataFileSynch	= synchronizing;		dbUpdate(); }
+			void			setDataFile(		const std::string & dataFilePath);
+			void			setDataTimestamp(	long timestamp);
+			void			setDatabaseJson(	const std::string & databaseJson);
+			void			setDataFileSynch(	bool synchronizing);
 
 			void			setColumnCount(	size_t colCount);
 			void			setRowCount(	size_t rowCount);
@@ -74,24 +77,33 @@ public:
 			DatabaseInterface	 &	db();
 	const	DatabaseInterface	 &	db() const;
 	
-			DataSetBaseNode		 *	dataNode()		const { return _dataNode; }
-			DataSetBaseNode		 *	filtersNode()	const { return _filtersNode; }
-
 			void					setEmptyValuesJson(			const Json::Value & emptyValues, bool updateDB = true);
 			
 	const	stringset			&	workspaceEmptyValues()															const	{ return _emptyValues->emptyStrings();								}
-			void					setWorkspaceEmptyValues(	const stringset& values);
 	const	std::string			&	description()																	const	{ return _description; }
+			void					setWorkspaceEmptyValues(	const stringset& values);
 			void					setDescription(				const std::string& desc);
 
+public:
+		Filter *	createFilter(const std::string & name, bool createIfMissing = true) { return _createFilter(name, createIfMissing); }
+
+protected:
+		virtual Column *	_createColumn(int id=-1);
+		virtual Filter *	_createFilter();
+		virtual Filter *	_createFilter(const std::string & name, bool createIfMissing = true);
+			
 private:			
 			void					upgradeTo019(const Json::Value & emptyVals);
 			void					setEmptyValuesJsonOldStuff(	const Json::Value & emptyValues);
-			
+
+protected:
+	std::function<void()>		_descriptionChanged;
+	std::function<void()>		_dataFilePathChanged;
+	std::function<void()>		_dataTimestampChanged;
+	std::function<void()>		_dataSynchChanged;
+	std::function<void()>		_databaseJsonChanged;
 			
 private:
-	DataSetBaseNode			*	_dataNode				= nullptr, //To make sure we have a pointer to flesh out the node hierarchy we add a "data" node, so we can place it next to the "filters" node in the tree
-							*	_filtersNode			= nullptr;
 	Columns						_columns;
 	Filter					*	_filter					= nullptr;
 	EmptyValues				*	_emptyValues			= nullptr;

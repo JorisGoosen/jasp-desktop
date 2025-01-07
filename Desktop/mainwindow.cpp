@@ -136,11 +136,10 @@ MainWindow::MainWindow(QApplication * application) : QObject(application), _appl
 
 	_resultsJsInterface		= new ResultsJsInterface();
 	_odm					= new OnlineDataManager(this);
-	_labelFilterGenerator	= new labelFilterGenerator(_columnModel,		this);
 	_columnsModel			= new ColumnsModel(_dataSetModelVarInfo);			// We do not want filtered-out columns/levels to be selectable in other guis, see: https://github.com/jasp-stats/INTERNAL-jasp/issues/2322
 	_workspaceModel			= new WorkspaceModel(this);
 	_computedColumnsModel	= new ComputedColumnModel();
-	_filterModel			= new FilterModel(_labelFilterGenerator);
+	_filterModel			= new FilterModel(this);
 	_ribbonModel			= new RibbonModel();
 	_ribbonModelFiltered	= new RibbonModelFiltered(this, _ribbonModel);
 	_ribbonModelUncommon	= new RibbonModelUncommon(this, _ribbonModel);
@@ -547,8 +546,6 @@ void MainWindow::makeConnections()
 	connect(_filterModel,			&FilterModel::filterUpdated,						_package,				&DataSetPackage::refresh									);
 	connect(_filterModel,			&FilterModel::filterUpdated,						[&]() { _package->resetFilterCounters(); emit _columnsModel->filterChanged(); }		);
 	connect(_filterModel,			&FilterModel::sendFilter,							_engineSync,			&EngineSync::sendFilter										);
-
-	connect(_labelFilterGenerator,	&labelFilterGenerator::setGeneratedFilter,			_filterModel,			&FilterModel::setGeneratedFilter,							Qt::QueuedConnection);
 
 	connect(_ribbonModel,			&RibbonModel::analysisClickedSignal,				_analyses,				&Analyses::analysisClickedHandler							);
 	connect(_ribbonModel,			&RibbonModel::showRCommander,						this,					&MainWindow::showRCommander									);
@@ -1416,7 +1413,6 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 			_resultsJsInterface->resetResults();
 			_analyses->setVisible(false);
 			_analyses->clear();
-			_package->dbDelete();
 			_package->reset(false);
 			_ribbonModel->showStatistics();
 

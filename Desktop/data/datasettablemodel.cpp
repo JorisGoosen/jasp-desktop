@@ -19,9 +19,11 @@
 #include "datasettablemodel.h"
 #include "utilities/qutils.h"
 #include "log.h"
+#include "datasetpackageenums.h"
 
 DataSetTableModel::DataSetTableModel(bool showInactive) 
-: DataSetTableProxy(DataSetPackage::pkg()->dataSubModel()), _showInactive(showInactive)
+: QSortFilterProxyModel(DataSetPackage::pkg()), 
+  _showInactive(showInactive)
 {
 	
 	connect(DataSetPackage::pkg(),	&DataSetPackage::columnsFilteredCountChanged,	this, &DataSetTableModel::columnsFilteredCountChanged	);
@@ -31,7 +33,7 @@ DataSetTableModel::DataSetTableModel(bool showInactive)
 	connect(DataSetPackage::pkg(),	&DataSetPackage::workspaceEmptyValuesChanged,	this, &DataSetTableModel::emptyValuesChanged			);
 	//connect(this,		&DataSetTableModel::dataChanged,				this, &DataSetTableModel::onDataChanged,				Qt::QueuedConnection);
 
-	setFilterRole(int(DataSetPackage::specialRoles::filter));
+	setFilterRole(int(dataPkgRoles::filter));
 }
 
 
@@ -45,6 +47,11 @@ void DataSetTableModel::setShowInactive(bool showInactive)
 	invalidate();
 	beginResetModel();
 	endResetModel();
+}
+
+void DataSetTableModel::handleDataSetQChange()
+{
+	setSourceModel(DataSetPackage::pkg()->dataSet());
 }
 
 bool DataSetTableModel::filterAcceptsRow(int source_row, const QModelIndex & source_parent)	const
