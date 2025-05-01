@@ -9,7 +9,7 @@ Rectangle
 	id:				handleRoot
 
 	signal arrowClicked
-	signal handleDragging(bool active, var mouseArea)
+
 	property bool pointingLeft: true
 	property bool showArrow:	true
 	property bool dragEnabled:	true
@@ -18,8 +18,6 @@ Rectangle
 	property string toolTipDrag:	""
 	property string toolTipArrow:	""
 	property bool	hovered:		hoverMouse.containsMouse
-	property alias	dragging:		hoverMouse.drag.active
-	property alias	dragX:			hoverMouse.x
 
 
 	width:			jaspTheme.splitHandleWidth
@@ -65,9 +63,9 @@ Rectangle
 		cursorShape:		handleRoot.dragEnabled ? Qt.SplitHCursor : Qt.ArrowCursor //Take into account resizing? styleData.resizing
 		//onPositionChanged:	(mouse)=>{ mouse.accepted = true; }
 
-		drag.target: parent
-		drag.axis: Drag.XAxis
-		drag.onActiveChanged: handleDragging(drag.active, hoverMouse)
+		//drag.target: parent
+		//drag.axis: Drag.XAxis
+		//drag.onActiveChanged: handleDragging(drag.active, hoverMouse)
 	}
 
 	Item

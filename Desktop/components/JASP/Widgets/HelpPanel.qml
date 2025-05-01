@@ -1,26 +1,24 @@
 import QtQuick
-import QtQuick.Window
 import QtWebEngine
 import JASP.Widgets
 import JASP.Controls
+import QtQuick.Layouts
 
-Window
+FocusScope
 {
 	id:					helpWindowRoot
 	width:				400 * preferencesModel.uiScale
 	height:				Math.min(700 * preferencesModel.uiScale, Screen.desktopAvailableHeight) //If bigger than screenheight weird jumping behaviour observed by Rens
-	minimumWidth:		200 * preferencesModel.uiScale
-	minimumHeight:		minimumWidth
-	visible:			helpModel.visible
-	onVisibleChanged:	helpModel.visible = visible
-	title:				qsTr("JASP Help")
-	color:				jaspTheme.uiBackground
+	Layout.minimumWidth:		200 * preferencesModel.uiScale
+	Layout.minimumHeight:		minimumWidth
+	//title:				qsTr("JASP Help")
+	//color:				jaspTheme.uiBackground
 
-	Shortcut { onActivated: helpWindowRoot.close();				sequences: ["Ctrl+W", Qt.Key_Close];			}
-	Shortcut { onActivated: helpWindowRoot.toggleFullScreen();	sequences: ["Ctrl+M"];							}
-	Shortcut { onActivated: searchBar.startSearching();			sequences: ["Ctrl+F", Qt.Key_Search];			}
+	Shortcut { onActivated: helpModel.visible = false;				sequences: ["Ctrl+W", Qt.Key_Close];			}
+	//Shortcut { onActivated: helpWindowRoot.toggleFullScreen();	sequences: ["Ctrl+M"];							}
+	Shortcut { onActivated: searchBar.startSearching();				sequences: ["Ctrl+F", Qt.Key_Search];			}
 
-	onClosing: { helpModel.markdown = ""; } //break binding
+	/*onClosing: { helpModel.markdown = ""; } //break binding
 
 	Connections
 	{
@@ -28,7 +26,7 @@ Window
 		function onCloseWindows() { helpWindowRoot.close(); }
 	}
 
-	UIScaleNotifier { anchors.centerIn:	parent }
+	UIScaleNotifier { anchors.centerIn:	parent }*/
 
 	WebEngineView
 	{
@@ -38,7 +36,7 @@ Window
 		anchors.bottomMargin:	searchBar.height + (jaspTheme.generalAnchorMargin * 2)
 		zoomFactor:				preferencesModel.uiScale
 		backgroundColor:		jaspTheme.uiBackground
-		onLoadingChanged:	(loadRequest)=>
+		onLoadingChanged:		(loadRequest)=>
 		{
 			if(loadRequest.status === WebEngineView.LoadSucceededStatus)
 				helpModel.loadingSucceeded()
@@ -64,28 +62,39 @@ Window
 			}
 		}
 	}
-
-
-	TextField
+	
+	Row
 	{
-		id:						searchBar
-		label:					qsTr("Search for:")
-		value:					""
-		onValueChanged:			search()
-		Keys.onEscapePressed:	value = ""
-		fieldWidth:				parent.width - (controlLabel.width + control.anchors.leftMargin + jaspTheme.generalAnchorMargin * 2)
-
-		function startSearching()
+		CheckBox
 		{
-			forceActiveFocus();
-			control.selectAll()
+			id:						trackAnalyses
+			label:					qsTr("Follow")
+			checked:				preferencesModel.helpFollowsAnalyses
+			onCheckedChanged:		preferencesModel.helpFollowsAnalyses = checked
 		}
-
-		function search()
+	
+		TextField
 		{
-			helpView.findText(value)
+			id:						searchBar
+			label:					qsTr("Search for:")
+			value:					""
+			onValueChanged:			search()
+			Keys.onEscapePressed:	value = ""
+			fieldWidth:				parent.width - (controlLabel.width + control.anchors.leftMargin + jaspTheme.generalAnchorMargin * 2)
+	
+			function startSearching()
+			{
+				forceActiveFocus();
+				control.selectAll()
+			}
+	
+			function search()
+			{
+				helpView.findText(value)
+			}
 		}
-
+		
+		
 		anchors
 		{
 			left:			parent.left
