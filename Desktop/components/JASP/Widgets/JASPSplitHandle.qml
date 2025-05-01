@@ -20,20 +20,12 @@ Rectangle
 	property bool	hovered:		hoverMouse.containsMouse
 
 
-	width:			jaspTheme.splitHandleWidth
-	anchors
-	{
-		top:			parent.top
-		bottom:			parent.bottom
-		topMargin:		-1
-		bottomMargin:	-1
-		leftMargin:		removeLeftBorder ? -1 : 0
-	}
+	implicitWidth:		jaspTheme.splitHandleWidth
+	width:				implicitWidth
+	
 	color:			handleRoot.dragEnabled && handleRoot.hovered ? jaspTheme.grayLighter : jaspTheme.uiBackground
 	border.color:	jaspTheme.uiBorder
 	border.width:	1
-
-	Drag.active: hoverMouse.drag.active
 
 
 	ToolTip

@@ -30,14 +30,12 @@ SplitView
 
 	function minimizeDataPanel()
 	{
-		mainWindow.showData = false
+		dataPanel.width = 0
 	}
 
 	function maximizeDataPanel()
 	{
-		mainWindow.showData		= true
-		analysesModel.visible	= false
-		mainWindow.showResults	= false
+		dataPanel.width = splitViewContainer.width
 	}
 
 	Connections
@@ -81,26 +79,35 @@ SplitView
 
 	DataPanel
 	{
-		id:				dataPanel
-		visible:		mainWindow.showData
+		id:						dataPanel
+		visible:				mainWindow.showData
+		
+		SplitView.fillWidth:	true
 	}
 	
 
 	AnalysesPanel
 	{
 		id:				analysesPane
-		visible:		analysesModel.visible
+		visible:		analysesModel.visible  && !ribbonModel.dataMode
+		
+		SplitView.minimumWidth:		0
+		SplitView.preferredWidth:	implicitWidth
+		SplitView.maximumWidth:		implicitWidth
 	}
 	
 	HelpPanel
 	{
 		id:				helpPanel
 		visible:		helpModel.visible
+		
+		SplitView.minimumWidth:		200 * preferencesModel.uiScale
+		SplitView.maximumWidth:		jaspTheme.resultWidth
 	}
 
 	ResultsPanel
 	{
 		id:				resultsPane
-		visible:		mainWindow.showResults
+		visible:		hasAnalysis && !ribbonModel.dataMode//mainWindow.showResults
 	}
 }

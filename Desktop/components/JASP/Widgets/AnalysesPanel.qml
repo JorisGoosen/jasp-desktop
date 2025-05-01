@@ -7,7 +7,7 @@ import JASP.Controls		as JC
 Item
 {
 	id:				analysesPane
-	width:			analysesForm.width + extraBorder.width
+	implicitWidth:	analysesForm.width + extraBorder.width
 	height:			parent.height
 
 	Rectangle

@@ -6,11 +6,10 @@ import QtQuick.Layouts
 
 FocusScope
 {
-	id:					helpWindowRoot
-	width:				400 * preferencesModel.uiScale
-	height:				Math.min(700 * preferencesModel.uiScale, Screen.desktopAvailableHeight) //If bigger than screenheight weird jumping behaviour observed by Rens
-	Layout.minimumWidth:		200 * preferencesModel.uiScale
-	Layout.minimumHeight:		minimumWidth
+	id:						helpWindowRoot
+	width:					400 * preferencesModel.uiScale
+	height:					Math.min(700 * preferencesModel.uiScale, Screen.desktopAvailableHeight) //If bigger than screenheight weird jumping behaviour observed by Rens
+
 	//title:				qsTr("JASP Help")
 	//color:				jaspTheme.uiBackground
 

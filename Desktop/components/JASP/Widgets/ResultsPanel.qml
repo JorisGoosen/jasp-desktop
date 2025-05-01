@@ -7,15 +7,7 @@ import JASP.Controls		as JC
 
 Rectangle
 {
-	id:						resultsPane
-	anchors
-	{
-		top:				parent.top
-		left:				handleAnalysesResults.right
-		right:				parent.right
-		bottom:				parent.bottom
-	}
-	visible:				hasAnalysis && !ribbonModel.dataMode
+	id:						resultsPane	
 	color:					analysesModel.currentAnalysisIndex !== -1 ? jaspTheme.uiBackground : jaspTheme.white
 
 	JC.ALTNavigation.enabled:				true

@@ -1368,6 +1368,7 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 
 			_resultsJsInterface->resetResults();
 			_analyses->setVisible(false);
+			setShowResults(false);
 			_analyses->clear();
 			_package->dbDelete();
 			_package->reset(false);
@@ -1406,11 +1407,14 @@ void MainWindow::populateUIfromDataSet()
 
 	bool hasAnalyses = _analyses->count() > 0;
 
-	setDataAvailable(_package->dataSet() && (_package->dataSet()->rowCount() > 0 && _package->dataSet()->columnCount() > 0));
-
 	hideProgress();
+	setDataAvailable(_package->dataSet() && (_package->dataSet()->rowCount() > 0 && _package->dataSet()->columnCount() > 0));
+	
+	if(!hasAnalyses && dataAvailable())
+		setShowData(true);
 
 	_analyses->setVisible(hasAnalyses && !resultXmlCompare::compareResults::theOne()->testMode());
+	setShowResults(hasAnalyses);
 
 	if (_package->warningMessage() != "")	MessageForwarder::showWarning(_package->warningMessage());
 	else if (errorFound)					MessageForwarder::showWarning(errorMsg.str());
