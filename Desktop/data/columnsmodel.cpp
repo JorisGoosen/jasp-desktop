@@ -1,7 +1,8 @@
 #include "columnsmodel.h"
 #include "log.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "mainwindow.h"
+#include "dataenums.h"
 
 ColumnsModel * ColumnsModel::_singleton = nullptr;
 
@@ -113,11 +114,12 @@ QString ColumnsModel::getColumnTransformedToolTip(const QString &name, columnTyp
 
 QVariant ColumnsModel::data(const QModelIndex &index, int role) const
 {
-	if(index.row() < 0 || index.row() >= rowCount()) return QVariant();
+	if(index.row() < 0 || index.row() >= rowCount()) 
+		return QVariant();
 
-	QString				colName		= QTransposeProxyModel::data(index, int(DataSetPackage::specialRoles::name)).toString();
-	columnType			colType		= static_cast<columnType>			(QTransposeProxyModel::data(index, int(DataSetPackage::specialRoles::columnType			)).toInt());
-	computedColumnType	codeType	= static_cast<computedColumnType>	(QTransposeProxyModel::data(index, int(DataSetPackage::specialRoles::computedColumnType	)).toInt());
+	QString				colName		= QTransposeProxyModel::data(index, int(dataPkgRoles::name)).toString();
+	columnType			colType		= static_cast<columnType>			(QTransposeProxyModel::data(index, int(dataPkgRoles::columnType			)).toInt());
+	computedColumnType	codeType	= static_cast<computedColumnType>	(QTransposeProxyModel::data(index, int(dataPkgRoles::computedColumnType	)).toInt());
 
 	switch(role)
 	{
@@ -135,8 +137,8 @@ QVariant ColumnsModel::data(const QModelIndex &index, int role) const
 		return tr("The '") + colName + tr("'-column ") + usedIn;
 	}
 	}
-
-	return QVariant();
+	
+	return QTransposeProxyModel::data(index, role);
 }
 
 QVariant ColumnsModel::provideInfo(VariableInfo::InfoType info, const QString& colName, int row) const
@@ -162,22 +164,22 @@ QVariant ColumnsModel::provideInfo(VariableInfo::InfoType info, const QString& c
 		switch(info)
 		{
 		case VariableInfo::VariableType:				return	data(qColIndex, ColumnsModel::ColumnTypeRole).toInt();
-		case VariableInfo::DoubleValues:				return	QTransposeProxyModel::data(qColIndex,						int(DataSetPackage::specialRoles::valuesDblList));
-		case VariableInfo::TotalNumericValues:			return	QTransposeProxyModel::data(qColIndex,						int(DataSetPackage::specialRoles::nonFilteredNumericValuesCount));
-		case VariableInfo::TotalLevels:					return	QTransposeProxyModel::data(qColIndex,						int(DataSetPackage::specialRoles::nonFilteredLevels)).toStringList().length();
-		case VariableInfo::Labels:						return	QTransposeProxyModel::data(qColIndex,						int(DataSetPackage::specialRoles::nonFilteredLevels));
+		case VariableInfo::DoubleValues:				return	QTransposeProxyModel::data(qColIndex,						int(dataPkgRoles::valuesDblList));
+		case VariableInfo::TotalNumericValues:			return	QTransposeProxyModel::data(qColIndex,						int(dataPkgRoles::nonFilteredNumericValuesCount));
+		case VariableInfo::TotalLevels:					return	QTransposeProxyModel::data(qColIndex,						int(dataPkgRoles::nonFilteredLevels)).toStringList().length();
+		case VariableInfo::Labels:						return	QTransposeProxyModel::data(qColIndex,						int(dataPkgRoles::nonFilteredLevels));
 		case VariableInfo::NameRole:					return	data(qColIndex, ColumnsModel::NameRole);
 		case VariableInfo::DataSetRowCount:				return  QTransposeProxyModel::columnCount();
-		case VariableInfo::DataSetValue:				return	QTransposeProxyModel::data(qValIndex,						int(DataSetPackage::specialRoles::value));
-		case VariableInfo::DataSetValues:				return	QTransposeProxyModel::data(qColIndex,						int(DataSetPackage::specialRoles::valuesStrList));
-		case VariableInfo::MaxWidth:					return	QTransposeProxyModel::headerData(colIndex, Qt::Vertical,	int(DataSetPackage::specialRoles::maxColString)).toInt();
+		case VariableInfo::DataSetValue:				return	QTransposeProxyModel::data(qValIndex,						int(dataPkgRoles::value));
+		case VariableInfo::DataSetValues:				return	QTransposeProxyModel::data(qColIndex,						int(dataPkgRoles::valuesStrList));
+		case VariableInfo::MaxWidth:					return	QTransposeProxyModel::headerData(colIndex, Qt::Vertical,	int(dataPkgRoles::maxColString)).toInt();
 		case VariableInfo::SignalsBlocked:				return	_tableModel->synchingData();
 		case VariableInfo::VariableNames:				return	getColumnNames();
 		case VariableInfo::DataAvailable:				return	MainWindow::singleton()->dataAvailable();
-		case VariableInfo::PreviewScale:				return	QTransposeProxyModel::headerData(colIndex, Qt::Vertical,	int(DataSetPackage::specialRoles::previewScale));
-		case VariableInfo::PreviewOrdinal:				return	QTransposeProxyModel::headerData(colIndex, Qt::Vertical,	int(DataSetPackage::specialRoles::previewOrdinal));
-		case VariableInfo::PreviewNominal:				return	QTransposeProxyModel::headerData(colIndex, Qt::Vertical,	int(DataSetPackage::specialRoles::previewNominal));
-		case VariableInfo::ColumnDescription:			return	QTransposeProxyModel::headerData(colIndex, Qt::Vertical,	int(DataSetPackage::specialRoles::description));
+		case VariableInfo::PreviewScale:				return	QTransposeProxyModel::headerData(colIndex, Qt::Vertical,	int(dataPkgRoles::previewScale));
+		case VariableInfo::PreviewOrdinal:				return	QTransposeProxyModel::headerData(colIndex, Qt::Vertical,	int(dataPkgRoles::previewOrdinal));
+		case VariableInfo::PreviewNominal:				return	QTransposeProxyModel::headerData(colIndex, Qt::Vertical,	int(dataPkgRoles::previewNominal));
+		case VariableInfo::ColumnDescription:			return	QTransposeProxyModel::headerData(colIndex, Qt::Vertical,	int(dataPkgRoles::description));
 		case VariableInfo::DataSetPointer:				return	QVariant::fromValue<void*>(DataSetPackage::pkg()->dataSet());
 		}
 	}
@@ -214,8 +216,8 @@ bool ColumnsModel::absorbInfo(VariableInfo::InfoType info, const QString &colNam
 		switch(info)
 		{
 		default:										return	false;
-		case VariableInfo::DataSetValue:				return	QTransposeProxyModel::setData(qValIndex, value, int(DataSetPackage::specialRoles::value));
-		case VariableInfo::DataSetValues:				return	QTransposeProxyModel::setData(qColIndex, value,	int(DataSetPackage::specialRoles::valuesStrList));
+		case VariableInfo::DataSetValue:				return	QTransposeProxyModel::setData(qValIndex, value, int(dataPkgRoles::value));
+		case VariableInfo::DataSetValues:				return	QTransposeProxyModel::setData(qColIndex, value,	int(dataPkgRoles::valuesStrList));
 		}
 	}
 	catch(std::exception & e)

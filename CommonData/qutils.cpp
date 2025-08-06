@@ -442,3 +442,16 @@ void QColumnUtils::setCallbacksAndDefaultLocale(const QLocale & locale, bool use
 	ColumnUtils::setAlternativeDoubleToString(	altFuncToString, altFuncCurToString	);
 	ColumnUtils::setExtraStringToNumber(		altFuncToDouble, altFuncToInt		);	
 }
+
+QString QColumnUtils::getTypeFriendly(columnType colType)
+{
+	switch(colType)
+	{
+	case columnType::scale:			return tr("Scale");
+	case columnType::ordinal:		return tr("Ordinal");
+	case columnType::nominal:		return tr("Nominal");
+	default:						break;
+	}
+	
+	return tr("Unknown");
+}

@@ -1,6 +1,7 @@
 #include "variableinfo.h"
 #include "jasptheme.h"
 #include "QQmlContext"
+#include "qutils.h"
 #include "QTimer"
 
 VariableInfo* VariableInfo::_singleton = nullptr;
@@ -35,17 +36,8 @@ QString VariableInfo::getIconFile(columnType colType, VariableInfo::IconType typ
 
 QString VariableInfo::getTypeFriendly(columnType colType)
 {
-	switch(colType)
-	{
-	case columnType::scale:			return tr("Scale");
-	case columnType::ordinal:		return tr("Ordinal");
-	case columnType::nominal:		return tr("Nominal");
-	default:						break;
-	}
-	
-	return tr("Unknown");
+	return QColumnUtils::getTypeFriendly(colType);
 }
-
 
 int VariableInfo::rowCount()
 {

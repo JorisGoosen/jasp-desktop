@@ -76,10 +76,9 @@ signals:
 				void	computeColumnUsesRCodeChanged();
 				void	showAnalysisForm(Analysis *analysis);
 				void	dataColumnAdded(QString columnName);
-				void	refreshData();
 				void	columnTypeChanged();
 				void	computeFilterChanged();
-				void	chooseColumn(QString colId);
+				void	chooseColumn(QString colName, int colIndex);
 				void	computeColumnIconSourceChanged();
 				
 public slots:

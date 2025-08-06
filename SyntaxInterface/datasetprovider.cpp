@@ -17,7 +17,7 @@
 //
 
 #include "datasetprovider.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 
 DataSetProvider		*	DataSetProvider::_singleton		= nullptr;
 

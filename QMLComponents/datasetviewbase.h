@@ -10,7 +10,7 @@
 
 #include <map>
 #include <QtQml>
-#include "utilities/qutils.h"
+#include "qutils.h"
 
 #include <QItemSelectionModel>
 #include <QItemSelection>

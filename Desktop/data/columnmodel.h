@@ -3,16 +3,17 @@
 #define COLUMN_MODEL_H
 
 
-#include "datasettableproxy.h"
+#include <QIdentityProxyModel>
+#include "columntype.h"
 #include "undostack.h"
 #include <QTimer>
 
-class DataSetTableModel;
+class Column;
 
 /// 
 /// This pipes through the label-information for a single column from DataSetPackage
 /// The column is selected by changing `proxyParentColumn` from DataSetTableProxy
-class ColumnModel : public DataSetTableProxy
+class ColumnModel : public QIdentityProxyModel
 {
 	Q_OBJECT
 
@@ -44,7 +45,7 @@ class ColumnModel : public DataSetTableProxy
     Q_PROPERTY(QString		dropLevels					READ dropLevels					WRITE setDropLevels				NOTIFY dropLevelsChanged                )
 
 public:
-	ColumnModel(DataSetTableModel* dataSetTableModel);
+	ColumnModel();
 
 	static QString	columnTypeFriendlyName(		computedColumnType compColT);
 	static QVariant	columnTypeFriendlyMapping(	computedColumnType compColT);
@@ -71,6 +72,7 @@ public:
 	QVariant		data(	const QModelIndex & index,							int role = Qt::DisplayRole)	const	override;
 	QVariant		headerData(int section, Qt::Orientation orientation, int role)							const	override;
 	int				rowCount(const QModelIndex & = QModelIndex())											const	override;
+	int				columnCount(const QModelIndex & = QModelIndex())										const	override;
 
 	bool			visible()			const {	return _visible; }
 	int				filteredOut()		const;
@@ -93,8 +95,10 @@ public:
 	Q_INVOKABLE void addEmptyValue(		const QString & value);
 	Q_INVOKABLE void removeEmptyValue(	const QString & value);
 	Q_INVOKABLE void resetEmptyValues();
-	Q_INVOKABLE void undo()				{ _undoStack->undo(); }
-	Q_INVOKABLE void redo()				{ _undoStack->redo(); }
+	Q_INVOKABLE void undo()				{ undoStack()->undo(); }
+	Q_INVOKABLE void redo()				{ undoStack()->redo(); }
+	
+	UndoStack *	undoStack();
 
 	double rowWidth()			const	{ return _rowWidth;			}
 	double valueMaxWidth()		const	{ return _valueMaxWidth;	}
@@ -123,8 +127,8 @@ public slots:
 	void filteredOutChangedHandler(int col);
 	void setVisible(bool visible);
 	void setChosenColumn(int chosenColumn);
-	void setChosenColumnByName(const QString & chosenName);
-	void columnAddedManuallyHandler(const QString & chosenName);
+	void setChosenColumnByName(const QString chosenName, int colIndex=-1);
+	void columnAddedManuallyHandler(const QString chosenName);
 	void setSelected(int row, int modifier);
 	void setColumnNameQ(QString newColumnName);
 	void removeAllSelected();
@@ -134,7 +138,7 @@ public slots:
 	void refresh();
 	void checkRemovedColumns(int columnIndex, int count);
 	void checkInsertedColumns(const QModelIndex & parent, int first, int last);
-	void openComputedColumn(const QString & name);
+	void openComputedColumn(const QString name);
 	void checkCurrentColumn( QStringList changedColumns, QStringList missingColumns, QMap<QString, QString>	changeNameColumns, bool rowCountChanged, bool hasNewColumns);
 	void setCompactMode(bool newCompactMode);
 	void languageChangedHandler();
@@ -148,7 +152,6 @@ signals:
 	void allFiltersReset();
 	void rowWidthChanged();
 	void dropLevelsChanged();
-	void labelFilterChanged();
 	void valueMaxWidthChanged();
 	void columnDescriptionChanged();
 	void labelMaxWidthChanged();
@@ -160,7 +163,7 @@ signals:
 	void columnTypeValuesChanged();
 	void columnTypeChanged();
 	void columnIsFilteredChanged();
-	void beforeChangingColumn(int chosenColumn);
+	void beforeChangingColumn(QString chosenName);
 	void nameEditableChanged();
 	void tabsChanged();
 	void useCustomEmptyValuesChanged();
@@ -189,14 +192,13 @@ private:
 							_virtual			= false,
 							_compactMode		= false,
 							_beingRefreshed		= false;
-	int						_currentColIndex	= -1;
 	double					_valueMaxWidth		= 10,
 							_labelMaxWidth		= 10,
 							_rowWidth			= 60;
 	std::set<QString>		_selected;
 	int						_lastSelected		= -1;
-	UndoStack			*	_undoStack			= nullptr;
-	DataSetTableModel	*	_dataSetTableModel	= nullptr;
+	Column				*	_column				= nullptr;
+	int						_columnIndex		= -1;
 };
 
 #endif // COLUMN_MODEL_H

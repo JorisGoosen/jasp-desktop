@@ -27,7 +27,7 @@
 #include "dynamicmodule.h"
 #include "dynamicmodules.h"
 #include <QRegularExpression>
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "upgrader/upgrades.h"
 #include "utilities/appdirs.h"
 #include "utilities/settings.h"

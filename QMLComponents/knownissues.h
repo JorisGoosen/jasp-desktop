@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <json/json.h>
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "stringutils.h"
 
 ///

@@ -4,7 +4,7 @@
 #include "database/databaseimportcolumn.h"
 #include "utils.h"
 #include "timers.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 
 ImportDataSet * DatabaseImporter::loadFile(const std::string &locator, std::function<void(int)> progressCallback)
 {

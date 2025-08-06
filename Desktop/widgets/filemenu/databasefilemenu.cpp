@@ -4,7 +4,7 @@
 #include <QtSql/QSqlError>
 #include <QtSql/QSqlRecord>
 #include "log.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "utilities/messageforwarder.h"
 #include "filemenu.h"
 

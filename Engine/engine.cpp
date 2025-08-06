@@ -22,7 +22,7 @@
 #include "rbridge.h"
 #include "tempfiles.h"
 #include "columnutils.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "databaseinterface.h"
 #include "r_functionwhitelist.h"
 
@@ -300,8 +300,8 @@ void Engine::runFilterByName(const std::string & name)
 {
 	provideAndUpdateDataSet();
 	
-	Filter		localFilter			(_dataSet, name, false);
-	std::string strippedFilter		= stringUtils::stripRComments(localFilter.rFilter());
+	Filter	*	localFilter			(_dataSet->createFilter(name, false));
+	std::string strippedFilter		= stringUtils::stripRComments(localFilter->rFilter());
 	boolvec		filterResult;
 	std::string RPossibleWarning;
 	try
@@ -322,17 +322,17 @@ void Engine::runFilterByName(const std::string & name)
 
 
 	DatabaseInterface::singleton()->transactionWriteBegin();
-	localFilter.setFilterVector(filterResult);
-	localFilter.setErrorMsg(RPossibleWarning);
-	localFilter.incRevision();
+	localFilter->setFilterVector(filterResult);
+	localFilter->setErrorMsg(RPossibleWarning);
+	localFilter->incRevision();
 	DatabaseInterface::singleton()->transactionWriteEnd();
+
+	delete localFilter;
 
 	sendFilterByNameDone(name, RPossibleWarning);
 
 	_engineState = engineState::idle;
 }
-
-
 
 void Engine::runFilter(const std::string & filter, const std::string & generatedFilter, int filterRequestId)
 {
@@ -344,13 +344,13 @@ void Engine::runFilter(const std::string & filter, const std::string & generated
 		boolvec			filterResult		= rbridge_applyFilter(strippedFilter, generatedFilter);
 		std::string		RPossibleWarning	= jaspRCPP_getLastErrorMsg();
 
-		Log::log() << "Engine::runFilter ran:\n\t" << strippedFilter << "\n\tRPossibleWarning='" << RPossibleWarning << "'\n\t\tfor revision " << _dataSet->filter()->revision() << std::endl;
+        Log::log() << "Engine::runFilter ran:\n\t" << strippedFilter << "\n\tRPossibleWarning='" << RPossibleWarning << "'\n\t\tfor revision " << _dataSet->shownFilter()->revision() << std::endl;
 
 		_dataSet->db().transactionWriteBegin();
-		_dataSet->filter()->setRFilter(filter);
-		_dataSet->filter()->setFilterVector(filterResult);
-		_dataSet->filter()->setErrorMsg(RPossibleWarning);
-		_dataSet->filter()->incRevision();
+		_dataSet->shownFilter()->setRFilter(filter);
+		_dataSet->shownFilter()->setFilterVector(filterResult);
+		_dataSet->shownFilter()->setErrorMsg(RPossibleWarning);
+		_dataSet->shownFilter()->incRevision();
 		_dataSet->db().transactionWriteEnd();
 
 
@@ -365,8 +365,8 @@ void Engine::runFilter(const std::string & filter, const std::string & generated
 			_dataSet->db().transactionReadEnd();
 		
 		_dataSet->db().transactionWriteBegin();
-		_dataSet->filter()->setErrorMsg(error);
-		_dataSet->filter()->incRevision();
+		_dataSet->shownFilter()->setErrorMsg(error);
+		_dataSet->shownFilter()->incRevision();
 		_dataSet->db().transactionWriteEnd();
 
 		sendFilterError(filterRequestId, error);

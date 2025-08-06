@@ -324,7 +324,7 @@ FocusScope
 			Text
 			{
 				id:						dataFilterStatusText
-				text:					filterModel.statusBarText
+				text:					filterModel.filter.statusBarText
 				font:					jaspTheme.font
 				color:					jaspTheme.textEnabled
 				anchors.left:			parent.left

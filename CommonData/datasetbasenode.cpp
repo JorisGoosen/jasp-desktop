@@ -1,11 +1,18 @@
-#define ENUM_DECLARATION_CPP
+#include "dataenums.h"
 #include "datasetbasenode.h"
+#include <QThread>
+#include <QGuiApplication>
 
-DataSetBaseNode::DataSetBaseNode(dataSetBaseNodeType typeNode, DataSetBaseNode * parent) 
-	: _type(typeNode), _parent(parent)
+DataSetBaseNode::DataSetBaseNode(dataSetBaseNodeType typeNode, QObject * parent) 
+	: QAbstractTableModel(nullptr), _type(typeNode), _parent(dynamic_cast<DataSetBaseNode *>(parent))
 {
 	if(_parent)
 		_parent->registerChild(this);
+	
+	if(QGuiApplication::instance())
+		this->moveToThread(QGuiApplication::instance()->thread());
+	
+	setParent(parent);
 }
 
 DataSetBaseNode::~DataSetBaseNode()
@@ -53,23 +60,33 @@ int DataSetBaseNode::nestedRevision()
 	return rev;
 }
 
-void DataSetBaseNode::setModifiedCallback(std::function<void ()> callback)
-{
-	_somethingModifiedCallback = callback;
-}
-
 void DataSetBaseNode::checkForChanges()
 {
 	if(_parent)
 		_parent->checkForChanges();
-	
-	else if(_somethingModifiedCallback) //we have a callback so use it
+	else
 	{
 		int nested = nestedRevision();
 		
 		if(nested != _previousNestedRevision)
-			_somethingModifiedCallback();
+			emit somethingModified();
 		
 		_previousNestedRevision = nested;
 	}
+}
+
+QHash<int, QByteArray> DataSetBaseNode::roleNames() const
+{
+	static bool						set = false;
+	static QHash<int, QByteArray> roles = QAbstractTableModel::roleNames();
+
+	if(!set)
+	{
+		for(const auto & enumString : dataPkgRolesToStringMap())
+			roles[int(enumString.first)] = QString::fromStdString(enumString.second).toUtf8();
+
+		set = true;
+	}
+
+	return roles;
 }

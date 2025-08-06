@@ -4,7 +4,7 @@
 #include <QQuickItem>
 #include <QPropertyAnimation>
 
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "columntype.h"
 
 class AnalysisForm;

@@ -8,6 +8,7 @@
 #include <list>
 #include "emptyvalues.h"
 #include <cmath>
+
 class DataSet;
 class Analysis;
 
@@ -40,13 +41,21 @@ class Analysis;
 /// It also handles storing the information of computed columns (those used to be split off)
 class Column : public DataSetBaseNode
 {
+	Q_OBJECT
+	
+	Q_PROPERTY(QString name READ nameQ WRITE setNameQ NOTIFY nameChanged)
+	
 	friend DatabaseInterface;
 public:
 	typedef std::map<std::pair<std::string, std::string>, Label*>	LabelByStrStr;
 	typedef std::map<std::string, Labelset>							LabelsByStr;
+	friend DataSet;
 
-									Column(DataSet * data, int id = -1);
-									~Column();
+protected:
+									Column(DataSet * data, int id = -1);	///< Dont use directly! Use DataSet::_createColumn
+
+public:
+									~Column();			
 									
 				DatabaseInterface & db();
 		const	DatabaseInterface & db() const;
@@ -57,9 +66,26 @@ public:
 			void					dbUpdateComputedColumnStuff();
 			void					dbUpdateValues();
 			void					dbDelete(bool cleanUpRest = true);
-																														
+			
+			int						rowCount(		const QModelIndex &parent = QModelIndex())										const	override;
+			int						columnCount(	const QModelIndex &parent = QModelIndex())										const	override;
+			QVariant				headerData(		int section, Qt::Orientation orientation, int role = Qt::DisplayRole )			const	override;
+			QVariant				data(			const QModelIndex &index, int role = Qt::DisplayRole)							const	override;
+			bool					setData(		const QModelIndex &index, const QVariant &value, int role)								override;
+			
+			void					refresh(bool doDataChanged = true);
+			QList<QVariant>			getColumnValuesAsDoubleList()	const;
+
+			bool					setLabelDescription(int labelRow, const QString &	newDescription	);
+			bool					setLabelDisplay(	int labelRow, const QString &	newLabel		);
+			bool					setLabelValue(		int labelRow, const QString &	newLabelValue	);
+			bool					setLabelAllowFilter(int labelRow, bool				newAllowValue	);
+
+			std::string				generateLabelFilter() const;
+																															
 			
 			bool					setName(			const std::string & name			);
+			bool					setNameQ(			const QString	  & name			);
 			void					setTitle(			const std::string & title			);
 			bool					setRCode(			const std::string & rCode			);
 			bool					setError(			const std::string & error			);
@@ -85,7 +111,7 @@ public:
 			bool					overwriteDataAndType(	stringvec		data, columnType colType);
 			
 			bool					allLabelsPassFilter()	const;
-			bool					hasFilter()				const;
+			bool					hasLabelFilter()				const;
 			void					resetFilter();
 			void					incRevision() override;
 			bool					checkForUpdates();
@@ -102,6 +128,7 @@ public:
 			bool					autoSortByValue()		const	{ return _autoSortByValue;	}
 			computedColumnType		codeType()				const	{ return _codeType;			}
 			const std::string	&	name()					const	{ return _name;				}
+			const QString			nameQ()					const;
 			const std::string	&	title()					const	{ return _title.empty() ? _name : _title;	}
 			const std::string	&	error()					const	{ return _error;			}
 			const std::string	&	rCode()					const	{ return _rCode;			}
@@ -110,7 +137,6 @@ public:
 				  std::string		rCodeStripped()			const	{ return stringUtils::stripRComments(_rCode);	}
 				  std::string		constructorJsonStr()	const	{ return _constructorJson.toStyledString();	}
 			const Json::Value	&	constructorJson()		const	{ return _constructorJson;	}
-			size_t					rowCount()				const	{ return _dbls.size(); }
 			const intvec		&	ints()					const	{ return _ints; }
 			const doublevec		&	dbls()					const	{ return _dbls; }
 			
@@ -130,19 +156,26 @@ public:
 			void					labelsShrinkOnlyToSize( size_t highestToKeep);
 			
 			int						nonFilteredNumericsCount();
+			int						nonFilteredNumericsCount()	const;
             stringvec				nonFilteredLevels();
+            stringvec				nonFilteredLevels()			const;
 			void					nonFilteredCountersReset();
 
-			std::set<size_t>		labelsMoveRows(std::vector<size_t> rows, bool up);
+			std::set<qsizetype>		labelsMoveRows(std::vector<qsizetype> rows, bool up);
 			void					labelsReverse();
 			void					valuesReverse();
 			void					labelsOrderByValue(bool doDbUpdateEtc=true);
 
-			std::string				operator[](	size_t row); ///< Display value/label for row
-			std::string				getValue(	size_t row,	bool fancyEmptyValue = false, bool ignoreEmptyValue = false, bool sepas = true, columnType asType = columnType::unknown)	const; ///< Returns the ("original") value. Basically whatever the user would like to see as value. Stored internally as json
-			std::string				getDisplay(	size_t row,	bool fancyEmptyValue = true, bool sepas = true)									const;
-			std::string				getShadow(	size_t row,	bool fancyEmptyValue = true, bool sepas = true)									const;
-			std::string				getLabel(	size_t row,	bool fancyEmptyValue = false, bool ignoreEmptyValue = false, bool sepas = true)	const;
+			std::string				operator[](				size_t row); ///< Display value/label for row
+			std::string				getValue(				size_t row,	bool fancyEmptyValue = false, bool ignoreEmptyValue = false, bool sepas = true, columnType asType = columnType::unknown)	const; ///< Returns the ("original") value. Basically whatever the user would like to see as value. Stored internally as json
+			std::string				getDisplay(				size_t row,	bool fancyEmptyValue = true, bool sepas = true)									const;
+			std::string				getShadow(				size_t row,	bool fancyEmptyValue = true, bool sepas = true)									const;
+			std::string				getLabel(				size_t row,	bool fancyEmptyValue = false, bool ignoreEmptyValue = false, bool sepas = true)	const;
+			std::string				getValueIndexNonEmpty(	size_t row,	bool fancyEmptyValue = false, bool ignoreEmptyValue = false, bool sepas = true, columnType asType = columnType::unknown)	const; ///< Returns the ("original") value. Basically whatever the user would like to see as value. Stored internally as json
+			std::string				getDisplayIndexNonEmpty(size_t row,	bool fancyEmptyValue = true, bool sepas = true)									const;
+			std::string				getShadowIndexNonEmpty(	size_t row,	bool fancyEmptyValue = true, bool sepas = true)									const;
+			std::string				getLabelIndexNonEmpty(	size_t row,	bool fancyEmptyValue = false, bool ignoreEmptyValue = false)	const;
+			
 			stringvec				valuesAsStrings()																						const;
 			stringvec				labelsAsStrings()																						const;
 			stringvec				nonEmptyLevelsStrings()																					const;
@@ -233,8 +266,13 @@ public:
 			
 	static	void					setAutoSortByValuesByDefault(bool autoSort);
 	static	bool					autoSortByValuesByDefault();
+			void					resetFilterAllows();
+			int						filteredOut() const;
 	
 protected:
+			boolvec					getFilterAllows() const;
+			Label *					connectNewLabel(Label *newLabel);
+	
 			void					_checkForDependencyLoop(stringset foundNames, std::list<std::string> loopList);
 			void					_dbUpdateLabelOrder(bool noIncRevisionWhenBatchedPlease = false);		///< Sets the order of the _labels to label.order and in DB
 			intintmap				_updateNonEmptyIndexesAndLabelOrder();
@@ -248,6 +286,18 @@ protected:
 			std::map<Label*,size_t> valuesAlphabeticalOffsets();
 			int						_labelMapIt(Label *label);
 			void					_labelMapUpdates(Label *label, const std::string & previousDisplay, const std::string & previousOriginal);
+
+signals:
+			void					manualEditMade();
+			void					dataSetShouldRefresh();
+			void					columnChanged(		const Column * column);
+			void					columnTypeChanged(	const Column * column) const;
+			void					labelsReordered(	const Column * column);
+			void					labelFilterChanged();
+			void					runFilter();
+			void					showWarning(						QString title, QString msg);
+			void					nameChanged();
+
 private:
 			DataSet			* const	_data;
 			EmptyValues		* const	_emptyValues;
@@ -288,7 +338,7 @@ private:
 
 };
 
-typedef std::vector<Column*> Columns;
-typedef std::set<Column*> ColumnSet;
+typedef std::vector<Column*>	Columns;
+typedef std::set<Column*>		ColumnSet;
 
 #endif // COLUMN_H

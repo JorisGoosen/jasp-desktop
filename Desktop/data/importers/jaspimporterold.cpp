@@ -22,8 +22,7 @@
 #include <sys/stat.h>
 
 #include <fcntl.h>
-
-//#include "libzip/config.h"
+#include "qutils.h"
 #include <archive.h>
 #include <archive_entry.h>
 #include <json/json.h>
@@ -31,6 +30,7 @@
 #include "columnutils.h"
 #include "tempfiles.h"
 #include "resultstesting/compareresults.h"
+#include "data/datasetpackage.h"
 #include "timers.h"
 
 const Version JASPImporterOld::maxSupportedJaspArchiveVersion = Version("3.1.0");
@@ -104,7 +104,7 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 
 	packageData->dataSet()->setDataFileSynch(true);
 
-	DataSetPackage::filter()->setRFilter(	metaData.get("filterData",			FilterModel::defaultRFilter())	.asString());
+	DataSetPackage::filter()->setRFilter(	metaData.get("filterData",			fq(Filter::defaultRFilter()))	.asString());
 
 	Json::Value jsonFilterConstructor = metaData.get("filterConstructorJSON", DEFAULT_FILTER_JSON);
 	DataSetPackage::filter()->setConstructorJson(jsonFilterConstructor.isObject() ? jsonFilterConstructor.toStyledString() : jsonFilterConstructor.asString());
@@ -279,7 +279,7 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 	//Filter should be run if filterVector was not filled and either of the filters was different from default.
 	bool filterShouldBeRun =
 			filterVector.size() == 0 &&
-			(	metaData.get("filterData",				FilterModel::defaultRFilter()).asString()	!= FilterModel::defaultRFilter()
+			(	metaData.get("filterData",				fq(Filter::defaultRFilter())).asString()	!= fq(Filter::defaultRFilter())
 			||	metaData.get("filterConstructorJSON",	DEFAULT_FILTER_JSON).asString()				!= DEFAULT_FILTER_JSON	);
 
 	packageData->setFilterShouldRunInit(filterShouldBeRun);

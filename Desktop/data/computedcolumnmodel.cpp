@@ -1,6 +1,6 @@
 #include "computedcolumnmodel.h"
 #include "jsonutilities.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "columnencoder.h"
 #include "analysis/analyses.h"
 #include "variableinfo.h"
@@ -22,7 +22,6 @@ ComputedColumnModel::ComputedColumnModel()
 	connect(this,					&ComputedColumnModel::refreshProperties,		this,					&ComputedColumnModel::computeFilterChanged				);
 	
 	connect(this,					&ComputedColumnModel::refreshColumn,			DataSetPackage::pkg(),	&DataSetPackage::refreshColumn,								Qt::QueuedConnection);
-	connect(this,					&ComputedColumnModel::refreshData,				DataSetPackage::pkg(),	&DataSetPackage::refresh,									Qt::QueuedConnection);
 	
 	connect(Analyses::analyses(),	&Analyses::requestComputedColumnCreation,		DataSetPackage::pkg(),	&DataSetPackage::requestComputedColumnCreation,				Qt::UniqueConnection);
 	connect(Analyses::analyses(),	&Analyses::requestColumnCreation,				DataSetPackage::pkg(),	&DataSetPackage::requestColumnCreation,						Qt::UniqueConnection);
@@ -144,7 +143,7 @@ void ComputedColumnModel::emitSendComputeCode(Column * column)
 
 void ComputedColumnModel::sendCode(const QString & code, const QString & json)
 {
-	DataSetPackage::pkg()->undoStack()->push(new SetComputedColumnCodeCommand(DataSetPackage::pkg(), _selectedColumn->name(), code, json));
+	UndoStack::singleton()->push(new SetComputedColumnCodeCommand(_selectedColumn, _selectedColumn->name(), code, json));
 }
 
 
@@ -346,9 +345,9 @@ void ComputedColumnModel::removeColumn()
 		return;
 
 	// TODO pass RemoveColumnCommand aab
-	DataSetPackage::pkg()->undoStack()->pushCommand(new RemoveColumnsCommand(DataSetPackage::pkg(), _selectedColumn->id(), 1));
+	UndoStack::singleton()->pushCommand(new RemoveColumnsCommand(_selectedColumn->data(), _selectedColumn->id(), 1));
 	
-	emit refreshData();
+	DataSetPackage::pkg()->dataSet()->refresh();
 }
 
 void ComputedColumnModel::datasetChanged(	QStringList				changedColumns,
@@ -429,8 +428,6 @@ void ComputedColumnModel::datasetChanged(	QStringList				changedColumns,
 		if(col->iShouldBeSentAgain())
 			emitSendComputeCode(col);
 	}
-
-	emit refreshData();
 }
 
 Column * ComputedColumnModel::createComputedColumn(const std::string & name, int colType, computedColumnType computeType, Analysis * analysis)
@@ -439,7 +436,7 @@ Column * ComputedColumnModel::createComputedColumn(const std::string & name, int
 			createActualComputedColumn	= computeType != computedColumnType::analysisNotComputed,
 			showComputedColumn			= computeType != computedColumnType::analysis			&& createActualComputedColumn;
 
-	if (createActualComputedColumn)	DataSetPackage::pkg()->undoStack()->pushCommand(new CreateComputedColumnCommand(tq(name), colType, int(computeType)));
+	if (createActualComputedColumn)	UndoStack::singleton()->pushCommand(new CreateComputedColumnCommand(tq(name), colType, int(computeType)));
 	else							DataSetPackage::pkg()->createColumn(name, columnType(colType));
 
 	Column  * createdColumn = DataSetPackage::pkg()->getColumn(name);
@@ -453,7 +450,7 @@ Column * ComputedColumnModel::createComputedColumn(const std::string & name, int
 	if(showComputedColumn)
 	{
 		selectColumn(createdColumn);
-		emit chooseColumn(tq(createdColumn->name()));
+		emit chooseColumn(tq(createdColumn->name()), createdColumn->data()->columnIndex(createdColumn));
 	}
 
 	return createdColumn;

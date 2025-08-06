@@ -19,7 +19,7 @@
 #include "analysisform.h"
 #include "knownissues.h"
 #include "boundcontrols/boundcontrol.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "controls/jasplistcontrol.h"
 #include "controls/expanderbuttonbase.h"
 #include "log.h"

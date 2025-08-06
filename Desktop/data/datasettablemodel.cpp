@@ -17,11 +17,13 @@
 //
 
 #include "datasettablemodel.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "log.h"
+#include "dataenums.h"
 
 DataSetTableModel::DataSetTableModel(bool showInactive) 
-: DataSetTableProxy(DataSetPackage::pkg()->dataSubModel()), _showInactive(showInactive)
+: QSortFilterProxyModel(DataSetPackage::pkg()), 
+  _showInactive(showInactive)
 {
 	
 	connect(DataSetPackage::pkg(),	&DataSetPackage::columnsFilteredCountChanged,	this, &DataSetTableModel::columnsFilteredCountChanged	);
@@ -31,7 +33,7 @@ DataSetTableModel::DataSetTableModel(bool showInactive)
 	connect(DataSetPackage::pkg(),	&DataSetPackage::workspaceEmptyValuesChanged,	this, &DataSetTableModel::emptyValuesChanged			);
 	//connect(this,		&DataSetTableModel::dataChanged,				this, &DataSetTableModel::onDataChanged,				Qt::QueuedConnection);
 
-	setFilterRole(int(DataSetPackage::specialRoles::filter));
+	setFilterRole(int(dataPkgRoles::filter));
 }
 
 
@@ -47,32 +49,37 @@ void DataSetTableModel::setShowInactive(bool showInactive)
 	endResetModel();
 }
 
+void DataSetTableModel::handleDataSetChange()
+{
+	setSourceModel(DataSetPackage::pkg()->dataSet());
+	invalidate();
+	beginResetModel();
+	endResetModel();
+}
+
 bool DataSetTableModel::filterAcceptsRow(int source_row, const QModelIndex & source_parent)	const
 {
-	return (_showInactive || DataSetPackage::pkg()->getRowFilter(source_row));
+	if(_showInactive)
+		return true;
+	
+	Filter * f = DataSetPackage::pkg()->dataSet() ? DataSetPackage::pkg()->dataSet()->shownFilter() : nullptr;
+	
+	return !f || f->filtered().size() <= source_row || f->filtered()[source_row];
 }
 
 QString DataSetTableModel::columnName(int column) const
 {
-	int pkgColIndex = data(index(0, column), int(DataSetPackage::specialRoles::columnPkgIndex)).toInt();
-	return	DataSetPackage::pkg()->data(
-				DataSetPackage::pkg()->index(0, pkgColIndex, DataSetPackage::pkg()->indexForSubNode(node())),
-				int(DataSetPackage::specialRoles::name)
-			).toString();
+  return data(index(0, column), int(dataPkgRoles::name)).toString();
 }
 
 void DataSetTableModel::setColumnName(int col, QString name)
 {
-	setData(index(0, col), name, int(DataSetPackage::specialRoles::name));
+	setData(index(0, col), name, int(dataPkgRoles::name));
 }
 
 bool DataSetTableModel::columnUsedInEasyFilter(int column) const
 {
-	int pkgColIndex = data(index(0, column), int(DataSetPackage::specialRoles::columnPkgIndex)).toInt();
-	return	DataSetPackage::pkg()->data(
-				DataSetPackage::pkg()->index(0, pkgColIndex, DataSetPackage::pkg()->indexForSubNode(node())),
-				int(DataSetPackage::specialRoles::inEasyFilter)
-			).toBool();
+  return data(index(0, column), int(dataPkgRoles::inEasyFilter)).toBool();
 }
 
 void DataSetTableModel::pasteSpreadsheet(size_t row, size_t col, const std::vector<std::vector<QString> > & values, const std::vector<std::vector<QString>> & labels, const std::vector<int> & colTypes, const QStringList & colNames, const std::vector<boolvec> & selected)
@@ -84,12 +91,12 @@ void DataSetTableModel::pasteSpreadsheet(size_t row, size_t col, const std::vect
 QString DataSetTableModel::insertColumnSpecial(int column, const QMap<QString, QVariant>& props)
 {
 	if(column >= columnCount())
-		return subNodeModel()->appendColumnSpecial(props);
+		return DataSetPackage::pkg()->appendColumnSpecial(props);
 
 	int sourceColumn = column > columnCount() ? columnCount() : column;
 	sourceColumn = mapToSource(index(0, sourceColumn)).column();
 
-	return subNodeModel()->insertColumnSpecial(sourceColumn == -1 ? sourceModel()->columnCount() : sourceColumn, props);
+	return DataSetPackage::pkg()->insertColumnSpecial(sourceColumn == -1 ? sourceModel()->columnCount() : sourceColumn, props);
 }
 
 

@@ -1,10 +1,12 @@
 ﻿#include "log.h"
+#include <cassert>
+#include "qutils.h"
 #include "column.h"
 #include "timers.h"
 #include "dataset.h"
+#include "dataenums.h"
 #include "columnutils.h"
 #include "databaseinterface.h"
-#include <cassert>
 
 bool Column::_autoSortByValuesByDefault = true;
 
@@ -19,14 +21,23 @@ void Column::setAutoSortByValuesByDefault(bool autoSort)
 }
 
 Column::Column(DataSet * data, int id)
-:	DataSetBaseNode(dataSetBaseNodeType::column, data->dataNode()),
+:	DataSetBaseNode(dataSetBaseNodeType::column, data),
 	_data(				data),
 	_id(				id),
-	_emptyValues(		new EmptyValues(data->emptyValues())),	
+	_emptyValues(		new EmptyValues(data->emptyValues())),
 	_autoSortByValue(	_autoSortByValuesByDefault)
 {
 	if(_id != -1)
 		db().columnSetAutoSort(_id, _autoSortByValue); //Store autosort in db
+	
+	connect(this, &Column::manualEditMade,			data, &DataSet::manualEditMade				);
+	connect(this, &Column::dataSetShouldRefresh,	data, &DataSet::refresh						);
+	connect(this, &Column::columnChanged,			data, &DataSet::handleColumnChanged			);
+	connect(this, &Column::labelsReordered,			data, &DataSet::handleLabelsReordered		);
+	connect(this, &Column::columnTypeChanged,		data, &DataSet::handleColumnTypeChanged		);
+	connect(this, &Column::runFilter,				data, &DataSet::runFilter					);
+	connect(this, &Column::labelFilterChanged,		data, &DataSet::labelFilterChanged			);
+	connect(this, &Column::showWarning,				data, &DataSet::showWarning					);
 }
 
 Column::~Column()
@@ -137,8 +148,15 @@ bool Column::setName(const std::string &name)
 
 	db().columnSetName(_id, _name);
 	incRevision();
+	
+	emit nameChanged();
 
 	return true;
+}
+
+bool Column::setNameQ(const QString &name)
+{
+	return setName(fq(name));
 }
 
 void Column::setTitle(const std::string &title)
@@ -188,6 +206,8 @@ void Column::setType(columnType colType)
 	_type = colType;
 	db().columnSetType(_id, _type);
 	incRevision();
+
+	emit columnTypeChanged(this);
 }
 
 bool Column::hasCustomEmptyValues() const
@@ -672,7 +692,7 @@ bool Column::overwriteDataAndType(stringvec colData, columnType colType)
 	
 	if(computeFilter() != "")
 	{
-		Filter theFilter(data(), computeFilter(), false);
+		Filter  theFilter(data(), computeFilter(), false);
 		
 		const boolvec & filtered = theFilter.filtered();
 		stringvec		newData;
@@ -680,13 +700,21 @@ bool Column::overwriteDataAndType(stringvec colData, columnType colType)
 		
 		for(size_t iFilter=0, iData=0; iFilter < filtered.size() && iData < colData.size(); iFilter++)
 			newData.push_back(filtered[iFilter] ? colData[iData++] : "");
-			
+				
+		colData = newData;
+	}
+	else if(colData.size() == data()->shownFilter()->filteredRowCount())
+	{
+		const boolvec & filtered = data()->shownFilter()->filtered();
+		stringvec		newData;
+						newData	 . reserve(filtered.size());
+						
+		
 		colData = newData;
 	}
 	
-	
 	//Now to make sure that the colData is neither bigger nor smaller than the dataset:
-	colData.resize(_data->rowCount()); //Either add blanks rows add end or drop superfluous data
+	colData.resize(data()->rowCount()); //Either add blanks rows add end or drop superfluous data
 	
 	bool			changes		= _type != colType,
 					toScale		= colType == columnType::scale;
@@ -909,10 +937,12 @@ int Column::labelsAdd(int value, const std::string & display, bool filterAllows,
 	if(_labelByValDis.count(valDisplay))
 		return _labelByValDis.at(valDisplay)->intsId();
 
-
 	Label * label = new Label(this, display, value, filterAllows, description, originalValue, order, id);
 	_labels.push_back(label);
 
+	if(hasLabelFilter())
+		emit labelFilterChanged();
+	
 	return _labelMapIt(label);
 }
 
@@ -1025,7 +1055,7 @@ int Column::nonFilteredNumericsCount()
 		doubleset numerics;
 
 		for(size_t r=0; r<_data->rowCount(); r++)
-			if(_data->filter()->filtered()[r] && !isEmptyValue(_dbls[r]))
+                    if(_data->shownFilter()->filtered()[r] && !isEmptyValue(_dbls[r]))
 					numerics.insert(_dbls[r]);
 
 		if(!shouldDropLevels())
@@ -1039,24 +1069,37 @@ int Column::nonFilteredNumericsCount()
 	return _nonFilteredNumericsCount;
 }
 
+int Column::nonFilteredNumericsCount() const
+{
+#ifdef JASP_DEBUG
+	if(_nonFilteredNumericsCount == -1)
+		throw std::runtime_error("nonFilteredNumericsCount() const was not initialized");
+#endif
+	
+	return _nonFilteredNumericsCount;
+}
+
 stringvec Column::nonFilteredLevels()
 {
 	if (_nonFilteredLevels.empty())
 	{
 		JASPTIMER_SCOPE(Column::nonFilteredLevels);
-		stringset levels;
-		for(size_t r=0; r<_data->rowCount(); r++)
-			if(_data->filter()->filtered()[r])
-			{
+		stringset 	levels;
+		intset		collected;
+
+		for(size_t r=0; r<data()->rowCount(); r++)
+			if(data()->shownFilter()->filtered()[r])
 				if(_ints[r] != Label::NO_LABEL)
 				{
-					Label * label = labelByIntsId(_ints[r]);
-					if(label && !label->isEmptyValue())
-						levels.insert(label->label());
+					if(!collected.count(_ints[r]))
+					{
+						Label * label = labelByIntsId(_ints[r]);
+						if(label && !label->isEmptyValue())
+							levels.insert(label->label());
+						
+						collected.insert(_ints[r]);
+					}
 				}
-				else if(!isEmptyValue(_dbls[r]))
-					levels.insert(ColumnUtils::doubleToString(_dbls[r]));
-			}
 
 		if(!shouldDropLevels())
 			for(Label * label : _labels)
@@ -1068,6 +1111,16 @@ stringvec Column::nonFilteredLevels()
 				_nonFilteredLevels.push_back(label->label());
 	}
 
+	return _nonFilteredLevels;
+}
+
+stringvec Column::nonFilteredLevels() const
+{
+#ifdef JASP_DEBUG
+	if(_nonFilteredLevels.empty())
+		throw std::runtime_error("nonFilteredLevels() const was not initialized");
+#endif
+	
 	return _nonFilteredLevels;
 }
 
@@ -1125,7 +1178,9 @@ std::string Column::getShadow(size_t row, bool fancyEmptyValue, bool sepas) cons
 std::string Column::getValue(size_t row, bool fancyEmptyValue, bool ignoreEmptyValue, bool sepas, columnType asType) const
 {
 	if(asType == columnType::unknown)
+	{
 		asType = _type;
+	}
 	
 	if (row < rowCount())
 	{
@@ -1155,6 +1210,39 @@ std::string Column::getLabel(size_t row, bool fancyEmptyValue, bool ignoreEmptyV
 	}
 	
 	return fancyEmptyValue ? EmptyValues::displayString() : "";
+}
+
+
+std::string Column::getDisplayIndexNonEmpty(size_t row, bool fancyEmptyValue, bool sepas) const
+{
+	Label * label = labelByIndexNonEmpty(row);
+	
+	return label	? label->getDisplay(fancyEmptyValue, sepas) 
+					: fancyEmptyValue ? EmptyValues::displayString() : "";
+}
+
+std::string Column::getShadowIndexNonEmpty(size_t row, bool fancyEmptyValue, bool sepas) const
+{
+	Label * label = labelByIndexNonEmpty(row);
+	
+	return label	? label->getShadow(fancyEmptyValue, sepas) 
+					: fancyEmptyValue ? EmptyValues::displayString() : "";
+}
+
+std::string Column::getValueIndexNonEmpty(size_t row, bool fancyEmptyValue, bool ignoreEmptyValue, bool sepas, columnType asType) const
+{
+	Label * label = labelByIndexNonEmpty(row);
+	
+	return label	? label->getValue(fancyEmptyValue, ignoreEmptyValue, sepas, asType)
+					: fancyEmptyValue ? EmptyValues::displayString() : "";
+}
+
+std::string Column::getLabelIndexNonEmpty(size_t row, bool fancyEmptyValue, bool ignoreEmptyValue) const
+{
+	Label * label = labelByIndexNonEmpty(row);
+	
+	return label	? label->getLabel(ignoreEmptyValue)
+					: fancyEmptyValue ? EmptyValues::displayString() : "";
 }
 
 std::string Column::doubleToDisplayString(double dbl, bool fancyEmptyValue, bool ignoreEmptyValue, bool sepas) const
@@ -1487,7 +1575,7 @@ void Column::labelValDisplayChanged(Label *label, const std::string &previousDis
 
 Label * Column::labelByRow(int row) const
 {
-	if (row < rowCount() && _type != columnType::scale && _ints[row] != EmptyValues::missingValueInteger)
+	if (row < rowCount() && _ints[row] != EmptyValues::missingValueInteger)
 		return labelByIntsId(_ints[row]);
 
 	return nullptr;
@@ -1531,7 +1619,7 @@ bool Column::setValue(size_t row, std::string value, const std::string & label, 
 {
 	JASPTIMER_SCOPE(Column::setValue(stringstring));
     
-	//If value != "" and label == "" that means we got copy pasted stuff in the viewer. And we just dont have labels, but we can treat it like we are editing
+	//If value != "" and label == "" that means we got copy pasted stuff in the viewer, and we just dont have labels, but we can treat it like we are editing.
 	//if both are "" we just want to clear the cell
 	//the assumption is that this is not direct user-input, but internal jasp stuff.
 	if(value == "" && label == "")
@@ -1698,7 +1786,7 @@ bool Column::labelsRemoveOrphans()
 }
 
 
-std::set<size_t> Column::labelsMoveRows(std::vector<size_t> rows, bool up)
+std::set<qsizetype> Column::labelsMoveRows(std::vector<qsizetype> rows, bool up)
 {
 	JASPTIMER_SCOPE(Column::labelsMoveRows);
 	
@@ -1708,13 +1796,13 @@ std::set<size_t> Column::labelsMoveRows(std::vector<size_t> rows, bool up)
 	
 	std::vector<Label*> new_labels(_labels.begin(), _labels.end());
 
-	for (size_t row : rows)
+	for (qsizetype row : rows)
 		if(int(row) + mod < 0 || int(row) + mod >= int(labelsNonEmptyCount()))
 			return {}; //Because we can't move *out* of our _labels for obvious reasons
 
-	std::set<size_t> rowsChanged;
+	std::set<qsizetype> rowsChanged;
 
-	for (size_t row : rows)
+	for (qsizetype row : rows)
 	{
 		std::iter_swap(new_labels.begin() + row, new_labels.begin() + (row + mod));
 		rowsChanged.insert(row);
@@ -1723,7 +1811,9 @@ std::set<size_t> Column::labelsMoveRows(std::vector<size_t> rows, bool up)
 
 	_labels = new_labels;
 	_dbUpdateLabelOrder();
-
+	
+	refresh();
+	
 	return rowsChanged;
 }
 
@@ -1733,6 +1823,7 @@ void Column::labelsReverse()
 	
 	std::reverse(_labels.begin(), _labels.end());
 	_dbUpdateLabelOrder();
+	refresh();
 }
 
 void Column::labelsOrderByValue(bool doDbUpdateEtc)
@@ -1766,6 +1857,8 @@ void Column::labelsOrderByValue(bool doDbUpdateEtc)
 	
 	if(doDbUpdateEtc)
 		_dbUpdateLabelOrder(false);
+	
+	refresh();
 }
 
 doublevec Column::valuesNumericOrdered()
@@ -1858,7 +1951,7 @@ bool Column::allLabelsPassFilter() const
 	return true;
 }
 
-bool Column::hasFilter() const
+bool Column::hasLabelFilter() const
 {
 	return !allLabelsPassFilter();
 }
@@ -1921,6 +2014,11 @@ bool Column::isColumnDifferentFromStringLookUps(const std::string & title, size_
 	}
 	
 	return false;
+}
+
+const QString Column::nameQ() const
+{
+	return tq(name());
 }
 
 void Column::upgradeSetDoubleLabelsInInts()
@@ -2112,6 +2210,7 @@ void Column::deserializeLabelsForRevert(const Json::Value & labels)
 {
  	nonFilteredCountersReset();
 	
+	emit beginResetModel();
 	beginBatchedLabelsDB();
 	
 	//intset	updatedLbls;
@@ -2156,20 +2255,6 @@ void Column::deserializeLabelsForRevert(const Json::Value & labels)
 	
 	endBatchedLabelsDB();
 	
-	/* The following is already implied by endBatchedLabelsDB because it deletes all labels first anyway (There are some issues when an operation changed _labels though, in that case it might be better to deserialize the column!)
-	for(int id : missingLbls)
-	{
-		Label * deleteMe = 	_labelByIntsIdMap[id];
-		
-		for(size_t i=0;i<_labels.size(); i++)
-			if(_labels[i] == deleteMe)
-				_labels.erase(_labels.begin() + i);
-		
-		_labelByIntsIdMap.erase(id);
-		deleteMe->dbDelete();
-		delete deleteMe;	
-	}*/
-	
 	incRevision();
 }
 
@@ -2181,33 +2266,25 @@ void Column::deserialize(const Json::Value &json)
 	std::string name	= json["name"].asString(),
 				title	= json["title"].asString();
 
-	_name				= getUniqueName(name);
-	db().columnSetName(_id, _name);
+	setName(getUniqueName(name));
 
 	// If title was equal to name, then they should still stay the same if the name is changed to be unique.
-	_title				= name == title ? _name : title;
-	db().columnSetTitle(_id, _title);
+	setTitle(								name == title ? _name : title);
+	setDescription(							json["description"]		.asString()	);
+	setType(			columnType(			json["type"]			.asInt())	);
+	setInvalidated(							json["invalidated"]		.asBool()	);
+	setCodeType(		computedColumnType(	json["codeType"]		.asInt())	);
+	setRCode(								json["rCode"]			.asString()	);
+	setError(								json["error"]			.asString()	);
+	setAnalysisId(							json["analysisId"]		.asInt()	);
+	setConstructorJson(						json["constructorJson"]				);
+	setAutoSortByValue(						json["autoSortByValue"]	.asBool()	);
 
-	_description		= json["description"].asString();
-	db().columnSetDescription(_id, _description);
-
-	_type				= columnType(json["type"].asInt());
-	db().columnSetType(_id, _type);
-
-	_invalidated		= json["invalidated"].asBool();
-	_codeType			= computedColumnType(json["codeType"].asInt());
-	_rCode				= json["rCode"].asString();
-	_error				= json["error"].asString();
-	_analysisId			= json["analysisId"].asInt();
-	_constructorJson	= json["constructorJson"];
-	_autoSortByValue	= json["autoSortByValue"].asBool();
-
-	db().columnSetComputedInfo(_id, _analysisId, _invalidated, _codeType, _rCode, _error, constructorJsonStr(), _computeFilter);
-	
 	deserializeLabelsForCopy(json["labels"]);
 
 	_emptyValues->fromJson(json["customEmptyValues"]);
-	
+
+	emit beginResetModel();
 	size_t i=0;
 	_dbls.resize(json["dbls"].size());
 	for (const Json::Value& dblJson : json["dbls"])
@@ -2218,9 +2295,13 @@ void Column::deserialize(const Json::Value &json)
 	for (const Json::Value& intJson : json["ints"])
 		_ints[i++] = intJson.asInt();
 	
+	emit endResetModel();
+	
 	assert(_ints.size() == _dbls.size());
 	
 	dbUpdateValues();
+	
+	emit 
 }
 
 std::string Column::getUniqueName(const std::string &name) const
@@ -2366,3 +2447,319 @@ bool Column::initFromLookups(const std::string & newName, size_t rows, const std
 
 	return anyChanges || type() != prevType;
 }
+
+
+int Column::rowCount(const QModelIndex &parent) const
+{
+	return parent.isValid() ? 0 : _dbls.size();
+}
+
+int Column::columnCount(const QModelIndex &parent) const
+{
+	return parent.isValid() ? 0 : 3;
+}
+
+QVariant Column::headerData(int section, Qt::Orientation orientation, int role) const
+{
+
+	if (section < 0 || section >= (orientation == Qt::Horizontal ? columnCount() : rowCount()))
+		return QVariant();
+	
+	JASPTIMER_SCOPE(Column::headerData);
+	
+	if(orientation == Qt::Vertical)
+		switch(role)
+		{
+		default:
+			return QVariant();
+	
+		case int(dataPkgRoles::maxRowHeaderString):
+			return QString::number(rowCount()) + "XXX";
+	
+		case Qt::DisplayRole:
+			return QVariant(section + 1);
+		}
+	else
+	{
+		switch(section)
+		{
+		case 0:		return tr("Filter");
+		case 1:		return tr("Value");
+		case 2:		return tr("Label");
+		}
+	}
+	
+	return QVariant();
+}
+
+QVariant Column::data(const QModelIndex &index, int role) const
+{
+	JASPTIMER_SCOPE(Column::data);
+	
+	if(index.row() >= rowCount() || index.row() < 0 || index.column() >= columnCount() || index.column() < 0)
+		return QVariant();
+	
+	if(role == Qt::DisplayRole) //You can specifically ask for the role you want, but the default one will show something according with headerData
+		role = [](int c){ return int(c == 0 ? dataPkgRoles::filter : c == 1 ? dataPkgRoles::value : dataPkgRoles::label); }(index.column());
+	
+	Label * label = labelByIndexNonEmpty(index.row());
+	
+	if(!label)
+		return QVariant();
+	
+	switch(role)
+	{
+	case int(dataPkgRoles::nonFilteredNumericValuesCount):	return nonFilteredNumericsCount();
+	case int(dataPkgRoles::nonFilteredLevels):				return tq(nonFilteredLevels());
+	case int(dataPkgRoles::valuesDblList):					return getColumnValuesAsDoubleList();
+	case int(dataPkgRoles::description):					return tq(label->description());
+	case int(dataPkgRoles::filter):							return label->filterAllows();
+	case int(dataPkgRoles::value):							return tq(label->originalValueAsString());
+	case int(dataPkgRoles::lines):							return data()->getDataSetViewLines(index.row() == 0, index.column() == 0, true, true);
+	case int(dataPkgRoles::label):							[[fallthrough]];
+	case Qt::DisplayRole:									[[fallthrough]];
+	case int(dataPkgRoles::noSepaDisplay):					return tq(label->label());
+	default:												return QVariant();
+	}
+}
+
+bool Column::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+	JASPTIMER_SCOPE(Column::setData);
+	
+	if(index.column() >= columnCount() || index.row() >= rowCount() || index.column() < 0 || index.row() < 0)
+		return false;
+
+
+	switch(role)
+	{
+	case int(dataPkgRoles::filter):
+		if(value.typeId() != QMetaType::Bool) 
+			return false;
+
+		return setLabelAllowFilter(index.row(), value.toBool());
+
+	case int(dataPkgRoles::description):
+		return setLabelDescription(index.row(), value.toString());
+
+	case int(dataPkgRoles::value):
+		return setLabelValue(index.row(),  value.toString());
+
+	case int(dataPkgRoles::label):
+		return setLabelDisplay(index.row(), value.toString());
+		
+	default:
+		return false;
+	}
+	  
+}
+
+void Column::refresh(bool doDataChanged)	
+{ 
+	beginResetModel();
+	endResetModel(); 
+	
+	if(doDataChanged)
+		data()->columnRefreshed(this);
+}
+
+
+bool Column::setLabelDescription(int labelRow, const QString & newDescription)
+{
+	JASPTIMER_SCOPE(Column::setLabelDescription);
+
+	Label		*	label	= labelByIndexNonEmpty(labelRow);
+	label->setDescription(newDescription.toStdString());
+
+	emit dataChanged(index(labelRow, 0),	index(labelRow, columnCount()), {int(dataPkgRoles::description), Qt::DisplayRole});
+
+	return true;
+}
+
+bool Column::setLabelDisplay(int labelRow, const QString &newLabel)
+{
+	JASPTIMER_SCOPE(Column::setLabelDisplay);
+
+	Label			*	label		= labelByIndexNonEmpty(labelRow);
+	bool				aChange		= false,
+						setManual	= false;
+
+	if(label->setLabel(fq(newLabel)))
+	{
+		aChange = true;
+
+		if(data()->dataFileCanHaveLabels())
+			setManual = true;
+	}
+
+	if(aChange)
+	{
+		emit columnChanged(this);
+		emit dataSetShouldRefresh();
+
+		if(setManual)
+			emit manualEditMade();
+
+		emit dataChanged(index(labelRow, 0),	index(labelRow, columnCount()), {int(dataPkgRoles::label), Qt::DisplayRole});
+	}
+
+	return aChange;
+}
+
+bool Column::setLabelValue(int labelRow, const QString &newLabelValue)
+{
+	JASPTIMER_SCOPE(Column::setLabelValue);
+
+	Label			*	label		= labelByIndexNonEmpty(labelRow);
+	bool				aChange		= false,
+						aNumber		= false;
+
+	Json::Value originalValue = newLabelValue.toStdString();
+
+	int		anInteger;
+	double	aDouble;
+
+	if(	(aNumber =	ColumnUtils::getDoubleValue(newLabelValue.toStdString(), aDouble))	)	originalValue = aDouble;
+	if(				ColumnUtils::getIntValue(	newLabelValue.toStdString(), anInteger)	)	originalValue = anInteger;
+
+	{
+		// Here we will overwrite the original value with the new origval.
+		// but if the label is the same as the original value we want to make the users life easier and replace it as well.
+		// this makes sense if the user is changing a string or number. But if the user is recoding, so turning values from str => dbl
+		// then we dont want to do this, because then the label should be different afterwards.
+
+		//summarized:
+		// if orgval == label then:
+		// if (oldorigval == dbl && newOrigVal == dbl) || (olorigval != dbl && newOrigVal != dbl)  then replace both
+		// if neworigval == dbl and oldorigval != dbl then replace only value
+
+		// But only if we are allowed to change both because of https://github.com/jasp-stats/INTERNAL-jasp/issues/2680 (allow editing of only value/label and disable the other one for computed columns
+		// which means that if this column is a computed column of scale type we are only allowed to change the label and only the value for the other types.
+		// so in this case this means that if it is a computed column, and of type !scale we do *not* also update the label when updating the value. Because otherwise it would override the data from the computed column...
+
+		bool dontSetLabel = label->originalValueAsString(false) != label->labelDisplay() || (originalValue.isDouble() && !label->originalValue().isDouble());
+
+		if(!dontSetLabel && isComputed() && type() != columnType::scale)
+			dontSetLabel = true;
+
+		if(dontSetLabel)	aChange = label->setOriginalValue(originalValue)	||	aChange;
+		else				aChange = label->setOrigValLabel(originalValue)		||	aChange;
+	}
+
+	labelsHandleAutoSort();
+
+	if(aChange)
+	{
+		emit columnChanged(this);
+		emit manualEditMade();
+	}
+
+	return aChange;
+}
+
+bool Column::setLabelAllowFilter(int labelRow, bool newAllowValue)
+{
+	JASPTIMER_SCOPE(Column::setLabelAllowFilter);
+
+	Label			*	label = labelByIndexNonEmpty(labelRow);
+	bool	atLeastOneRemains = newAllowValue;
+
+	if(!atLeastOneRemains) //Do not let the user uncheck every single one because that is useless, the user wants to uncheck row so lets see if there is another one left after that.
+		for(size_t i=0; i< labels().size(); i++)
+		{
+			if(i != labelRow && labels()[i]->filterAllows())
+			{
+				atLeastOneRemains = true;
+				break;
+			}
+			else if(i == labelRow && labels()[i]->filterAllows() == newAllowValue) //Did not change!
+				return true;
+		}
+
+	atLeastOneRemains = atLeastOneRemains || labelsNonEmptyCount() > labels().size();
+
+	if(atLeastOneRemains)
+	{
+		bool before = hasLabelFilter();
+		Label * label = labelByIndexNonEmpty(labelRow);
+		label->setFilterAllows(newAllowValue);
+
+		if(before != hasLabelFilter())
+			emit dataSetShouldRefresh();
+
+		emit labelFilterChanged();
+		emit dataChanged(index(labelRow, 0), index(labelRow, columnCount()), { int(dataPkgRoles::filter), Qt::DisplayRole });
+
+		return true;
+	}
+	else
+		return false;
+}
+
+QList<QVariant> Column::getColumnValuesAsDoubleList()	const
+{
+	QList<QVariant> list;
+
+	for (double value : dbls())
+		list.append(value);
+
+	return list;
+}
+
+std::string	Column::generateLabelFilter() const
+{
+	JASPTIMER_SCOPE(Column::generateLabelFilter);
+
+	boolvec				filterAllows	= getFilterAllows();
+	stringvec			labels			= nonEmptyLevelsStrings();
+	int					pos				= std::count_if(filterAllows.begin(), filterAllows.end(), [](bool f){ return f; }),
+						cnt				= 0;
+	bool				bePositive		= pos <= filterAllows.size() - pos;
+	std::stringstream	out;
+
+	for(size_t row=0; row<filterAllows.size(); row++)
+		if(filterAllows[row] == bePositive)
+			out << (cnt++ > 0 ? (bePositive ? " | " : " & ") : "")
+				<< name()
+				<< ".nominal"	//Also make sure we use .nominal because otherwise we might be comparing to the value instead...
+				<< (bePositive ? " == \"" : " != \"")
+				<< labels[row] << "\"";
+
+	return "(" + out.str() + ")";
+}
+
+boolvec Column::getFilterAllows() const
+{
+	boolvec list;
+	list.reserve(labelsNonEmptyCount());
+
+	for (const Label * label : labels())
+		list.push_back(label->filterAllows());
+
+	while(list.size() < labelsNonEmptyCount())
+		list.push_back(true);
+
+	return list;
+}
+
+void Column::resetFilterAllows()
+{
+	resetFilter();
+	nonFilteredCountersReset();
+
+	emit columnChanged(this);
+}
+
+int Column::filteredOut() const
+{
+
+	int			filteredOut = 0;
+
+	for(const Label * label : _labels)
+		if(!label->filterAllows() && !label->isEmptyValue())
+			filteredOut++;
+
+	return filteredOut;
+}
+
+

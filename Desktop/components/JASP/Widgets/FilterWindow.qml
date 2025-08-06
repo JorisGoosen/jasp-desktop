@@ -16,15 +16,15 @@ FocusScope
 	property int	desiredHeight:			easyFilterConstructor.desiredHeight
 	
 	onShowEasyFilterChanged:	if(!showEasyFilter) absorbModelRFilter()
-	onVisibleChanged:			if(!visible) filterWindow.close()
+	onVisibleChanged:			if(!visible)		filterWindow.close()
 
 	Connections
 	{
-		target:	 filterModel
+		target:	 filterModel.filter
 		function onRFilterChanged()			{ absorbModelRFilter();				}
 		function onFilterErrorMsgChanged()	
 		{ 
-			if (filterModel.filterErrorMsg.length > 0 && !visible) 
+			if (filterModel.filter.filterErrorMsg.length > 0 && !visible) 
 			{
 				open();	
 				
@@ -69,7 +69,7 @@ FocusScope
 
 	function absorbModelRFilter()
 	{
-		filterEdit.text = filterModel.rFilter
+		filterEdit.text = filterModel.filter.rFilter
 	}
 
 	signal rCodeChanged(string rScript)
@@ -307,7 +307,7 @@ FocusScope
 					Rectangle
 					{
 						id:				filterGeneratedBox
-						height:			filterGeneratedEdit.contentHeight
+						height:			filterGeneratedEdit.height
 						color:			"transparent"
 						border.color:	"lightGray"
 						border.width:	1
@@ -331,8 +331,8 @@ FocusScope
 							anchors.top:			filterGeneratedBox.top
 							anchors.left:			resetAllGeneratedFilters.right
 							anchors.right:			filterGeneratedBox.right
-							text:					filterModel.generatedFilter +"\n"
-							height:					contentHeight
+							text:					filterModel.filter.generatedFilter
+							height:					implicitHeight
 							readOnly:				true
 							color:					jaspTheme.grayDarker
 							selectByMouse:			true
@@ -386,7 +386,7 @@ FocusScope
 							wrapMode:				TextArea.WrapAtWordBoundaryOrAnywhere
 							color:					jaspTheme.textEnabled
 
-							property bool changedSinceLastApply: text !== filterModel.rFilter
+							property bool changedSinceLastApply: text !== filterModel.filter.rFilter
 
 							Keys.onReturnPressed:	(keyEvent) => {
 														if(keyEvent.modifiers & Qt.ControlModifier)
@@ -450,7 +450,7 @@ FocusScope
 					id:						filterError
 					color:					jaspTheme.red
 					readOnly:				true
-					text:					filterModel.filterErrorMsg + "\n"
+					text:					filterModel.filter.filterErrorMsg + "\n"
 					selectByMouse:			true
 					onActiveFocusChanged:	if(!activeFocus) deselect()
 					font.family:			jaspTheme.fontCode.family
@@ -461,13 +461,13 @@ FocusScope
 						State
 						{
 							name: "closed"
-							when: filterModel.filterErrorMsg.length === 0
+							when: filterModel.filter.filterErrorMsg.length === 0
 							PropertyChanges { target: filterErrorScroll; visible: false; height: 0 }
 						},
 						State
 						{
 							name: "opened"
-							when: filterModel.filterErrorMsg.length > 0
+							when: filterModel.filter.filterErrorMsg.length > 0
 							PropertyChanges { target: filterErrorScroll; visible: true; height: filterError.contentHeight} //Math.min( , filterWindow.minimumHeightTextBoxes)
 						}
 					]
@@ -522,7 +522,7 @@ FocusScope
 					onClicked:	filterWindow.resetFilter()
 					width:		visible ? implicitWidth : 0
 					height:		filterContainer.buttonsHeight
-					visible:	filterEdit.text !== filterModel.defaultRFilter
+					visible:	filterEdit.text !== filterModel.filter.defaultRFilter
 					toolTip:	qsTr("Reset to default filter")
 
 					anchors
@@ -537,7 +537,7 @@ FocusScope
 				{
 					id: applyFilter
 
-					property bool filterIsDefault: filterEdit.text === filterModel.defaultRFilter
+					property bool filterIsDefault: filterEdit.text === filterModel.filter.defaultRFilter
 
 					text:			qsTr("Apply pass-through filter")
 					anchors.left:	clearRectangularButton.right

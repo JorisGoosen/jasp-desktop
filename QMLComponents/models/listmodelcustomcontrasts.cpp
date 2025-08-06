@@ -17,7 +17,7 @@
 //
 
 #include "log.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "listmodelcustomcontrasts.h"
 #include "analysisform.h"
 #include "r_functionwhitelist.h"

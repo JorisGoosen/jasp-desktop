@@ -1,5 +1,5 @@
 #include "importer.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "log.h"
 #include <QVariant>
 #include "../datasetpackage.h"

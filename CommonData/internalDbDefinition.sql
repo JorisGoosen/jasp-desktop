@@ -20,6 +20,7 @@ CREATE TABLE Filters (
 	constructorJson TEXT, 
 	constructorR	TEXT, 
 	errorMsg		TEXT,
+	invalidated		INT DEFAULT 1,
 	revision		INT DEFAULT 0, 
 	
 	FOREIGN KEY(dataSet) REFERENCES DataSets(id)

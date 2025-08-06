@@ -24,7 +24,7 @@
 #include "analyses.h"
 #include "analysisform.h"
 //#include <boost/bind.hpp>
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "utilities/settings.h"
 #include "utilities/reporter.h"
 #include "gui/preferencesmodel.h"

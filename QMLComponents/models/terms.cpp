@@ -19,7 +19,7 @@
 #include "terms.h"
 
 #include <QSet>
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "variableinfo.h"
 
 using namespace std;

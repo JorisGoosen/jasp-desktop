@@ -35,6 +35,7 @@
 #include <string>
 #include <vector>
 #include <json/json.h>
+#include "columntype.h"
 #include <QItemSelection>
 
 /// This file collect a set of useful functions for interop between Qt and stdlib, like `fq` and `tq` for easily converting to and fro normal strings and whatnot
@@ -96,8 +97,10 @@ void set##WHAT_TO_SET(TYPE new##WHAT_TO_SET)								\
 	}																		\
 }
 
-class QColumnUtils
+class QColumnUtils : public QObject
 {
+	Q_OBJECT
+	
 public:	
 	static bool					getIntValue(	const QString		& value, int	& intValue);
 	static bool					getDoubleValue(	const QString		& value, double	& doubleValue, bool useLocale = true);
@@ -112,12 +115,14 @@ public:
 	static QString				doubleToString(			double dbl, int precision = 10);
 	static QString				doubleToStringMaxPrec(	double dbl);
 	static QString				currencyString(			double money, const QString &symbol = QString());
+	static QString				getTypeFriendly(columnType colType);
 	
 	
     static void					setOmitGroupSeparatorOnQLocale(QLocale & locale);
 	static void					setCallbacksAndDefaultLocale(const QLocale & locale, bool useThousandSeps);
 	
 
+	
 private:
 	static QString				_lastQLocaleId;
 	static QLocale				_lastQLocale;

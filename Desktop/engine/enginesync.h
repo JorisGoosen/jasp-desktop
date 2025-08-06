@@ -109,7 +109,7 @@ signals:
 private:
 	//These process functions can request a new engine to be started:
 	stringset	processRCodeQueue();
-	bool		processComputedColumnQueue();
+	bool		processComputedColumnueue();
 	stringset	processDynamicModules();
 	stringset	processAnalysisRequests();	///< Returns modules that still need an engine
 	

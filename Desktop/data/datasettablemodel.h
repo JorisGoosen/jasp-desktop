@@ -19,12 +19,12 @@
 #ifndef DATASETTABLEMODEL_H
 #define DATASETTABLEMODEL_H
 
-#include "datasettableproxy.h"
-
+#include "datasetpackage.h"
+#include <QSortFilterProxyModel>
 
 ///
 /// Makes sure that the data from DataSetPackage is properly filtered (and possible sorted) and then passed on as a normal table-model to QML
-class DataSetTableModel : public DataSetTableProxy
+class DataSetTableModel : public QSortFilterProxyModel
 {
 	Q_OBJECT
 	Q_PROPERTY(int	columnsFilteredCount	READ columnsFilteredCount							NOTIFY columnsFilteredCountChanged)
@@ -33,7 +33,7 @@ class DataSetTableModel : public DataSetTableProxy
 public:
 	explicit				DataSetTableModel(bool showInactive = true);
 	bool					filterAcceptsRow(int source_row, const QModelIndex & source_parent)	const override;
-
+	
 				int			columnsFilteredCount()					const				{ return DataSetPackage::pkg()->columnsFilteredCount();								}
 	Q_INVOKABLE bool		isColumnNameFree(QString name)								{ return DataSetPackage::pkg()->isColumnNameFree(name);								}
 	Q_INVOKABLE QString		columnName(int column)					const;
@@ -63,7 +63,8 @@ signals:
 
 public slots:
 	void					setShowInactive(bool showInactive);
-				//void		onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles) { if( roles.count(int(DataSetPackage::specialRoles::filter)) > 0) invalidateFilter(); }
+	void					handleDataSetChange();
+				//void		onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles) { if( roles.count(int(dataPkgRoles::filter)) > 0) invalidateFilter(); }
 
 
 private:

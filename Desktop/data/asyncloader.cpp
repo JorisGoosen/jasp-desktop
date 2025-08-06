@@ -25,7 +25,7 @@
 
 #include <boost/bind.hpp>
 
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "utils.h"
 #include "osf/onlinedatamanager.h"
 #include "log.h"
@@ -282,7 +282,6 @@ void AsyncLoader::loadPackage(QString id)
 		{
 			Log::log() << "Runtime Exception in loadPackage: " << e.what() << std::endl;
 
-			DataSetPackage::pkg()->dbDelete();
 			DataSetPackage::pkg()->deleteDataSet(); //Make sure we dont keep failed stuff in memory
 
 			if (dataNode != nullptr)

@@ -362,7 +362,7 @@ void TempFiles::deleteStrayRootFiles(const stringvec& validIDs, long outOfDateDe
 	{
 		std::filesystem::path p = itr->path();
 
-		Log::log() << "looking at file " << p.string() << std::endl;
+		//Log::log() << "looking at file " << p.string() << std::endl;
 
 		string fileName		= Utils::osPath(p.filename());
 		bool is_directory	= std::filesystem::is_directory(p, error);

@@ -1,11 +1,8 @@
 #ifndef DATASETBASENODE_H
 #define DATASETBASENODE_H
 
-#include "enumutilities.h"
-#include <functional>
-
-DECLARE_ENUM(dataSetBaseNodeType,	unknown, dataSet, data, filters, filter, column, label);
-
+#include "dataenums.h"
+#include <QAbstractTableModel>
 
 /// Special class to be used as nodes in the overall "data"-structure, also used in QModelIndex pointer in DataSetPackage
 /// 
@@ -16,12 +13,13 @@ DECLARE_ENUM(dataSetBaseNodeType,	unknown, dataSet, data, filters, filter, colum
 /// 
 /// This structure of children and parents is used to both mirror the database as the necessary structure for all
 /// derived classes and is the underlying treemodel for DataSetPackage
-class DataSetBaseNode
+class DataSetBaseNode : public QAbstractTableModel
 {
+	Q_OBJECT
 public:
 			typedef std::set<DataSetBaseNode*> NodeSet;
 	
-									DataSetBaseNode(dataSetBaseNodeType typeNode, DataSetBaseNode * parent = nullptr);
+									DataSetBaseNode(dataSetBaseNodeType typeNode, QObject * parent = nullptr);
 									~DataSetBaseNode();
 	
 			dataSetBaseNodeType		nodeType() const { return _type; }
@@ -33,12 +31,11 @@ public:
 			DataSetBaseNode		*	parent() const { return _parent; }
 	
 	virtual	void					incRevision();	///< Any overrides MUST call checkForChanges()
+			QHash<int, QByteArray>	roleNames() const override;
 	
 			int						revision() { return _revision; }
 			int						nestedRevision();
-			
-			void					setModifiedCallback(std::function<void()> callback); ///< Should only be call for topnodes like DataSet. 
-	
+
 protected:
 			void					checkForChanges();
 			
@@ -47,9 +44,11 @@ protected:
 			NodeSet					_children;
 			int						_revision	= 1; ///< We use revision both inside the database to track whether a node should be reloaded. but also to set packageModified in DataSetPackage on changes
 			
+signals:
+			void					somethingModified();
+			
 private:
-			int						_previousNestedRevision;
-			std::function<void()>	_somethingModifiedCallback;			
+			int						_previousNestedRevision;			
 };
 
 #endif // DATASETBASENODE_H

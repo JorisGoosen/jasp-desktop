@@ -25,7 +25,7 @@
 #include "boundcontrols/boundcontrol.h"
 #include "analysisbase.h"
 #include "models/listmodel.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include <queue>
 
 class ListModelTermsAssigned;

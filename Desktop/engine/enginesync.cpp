@@ -28,7 +28,7 @@
 #include "tempfiles.h"
 #include <json/json.h>
 #include "processinfo.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "utilities/appdirs.h"
 #include "analysis/analyses.h"
 #include "gui/preferencesmodel.h"
@@ -434,7 +434,7 @@ void EngineSync::process()
 
 	if(_stopProcessing || _dataMode || _filterRunning)
 	{
-		if ((_dataMode) && processComputedColumnQueue())
+		if ((_dataMode) && processComputedColumnueue())
 			startExtraEngines(1);
 		return;
 	}
@@ -444,7 +444,7 @@ void EngineSync::process()
 	
 	//So we try to distribute some work to each engine as below:
 	stringset	notEnoughIdlesForScript		=	processRCodeQueue();
-	bool		notEnoughIdlesForCompCol	=	processComputedColumnQueue();
+	bool		notEnoughIdlesForCompCol	=	processComputedColumnueue();
 	stringset	notEnoughIdlesForModule		=	processDynamicModules();
 	auto		notEnoughIdlesForAnalysis	=	processAnalysisRequests();
 	bool		notEnoughIdles				=	notEnoughIdlesForCompCol || notEnoughIdlesForScript.size() || notEnoughIdlesForModule.size() || notEnoughIdlesForAnalysis.size();
@@ -707,7 +707,7 @@ stringset EngineSync::processRCodeQueue()
 	return {};
 }
 
-bool EngineSync::processComputedColumnQueue()
+bool EngineSync::processComputedColumnueue()
 {
 	bool needEngine = false;
 	try
@@ -744,7 +744,7 @@ bool EngineSync::processComputedColumnQueue()
 	}
 	catch(...)
 	{
-		Log::log() << "Exception thrown in processComputedColumnQueue" << std::endl;
+		Log::log() << "Exception thrown in processComputedColumnueue" << std::endl;
 	}
 	
 	return needEngine;
@@ -1164,6 +1164,7 @@ void EngineSync::enginesPrepareForData()
 	//	if(!engine->paused())
 	//		engine->killEngine();
 }
+
 
 void EngineSync::enginesReceiveNewData()
 {

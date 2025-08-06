@@ -24,7 +24,7 @@
 
 #include <set>
 #include "analysisbase.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "modules/dynamicmodules.h"
 #include <QFileSystemWatcher>
 #include <QQuickItem>

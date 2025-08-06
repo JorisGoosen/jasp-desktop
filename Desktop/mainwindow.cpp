@@ -53,7 +53,7 @@
 
 #include "resultstesting/compareresults.h"
 
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "utilities/appdirs.h"
 #include "utilities/settings.h"
 #include "utilities/qmlutils.h"
@@ -105,7 +105,7 @@ MainWindow::MainWindow(Application * application) : QObject(application), _appli
 	_engineSync				= new EngineSync(this);
 	_datasetTableModel		= new DataSetTableModel();
 	_dataSetModelVarInfo	= new DataSetTableModel(false);
-	_columnModel			= new ColumnModel(_datasetTableModel);
+	_columnModel			= new ColumnModel();
 	
 	initLog(); //initLog needs _preferences and _engineSync!
 
@@ -113,11 +113,10 @@ MainWindow::MainWindow(Application * application) : QObject(application), _appli
 
 	_resultsJsInterface		= new ResultsJsInterface();
 	_odm					= new OnlineDataManager(this);
-	_labelFilterGenerator	= new labelFilterGenerator(_columnModel,		this);
 	_columnsModel			= new ColumnsModel(_dataSetModelVarInfo);			// We do not want filtered-out columns/levels to be selectable in other guis, see: https://github.com/jasp-stats/INTERNAL-jasp/issues/2322
 	_workspaceModel			= new WorkspaceModel(this);
 	_computedColumnsModel	= new ComputedColumnModel();
-	_filterModel			= new FilterModel(_labelFilterGenerator);
+	_filterModel			= new FilterModel(this);
 	_ribbonModel			= new RibbonModel();
 	_ribbonModelFiltered	= new RibbonModelFiltered(this, _ribbonModel);
 	_ribbonModelUncommon	= new RibbonModelUncommon(this, _ribbonModel);
@@ -383,10 +382,9 @@ void MainWindow::makeConnections()
 	connect(this,					&MainWindow::dataAvailableChanged,					_ribbonModel,			&RibbonModel::dataLoadedChanged								);
 	connect(this,					&MainWindow::dataAvailableChanged,					this,					&MainWindow::checkEmptyWorkspace							);
 	connect(this,					&MainWindow::analysesAvailableChanged,				this,					&MainWindow::checkEmptyWorkspace							);
-
+	connect(this,					&MainWindow::resetVariableTypes,					_package,				&DataSetPackage::resetVariableTypes							);
 
 	connect(_package,				&DataSetPackage::synchingExternallyChanged,			_ribbonModel,			&RibbonModel::synchronisationChanged						);
-	connect(_package,				&DataSetPackage::datasetChanged,					_filterModel,			&FilterModel::datasetChanged,								Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::datasetChanged,					_computedColumnsModel,	&ComputedColumnModel::datasetChanged,						Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::checkForDependentColumnsToBeSent,	_computedColumnsModel,	&ComputedColumnModel::checkForDependentColumnsToBeSentSlot	);
 	connect(_package,				&DataSetPackage::datasetChanged,					_columnsModel,			&ColumnsModel::datasetChanged								);
@@ -402,15 +400,16 @@ void MainWindow::makeConnections()
 	connect(_package,				&DataSetPackage::dataModeChanged,					_engineSync,			&EngineSync::dataModeChanged								);
 	connect(_package,				&DataSetPackage::dataModeChanged,					this,					&MainWindow::onDataModeChanged								);
 	connect(_package,				&DataSetPackage::askUserForExternalDataFile,		this,					&MainWindow::startDataEditorHandler							);
-	connect(_package,				&DataSetPackage::makeAnAutoSave,					this,					&MainWindow::saveTmpFileHandler								);
-	
-	connect(_package,				&DataSetPackage::runFilter,							_filterModel,			&FilterModel::sendGeneratedAndRFilter						);
+	connect(_package,				&DataSetPackage::makeAnAutoSave,					this,					&MainWindow::saveTmpFileHandler								); 
 	connect(_package,				&DataSetPackage::showWarning,						_msgForwarder,			&MessageForwarder::showWarningQML,							Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::synchingExternallyChanged,			_fileMenu,				&FileMenu::dataAutoSynchronizationChanged					);
 	connect(_package,				&DataSetPackage::workspaceEmptyValuesChanged,		_analyses,				&Analyses::refreshAllAnalyses								);
 	connect(_package,				&DataSetPackage::refreshAllAnalyses,				_analyses,				&Analyses::refreshAllAnalyses,								Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::refreshAllCompCols,				_computedColumnsModel,	&ComputedColumnModel::invalidateAllColumns,					Qt::QueuedConnection);
-	
+	connect(_package,				&DataSetPackage::sendFilter,						_engineSync,			&EngineSync::sendFilter										);
+	connect(_package,				&DataSetPackage::DataSetChanged,					_datasetTableModel,		&DataSetTableModel::handleDataSetChange						);
+	connect(_package,				&DataSetPackage::DataSetChanged,					_dataSetModelVarInfo,	&DataSetTableModel::handleDataSetChange						);
+
 	connect(_engineSync,			&EngineSync::computeColumnSucceeded,				_computedColumnsModel,	&ComputedColumnModel::computeColumnSucceeded				);
 	connect(_engineSync,			&EngineSync::computeColumnRemoved,					_computedColumnsModel,	&ComputedColumnModel::computeColumnRemoved					);
 	connect(_engineSync,			&EngineSync::computeColumnFailed,					_computedColumnsModel,	&ComputedColumnModel::computeColumnFailed					);
@@ -522,16 +521,6 @@ void MainWindow::makeConnections()
 	connect(_preferences,			&PreferencesModel::currentJaspThemeChanged,			dCSingleton,			&DesktopCommunicator::currentJaspThemeChanged	);
 	connect(dCSingleton,			&DesktopCommunicator::useNativeFileDialogSignal,	_preferences,			&PreferencesModel::useNativeFileDialog			);
 	connect(dCSingleton,			&DesktopCommunicator::engineSandboxSignal,			_preferences,			&PreferencesModel::engineSandbox				);
-
-
-	connect(_filterModel,			&FilterModel::refreshAllAnalyses,					_analyses,				&Analyses::refreshAllAnalyses,								Qt::QueuedConnection);
-	connect(_filterModel,			&FilterModel::refreshAllCompCols,					_computedColumnsModel,	&ComputedColumnModel::invalidateAllColumns,					Qt::QueuedConnection);
-	connect(_filterModel,			&FilterModel::updateColumnsUsedInConstructedFilter, _package,				&DataSetPackage::setColumnsUsedInEasyFilter					);
-	connect(_filterModel,			&FilterModel::filterUpdated,						_package,				&DataSetPackage::refresh									);
-	connect(_filterModel,			&FilterModel::filterUpdated,						[&]() { _package->resetFilterCounters(); emit _columnsModel->filterChanged(); }		);
-	connect(_filterModel,			&FilterModel::sendFilter,							_engineSync,			&EngineSync::sendFilter										);
-
-	connect(_labelFilterGenerator,	&labelFilterGenerator::setGeneratedFilter,			_filterModel,			&FilterModel::setGeneratedFilter,							Qt::QueuedConnection);
 
 	connect(_ribbonModel,			&RibbonModel::analysisClickedSignal,				_analyses,				&Analyses::analysisClickedHandler							);
 	connect(_ribbonModel,			&RibbonModel::showRCommander,						this,					&MainWindow::showRCommander									);
@@ -1000,12 +989,12 @@ void MainWindow::zoomResetKeyPressed()
 
 void MainWindow::undo()
 {
-	DataSetPackage::pkg()->undoStack()->undo();
+	UndoStack::singleton()->undo();
 }
 
 void MainWindow::redo()
 {
-	DataSetPackage::pkg()->undoStack()->redo();
+	UndoStack::singleton()->redo();
 }
 
 void MainWindow::syncKeyPressed()
@@ -1464,7 +1453,6 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 			_resultsJsInterface->resetResults();
 			_analyses->setVisible(false);
 			_analyses->clear();
-			_package->dbDelete();
 			_package->reset(false);
 			_ribbonModel->showStatistics();
 			_fileMenu->buttonsForEmptyWorkspace();

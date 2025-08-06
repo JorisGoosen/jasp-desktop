@@ -1,6 +1,6 @@
 #include "odsxmlcontentshandler.h"
 #include "odsimportcolumn.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 
 using namespace std;
 using namespace ods;
