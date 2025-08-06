@@ -2,6 +2,7 @@
 #include "filter.h"
 #include "timers.h"
 #include "dataset.h"
+#include "jsonutilities.h"
 #include "databaseinterface.h"
 
 Filter::Filter(DataSet * data)
@@ -33,7 +34,7 @@ void Filter::dbUpdate()
 	if(!_data->writeBatchedToDB())
 	{
 		db().transactionWriteBegin();
-		db().filterUpdate(_id, _rFilter, _generatedFilter, _constructorJson, _constructorR, _name);
+		db().filterUpdate(_id, _rFilter, _generatedFilter, _constructorJson, _constructorR, _name, _invalidated);
 
 		incRevision();
 		db().transactionWriteEnd();
@@ -46,8 +47,11 @@ void Filter::dbUpdateErrorMsg()
 	
 	if(!_data->writeBatchedToDB())
 	{
+		auto oldError = _errorMsg;
 		db().transactionWriteBegin();
 		db().filterUpdateErrorMsg(_id, _errorMsg);
+		if(oldError != _errorMsg)
+			_errorMsgChanged();
 		incRevision();
 		db().transactionWriteEnd();
 	}
@@ -63,17 +67,23 @@ void Filter::dbLoad()
 
 	db().transactionReadBegin();
 	
+	auto	oldRFilter			= _rFilter,
+			oldGeneratedFilter	= _generatedFilter,
+			oldConstructorJson	= _constructorJson,
+			oldConstructorR		= _constructorR;
+
 	std::string nameInDB = "";
-	db().filterLoad(_id, _rFilter, _generatedFilter, _constructorJson, _constructorR, _revision, nameInDB);
+	db().filterLoad(_id, _rFilter, _generatedFilter, _constructorJson, _constructorR, _revision, nameInDB, _invalidated);
 	assert(nameInDB == _name);
 
-	_filteredRowCount	= 0;
+	rescanForColumns();
 
-	db().filterSelect(_id, _filtered);
-
-	for(bool f : _filtered)
-		if(f)
-			_filteredRowCount++;
+	if(oldRFilter			!= _rFilter)			_rFilterChanged();
+	if(oldGeneratedFilter	!= _generatedFilter)	_generatedFilterChanged();
+	if(oldConstructorJson	!= _constructorJson)	_constructorJsonChanged();
+	if(oldConstructorR		!= _constructorR)		_constructorRChanged();
+	
+	dbLoadResultAndError();
 
 	db().transactionReadEnd();
 }
@@ -96,14 +106,10 @@ bool Filter::setFilterVector(const boolvec & filterResult)
 			_filtered[i] = filterResult[i];
 		}
 
-	_filteredRowCount = 0;
-
 	if(!_data->writeBatchedToDB())
 		db().filterWrite(_id, _filtered);
 
-	for(bool row : _filtered)
-		if(row)
-			_filteredRowCount++;
+	calculateFilteredRowCount();
 
 	if(changed)
 		incRevision();
@@ -121,19 +127,18 @@ void Filter::setRowCount(size_t rows)
 	_filtered.resize(rows);
 }
 
-bool Filter::dbLoadResultAndError()
+void Filter::dbLoadResultAndError()
 {
 	assert(_id != -1);
 	
 	_errorMsg = db().filterLoadErrorMsg(_id);
-	 bool changed = db().filterSelect(_id, _filtered);
 
-	 _filteredRowCount = 0;
-	 for(bool f : _filtered)
-		 if(f)
-			 _filteredRowCount++;
+	 if(db().filterSelect(_id, _filtered))
+		_filteredChanged(); 
+	 
+	 calculateFilteredRowCount();
+	 
 
-	 return changed;
 }
 
 void Filter::dbDelete()
@@ -176,6 +181,113 @@ bool Filter::checkForUpdates()
 		return false;
 }
 
+void Filter::setName(const std::string &name)
+{
+	bool	wasChange	=_name != name;
+			_name		= name;
+
+	dbUpdate();
+
+	if(wasChange)
+		_nameChanged();
+}
+
+void Filter::setRFilter(const std::string &rFilter)
+{
+	bool	wasChange	=_rFilter != rFilter;
+			_rFilter	= rFilter;
+
+	rescanForColumns();
+
+	dbUpdate();
+
+	if(wasChange)
+		_rFilterChanged();
+}
+
+void Filter::calculateFilteredRowCount()
+{
+	int newRowCount = 0;
+	for(bool f : _filtered)
+		if(f)
+			newRowCount++;
+
+	bool wasChange = newRowCount != _filteredRowCount;
+	_filteredRowCount = newRowCount;
+
+	if(wasChange)
+		_filteredRowCountChanged();
+}
+
+void Filter::setGeneratedFilter(const std::string &generatedFilter)
+{
+	bool	wasChange			=_generatedFilter != generatedFilter;
+			_generatedFilter	= generatedFilter;
+
+	dbUpdate();
+
+	if(wasChange)
+		_generatedFilterChanged();
+}
+
+
+void Filter::setConstructorJson(const std::string &constructorJson)	
+{ 
+	bool	wasChange					=_constructorJson != constructorJson;
+			_constructorJson			= constructorJson;
+
+	rescanForColumns();
+
+	dbUpdate(); 
+
+	if(wasChange)
+		_constructorJsonChanged();
+}
+
+void Filter::setConstructorR(const std::string &constructorR)
+{
+	bool	wasChange		=_constructorR != constructorR;
+			_constructorR	= constructorR;
+
+	dbUpdate();
+
+	if(wasChange)
+		_constructorRChanged();
+}
+
+void Filter::setInvalidated(bool invalidated)
+{
+	bool	wasChange		=_invalidated != invalidated;
+			_invalidated	= invalidated;
+
+	dbUpdate();
+
+	if(wasChange)
+		_invalidatedChanged();
+
+}
+
+void Filter::setErrorMsg(const std::string &errorMsg)
+{
+	bool	wasChange	= _errorMsg != errorMsg;
+			_errorMsg	= errorMsg;
+
+	dbUpdateErrorMsg();
+
+	if(wasChange)
+		_errorMsgChanged();
+}
+
+stringset Filter::columnsUsedInConstructor() const
+{
+	return _columnsInConstructorJson;
+}
+
+stringset Filter::columnsUsedInRFilter() const
+{
+	return _columnsUsedInRFilter;
+}
+
 bool Filter::filterNameIsFree(const std::string &filterName)
 {
 	return -1 == DatabaseInterface::singleton()->filterGetId(filterName);
@@ -193,3 +305,8 @@ void Filter::reset()
 DatabaseInterface		& Filter::db()			{ return *DatabaseInterface::singleton(); }
 const DatabaseInterface & Filter::db() const	{ return *DatabaseInterface::singleton(); }
 
+void Filter::rescanForColumns()
+{
+	_columnsUsedInRFilter		= data()->findUsedColumnNames(_rFilter);
+	_columnsInConstructorJson	= JsonUtilities::convertDragNDropFilterJSONToSet(_constructorJson);
+}

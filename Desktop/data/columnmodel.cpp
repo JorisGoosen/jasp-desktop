@@ -4,12 +4,11 @@
 #include "columnutils.h"
 #include "utilities/qutils.h"
 #include "datasettablemodel.h"
+#include "data/models/columnq.h"
 #include "computedcolumnmodel.h"
 #include "gui/preferencesmodel.h"
 
-ColumnModel::ColumnModel(DataSetTableModel* dataSetTableModel)
-	: DataSetTableProxy(DataSetPackage::pkg()->labelsSubModel()),
-	  _dataSetTableModel{dataSetTableModel}
+ColumnModel::ColumnModel() : QIdentityProxyModel(DataSetPackage::pkg())
 {
 	connect(DataSetPackage::pkg(),	&DataSetPackage::filteredOutChanged,			this, &ColumnModel::filteredOutChangedHandler	);
 	connect(this,					&DataSetTableProxy::nodeChanged,				this, &ColumnModel::filteredOutChanged			);
@@ -502,11 +501,13 @@ void ColumnModel::filteredOutChangedHandler(int c)
 
 int ColumnModel::filteredOut() const
 {
+	this should obviously just be taken straight from the ColumnQ
 	return DataSetPackage::pkg()->filteredOut(chosenColumn());
 }
 
 void ColumnModel::resetFilterAllows()
 {
+	this should obviously just be done straight through the ColumnQ
 	DataSetPackage::pkg()->resetFilterAllows(chosenColumn());
 }
 
@@ -521,11 +522,11 @@ void ColumnModel::setVisible(bool visible)
 	emit visibleChanged(_visible);
 }
 
-Column * ColumnModel::column() const 
+ColumnQ * ColumnModel::column() const
 {
 	if (_virtual) return nullptr;
 
-	return static_cast<Column *>(node());
+	return static_cast<ColumnQ *>(node());
 }
 
 int ColumnModel::chosenColumn() const
@@ -875,7 +876,7 @@ void ColumnModel::_deleteLabel(int labelIndex)
 bool ColumnModel::columnIsFiltered() const
 {
 	if(column())
-		return column()->hasFilter();
+            return column()->hasLabelFilter();
 	return false;
 }
 

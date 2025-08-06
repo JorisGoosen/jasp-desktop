@@ -1,13 +1,13 @@
 #ifndef UNDOSTACK_H
 #define UNDOSTACK_H
 
+#include "utils.h"
 #include <QUndoStack>
-#include <QAbstractItemModel>
 #include <json/json.h>
-#include "stringutils.h"
+#include <QAbstractItemModel>
 
+class FilterQ;
 class ColumnModel;
-class FilterModel;
 class ComputedColumnModel;
 
 class UndoModelCommand : public QUndoCommand
@@ -89,13 +89,13 @@ private:
 class SetJsonFilterCommand: public UndoModelCommand
 {
 public:
-	SetJsonFilterCommand(QAbstractItemModel *model, FilterModel* filterModel, const QString& newJsonValue);
+	SetJsonFilterCommand(FilterQ * filter, const QString& newJsonValue);
 
 	void undo()					override;
 	void redo()					override;
 
 private:
-	FilterModel*			_filterModel = nullptr;
+	FilterQ				*	_filter;
 	QString					_oldJsonValue,
 							_newJsonValue;
 };
@@ -103,13 +103,13 @@ private:
 class SetRFilterCommand: public UndoModelCommand
 {
 public:
-	SetRFilterCommand(QAbstractItemModel *model, FilterModel* filterModel, const QString& newRValue);
+	SetRFilterCommand(FilterQ* filter, const QString& newRValue);
 
 	void undo()					override;
 	void redo()					override;
 
 private:
-	FilterModel*			_filterModel = nullptr;
+	FilterQ				*	_filter;
 	QString					_oldRFilter,
 							_newRFilter;
 };

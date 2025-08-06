@@ -220,6 +220,9 @@ bool Label::setFilterAllows(bool allowFilter)
 	{
 		_filterAllows = allowFilter;
 		dbUpdate();
+
+		_emitLabelFilterChanged();
+
 		return true;
 	}
 	return false;

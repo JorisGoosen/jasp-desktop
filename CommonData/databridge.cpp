@@ -179,19 +179,19 @@ void DataBridge::updateOptionsAccordingToMeta(Json::Value & encodedOptions)
 			if(loadFilteredData.isObject())
 			{
 				const std::string	colName = loadFilteredData["column"].asString(),
-					filterN	= loadFilteredData["filter"].asString();
+									filterN	= loadFilteredData["filter"].asString();
 				DataSet			*	data	= provideAndUpdateDataSet();
 				Column			*	col		= data->column(colName);
 
 				if(!col)
 					return;
 
-				Filter			*	filter	= new Filter(data, filterN, false);
+				Filter			*	filter	= data->createFilter(filterN, false);
 
 				if(col && filter)
 				{
 					Json::Value rowIndices	= Json::arrayValue,
-						values		= Json::arrayValue;
+								values		= Json::arrayValue;
 					doublevec	dbls		= col->dataAsRDoubles({}); //We dont pass a filter because we need to know the rowindices.
 
 					for(size_t r=0; r<dbls.size(); r++)

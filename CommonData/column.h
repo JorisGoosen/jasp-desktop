@@ -44,9 +44,13 @@ class Column : public DataSetBaseNode
 public:
 	typedef std::map<std::pair<std::string, std::string>, Label*>	LabelByStrStr;
 	typedef std::map<std::string, Labelset>							LabelsByStr;
+	friend DataSet;
 
-									Column(DataSet * data, int id = -1);
-									~Column();
+protected:
+									Column(DataSet * data, int id = -1);	///< Dont use directly! Use DataSet::_createColumn
+
+public:
+									~Column();			
 									
 				DatabaseInterface & db();
 		const	DatabaseInterface & db() const;
@@ -85,7 +89,7 @@ public:
 			bool					overwriteDataAndType(	stringvec		data, columnType colType);
 			
 			bool					allLabelsPassFilter()	const;
-			bool					hasFilter()				const;
+                        bool					hasLabelFilter()				const;
 			void					resetFilter();
 			void					incRevision() override;
 			bool					checkForUpdates();
@@ -130,7 +134,9 @@ public:
 			void					labelsShrinkOnlyToSize( size_t highestToKeep);
 			
 			int						nonFilteredNumericsCount();
+			int						nonFilteredNumericsCount()	const;
             stringvec				nonFilteredLevels();
+            stringvec				nonFilteredLevels()			const;
 			void					nonFilteredCountersReset();
 
 			std::set<size_t>		labelsMoveRows(std::vector<size_t> rows, bool up);
@@ -247,6 +253,24 @@ protected:
 			std::map<Label*,size_t> valuesAlphabeticalOffsets();
 			int						_labelMapIt(Label *label);
 			void					_labelMapUpdates(Label *label, const std::string & previousDisplay, const std::string & previousOriginal);
+
+	virtual	Label *					_createLabel(
+					const std::string & label, 
+					int					value, 
+					bool				filterAllows	= true, 
+					const std::string & description		= "", 
+					const Json::Value & originalValue	= Json::nullValue, 
+					int					order			= -1, 
+					int					id				= -1);
+			
+			
+protected:
+			std::function<void()>	_emitLabelFilterChanged;
+			std::function<void()>	_emitTypeChanged;
+			std::function<void()>	_beginResetModel;
+			std::function<void()>	_endResetModel;
+
+
 private:
 			DataSet			* const	_data;
 			EmptyValues		* const	_emptyValues;

@@ -3,16 +3,17 @@
 #define COLUMN_MODEL_H
 
 
-#include "datasettableproxy.h"
+#include <QIdentityProxyModel>
+#include "columntype.h"
 #include "undostack.h"
 #include <QTimer>
 
-class DataSetTableModel;
+class ColumnQ;
 
 /// 
 /// This pipes through the label-information for a single column from DataSetPackage
 /// The column is selected by changing `proxyParentColumn` from DataSetTableProxy
-class ColumnModel : public DataSetTableProxy
+class ColumnModel : public QIdentityProxyModel
 {
 	Q_OBJECT
 
@@ -44,7 +45,7 @@ class ColumnModel : public DataSetTableProxy
     Q_PROPERTY(QString		dropLevels					READ dropLevels					WRITE setDropLevels				NOTIFY dropLevelsChanged                )
 
 public:
-	ColumnModel(DataSetTableModel* dataSetTableModel);
+	ColumnModel();
 
 	static QString	columnTypeFriendlyName(		computedColumnType compColT);
 	static QVariant	columnTypeFriendlyMapping(	computedColumnType compColT);
@@ -75,7 +76,7 @@ public:
 	bool			visible()			const {	return _visible; }
 	int				filteredOut()		const;
 	int				chosenColumn()		const;
-	Column *		column()			const;
+	ColumnQ *		column()			const;
 	bool			nameEditable()		const;
 	
 	Q_INVOKABLE void reverse();
@@ -196,7 +197,6 @@ private:
 	std::set<QString>		_selected;
 	int						_lastSelected		= -1;
 	UndoStack			*	_undoStack			= nullptr;
-	DataSetTableModel	*	_dataSetTableModel	= nullptr;
 };
 
 #endif // COLUMN_MODEL_H

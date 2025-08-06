@@ -13,8 +13,6 @@ DataSet::DataSet(int index)
 {
 	Log::log() << "DataSet::DataSet(index=" << index << ")" << std::endl;
 
-	_dataNode		= new DataSetBaseNode(dataSetBaseNodeType::data,	this);
-	_filtersNode	= new DataSetBaseNode(dataSetBaseNodeType::filters, this);
 	_emptyValues	= new EmptyValues();
 	
 	if(index == -1)         dbCreate();
@@ -24,18 +22,16 @@ DataSet::DataSet(int index)
 DataSet::~DataSet()
 {
 	JASPTIMER_SCOPE(DataSet::~DataSet);
-	//delete columns before dataNode as they depend on it via DataSetBaseNode inheritance
+	
 	for(Column * col : _columns)
 		delete col;
 
 	_columns.clear();
 	
 	delete _emptyValues;
-	delete _dataNode;
 	delete _filter;
 	
 	_emptyValues	= nullptr;
-	_dataNode		= nullptr;
 	_filter			= nullptr;
 	
 	
@@ -46,8 +42,6 @@ void DataSet::dbDelete()
 	JASPTIMER_SCOPE(DataSet::dbDelete);
 
 	assert(_dataSetID != -1);
-	
-	//We know there is only a single dataset, so we can truncate every table superquickly instead of doing it carefully
 
 	db().dataSetDelete(_dataSetID);
 	db().truncateAllTables();	
@@ -206,7 +200,7 @@ void DataSet::insertColumn(size_t index,	bool alterDataSetTable)
 
 	assert(_dataSetID > 0);
 
-	Column * newColumn = new Column(this, db().columnInsert(_dataSetID, index, "", columnType::unknown, alterDataSetTable));
+	Column * newColumn = _createColumn(db().columnInsert(_dataSetID, index, "", columnType::unknown, alterDataSetTable));
 
 	_columns.insert(_columns.begin()+index, newColumn);
 
@@ -218,7 +212,7 @@ void DataSet::insertColumn(size_t index,	bool alterDataSetTable)
 Column * DataSet::newColumn(const std::string &name)
 {
 	assert(_dataSetID > 0);
-	Column * col = new Column(this, db().columnInsert(_dataSetID, -1, name));
+	Column * col = _createColumn(db().columnInsert(_dataSetID, -1, name));
 	col->setName(name);
 
 	_columns.push_back(col);
@@ -257,21 +251,60 @@ std::map<std::string,columnType> DataSet::getColumnTypesMap()
 	return theMap;
 }
 
+void DataSet::setDataFile(const std::string &dataFilePath)	
+{ 
+	bool isChange	= _dataFilePath	!= dataFilePath;
+	_dataFilePath	= dataFilePath;
+	dbUpdate(); 
+	
+	if(isChange)
+		_dataFilePathChanged();
+}
+
+void DataSet::setDataTimestamp(long timestamp)						
+{ 
+	bool isChange		= _dataFileTimestamp	!= timestamp;
+	_dataFileTimestamp	= timestamp;		
+	dbUpdate(); 
+	
+	if(isChange)
+		_dataTimestampChanged();
+}
+
+void DataSet::setDatabaseJson(const std::string &databaseJson)	
+{ 
+	bool isChange	= _databaseJson	!= databaseJson;
+	_databaseJson	= databaseJson;		
+	dbUpdate(); 
+	
+	if(isChange)
+		_databaseJsonChanged(); 
+}
+
+void DataSet::setDataFileSynch(bool synchronizing)					
+{ 
+	bool isChange	= _dataFileSynch	!= synchronizing;
+	_dataFileSynch	= synchronizing;	
+	dbUpdate(); 
+	
+	if(isChange)
+		_dataFilePathChanged();
+}
 
 void DataSet::dbCreate()
 {
 	JASPTIMER_SCOPE(DataSet::dbCreate);
-
+	
 	assert(!_filter && _dataSetID == -1);
-
+	
 	db().transactionWriteBegin();
 
 	//The variables are probably empty though:
 	_dataSetID	= db().dataSetInsert(_dataFilePath, _dataFileTimestamp, _description, _databaseJson, _emptyValues->toJson().toStyledString(), _dataFileSynch);
-	
 	assert(_dataSetID == 1);
 	
-	_filter = new Filter(this);
+	_filter		= _createFilter();
+	
 	_filter->dbCreate();
 	_columns.clear();
 
@@ -289,8 +322,6 @@ void DataSet::dbUpdate()
 
 void DataSet::dbLoad(int index, std::function<void(float)> progressCallback, Version doUpgradeFrom)
 {
-	//Log::log() << "loadDataSet(index=" << index << "), _dataSetID="<< _dataSetID <<";" << std::endl;
-
 	JASPTIMER_SCOPE(DataSet::dbLoad);
 
 	assert(_dataSetID == -1 || _dataSetID == index || (_dataSetID != -1 && index == -1));
@@ -313,7 +344,7 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback, Ver
 	progressCallback(0.1);
 
 	if(!_filter)
-		_filter = new Filter(this);
+		_filter = _createFilter();
 	_filter->dbLoad();
 	progressCallback(0.2);
 
@@ -326,7 +357,7 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback, Ver
 	for(size_t i=0; i<colCount; i++)
 	{
 		if(_columns.size() == i)
-			_columns.push_back(new Column(this));
+			_columns.push_back(_createColumn());
 
 		_columns[i]->dbLoadIndex(i, false);
 		
@@ -651,8 +682,27 @@ void DataSet::setWorkspaceEmptyValues(const stringset &values)
 
 void DataSet::setDescription(const std::string &desc)
 {
-	_description = desc;
+	bool isChange	= _description != desc;
+	_description	= desc;
 	dbUpdate();
+	
+	if(isChange)
+		_descriptionChanged();
+}
+
+Column *DataSet::_createColumn(int id)
+{
+	return new Column(this, id);
+}
+
+Filter *DataSet::_createFilter()
+{
+	return new Filter(this);
+}
+
+Filter *DataSet::_createFilter(const std::string &name, bool createIfMissing)
+{
+	return new Filter(this, name, createIfMissing);
 }
 
 void DataSet::updateLabelsPostLocaleChange()
@@ -686,4 +736,15 @@ stringset DataSet::findUsedColumnNames(std::string searchThis)
 }
 
 
+
+int DataSet::columnsFilteredCount() const
+{
+	int colsFiltered = 0;
+
+	for(Column * col : columns())
+		if(col->hasLabelFilter())
+			colsFiltered++;
+
+	return colsFiltered;
+}
 

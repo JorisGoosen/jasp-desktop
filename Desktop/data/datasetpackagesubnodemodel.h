@@ -14,6 +14,7 @@ public:
 
 	QModelIndex			mapToSource(	const QModelIndex & proxyIndex)				const	override;
 	QModelIndex			mapFromSource(	const QModelIndex & sourceIndex)			const	override;
+	
 	int					rowCount(		const QModelIndex & parent = QModelIndex())	const	override;
 	int					columnCount(	const QModelIndex & parent = QModelIndex())	const	override;
 

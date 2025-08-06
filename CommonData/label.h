@@ -21,11 +21,15 @@ class DatabaseInterface;
 /// and Column makes sure (_dbUpdateLabelOrder) the order is stored in the database when it is changed.
 class Label : public DataSetBaseNode
 {
+friend Column;
+
+protected:
+								/// Default values are set in DataSet*::_createLabel and that is also what you should use!
+								Label(Column * column, const std::string & label, int value, bool filterAllows, const std::string & description, const Json::Value & originalValue, int order, int id); 
+
 public:	
 	static const int NO_LABEL;
-
-								Label(Column * column, const std::string & label, int value, bool filterAllows = true, const std::string & description = "", const Json::Value & originalValue = Json::nullValue, int order = -1, int id = -1);
-
+	
 			void				dbDelete();
 			void				dbCreate();
 			void				dbLoad(int labelId = -1);
@@ -68,6 +72,9 @@ public:
 
 			DatabaseInterface	& db();
 	const	DatabaseInterface	& db() const;
+
+protected:
+	std::function<void()>		_emitLabelFilterChanged;
 
 private:
 			void				_setOriginalValue(	const Json::Value & originalValue);

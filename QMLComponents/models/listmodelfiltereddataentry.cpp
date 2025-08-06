@@ -5,7 +5,7 @@
 #include "log.h"
 #include "controls/jaspcontrol.h"
 #include "filter.h"
-
+#include "dataset.h"
 
 ListModelFilteredDataEntry::ListModelFilteredDataEntry(TableViewBase * parent)
 	: ListModelTableViewBase(parent)
@@ -178,12 +178,12 @@ void ListModelFilteredDataEntry::initTableTerms(const TableTerms& terms)
 	{
 		//We dont apparently have a previous filterName, so this is a fresh one, we need a new filter!
 		assert(!_filter && !_filterName.empty());
-		_filter = new Filter(VariableInfo::info()->dataSet(), _filterName, true);
+        _filter = VariableInfo::info()->dataSet()->createFilter(_filterName, true);
 	}
 	else if(!_filter)
 	{
 		_filterName = fq(terms.filterName);
-		_filter		= new Filter(VariableInfo::info()->dataSet(), _filterName, true);
+        _filter		= VariableInfo::info()->dataSet()->createFilter(_filterName, true);
 	}
 
 	if (terms.colName.isEmpty())

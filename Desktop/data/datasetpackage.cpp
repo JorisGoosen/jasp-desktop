@@ -26,13 +26,10 @@
 #include "utils.h"
 #include "columnutils.h"
 #include "utilities/messageforwarder.h"
-#include "datasetpackagesubnodemodel.h"
 #include "databaseconnectioninfo.h"
 #include "utilities/settings.h"
 #include "modules/ribbonmodel.h"
 #include "filtermodel.h"
-#include <ranges>
-#include "variableinfo.h"
 
 //Im having problems getting the proxy models to play nicely with beginRemoveRows etc
 //So just reset the whole thing as that is what happens in datasetview
@@ -40,7 +37,7 @@
 
 DataSetPackage * DataSetPackage::_singleton = nullptr;
 
-DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
+DataSetPackage::DataSetPackage(QObject * parent) : QObject(parent)
 {
 	if(_singleton) throw std::runtime_error("DataSetPackage can be constructed only once!");
 	_singleton = this;
@@ -48,7 +45,7 @@ DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 	
 	_db			= new DatabaseInterface(true);
 
-	_dataSet	= new DataSet(); //We create one here to make sure filter() etc can actually work
+	_dataSet	= new DataSetQ(); //We create one here to make sure filter() etc can actually work
 	setDefaultWorkspaceEmptyValues();
 	
 	connect(this, &DataSetPackage::isModifiedChanged,		this, &DataSetPackage::windowTitleChanged);
@@ -59,11 +56,8 @@ DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 	connect(this, &DataSetPackage::dataModeChanged,			this, &DataSetPackage::onDataModeChanged);
 	connect(this, &DataSetPackage::columnDataTypeChanged,	this, [this]() {ColumnEncoder::setCurrentColumnNames(getColumnTypesMap());}	);
 
-	_dataSubModel	= new SubNodeModel("data",		_dataSet->dataNode());
-	_filterSubModel = new SubNodeModel("filters",	_dataSet->filtersNode());
-	_labelsSubModel = new SubNodeModel("labels");
-	
 	connect(&_databaseIntervalSyncher,	&QTimer::timeout, this, &DataSetPackage::synchingIntervalPassed);
+
 	connect(&_delayedRefreshTimer,		&QTimer::timeout, this, &DataSetPackage::delayedRefresh);
 	connect(&_doWalCheckPointTimer,		&QTimer::timeout, this, &DataSetPackage::doWalCheckPoint);
 	
@@ -77,14 +71,91 @@ DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 DataSetPackage::~DataSetPackage() 
 { 
 	_databaseIntervalSyncher.stop();
-	_delayedRefreshTimer.stop();
-	
+
 	_singleton = nullptr; 
 }
 
+
+void DataSetPackage::createDataSet()
+{
+	JASPTIMER_SCOPE(DataSetPackage::createDataSet);
+					
+	deleteDataSet();
+	_dataSet = new DataSetQ();
+	connectDataSet();
+	setDefaultWorkspaceEmptyValues();
+	
+	_dataSet->shownFilter()->setRFilter(FilterModel::defaultRFilter());
+	
+	 
+}
+
+void DataSetPackage::loadDataSet(std::function<void(float)> progressCallback)
+{
+	if(_dataSet)
+		deleteDataSet(); //no dbDelete necessary cause we just copied an old sqlite file here from the JASP file
+	
+	_db->close();
+	stopEngines();
+	_db->load();		
+	_db->upgradeDBFromVersion(_jaspVersion);
+	
+	bool do019Upgrade = _jaspVersion < "0.19"; // A tweak needs to be made to the data as its loaded, see https://github.com/jasp-stats/jasp-desktop/pull/5367
+	
+	_dataSet = new DataSetQ(0);
+	connectDataSet();
+	_dataSet->dbLoad(1, progressCallback, do019Upgrade); //Right now there can only be a dataSet with ID==1 so lets keep it simple
+	if (do019Upgrade)
+	{
+		// In 0.18.3 and before, there was a bug with the order of dataFilePath and description in the database.
+		// dataFilePath was set empty and description has dataFilePath.
+		if (dataFilePath().empty())
+		{
+			QFileInfo fileInfo(description());
+			if (fileInfo.isFile())
+				setDataFilePath(fq(description()));
+		}
+	}
+
+	DataSetPackage::pkg()->initializeComputedColumns();
+
+	emit synchingExternallyChanged(synchingExternally());
+}
+
+void DataSetPackage::deleteDataSet()
+{
+	JASPTIMER_SCOPE(DataSetPackage::deleteDataSet);
+	
+	dbDelete();
+	delete _dataSet;
+	_dataSet = nullptr;
+	_undoStack->clear();
+	
+	emit dataSetQChanged();
+}
+
+void DataSetPackage::connectDataSet()
+{
+	if(!_dataSet)
+		return;
+	
+	connect(_dataSet, &DataSetQ::runFilter,				this, &DataSetPackage::runFilter			);
+	connect(_dataSet, &DataSetQ::showWarning,			this, &DataSetPackage::showWarning			);
+	connect(_dataSet, &DataSetQ::manualEditMade,		this, &DataSetPackage::setManualEdits		);
+	connect(_dataSet, &DataSetQ::datasetChanged,		this, &DataSetPackage::datasetChanged		);
+	connect(_dataSet, &DataSetQ::labelsReordered,		this, &DataSetPackage::labelsReordered		);
+	connect(_dataSet, &DataSetQ::columnTypeChanged,		this, &DataSetPackage::columnDataTypeChanged);
+	connect(_dataSet, &DataSetQ::columnsBeingRemoved,	this, &DataSetPackage::columnsBeingRemoved	);
+	connect(_dataSet, &DataSetQ::labelFilterChanged,	this, &DataSetPackage::labelFilterChanged	);
+	connect(_dataSet, &DataSetQ::somethingModified,		this, &DataSetPackage::setModified			);
+	
+	emit dataSetQChanged();
+}
+
+
 Filter * DataSetPackage::filter()
 {
-	return !pkg()->_dataSet ? nullptr : pkg()->_dataSet->filter();
+    return !pkg()->_dataSet ? nullptr : pkg()->_dataSet->shownFilter();
 }
 
 void DataSetPackage::setEngineSync(EngineSync * engineSync)
@@ -95,6 +166,7 @@ void DataSetPackage::setEngineSync(EngineSync * engineSync)
 	connect(this,	&DataSetPackage::enginesPrepareForDataSignal,	_engineSync,	&EngineSync::enginesPrepareForData,	Qt::QueuedConnection);
 	connect(this,	&DataSetPackage::enginesReceiveNewDataSignal,	_engineSync,	&EngineSync::enginesReceiveNewData,	Qt::QueuedConnection);
 
+
 	reset();
 }
 
@@ -103,29 +175,15 @@ bool DataSetPackage::isThisTheSameThreadAsEngineSync()
 	return	QThread::currentThread() == _engineSync->thread();
 }
 
-void DataSetPackage::enginesPrepareForData()
-{
-	if(_dataMode)
-		return;
-
-	if(isThisTheSameThreadAsEngineSync())	_engineSync->enginesPrepareForData();
-	else									emit enginesPrepareForDataSignal();
-}
-
 void DataSetPackage::enginesReceiveNewData()
 {
-	if(!_dataMode)
+	if(!dataMode())
 	{
 		if(isThisTheSameThreadAsEngineSync())	_engineSync->enginesReceiveNewData();
 		else									emit enginesReceiveNewDataSignal();
 	}
 
 	ColumnEncoder::setCurrentColumnNames(	getColumnTypesMap()); //Same place as in engine, should be fine right?
-}
-
-bool DataSetPackage::dataSetBaseNodeStillExists(DataSetBaseNode *node) const
-{
-	return _dataSet && _dataSet->nodeStillExists(node);
 }
 
 void DataSetPackage::reset(bool newDataSet)
@@ -151,8 +209,6 @@ void DataSetPackage::reset(bool newDataSet)
 	_isJaspFile					= false;
 	_dataMode					= false;
 	_manualEdits				= false;
-
-	_columnNameUsedInEasyFilter.clear();
 
 	setLoaded(false);
 	setModified(false);
@@ -184,850 +240,6 @@ void DataSetPackage::generateEmptyData()
 	emit newDataLoaded();
 	resetAllFilters();
 	setSynchingExternally(false);
-}
-
-//Some debugprinting
-void DataSetPackage::onDataModeChanged(bool dataMode)
-{
-	Log::log() << "Data Mode " << (dataMode ? "on" : "off") << "!" << std::endl;
-	_dataMode = dataMode;
-	
-	doWalCheckPoint();
-
-	beginResetModel();
-	endResetModel();
-	
-	if(false)
-		enginesReceiveNewData();
-	
-	/*if(dataSet())
-	{
-		if(_dataMode)	dataSet()->beginBatchedToDB();
-		else			dataSet()->endBatchedToDB();
-	}*/
-}
-
-DataSetBaseNode * DataSetPackage::indexPointerToNode(const QModelIndex & index) const
-{
-	DataSetBaseNode * node = static_cast<DataSetBaseNode*>(index.internalPointer());
-	
-	//Below was when I was trying to use dataChanged for columnModel setData updates. but it got messy, so instead we do reset but we do not need to loop over all nodes anymore everytime we convert something
-	return node;
-	//Sometimes the proxymodels seem to return pointers to destroyed objects, so lets check even if it gives some overhead...
-	//return dataSetBaseNodeStillExists(node) ? node : nullptr;
-}
-
-/// the following hierarchy is used (Where parents point to children):
-/// QModelIndex()/root -> DataSet_N* Where each DataSet is located at row 0 and column N (0-based)
-/// DataSet_N -> Data (0r,0c) and Filters(1r,0c)
-/// Filters -> Filter_N* where column is filterIndex and row value-index in the filtered-bools
-/// Data -> Directly to the data but each column (dfwith any row) can also be used as a parent for getting the Labels
-/// Data[*r, Nc] -> Labels
-QModelIndex DataSetPackage::index(int row, int column, const QModelIndex &parent) const
-{
-	const void * pointer = nullptr;
-
-	if(parent.isValid()) //Top of hierarchy (parent != valid) has no pointer
-	{
-		if(!parent.internalPointer()) //Parent has no pointer stored so this must be a dataSet
-		{
-			//Currently we only have a single dataSet but in the future there will be more.
-			//Then they will be differentiated here by row
-			pointer = dynamic_cast<const void*>(_dataSet);
-		}
-		else
-		{
-			DataSetBaseNode * parentNode = indexPointerToNode(parent);
-			
-			switch(parentNode->nodeType())
-			{
-			case dataSetBaseNodeType::dataSet:
-			{
-				DataSet * data = dynamic_cast<DataSet*>(parentNode);
-				// if row 0 it is "data" else "filters"
-				pointer = row == 0 ? dynamic_cast<const void*>(data->dataNode()) : dynamic_cast<const void*>(data->filtersNode());
-				break;
-			}
-				
-			case dataSetBaseNodeType::data:
-			{
-				DataSet * data = dynamic_cast<DataSet*>(parentNode->parent());
-				pointer = dynamic_cast<const void*>(data->column(column));
-				break;
-			}
-				
-			case dataSetBaseNodeType::filters:
-			{
-				//Later on we should support multiple filters here by selecting a filter per column
-				DataSet * data = dynamic_cast<DataSet*>(parentNode->parent());
-				pointer = dynamic_cast<const void*>(data->filter());
-				break;
-			}
-				
-			case dataSetBaseNodeType::column:
-			{
-				Column	* col	= dynamic_cast<Column*>(parentNode);
-				Label	* lab	= col->labelByIndexNonEmpty(row);
-				pointer			= dynamic_cast<const void*>(lab);
-				break;
-			}
-				
-			case dataSetBaseNodeType::label:	//Label & Filter cant be a parentnode
-			case dataSetBaseNodeType::filter:
-			default:
-				throw std::runtime_error("Somehow a label, filter or unknown DataSetBaseNode was passed as parent for an index... This is not allowed.");
-				break;
-			}
-		}
-	}
-	
-	return createIndex(row, column, pointer);
-}
-
-///Used to get the parent for a DataSetPackageSubNodeModel
-QModelIndex DataSetPackage::indexForSubNode(DataSetBaseNode * node) const
-{
-	if(node)
-		switch(node->nodeType())
-		{
-		case dataSetBaseNodeType::dataSet:
-			return createIndex(0, 0, dynamic_cast<void *>(_dataSet));
-
-		case dataSetBaseNodeType::data:
-			return createIndex(0, 0, dynamic_cast<void *>(_dataSet->dataNode()));
-
-		case dataSetBaseNodeType::filters:
-			return createIndex(1, 0, dynamic_cast<void *>(_dataSet->filtersNode()));
-
-		case dataSetBaseNodeType::column:
-		{
-			Column * col = dynamic_cast<Column*>(node);
-			if (col)
-				return createIndex(0, col->data()->columnIndex(col), dynamic_cast<void *>(col));
-			else
-				return QModelIndex();
-		}
-
-		case dataSetBaseNodeType::label: //Doesnt really make sense to have this as the parent of a subnodemodel but whatever
-		{
-			Label	* lab = dynamic_cast<Label*>( node);
-			Column	* col = lab ? dynamic_cast<Column*>(node->parent()) : nullptr;
-			int		i = col ? col->labelIndexNonEmpty(lab) : -1;
-
-			return createIndex(i, 0, dynamic_cast<void*>(lab));
-		}
-
-		case dataSetBaseNodeType::filter: //Doesnt really make sense to have this as the parent of a subnodemodel but whatever
-		{
-			return createIndex(0, 0, dynamic_cast<void*>(_dataSet->filter()));
-		}
-
-		default:
-			break;
-		}
-
-	return QModelIndex();
-}
-
-QModelIndex DataSetPackage::parent(const QModelIndex & index) const
-{
-	if(!index.isValid())
-		return QModelIndex();
-
-	
-	DataSetBaseNode * node = indexPointerToNode(index);
-
-	if(!node)
-		return QModelIndex();
-	
-	switch(node->nodeType())
-	{
-	case dataSetBaseNodeType::filters: [[fallthrough]];
-	case dataSetBaseNodeType::dataSet:
-		return QModelIndex();
-		
-	case dataSetBaseNodeType::data:
-		return indexForSubNode(_dataSet);
-
-	case dataSetBaseNodeType::column:
-		return indexForSubNode(_dataSet->dataNode());
-		
-	case dataSetBaseNodeType::label:
-	{
-	//	Label	* label	= dynamic_cast<Label*>(node);
-		Column	* col	= dynamic_cast<Column*>(node->parent());
-		
-		return indexForSubNode(col);
-	}
-		
-		
-	case dataSetBaseNodeType::filter:
-		return indexForSubNode(_dataSet->filtersNode());
-		
-	default:
-		break;
-	}
-	
-	return QModelIndex(); //Shouldnt get here though
-}
-
-int DataSetPackage::rowCount(const QModelIndex & parent) const
-{
-	if(!parent.isValid())
-		return 1; //There is only a "column" of DataSets as topnodes
-	
-	
-	DataSetBaseNode * node = indexPointerToNode(parent);
-
-	if(!node)
-		return 1;
-	
-	switch(node->nodeType())
-	{
-	case dataSetBaseNodeType::dataSet:
-		return 2; //data + filters
-		
-	case dataSetBaseNodeType::data:
-	case dataSetBaseNodeType::filters:
-	{
-		DataSet * data = dynamic_cast<DataSet*>(node->parent());
-
-		return data ? data->rowCount() : 0;
-	}
-		
-	case dataSetBaseNodeType::column:
-	{
-		Column * col = dynamic_cast<Column*>(node);
-		
-		return !col ? 0 : col->labelsNonEmptyCount();
-	}
-		
-	case dataSetBaseNodeType::filter:
-	case dataSetBaseNodeType::label:
-		return 1;
-	
-	case dataSetBaseNodeType::unknown:
-		return 0;
-	}
-
-	return 0; // <- because gcc is stupid
-}
-
-int DataSetPackage::columnCount(const QModelIndex &parent) const
-{
-	if(!parent.isValid())
-		return 1; //There is only a "row" of DataSets as topnodes, and currently a single column because a single DataSet	
-	
-	DataSetBaseNode * node = indexPointerToNode(parent);
-
-	if(!node)
-		return 1;
-	
-	switch(node->nodeType())
-	{
-	case dataSetBaseNodeType::dataSet:
-	{
-		return 1; //data + filters are on rows
-	}
-	case dataSetBaseNodeType::data:
-	{
-		DataSet * data = dynamic_cast<DataSet*>(node->parent());
-		return data->columnCount();
-	}
-		
-	case dataSetBaseNodeType::filters:
-	{
-		return 1; //change when implementing multiple filters
-	}
-		
-	case dataSetBaseNodeType::column:
-	{
-		//Column * col = dynamic_cast<Column*>(node);
-		
-		return 1;
-	}
-		
-	case dataSetBaseNodeType::filter:
-	case dataSetBaseNodeType::label:
-
-		return 1;
-	
-	case dataSetBaseNodeType::unknown:
-		return 0;
-	}
-
-	return 0; // <- because gcc is stupid
-}
-
-bool DataSetPackage::getRowFilter(int row) const
-{
-	return !_dataSet ? false : data(this->index(row, 0, indexForSubNode(_dataSet->filtersNode()))).toBool();
-}
-
-QVariant DataSetPackage::getDataSetViewLines(bool up, bool left, bool down, bool right)
-{
-	return			(left ?		1 : 0) +
-					(right ?	2 : 0) +
-					(up ?		4 : 0) +
-					(down ?		8 : 0);
-}
-
-int DataSetPackage::dataRowCount() const 
-{ 
-	return !_dataSet ? 0 : rowCount(indexForSubNode(_dataSet->dataNode()));
-}
-
-int DataSetPackage::dataColumnCount() const 
-{ 
-	return !_dataSet ? 0 : columnCount(indexForSubNode(_dataSet->dataNode()));
-}
-
-QVariant DataSetPackage::data(const QModelIndex &index, int role) const
-{
-    JASPTIMER_SCOPE(DataSetPackage::data);
-    
-	if(!index.isValid())
-		return QVariant();
-
-	if(role == int(specialRoles::selected))
-		return false; //DataSetPackage doesnt know anything about selected, only ColumnModel does (now)
-
-	DataSetBaseNode *	node		= indexPointerToNode(index);
-//					*	parentNode	= !index.parent().isValid() ? nullptr : indexPointerToNode(index.parent());
-
-	if(!node)
-		return QVariant();// : QVariant(tq("DataSet_" + std::to_string(dynamic_cast<DataSet*>(node)->id())));
-	
-	switch(node->nodeType())
-	{
-	default:
-		return QVariant();
-
-	case dataSetBaseNodeType::filter:
-	{
-		Filter * filter = dynamic_cast<Filter*>(node);
-		if(index.row() < 0 || index.row() >= int(filter->filtered().size()))
-			return true;
-		
-		return  QVariant(filter->filtered()[index.row()]);
-	}
-
-	case dataSetBaseNodeType::column:
-	{
-		Column	* column	= dynamic_cast<Column*>(node);
-		DataSet * dataSet	= column ? column->data() : nullptr;
-
-		if(!dataSet || index.row() >= int(dataSet->rowCount()))
-			return QVariant(); // if there is no data then it doesn't matter what role we play
-
-		switch(role)
-		{
-		case Qt::DisplayRole:									return tq(column->getDisplay(index.row(), true, true));
-		case int(specialRoles::noSepaDisplay):					return tq(column->getDisplay(index.row(), false, false));
-		case int(specialRoles::label):							return tq(column->getLabel(index.row(), false, true));
-		case int(specialRoles::value):							return tq(column->getValue(index.row()));
-		case int(specialRoles::name):							return tq(column->name());
-		case int(specialRoles::title):							return tq(column->title());
-		case int(specialRoles::filter):							return getRowFilter(index.row());
-		case int(specialRoles::columnType):						return int(column->type());
-		case int(specialRoles::description):					return tq(column->description());
-		case int(specialRoles::inEasyFilter):					return isColumnUsedInEasyFilter(column->name());
-		case int(specialRoles::shadowDisplay):					return tq(column->getShadow(index.row()));
-		case int(specialRoles::valuesDblList):					return getColumnValuesAsDoubleList(getColumnIndex(column->name()));
-		case int(specialRoles::nonFilteredNumericValuesCount):	return column->nonFilteredNumericsCount();
-        case int(specialRoles::nonFilteredLevels):				return tq(column->nonFilteredLevels());
-		case int(specialRoles::computedColumnType):				return int(column->codeType());
-		case int(specialRoles::columnPkgIndex):					return index.column();
-		case int(specialRoles::lines):
-		{
-			bool	iAmActive		= getRowFilter(index.row()),
-					belowMeIsActive = index.row() < column->rowCount() - 1	&& data(this->index(index.row() + 1, index.column(), index.parent()), int(specialRoles::filter)).toBool();
-
-			return getDataSetViewLines(
-				iAmActive,
-				iAmActive,
-				iAmActive && !belowMeIsActive,
-				iAmActive && index.column() == columnCount(index.parent()) - 1 //always draw left line and right line only if last col
-			);
-		}
-		}
-	}
-		
-	case dataSetBaseNodeType::label:
-	{
-		int			parRowCount = rowCount(index.parent());
-	//	Label	*	label		= dynamic_cast<Label*>(node);
-		Column	*	column		= dynamic_cast<Column*>(node->parent());
-		
-
-		if(!_dataSet || index.row() >= parRowCount)
-			return QVariant(); // if there is no data then it doesn't matter what role we play
-
-		const Labels & labels = column->labels();
-		
-		switch(role)
-		{
-		case int(specialRoles::nonFilteredNumericValuesCount):	return column->nonFilteredNumericsCount();
-        case int(specialRoles::nonFilteredLevels):				return tq(column->nonFilteredLevels());
-		case int(specialRoles::valuesDblList):					return getColumnValuesAsDoubleList(getColumnIndex(column->name()));
-		case int(specialRoles::description):					return index.row() >= labels.size() ? "" : tq(labels[index.row()]->description());
-		case int(specialRoles::filter):							return index.row() >= labels.size() || labels[index.row()]->filterAllows();
-		case int(specialRoles::value):							return tq(column->labelByIndexNonEmpty(index.row())->originalValueAsString());
-		case int(specialRoles::lines):							return getDataSetViewLines(index.row() == 0, index.column() == 0, true, true);
-		case int(specialRoles::label):							[[fallthrough]];
-		case Qt::DisplayRole:									return tq(column->labelByIndexNonEmpty(index.row())->labelDisplay());
-		default:												return QVariant();
-		}
-	}
-	}
-
-	return QVariant(); // <- because gcc is stupid
-}
-
-qsizetype DataSetPackage::getMaximumColumnWidthInCharacters(int columnIndex) const
-{
-	return _dataSet ? _dataSet->getMaximumColumnWidthInCharacters(columnIndex) : 0;
-}
-
-QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, int role)	const
-{
-	if (!_dataSet || section < 0 || section >= (orientation == Qt::Horizontal ? dataColumnCount() : dataRowCount()))
-		return QVariant();
-    
-    JASPTIMER_SCOPE(DataSetPackage::headerData);
-
-	if(orientation == Qt::Vertical)
-		switch(role)
-		{
-		default:
-			return QVariant();
-
-		case int(specialRoles::maxRowHeaderString):
-			return QString::number(_dataSet->rowCount()) + "XXX";
-
-		case Qt::DisplayRole:
-			return QVariant(section + 1);
-		}
-	else
-	{
-		Column * col = _dataSet ? _dataSet->column(section) : nullptr;
-		
-		switch(role)
-		{
-		case int(specialRoles::maxColString):
-		{
-			//calculate some kind of maximum string to give views an expectation of the width needed for a column
-			bool		hasFilter	= col && (col->hasFilter() || isColumnUsedInEasyFilter(col->name()));
-			QString		dummyText	= headerData(section, orientation, int(specialRoles::maxColumnHeaderString)).toString() + (isColumnComputed(section) ? "XXX" : "") + (hasFilter ? "XXX" : ""); //Bit of padding for hamburger, filtersymbol and columnIcon
-			qsizetype	colWidth	= getMaximumColumnWidthInCharacters(section);
-
-			while(colWidth > dummyText.length())
-				dummyText += "X";
-
-			return dummyText;
-		}
-		case int(specialRoles::maxColumnHeaderString):			return headerData(section, orientation, Qt::DisplayRole).toString() + "XXX";
-		case int(specialRoles::maxRowHeaderString):				return QString::number(_dataSet ? _dataSet->rowCount() : 0 )		+ "XXX";
-		case Qt::TextAlignmentRole:								return QVariant(Qt::AlignCenter);
-		case int(specialRoles::filter):							return		!col ? false							: col->hasFilter() || isColumnUsedInEasyFilter(col->name());
-		case Qt::DisplayRole:									return tq(	!col ? "?"								: col->name());
-		
-		case int(specialRoles::labelsHasFilter):				return		!col ? false							: col->hasFilter();
-		case int(specialRoles::columnIsComputed):				return		!col ? false							: col->isComputed() && col->codeType() != computedColumnType::analysisNotComputed;
-		case int(specialRoles::computedColumnError):			return tq(	!col ? "?"								: col->error());
-		case int(specialRoles::computedColumnIsInvalidated):	return		!col ? false							: col->invalidated();
-		case int(specialRoles::columnType):						return int(	!col ? columnType::unknown				: col->type());
-		case int(specialRoles::computedColumnType):				return int(	!col ? computedColumnType::notComputed	: col->codeType());
-		case int(specialRoles::description):					return tq(	!col ? "?"								: col->description());
-		case int(specialRoles::title):							return tq(	!col ? "?"								: col->title());
-		case int(specialRoles::previewScale):
-		case int(specialRoles::previewOrdinal):					
-		case int(specialRoles::previewNominal):					
-		{
-			columnType colTypeWanted = 
-					role == int(specialRoles::previewNominal) 
-					? columnType::nominal 
-					: role == int(specialRoles::previewOrdinal)
-					? columnType::ordinal
-					: columnType::scale;
-			
-			stringvec	preview		= !col ? stringvec()	: col->previewTransform(colTypeWanted);
-			
-			if(preview.size() != 4)
-				return "";
-			
-			QString	levelsTotal		= tq(preview[0]),
-					levelsNums		= tq(preview[1]),
-					vals			= tq(preview[2]),
-					empties			= tq(preview[3]);
-			
-			return 	(colTypeWanted == columnType::scale 
-					?	tr("There are %1 total levels, of which %2 have a numeric value.\nAs a '%3' it looks like: %4\n%5")
-						.arg(levelsTotal)
-						.arg(levelsNums)
-						.arg(VariableInfo::getTypeFriendly(colTypeWanted))
-						.arg(vals)
-						.arg(
-							empties == "" 
-							? "" 
-							: tr("Implicit missing values: %1").arg(empties)
-						)
-						
-					:	tr("There are %1 total levels.\nAs a '%2' it looks like: %3")
-					.arg(levelsTotal)
-					.arg(VariableInfo::getTypeFriendly(colTypeWanted))
-					.arg(vals));
-		}
-		}
-	}
-
-	return QVariant();
-}
-
-bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, int role)
-{
-    JASPTIMER_SCOPE(DataSetPackage::setData);
-    
-	if(_waitingForLanguageChange || !index.isValid() || !_dataSet) return false;
-
-	DataSetBaseNode * node = indexPointerToNode(index);
-	
-	if(!node)
-		return false;
-
-	switch(node->nodeType())
-	{
-	default:
-		return false;
-
-	case dataSetBaseNodeType::column:
-		if(node)
-		{    
-			JASPTIMER_SCOPE(DataSetPackage::setData Column);
-
-			Column	* column	= dynamic_cast<Column*>(node);
-			//DataSet * data		= column->data();
-
-			if(role == Qt::DisplayRole || role == Qt::EditRole || role == int(specialRoles::value) || role == int(specialRoles::valueLabelPair) || role == int(specialRoles::valuesStrList))
-			{				
-				bool				isPair	= role == int(specialRoles::valueLabelPair),
-									isVals	= role == int(specialRoles::valuesStrList);
-				QVariantList		listVar	= isPair || isVals ? value.toList()	: QVariantList{ value };
-				bool				aChange = false;
-				
-				if(!isVals)
-				{
-					const std::string	val		= fq(listVar[0].toString()),
-										label	= fq(isPair ? listVar[1].toString() : "");
-										aChange	= !isPair	
-												? column->setStringValue(index.row(), val == EmptyValues::displayString() ? "" : val)
-												: column->setValue(index.row(), val, label);
-				}
-				else //Its a list of values, for instance "intial values"
-				{
-					int r=0;
-					for(const QVariant & val : listVar)
-						if(column->setStringValue(index.row() + r++, fq(val.toString() == tq(EmptyValues::displayString()) ? "" : val.toString())))
-							aChange = true;
-				}
-				
-				if(aChange)
-				{
-						JASPTIMER_SCOPE(DataSetPackage::setData reset model);
-
-						setManualEdits(true); //Don't synch with external file after editing
-						
-						column->labelsRemoveOrphans();
-						column->nonFilteredCountersReset();
-						column->labelsHandleAutoSort();
-
-						stringvec	changedCols = {column->name()};
-	
-						refresh();
-						emit datasetChanged(tq(changedCols), {}, {}, false, false);
-						emit labelsReordered(tq(column->name()));
-						
-						if(column->hasFilter())
-						{
-							emit labelFilterChanged();
-							emit runFilter();
-						}
-				}
-				
-				return true;
-			}
-			else
-			{
-				bool aChange = false;
-
-				switch(role)
-				{
-				case int(specialRoles::description):
-					column->setDescription(value.toString().toStdString());
-					aChange = true;
-					break;
-
-				case int(specialRoles::title):
-					column->setTitle(value.toString().toStdString());
-					aChange = true;
-					break;
-
-				case int(specialRoles::columnType):
-					if(value.toInt() >= int(columnType::unknown) && value.toInt() <= int(columnType::scale))
-					{
-						columnType converted = static_cast<columnType>(value.toInt());
-						if(converted != column->type() && setColumnType(index.column(), converted))
-						{
-							aChange = true;
-							emit columnDataTypeChanged(tq(column->name()));
-						}
-					}
-					break;
-				}
-
-				if(aChange)
-				{
-					beginResetModel();
-					endResetModel();
-					setManualEdits(true);
-				}
-				return true;
-			}
-		}
-		else
-			return false;
-	
-	case dataSetBaseNodeType::label:
-	{
-		JASPTIMER_SCOPE(DataSetPackage::setData Label);
-		
-		Column * column = dynamic_cast<Column*>(node->parent());
-		
-		int parColCount = columnCount(index.parent()),
-			parRowCount = rowCount(index.parent());
-
-		if(!_dataSet || index.column() >= parColCount || index.row() >= parRowCount || index.column() < 0 || index.row() < 0)
-			return false;
-
-
-		const Labels	&	labels		= column->labels();
-		
-		switch(role)
-		{
-		case int(specialRoles::filter):
-			if(value.typeId() != QMetaType::Bool) 
-				return false;
-
-			setManualEdits(true);
-			return setLabelAllowFilter(index, value.toBool());
-
-		case int(specialRoles::description):
-			setManualEdits(true);
-			return setLabelDescription(index, value.toString());
-
-		case int(specialRoles::value):
-			return setLabelValue(index,  value.toString());
-
-		case int(specialRoles::label):
-			return setLabelDisplay(index, value.toString());
-			
-		default:
-			return false;
-		}
-	}
-	}
-
-	return false;
-}
-
-
-void DataSetPackage::resetFilterAllows(size_t columnIndex)
-{
-	if(!_dataSet) return;
-
-	_dataSet->column(columnIndex)->resetFilter();
-
-	emit labelFilterChanged();
-
-	QModelIndex parentModel = indexForSubNode(_dataSet->dataNode());
-	emit dataChanged(DataSetPackage::index(0, columnIndex,	parentModel),	DataSetPackage::index(rowCount() - 1, columnIndex, parentModel), {int(specialRoles::filter)} );
-
-	parentModel = indexForSubNode(_dataSet->column(columnIndex));
-	emit dataChanged(DataSetPackage::index(0, 0,	parentModel),			DataSetPackage::index(rowCount(parentModel) - 1, columnCount(parentModel) - 1, parentModel), {int(specialRoles::filter)} );
-
-
-	emit filteredOutChanged(columnIndex);
-}
-
-bool DataSetPackage::setLabelDescription(const QModelIndex & index, const QString & newDescription)
-{
-	Label		*	label	= dynamic_cast<Label*>(indexPointerToNode(index));
-	Column		*	column	= dynamic_cast<Column*>(label->parent());
-	QModelIndex		parent	= index.parent();
-	
-	if(!column || index.row() > rowCount(parent))
-		return false;
-
-	label->setDescription(newDescription.toStdString());
-	
-	emit dataChanged(DataSetPackage::index(index.row(), 0, parent),	DataSetPackage::index(index.row(), columnCount(parent), parent), {int(specialRoles::description)});	//Emit dataChanged for filter
-
-	return true;
-}
-
-bool DataSetPackage::setLabelDisplay(const QModelIndex &index, const QString &newLabel)
-{
-	Label			*	label		= dynamic_cast<Label*>(indexPointerToNode(index));
-	Column			*	column		= dynamic_cast<Column*>(label->parent());
-	QModelIndex			parent		= index.parent();
-	stringvec			changedCols	;
-	bool				aChange		= false,
-						setManual	= false;
-	
-	if(!column || index.row() > rowCount(parent))
-		return false;
-	
-	beginSynchingData(false);
-	
-	if(label->setLabel(newLabel.toStdString()))
-	{
-		aChange = true;
-		
-		if(dataFileCanHaveLabels())
-			setManual = true;
-	}
-	
-	if(aChange)
-		changedCols = {column->name()};
-	
-	endSynchingDataChangedColumns(changedCols, false, false);
-
-	if(setManual)
-		setManualEdits(true);
-
-	return aChange;
-}
-
-bool DataSetPackage::setLabelValue(const QModelIndex &index, const QString &newLabelValue)
-{
-	Label			*	label		= dynamic_cast<Label*>(indexPointerToNode(index));
-	Column			*	column		= dynamic_cast<Column*>(label->parent());
-	QModelIndex			parent		= index.parent();
-	stringvec			changedCols	;
-	bool				aChange		= false,
-						aNumber		= false;
-	
-	if(!column || index.row() > rowCount(parent))
-		return false;
-	
-	beginSynchingData(false);
-	
-	Json::Value originalValue = newLabelValue.toStdString();
-
-	int		anInteger;
-	double	aDouble;
-
-	if(	(aNumber =	ColumnUtils::getDoubleValue(newLabelValue.toStdString(), aDouble))	)	originalValue = aDouble;
-	if(				ColumnUtils::getIntValue(	newLabelValue.toStdString(), anInteger)	)	originalValue = anInteger;
-	
-	
-	{
-		// Here we will overwrite the original value with the new origval.
-		// but if the label is the same as the original value we want to make the users life easier and replace it as well.
-		// this makes sense if the user is changing a string or number. But if the user is recoding, so turning values from str => dbl
-		// then we dont want to do this, because then the label should be different afterwards.
-		
-		//summarized:
-		// if orgval == label then: 
-		// if (oldorigval == dbl && newOrigVal == dbl) || (olorigval != dbl && newOrigVal != dbl)  then replace both
-		// if neworigval == dbl and oldorigval != dbl then replace only value
-		
-		// But only if we are allowed to change both because of https://github.com/jasp-stats/INTERNAL-jasp/issues/2680 (allow editing of only value/label and disable the other one for computed columns
-		// which means that if this column is a computed column of scale type we are only allowed to change the label and only the value for the other types.
-		// so in this case this means that if it is a computed column, and of type !scale we do *not* also update the label when updating the value. Because otherwise it would override the data from the computed column...
-		
-		bool dontSetLabel = label->originalValueAsString(false) != label->label() || (originalValue.isDouble() && !label->originalValue().isDouble());
-		
-		if(!dontSetLabel && column->isComputed() && column->type() != columnType::scale)
-			dontSetLabel = true;
-		
-		if(dontSetLabel)	aChange = label->setOriginalValue(originalValue)	||	aChange;
-		else				aChange = label->setOrigValLabel(originalValue)		||	aChange;
-	}
-	
-	column->labelsHandleAutoSort();
-	
-	if(aChange)
-		changedCols = {column->name()};
-
-	endSynchingDataChangedColumns(changedCols, false, false);
-	
-	if(aChange)
-		setManualEdits(true); //A value change is a manual edit for sure as that changes the data itself
-
-	return aChange;
-}
-
-bool DataSetPackage::setLabelAllowFilter(const QModelIndex & index, bool newAllowValue)
-{
-	JASPTIMER_SCOPE(DataSetPackage::setAllowFilterOnLabel);
-	
-	Label			*	label		= dynamic_cast<Label*>(indexPointerToNode(index));
-	Column			*	column		= dynamic_cast<Column*>(label->parent());
-
-	if(!column)
-		return false;
-
-	bool atLeastOneRemains = newAllowValue;
-
-	QModelIndex parent	= index.parent();
-	size_t		row		= index.row();
-	
-	if(int(row) > rowCount(parent))
-		return false;
-
-	const Labels	& labels = column->labels();
-
-	if(!atLeastOneRemains) //Do not let the user uncheck every single one because that is useless, the user wants to uncheck row so lets see if there is another one left after that.
-		for(size_t i=0; i< labels.size(); i++)
-		{
-			if(i != row && labels[i]->filterAllows())
-			{
-				atLeastOneRemains = true;
-				break;
-			}
-			else if(i == row && labels[i]->filterAllows() == newAllowValue) //Did not change!
-				return true;
-		}
-	
-	atLeastOneRemains = atLeastOneRemains || column->labelsNonEmptyCount() > labels.size();
-
-	if(atLeastOneRemains)
-	{
-		int col = column->data()->columnIndex(column);
-
-		bool before = column->hasFilter();
-		labels[row]->setFilterAllows(newAllowValue);
-		
-		notifyColumnFilterStatusChanged(col); //basically resetModel now
-
-		emit labelFilterChanged();
-		QModelIndex columnParentNode = indexForSubNode(column);
-		//emit dataChanged(DataSetPackage::index(row, 0, columnParentNode),	DataSetPackage::index(row, columnCount(columnParentNode), columnParentNode), { int(specialRoles::filter) });
-		emit filteredOutChanged(col);
-		
-		if(column->dropLevels() == dropLevelsType::noChoice && !newAllowValue) //No choice was made yet, but the user disabled a label, so I guess they dont want all labels
-		{
-			column->setDropLevels(dropLevelsType::drop);
-			//To be sure everything is updated:
-			emit refreshAllCompCols();
-			emit refreshAllAnalyses();
-		}
-
-		return true;
-	}
-	else
-		return false;
 }
 
 int DataSetPackage::filteredOut(size_t col) const
@@ -1153,45 +365,6 @@ std::string DataSetPackage::getComputedColumnError(size_t colIndex) const
 	return colIndex >= dataColumnCount() ? "" : _dataSet->columns().at(colIndex)->error();
 }
 
-void DataSetPackage::setColumnsUsedInEasyFilter(std::set<std::string> usedColumns)
-{
-	std::set<std::string> toUpdate(usedColumns);
-
-	for(const auto & nameAndUsed : _columnNameUsedInEasyFilter)
-		if(nameAndUsed.second)
-			toUpdate.insert(nameAndUsed.first);
-
-	_columnNameUsedInEasyFilter.clear();
-
-	for(const std::string & col : usedColumns)
-		_columnNameUsedInEasyFilter[col] = true;
-
-	if(_dataSet)
-		for(const std::string & col: toUpdate)
-		{
-			int idx = findIndexByName(col);
-			if(idx >= 0)
-				notifyColumnFilterStatusChanged(idx);
-		}
-}
-
-
-bool DataSetPackage::isColumnUsedInEasyFilter(const std::string & colName) const
-{
-	return _columnNameUsedInEasyFilter.count(colName) > 0 && _columnNameUsedInEasyFilter.at(colName);
-}
-
-void DataSetPackage::notifyColumnFilterStatusChanged(int columnIndex)
-{
-	JASPTIMER_SCOPE(DataSetPackage::notifyColumnFilterStatusChanged);
-
-	emit columnsFilteredCountChanged();
-	//emit headerDataChanged(Qt::Horizontal, columnIndex, columnIndex); //this keeps crashing jasp and i dont know why
-	beginResetModel();
-	endResetModel();
-}
-
-
 QVariant DataSetPackage::getColumnTypesWithIcons() const
 {
 	static QVariantList ColumnTypeAndIcons;
@@ -1205,19 +378,6 @@ QVariant DataSetPackage::getColumnTypesWithIcons() const
 	}
 
 	return QVariant(ColumnTypeAndIcons);
-}
-
-int DataSetPackage::columnsFilteredCount()
-{
-	if(_dataSet == nullptr) return 0;
-
-	int colsFiltered = 0;
-
-	for(Column * col : _dataSet->columns())
-		if(col->hasFilter())
-			colsFiltered++;
-
-	return colsFiltered;
 }
 
 void DataSetPackage::resetFilterCounters()
@@ -1330,6 +490,7 @@ void DataSetPackage::refreshColumn(QString columnName)
 	}*/
 }
 
+
 void DataSetPackage::columnWasOverwritten(const std::string & columnName, const std::string &)
 {
 	for(size_t col=0; col<_dataSet->columns().size(); col++)
@@ -1423,79 +584,6 @@ void DataSetPackage::dbDelete()
 		_dataSet->dbDelete();
 }
 
-void DataSetPackage::createDataSet()
-{
-	JASPTIMER_SCOPE(DataSetPackage::createDataSet);
-					
-	dbDelete();
-	deleteDataSet();
-	_dataSet = new DataSet();
-	setDefaultWorkspaceEmptyValues();
-	_dataSubModel->selectNode(_dataSet->dataNode());
-	_filterSubModel->selectNode(_dataSet->filtersNode());
-	
-	_dataSet->filter()->setRFilter(FilterModel::defaultRFilter());
-	
-	_dataSet->setModifiedCallback([&](){ setModified(true); }); //DataSet and co dont use Qt so instead we just use a callback
-}
-
-void DataSetPackage::loadDataSet(std::function<void(float)> progressCallback)
-{
-	if(_dataSet)
-		deleteDataSet(); //no dbDelete necessary cause we just copied an old sqlite file here from the JASP file
-	
-	_db->close();
-	stopEngines();
-	_db->load();		
-	_db->upgradeDBFromVersion(_jaspVersion);
-	
-	bool do019Upgrade = _jaspVersion < "0.19";
-	
-	_dataSet = new DataSet(0);
-	_dataSet->dbLoad(1, progressCallback, _jaspVersion); //Right now there can only be a dataSet with ID==1 so lets keep it simple
-	
-	if (do019Upgrade)
-	{
-		// In 0.18.3 and before, there was a bug with the order of dataFilePath and description in the database.
-		// dataFilePath was set empty and description has dataFilePath.
-		if (dataFilePath().empty())
-		{
-			QFileInfo fileInfo(description());
-			if (fileInfo.isFile())
-				setDataFilePath(fq(description()));
-		}
-	}
-	_dataSubModel->selectNode(_dataSet->dataNode());
-	_filterSubModel->selectNode(_dataSet->filtersNode());
-
-	// Do not compute computed columns when loading a JASP file!
-	// DataSetPackage::pkg()->initializeComputedColumns();
-
-	emit synchingExternallyChanged(synchingExternally());
-	restartEngines();
-}
-
-void DataSetPackage::deleteDataSet()
-{
-	JASPTIMER_SCOPE(DataSetPackage::deleteDataSet);
-
-
-	_dataSubModel->selectNode(nullptr);
-	_filterSubModel->selectNode(nullptr);
-	
-	delete _dataSet;
-	_dataSet = nullptr;
-	_undoStack->clear();
-}
-
-int DataSetPackage::getColIndex(QVariant colID)
-{
-	if(colID.typeId() == QMetaType::Int || colID.typeId() == QMetaType::UInt)
-		return colID.typeId() == QMetaType::Int ? colID.toInt() : colID.toUInt();
-
-	else
-		return _dataSet->getColumnIndex(fq(colID.toString()));
-}
 
 int DataSetPackage::thresholdScale()
 {
@@ -1505,6 +593,26 @@ int DataSetPackage::thresholdScale()
 int DataSetPackage::orderByValueByDefault()
 {
 	return PreferencesModel::prefs()->orderByValueByDefault();
+}
+
+void DataSetPackage::resetVariableTypes()
+{
+	if(_dataSet)
+		_dataSet->resetVariableTypes();
+}
+
+bool DataSetPackage::initColumnWithStrings(QVariant colID, const std::string & newName, const stringvec &values, const stringvec & labels, const std::string & title, columnType desiredType, const stringset & emptyValues)
+{
+	JASPTIMER_SCOPE(DataSetPackage::initColumnWithStrings);
+
+	int colIndex	= colID.typeId() == QMetaType::Int || colID.typeId() == QMetaType::UInt
+					? (colID.typeId() == QMetaType::Int ? colID.toInt() : colID.toUInt())
+					: _dataSet->getColumnIndex(fq(colID.toString()));
+	
+	return _dataSet->initColumnWithStrings(
+				colIndex, newName, values, labels, title, desiredType, emptyValues,
+				Settings::value(Settings::THRESHOLD_SCALE).toInt(),
+				PreferencesModel::prefs()->orderByValueByDefault());
 }
 
 void DataSetPackage::initializeComputedColumns()
@@ -1809,27 +917,6 @@ void DataSetPackage::columnsApply(intset columnIndexes, std::function<bool(Colum
 	columnsApply(columnIndexes, [&](Column * column, int){ return applyThis(column); });
 }
 
-bool DataSetPackage::setFilterData(const std::string & rFilter, const boolvec & filterResult)
-{
-	filter()->setRFilter(rFilter);
-
-	bool someFilterValueChanged = filter()->setFilterVector(filterResult);
-	
-	if(_dataSet)
-		_dataSet->filter()->setFilterVector(filterResult);
-
-	if(someFilterValueChanged) //We could also send exactly those cells that were changed if we were feeling particularly inclined to write the code...
-	{
-		//emit dataChanged(index(0, 0, parentModelForType(parIdxType::filter)),	index(rowCount(), 0,				parentModelForType(parIdxType::filter)));
-		//This actually lets the whole application freeze when a filter is undone... -> emit dataChanged(index(0, 0, parentModelForType(parIdxType::data)),		index(rowCount(), columnCount(),	parentModelForType(parIdxType::data)));
-
-		beginResetModel();
-		endResetModel();
-	}
-
-	return someFilterValueChanged;
-}
-
 columnType DataSetPackage::getColumnType(size_t columnIndex) const
 {
 	return _dataSet && _dataSet->column(columnIndex) ? _dataSet->column(columnIndex)->type() : columnType::unknown;
@@ -1846,49 +933,6 @@ std::string DataSetPackage::getColumnName(size_t columnIndex) const
 	return _dataSet && _dataSet->column(columnIndex) ? _dataSet->column(columnIndex)->name() : "";
 }
 
-QStringList DataSetPackage::getColumnLabelsAsStringList(size_t columnIndex)	const
-{
-	return tq(getColumnLabelsAsStrVec(columnIndex));
-}
-
-
-boolvec DataSetPackage::getColumnFilterAllows(size_t columnIndex) const 
-{
-	boolvec list;
-	if(columnIndex < 0 || columnIndex >= dataColumnCount()) 
-		return list;
-	
-	Column * column =_dataSet->columns()[columnIndex];
-	
-	for (const Label * label : column->labels())
-		list.push_back(label->filterAllows());
-	
-	while(list.size() < column->labelsNonEmptyCount())
-		list.push_back(true);
-
-	return list;
-}
-
-stringvec DataSetPackage::getColumnLabelsAsStrVec(size_t columnIndex) const
-{
-	stringvec list;
-	if(columnIndex < 0 || columnIndex >= dataColumnCount()) 
-		return list;
-
-	return _dataSet->columns()[columnIndex]->labelsAsStrings();
-}
-
-
-stringvec DataSetPackage::getColumnLevelsAsStrVec(size_t columnIndex) const
-{
-	stringvec list;
-	if(columnIndex < 0 || columnIndex >= dataColumnCount()) 
-		return list;
-
-	return _dataSet->columns()[columnIndex]->nonEmptyLevelsStrings();
-}
-
-
 QList<QVariant> DataSetPackage::getColumnValuesAsDoubleList(size_t columnIndex)	const
 {
 	QList<QVariant> list;
@@ -1898,14 +942,6 @@ QList<QVariant> DataSetPackage::getColumnValuesAsDoubleList(size_t columnIndex)	
 		list.append(value);
 
 	return list;
-}
-
-bool DataSetPackage::labelNeedsFilter(size_t columnIndex) const
-{
-	if(columnIndex < 0 || columnIndex >= dataColumnCount()) 
-		return false;
-			
-	return _dataSet->columns()[columnIndex]->hasFilter();
 }
 
 
@@ -2019,7 +1055,6 @@ void DataSetPackage::pasteSpreadsheet(size_t row, size_t col, const std::vector<
 		return selected.size() == 0 || 	selected[col][row];
 	};
 
-	beginSynchingData(false);
 	_dataSet->beginBatchedToDB();
 	
 	if(colCountChanged || rowCountChanged)	
@@ -2060,8 +1095,7 @@ void DataSetPackage::pasteSpreadsheet(size_t row, size_t col, const std::vector<
 	
 	stringvec		missingColumns;
 
-	endSynchingData(changed, missingColumns, changeNameColumns, rowCountChanged, colCountChanged, false);
-	setManualEdits(true); //set manual edits here so external synching is turned off, endSynchingData also just reset it, so thats why it is way down here
+	emit datasetChanged(tq(changed), tq(missingColumns), tq(changeNameColumns), rowCountChanged, colCountChanged);
 }
 
 QString DataSetPackage::insertColumnSpecial(int columnIndex, const QMap<QString, QVariant>& props, bool setManualEditsPar)
@@ -2113,156 +1147,22 @@ QString DataSetPackage::appendColumnSpecial(const QMap<QString, QVariant>& props
 
 bool DataSetPackage::insertColumns(int column, int count, const QModelIndex & aparent)
 {
-	if(column > dataColumnCount())
-		column = dataColumnCount(); //the column will be created if necessary but only if it is in a logical place. So the end of the vector
-
-	setManualEdits(true); //Don't synch with external file after editing
-#ifdef ROUGH_RESET
-	beginResetModel();
-#else
-	beginInsertColumns(indexForSubNode(_dataSet->dataNode()), column, column + count - 1);
-#endif
-
-	stringvec changed;
-
-	for(int c = column; c<column+count; c++)
-	{
-		_dataSet->insertColumn(c);
-		const std::string & name = freeNewColumnName(c);
-		_dataSet->column(c)->setName(name);
-		_dataSet->column(c)->setDefaultValues(columnType::scale);
-
-		changed.push_back(name);
-	}
-#ifdef ROUGH_RESET
-	endResetModel();
-#else
-	endInsertColumns();
-#endif
-
-	strstrmap		changeNameColumns;
-	stringvec		missingColumns;
-
-	emit datasetChanged(tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
-
-	ColumnEncoder::setCurrentColumnNames(	getColumnTypesMap());
-
-	return true;
+	assert(false);
 }
 
 bool DataSetPackage::removeColumns(int column, int count, const QModelIndex & aparent)
 {
-	if(column == -1)
-		return false;
-
-	emit columnsBeingRemoved(column, count);
-
-	setManualEdits(true); //Don't synch with external file after editing
-#ifdef ROUGH_RESET
-	beginResetModel();
-#else
-	beginRemoveColumns(indexForSubNode(_dataSet->dataNode()), column, column + count - 1);
-#endif
-
-	stringvec	changed;
-	strstrmap	changeNameColumns;
-	stringvec	missingColumns;
-
-	for(int c = column + count; c>column; c--)
-	{
-		missingColumns.push_back(getColumnName(c - 1));
-		_dataSet->removeColumn(c - 1);
-	}
-#ifdef ROUGH_RESET
-	endResetModel();
-#else
-	endRemoveColumns();
-#endif
-	emit datasetChanged(tq(changed), tq(missingColumns), tq(changeNameColumns), false, true);
-
-	ColumnEncoder::setCurrentColumnNames(getColumnTypesMap());
-
-	return true;
+	assert(false);
 }
 
 bool DataSetPackage::insertRows(int row, int count, const QModelIndex & aparent)
 {
-	if(row > dataRowCount())
-		row = dataRowCount();
-
-	setManualEdits(true); //Don't synch with external file after editing
-#ifdef ROUGH_RESET
-	beginResetModel();
-#else
-	beginInsertRows(indexForSubNode(_dataSet->dataNode()), row, row + count - 1);
-#endif
-	stringvec changed;
-
-
-	dataSet()->beginBatchedToDB();
-
-	for(int c=0; c<dataColumnCount(); c++)
-	{
-		const std::string & name = getColumnName(c);
-		changed.push_back(name);
-
-		for(int r=row; r<row+count; r++)
-			dataSet()->column(c)->rowInsertEmptyVal(r);
-	}
-
-	dataSet()->setRowCount(dataSet()->rowCount() + count);
-	dataSet()->incRevision();
-	dataSet()->endBatchedToDB();
-#ifdef ROUGH_RESET
-	endResetModel();
-#else
-	endInsertRows();
-#endif
-	strstrmap		changeNameColumns;
-	stringvec		missingColumns;
-
-	emit datasetChanged(tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
-
-	return true;
+	
 }
 
 bool DataSetPackage::removeRows(int row, int count, const QModelIndex & aparent)
 {
-	if(row == -1)
-		return false;
-
-	setManualEdits(true); //Don't synch with external file after editing
-#ifdef ROUGH_RESET
-	beginResetModel();
-#else
-	beginRemoveRows(indexForSubNode(_dataSet->dataNode()), row, row + count - 1);
-#endif
-	stringvec changed;
-
-	dataSet()->beginBatchedToDB();
-	
-	for(Column * column : dataSet()->columns())
-	{
-		changed.push_back(column->name());
-	
-		for(int r=row+count; r>row; r--)
-			column->rowDelete(r-1);
-	}
-
-	dataSet()->setRowCount(dataSet()->rowCount() - count);
-	dataSet()->incRevision();
-	dataSet()->endBatchedToDB();
-
-	strstrmap		changeNameColumns;
-	stringvec		missingColumns;
-#ifdef ROUGH_RESET
-	endResetModel();
-#else
-	endRemoveRows();
-#endif
-	emit datasetChanged(tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
-
-	return true;
+	assert(false);
 }
 
 Column * DataSetPackage::createColumn(const std::string & name, columnType columnType)
@@ -2315,7 +1215,7 @@ boolvec DataSetPackage::filterVector()
 	boolvec out;
 
 	if(_dataSet)
-		out = boolvec(_dataSet->filter()->filtered().begin(), _dataSet->filter()->filtered().end());
+            out = boolvec(_dataSet->shownFilter()->filtered().begin(), _dataSet->shownFilter()->filtered().end());
 	
 	return out;
 }
