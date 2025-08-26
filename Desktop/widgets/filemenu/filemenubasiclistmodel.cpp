@@ -102,22 +102,22 @@ Qt::ItemFlags FileMenuBasicListModel::flags(const QModelIndex &index) const
 
 void FileMenuBasicListModel::changePath(const QString& name, const QString& path)
 {
-	Log::log() << "Override basicListModel::changePath!" << std::endl;
+	assert(false);
 }
 
 void FileMenuBasicListModel::changePathCrumbIndex(const int& index)
 {
-	Log::log() << "Override basicListModel::changePathCrumbIndex!" << std::endl;
+	assert(false);
 }
 
 void FileMenuBasicListModel::openFile(const QString& path)
 {
-	Log::log() << "Override basicListModel::openFile!" << std::endl;
+	assert(false);
 }
 
 void FileMenuBasicListModel::saveFile(const QString& path)
 {
-	Log::log() << "Override basicListModel::saveFile!" << std::endl;
+	assert(false);
 }
 
 QMutex FileMenuBasicListModel::_opening;
