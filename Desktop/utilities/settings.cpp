@@ -116,7 +116,7 @@ const Settings::Setting Settings::Values[] = {
 	{"startMaximized",				false	},
 	{"storeStateEtc",				false	},
 	{"autoSaveOn",					true	},
-	{"autoSaveInterval",			5*60	},
+	{"autoSaveInterval",			60	},
 };	
 
 QVariant Settings::value(Settings::Type key)
