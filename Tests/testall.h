@@ -13,6 +13,6 @@ private slots:
     void    testDataImport();
 
 private:
-	DataSetPackage     *	_pkg = nullptr;
-	Importer			*	_importer =  nullptr;
+	DataSetPackage		*	_pkg		= nullptr;
+	Importer			*	_importer	= nullptr;
 };
