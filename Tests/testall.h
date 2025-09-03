@@ -2,14 +2,13 @@
 
 class DataSetPackage;
 
-class TestImport: public QObject
+class TestAll: public QObject
 {
     Q_OBJECT
 private slots:
     void    initTestCase();
     void    init();
-    void    testDebugCsv();
-    void    testDebugReadStat();
+    void    testDataImport();
 
 private:
     DataSetPackage     * _pkg = nullptr;
