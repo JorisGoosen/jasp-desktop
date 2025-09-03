@@ -20,6 +20,7 @@ public:
 	~ReadStatImporter() override;
 
 	static bool extSupported(const std::string & ext);
+	static stringset extsSupported();
 
 protected:
 	ImportDataSet *	loadFile(const std::string &locator, std::function<void(int)> progressCallback)	override;
