@@ -8,7 +8,8 @@ qt_add_executable(
   testimport.h
   testimport.cpp
   $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
-  $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest> # Does this work?
+  $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
+  main.cpp # Does this work?
 )
 
 add_dependencies(JASPTest JASPDesktopLib)

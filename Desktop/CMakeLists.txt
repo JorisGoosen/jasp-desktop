@@ -32,6 +32,7 @@ message(STATUS "githubpat.h is successfully generated...")
 file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/*.h")
 file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 list(REMOVE_ITEM SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/container_permission_checker/main.cpp")
+list(REMOVE_ITEM SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/main.cpp")
 
 file(GLOB_RECURSE BUNDLE_RESOURCES "${CMAKE_SOURCE_DIR}/Resources/*")
 
@@ -46,6 +47,7 @@ qt_add_executable(
   JASP
   ${SYSTEM_TYPE}
   ${BUNDLE_RESOURCES}
+  ${CMAKE_SOURCE_DIR}/Desktop/main.cpp
   $<$<PLATFORM_ID:Windows>:${CMAKE_CURRENT_LIST_DIR}/icon.rc>
   $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
   $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
@@ -221,7 +223,7 @@ endif()
 
 file(GLOB_RECURSE HTML_RESOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/html/*")
 qt_add_resources(
-  JASP
+  JASPDesktopLib
   "html"
   PREFIX
   "/html"
@@ -233,7 +235,7 @@ qt_add_resources(
 file(GLOB_RECURSE TRANSLATION_RESOURCE_FILES
      "${CMAKE_CURRENT_LIST_DIR}/translations/*.png")
 qt_add_resources(
-  JASP
+  JASPDesktopLib
   "translations"
   PREFIX
   "/translations"
@@ -244,7 +246,7 @@ qt_add_resources(
 
 file(GLOB_RECURSE QML_RESOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/components/*")
 qt_add_resources(
-  JASP
+  JASPDesktopLib
   "widgetsandtheme"
   PREFIX
   "/"
@@ -259,7 +261,7 @@ set(RESOURCES_RESOURCE_FILES
     "resources/fonts/FiraCode-Retina.ttf" "resources/fonts/FreeSans.ttf")
 
 qt_add_resources(
-  JASP
+  JASPDesktopLib
   "resources"
   PREFIX
   "/"
