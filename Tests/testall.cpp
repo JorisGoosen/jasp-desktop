@@ -38,7 +38,7 @@ void TestAll::testDataImport()
 {
 	for(const QString & folder : _TestLibrary().entryList(QDir::Filter::Dirs | QDir::Filter::NoDotAndDotDot | QDir::Filter::NoSymLinks))
 	{
-		std::cout << "Entering folder " << folder << std::endl;
+		std::cerr << "Entering folder " << folder << std::endl;
 
 		if(folder == "jasp")
 			continue;
@@ -64,7 +64,7 @@ void TestAll::testDataImport()
 		for(QFileInfo & i : subDir.entryInfoList(QDir::Filter::Files | QDir::Filter::NoDotAndDotDot | QDir::Filter::NoSymLinks))
 			if(i.suffix() != "json")
 			{
-				std::cout << "Testing " << i.absoluteFilePath() << std::endl;
+				std::cerr << "Testing " << i.absoluteFilePath() << std::endl;
 				_pkg->reset();
 
 				_importer->loadDataSet(fq(i.absoluteFilePath()), [](int i){});
@@ -83,10 +83,14 @@ void TestAll::testDataImport()
 
 				if(!jsonFileIn.exists())
 				{
-					std::cerr << "You should create " << jsonFilePath << std::endl;
-					std::cerr << stringUtils::replaceBy(compareMe.toStyledString(), "\n", " ") << std::endl;
+					std::cerr << "Json does not exist yet, creating it now!" << std::endl;
+					QFile jsonFile(jsonFilePath);
+					jsonFile.open(QFile::OpenModeFlag::WriteOnly);
+					jsonFile.write(stringUtils::replaceBy(compareMe.toStyledString(), "\n", " ").c_str());
+					jsonFile.close();
 
 				}
+
 				QVERIFY(jsonFileIn.exists());
 
 				QFile jsonFile(jsonFilePath);
