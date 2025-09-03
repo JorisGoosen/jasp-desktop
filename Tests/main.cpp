@@ -16,7 +16,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-
+#if 0
+//main is generated in testimport but maybe the below will be useful for something
 #include <QDir>
 
 #include "utilities/application.h"
@@ -124,3 +125,4 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 }
+#endif
