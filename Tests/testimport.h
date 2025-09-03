@@ -4,5 +4,6 @@ class TestImport: public QObject
 {
     Q_OBJECT
 private slots:
+    void    initTestCase();
     void    testDebugCsv();
 };

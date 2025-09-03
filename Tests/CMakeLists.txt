@@ -9,7 +9,8 @@ qt_add_executable(
   testimport.cpp
   $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
   $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
-  main.cpp # Does this work?
+  main.cpp
+  hardcodeddata.h # Does this work?
 )
 
 add_dependencies(JASPTest JASPDesktopLib)
@@ -28,5 +29,11 @@ target_link_libraries(
     JASPDesktopLib
     Qt::Test
   )
+
+
+
+enable_testing(true)
+
+add_test(NAME testimport COMMAND testDebugCsv)
 
 endif()
