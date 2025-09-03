@@ -1,6 +1,7 @@
 #include <QTest>
 
 class DataSetPackage;
+class Importer;
 
 class TestAll: public QObject
 {
@@ -8,8 +9,10 @@ class TestAll: public QObject
 private slots:
     void    initTestCase();
     void    init();
+	void	cleanup();
     void    testDataImport();
 
 private:
-    DataSetPackage     * _pkg = nullptr;
+	DataSetPackage     *	_pkg = nullptr;
+	Importer			*	_importer =  nullptr;
 };

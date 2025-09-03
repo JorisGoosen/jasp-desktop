@@ -12,9 +12,8 @@ class ReadStatImporter : public Importer
 {
 
 public:
-	ReadStatImporter(std::string ext) : Importer(), _ext(stringUtils::toLower(ext))
+	ReadStatImporter(std::string ext = "sav") : Importer(), _ext(stringUtils::toLower(ext))
 	{
-		if(_ext.size() == 0)	throw std::runtime_error("ReadStatImporter NEEDS to know the extension!");
 		if(_ext[0] == '.')		_ext = _ext.substr(1);
 	}
 	~ReadStatImporter() override;
