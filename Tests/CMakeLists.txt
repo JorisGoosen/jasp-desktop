@@ -5,12 +5,10 @@ find_package(Qt6 REQUIRED COMPONENTS Test)
 qt_add_executable(
   JASPTest
   ${SYSTEM_TYPE}
-  testimport.h
-  testimport.cpp
+  testall.h
+  testall.cpp
   $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
   $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
-  main.cpp
-  hardcodeddata.h # Does this work?
 )
 
 add_dependencies(JASPTest JASPDesktopLib)
@@ -34,6 +32,6 @@ target_link_libraries(
 
 enable_testing(true)
 
-add_test(NAME testimport COMMAND testDebugCsv)
+add_test(NAME testall COMMAND testDataImports)
 
 endif()
