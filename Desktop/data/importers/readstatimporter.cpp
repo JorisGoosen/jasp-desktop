@@ -72,8 +72,14 @@ int handle_note(int note_index, const char *note, void *ctx)
 
 bool ReadStatImporter::extSupported(const std::string & ext)
 {
-	static std::set<std::string> supportedExts({"dta", "por", "sav", "zsav", "sas7bdat", "sas7bcat", "xpt", ".dta", ".por", ".sav", ".zsav", ".sas7bdat", ".sas7bcat", ".xpt"});
-	return supportedExts.count(stringUtils::toLower(ext)) > 0;
+	return extsSupported().count(stringUtils::toLower(ext.starts_with(".") ? ext.substr(1) : ext)) > 0;
+}
+
+stringset ReadStatImporter::extsSupported()
+{
+	static const std::set<std::string> supportedExts({"dta", "por", "sav", "zsav", "sas7bdat", "sas7bcat", "xpt"});
+
+	return supportedExts;
 }
 
 
