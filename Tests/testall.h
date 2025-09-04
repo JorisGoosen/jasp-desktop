@@ -11,6 +11,7 @@ private slots:
     void    init();
 	void	cleanup();
     void    testDataImport();
+	void	testDataImport_data();
 
 private:
 	DataSetPackage		*	_pkg		= nullptr;
