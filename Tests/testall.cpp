@@ -1,7 +1,8 @@
+#include "qutils.h"
 #include "testall.h"
 #include "tempfiles.h"
 #include "processinfo.h"
-#include "utilities/qutils.h"
+#include "databaseinterface.h"
 #include "data/datasetpackage.h"
 #include "data/importers/csvimporter.h"
 #include "data/importers/odsimporter.h"
@@ -12,12 +13,12 @@
 void TestAll::initTestCase()
 {
 	TempFiles::init(ProcessInfo::currentPID()); // needed here so that the LRNAM can be passed the session directory
-	_pkg = new DataSetPackage(this);
+
 }
 
 void TestAll::init()
 {
-	_pkg->reset();
+	//_pkg->reset(false);
 }
 
 void TestAll::cleanup()
@@ -25,8 +26,6 @@ void TestAll::cleanup()
 	if(_importer)
 		delete _importer;
 	_importer = nullptr;
-
-
 }
 
 QDir _TestLibrary()
@@ -57,16 +56,21 @@ void TestAll::testDataImport()
 			return nullptr;
 		};
 
-		_importer = getImporter();
-
-		QVERIFY2(_importer, "Getting importer failed...");
-
 		for(QFileInfo & i : subDir.entryInfoList(QDir::Filter::Files | QDir::Filter::NoDotAndDotDot | QDir::Filter::NoSymLinks))
 			if(i.suffix() != "json")
 			{
-				std::cerr << "Testing " << i.absoluteFilePath() << std::endl;
-				_pkg->reset();
+				if(_pkg)
+					delete _pkg;
 
+				if(_importer)
+					delete _importer;
+
+				_pkg = new DataSetPackage(this);
+				_importer = getImporter();
+
+				QVERIFY2(_importer, "Getting importer failed...");
+
+				std::cerr << "Testing " << i.absoluteFilePath() << std::endl;
 				_importer->loadDataSet(fq(i.absoluteFilePath()), [](int i){});
 
 				DataSet * dataSet = _pkg->dataSet();
@@ -110,6 +114,14 @@ void TestAll::testDataImport()
 					std::cerr << stringUtils::replaceBy(compareMe.toStyledString(), "\n", " ") << std::endl;
 
 				QVERIFY2(hardcodedIsSame,			"Hardcoded json is different!");
+
+				delete _importer;
+				_importer = nullptr;
+
+				DatabaseInterface::singleton()->close();
+				DatabaseInterface::singleton()->closeInterfaces();
+				delete _pkg;
+				_pkg = nullptr;
 
 			}
 
