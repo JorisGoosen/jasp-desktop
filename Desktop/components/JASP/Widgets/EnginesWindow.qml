@@ -4,27 +4,29 @@ import QtWebEngine
 import JASP.Widgets
 import JASP.Controls
 
-Window
+Rectangle
 {
 	id:					enginesWindow
-	width:				400 * jaspTheme.uiScale
+	width:				implicitWidth
 	height:				Screen.height
-	minimumWidth:		200 * preferencesModel.uiScale
-	minimumHeight:		minimumWidth
-	title:				qsTr("Engines Overview")
+	implicitWidth:		150 * preferencesModel.uiScale
+	implicitHeight:		minimumWidth
+	//title:				qsTr("Engines Overview")
 	color:				jaspTheme.uiBackground
+	border.width:		1
+	border.color:		jaspTheme.uiBorder
 	visible:			true
 	x:					0
 	y:					0
 
-	Shortcut { onActivated: enginesWindow.close();				sequences: ["Ctrl+W", Qt.Key_Close];							}
+	/*Shortcut { onActivated: enginesWindow.close();				sequences: ["Ctrl+W", Qt.Key_Close];							}
 
 
 	Connections
 	{
 		target:			mainWindow
 		function		onCloseWindows() { enginesWindow.close(); }
-	}
+	}*/
 
 
 	ListView
@@ -36,7 +38,7 @@ Window
 		delegate:	Item
 		{
 
-			height:			150 * jaspTheme.uiScale
+			height:			120 * jaspTheme.uiScale
 			width:			ListView.view.width
 
 			Rectangle
