@@ -32,6 +32,15 @@ target_link_libraries(
 
 enable_testing(true)
 
-add_test(NAME testall COMMAND testDataImports)
+add_test(NAME testall COMMAND testDataImports testMe)
+
+add_custom_command(
+  TARGET JASPTest
+  POST_BUILD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND ${CMAKE_COMMAND} -E copy_directory Tests/TestLibrary
+          ${CMAKE_BINARY_DIR}/Testing/TestLibrary
+  BYPRODUCTS ${CMAKE_BINARY_DIR}/Testing/TestLibrary
+  COMMENT "------ Updating the Resources")
 
 endif()

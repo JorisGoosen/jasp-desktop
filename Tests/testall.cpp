@@ -9,6 +9,7 @@
 #include "data/importers/excelimporter.h"
 #include "data/importers/rdataimporter.h"
 #include "data/importers/readstatimporter.h"
+#include "dirs.h"
 
 void TestAll::initTestCase()
 {
@@ -30,7 +31,7 @@ void TestAll::cleanup()
 
 QDir _TestLibrary()
 {
-	return QDir("../../jasp-desktop/Tests/TestLibrary/"); //This should probably be done better
+	return tq(Dirs::exeDir() + "/../Testing/TestLibrary/");
 }
 
 void TestAll::testDataImport_data()
@@ -51,6 +52,7 @@ void TestAll::testDataImport_data()
 				QTest::newRow(i.fileName().toUtf8()) << folder << i.absoluteFilePath();
 	}
 }
+
 
 void TestAll::testDataImport()
 {
@@ -135,8 +137,6 @@ void TestAll::testDataImport()
 	delete _pkg;
 	_pkg = nullptr;
 }
-
-
 
 
 QTEST_MAIN(TestAll)
