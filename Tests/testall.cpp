@@ -29,9 +29,15 @@ void TestAll::cleanup()
 	_importer = nullptr;
 }
 
+#define TO_STR2(x) #x
+#define TO_STR(x) TO_STR2(x)
+
 QDir _TestLibrary()
 {
-	return tq(Dirs::exeDir() + "/../Testing/TestLibrary/");
+	static const char *testLibraryDir = TO_STR(TESTLIBRARY_DIR);
+
+	QString altDir = qgetenv("TESTLIBRARY_DIR");
+	return altDir.isEmpty() ? QString(testLibraryDir) : altDir;
 }
 
 void TestAll::testDataImport_data()
