@@ -61,9 +61,6 @@ void FilterModel::reset()
 
 void FilterModel::dataSetPackageResetDone()
 {
-	setFilterVisible(false);
-	setShowEasyFilter(true);
-	
 	if(DataSetPackage::pkg()->isLoaded())
 	{
 		_setGeneratedFilter(tq(_labelFilterGenerator->generateFilter())		);
