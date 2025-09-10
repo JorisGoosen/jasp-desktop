@@ -139,4 +139,4 @@ void TestAll::testDataImport()
 
 
 
-QTEST_MAIN(TestAll)
+QUICK_TEST_MAIN(TestAll)

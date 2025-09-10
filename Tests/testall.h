@@ -1,4 +1,4 @@
-#include <QTest>
+#include <QtQuickTest>
 
 class DataSetPackage;
 class Importer;

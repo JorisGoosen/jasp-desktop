@@ -1,6 +1,6 @@
 if(BUILD_TESTS)
 
-find_package(Qt6 REQUIRED COMPONENTS Test)
+find_package(Qt6 REQUIRED COMPONENTS Test QuickTest Qml)
 
 qt_add_executable(
   JASPTest
@@ -26,8 +26,16 @@ target_link_libraries(
 	PUBLIC
     JASPDesktopLib
     Qt::Test
+    Qt6::QuickTest
+    Qt6::Qml
   )
 
+
+#[[The test harness scans the specified source directory recursively
+for "tst_*.qml" files. By default, it looks in the current directory,
+which is usually where the executable is. This command makes it look
+in the project's source directory instead.]]
+add_definitions(-DQUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/TestLibrary/qml/")
 
 
 enable_testing(true)
