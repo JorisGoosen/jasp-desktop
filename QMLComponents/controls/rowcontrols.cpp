@@ -141,6 +141,8 @@ void RowControls::disconnectAndDeleteControls()
 		if (listControl)
 			for (SourceItem* source : listControl->sourceItems())
 				source->disconnectModels();
+		
+		control->cleanUp();
 		control->setParent(nullptr);
 		control->setUnitialized();
 		control->blockSignals(true);
