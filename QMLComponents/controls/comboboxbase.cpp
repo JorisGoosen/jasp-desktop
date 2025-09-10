@@ -367,6 +367,9 @@ QString ComboBoxBase::generateDoxygenHelp() const
 
 bool ComboBoxBase::_hasOptionInfo() const
 {
+	if(!_model)
+		return false;
+	
 	for (const Term& term : _model->terms())
 	{
 		if (!term.info().isEmpty())

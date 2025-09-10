@@ -12,10 +12,10 @@ ListModelFilteredDataEntry::ListModelFilteredDataEntry(TableViewBase * parent)
 {
 	_keepRowsOnReset = false;
 
-	connect(this,					&ListModelFilteredDataEntry::filterChanged,		this, &ListModelFilteredDataEntry::runFilter				);
-	connect(_tableView,				SIGNAL(filterSignal(QString)),					this, SLOT(setFilter(QString))								);
-	connect(_tableView,				SIGNAL(colNameSignal(QString)),					this, SLOT(setColName(QString))								);
-	connect(_tableView,				SIGNAL(extraColSignal(QString)),				this, SLOT(setExtraCol(QString))							);
+	_connections.push_back(connect(this,					&ListModelFilteredDataEntry::filterChanged,		this, &ListModelFilteredDataEntry::runFilter				));
+	_connections.push_back(connect(_tableView,				SIGNAL(filterSignal(QString)),					this, SLOT(setFilter(QString))								));
+	_connections.push_back(connect(_tableView,				SIGNAL(colNameSignal(QString)),					this, SLOT(setColName(QString))								));
+	_connections.push_back(connect(_tableView,				SIGNAL(extraColSignal(QString)),				this, SLOT(setExtraCol(QString))							));
 
 	static int counter = 0;
 	do
@@ -24,7 +24,7 @@ ListModelFilteredDataEntry::ListModelFilteredDataEntry(TableViewBase * parent)
 	}
 	while(!Filter::filterNameIsFree(_filterName));
 	
-	connect(VariableInfo::info(),	&VariableInfo::dataSetChanged,					this, &ListModelFilteredDataEntry::dataSetChangedHandler);
+	_connections.push_back(connect(VariableInfo::info(),	&VariableInfo::dataSetChanged,					this, &ListModelFilteredDataEntry::dataSetChangedHandler));
 }
 
 ListModelFilteredDataEntry::~ListModelFilteredDataEntry()

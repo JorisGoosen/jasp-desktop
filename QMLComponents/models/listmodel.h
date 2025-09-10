@@ -105,7 +105,7 @@ public:
 	Q_INVOKABLE void				selectAllItems();
 	Q_INVOKABLE QList<int>			selectedItems()															{ return _selectedItems; }
 
-
+				void				cleanUp();
 signals:
 			void termsChanged();		// Used to signal all kinds of changes in the model. Do not call it directly
 			void variableNamesChanged(QMap<QString, QString> map);
@@ -148,6 +148,7 @@ protected:
 			QList<BoundControl *>			_rowControlsConnected;
 			QList<int>						_selectedItems;
 			QStringList						_columnsUsedForLabels;
+	std::vector<QMetaObject::Connection>	_connections;
 
 private:
 			void	_initTerms(const Terms &terms, const Terms::RelatedValuesPerTerm& allValuesMap, bool initRowControls = true);
@@ -155,6 +156,7 @@ private:
 
 			JASPListControl*				_listView = nullptr;
 			Terms							_terms;
+			
 
 };
 

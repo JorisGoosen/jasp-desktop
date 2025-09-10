@@ -42,31 +42,32 @@ JASPControl::JASPControl(QQuickItem *parent) : QQuickItem(parent)
 {
 	setFlag(ItemIsFocusScope);
 	setActiveFocusOnTab(true);
-
-	connect(this, &JASPControl::titleChanged,			this, &JASPControl::helpMDChanged);
-	connect(this, &JASPControl::infoChanged,			this, &JASPControl::helpMDChanged);
+								 
 	//connect(this, &JASPControl::visibleChanged,			this, &JASPControl::helpMDChanged);
 	//connect(this, &JASPControl::visibleChildrenChanged,	this, &JASPControl::helpMDChanged);
-	connect(this, &JASPControl::backgroundChanged,		[this] () { if (!_focusIndicator)		setFocusIndicator(_background); });
-	connect(this, &JASPControl::infoChanged,			[this] () { if (_toolTip.isEmpty())	setToolTip(info());					});
-	connect(this, &JASPControl::toolTipChanged,			[this] () { setShouldStealHover(!_toolTip.isEmpty());					});
-	connect(this, &JASPControl::hasErrorChanged,		this, &JASPControl::_hightlightBorder);
-	connect(this, &JASPControl::hasWarningChanged,		this, &JASPControl::_hightlightBorder);
-	connect(this, &JASPControl::isDependencyChanged,	this, &JASPControl::_hightlightBorder);
-	connect(this, &JASPControl::activeFocusChanged,		this, &JASPControl::_hightlightBorder);
 	//connect(this, &JASPControl::implicitWidthChanged,	[this] () { setWidth(implicitWidth());		if (_preferredWidthBinding) setPreferredWidth(int(implicitWidth()), true);		});
 	//connect(this, &JASPControl::implicitHeightChanged,	[this] () { setHeight(implicitHeight());	if (_preferredHeightBinding) setPreferredHeight(int(implicitHeight()), true);	});
-	connect(this, &JASPControl::indentChanged,			[this] () { QQmlProperty(this, "Layout.leftMargin", qmlContext(this)).write( (indent() && JaspTheme::currentTheme()) ? JaspTheme::currentTheme()->indentationLength() : 0); });
-	connect(this, &JASPControl::debugChanged,			[this] () { _setBackgroundColor(); _setVisible(); } );
-	connect(this, &JASPControl::parentDebugChanged,		[this] () { _setBackgroundColor(); _setVisible(); } );
-	connect(this, &JASPControl::boundValueChanged,		this, &JASPControl::_resetBindingValue);
-	connect(this, &JASPControl::activeFocusChanged,		this, &JASPControl::_setFocus);
-	connect(this, &JASPControl::activeFocusChanged,		this, &JASPControl::_notifyFormOfActiveFocus);
+
+	_connections.push_back(connect(this, &JASPControl::titleChanged,			this, &JASPControl::helpMDChanged));
+	_connections.push_back(connect(this, &JASPControl::infoChanged,				this, &JASPControl::helpMDChanged));
+	_connections.push_back(connect(this, &JASPControl::backgroundChanged,		[this] () { if (!_focusIndicator)		setFocusIndicator(_background); }));
+	_connections.push_back(connect(this, &JASPControl::infoChanged,				[this] () { if (_toolTip.isEmpty())	setToolTip(info());					}));
+	_connections.push_back(connect(this, &JASPControl::toolTipChanged,			[this] () { setShouldStealHover(!_toolTip.isEmpty());					}));
+	_connections.push_back(connect(this, &JASPControl::hasErrorChanged,			this, &JASPControl::_hightlightBorder));
+	_connections.push_back(connect(this, &JASPControl::hasWarningChanged,		this, &JASPControl::_hightlightBorder));
+	_connections.push_back(connect(this, &JASPControl::isDependencyChanged,		this, &JASPControl::_hightlightBorder));
+	_connections.push_back(connect(this, &JASPControl::activeFocusChanged,		this, &JASPControl::_hightlightBorder));
+	_connections.push_back(connect(this, &JASPControl::indentChanged,			[this] () { QQmlProperty(this, "Layout.leftMargin", qmlContext(this)).write( (indent() && JaspTheme::currentTheme()) ? JaspTheme::currentTheme()->indentationLength() : 0); }));
+	_connections.push_back(connect(this, &JASPControl::debugChanged,			[this] () { _setBackgroundColor(); _setVisible(); } ));
+	_connections.push_back(connect(this, &JASPControl::parentDebugChanged,		[this] () { _setBackgroundColor(); _setVisible(); } ));
+	_connections.push_back(connect(this, &JASPControl::boundValueChanged,		this, &JASPControl::_resetBindingValue));
+	_connections.push_back(connect(this, &JASPControl::activeFocusChanged,		this, &JASPControl::_setFocus));
+	_connections.push_back(connect(this, &JASPControl::activeFocusChanged,		this, &JASPControl::_notifyFormOfActiveFocus));
 								 
 	PreferencesModelBase* pref = PreferencesModelBase::preferences();
 								 
 	if(pref)
-		connect(pref, &PreferencesModelBase::developerModeChanged, this, [this](){ _setVisible(); });
+		_connections.push_back(connect(pref, &PreferencesModelBase::developerModeChanged, this, [this](){ _setVisible(); }));
 }
 
 JASPControl::~JASPControl()
@@ -74,9 +75,9 @@ JASPControl::~JASPControl()
 	//first we disconnect the children because reconnectWithYourChildren connected them to the parent
 	//These might get triggered during the destructor of QQuickItem and then crash jasp...
 	for (JASPControl* child : getChildJASPControls(_childControlsArea))
-		child->disconnect();
+		child->cleanUp();
 
-	disconnect();
+	cleanUp();
 }
 
 void JASPControl::setFocusOnTab(bool focus)
@@ -182,7 +183,7 @@ void JASPControl::componentComplete()
 	_setBackgroundColor();
 	_setVisible();
 
-	connect(this, &JASPControl::initializedChanged, this, &JASPControl::_checkControlName);
+	_connections.push_back(connect(this, &JASPControl::initializedChanged, this, &JASPControl::_checkControlName));
 
 	if (_useControlMouseArea)
 	{
@@ -193,7 +194,7 @@ void JASPControl::componentComplete()
 		if (_mouseAreaObj)
 		{
 			_mouseAreaObj->setParentItem(this);
-			QQuickItem::connect(_mouseAreaObj, SIGNAL(hoveredChanged()), this,  SLOT(_hoveredChangedSlot()) );
+			_connections.push_back(QQuickItem::connect(_mouseAreaObj, SIGNAL(hoveredChanged()), this,  SLOT(_hoveredChangedSlot()) ));
 		}
 		else
 			Log::log() << "Cannot create a Mouse Area!!!" << std::endl;
@@ -239,7 +240,7 @@ void JASPControl::componentComplete()
 			if (!listViewVar.isNull())
 			{
 				_parentListViewKey = context->contextProperty("rowValue").toString();
-				connect(parentlistView->model(), &ListModel::keyTermChanged, this, &JASPControl::parentListViewKeyChanged);
+				_connections.push_back(connect(parentlistView->model(), &ListModel::keyTermChanged, this, &JASPControl::parentListViewKeyChanged));
 			}
 			else
 				_parentListViewKey = context->contextProperty("rowIndex").toString();
@@ -268,7 +269,7 @@ void JASPControl::componentComplete()
 		setParentDebugToChildren(_debug);
 
 	if (_form)
-		connect(this, &JASPControl::boundValueChanged, _form, &AnalysisForm::boundValueChangedHandler);
+		_connections.push_back(connect(this, &JASPControl::boundValueChanged, _form, &AnalysisForm::boundValueChangedHandler));
 }
 
 void JASPControl::setCursorShape(int shape)
@@ -665,7 +666,7 @@ void JASPControl::setChildControlsArea(QQuickItem * childControlsArea)
 
 	//If there is a child control we would like to be kept informed of it
 	if(_childControlsArea)
-		connect(_childControlsArea, &QQuickItem::childrenChanged, this, &JASPControl::reconnectWithYourChildren, Qt::UniqueConnection);
+		_connections.push_back(connect(_childControlsArea, &QQuickItem::childrenChanged, this, &JASPControl::reconnectWithYourChildren, Qt::UniqueConnection));
 
 	//Just in case the children are there already:
 	reconnectWithYourChildren();
@@ -676,9 +677,9 @@ void JASPControl::reconnectWithYourChildren()
 	for (JASPControl* child : getChildJASPControls(_childControlsArea))
 	{
 		//Unique so that it doesn't matter how many times we connect
-		connect(child, &JASPControl::helpMDChanged,		this, &JASPControl::helpMDChanged,		Qt::UniqueConnection);
-		connect(child, &JASPControl::hasErrorChanged,	this, &JASPControl::hasErrorChanged,	Qt::UniqueConnection);
-		connect(child, &JASPControl::hasWarningChanged, this, &JASPControl::hasWarningChanged,	Qt::UniqueConnection);
+		_connections.push_back(connect(child, &JASPControl::helpMDChanged,		this, &JASPControl::helpMDChanged,		Qt::UniqueConnection));
+		_connections.push_back(connect(child, &JASPControl::hasErrorChanged,	this, &JASPControl::hasErrorChanged,	Qt::UniqueConnection));
+		_connections.push_back(connect(child, &JASPControl::hasWarningChanged, this, &JASPControl::hasWarningChanged,	Qt::UniqueConnection));
 	}
 
 	//Just in case:
@@ -858,7 +859,7 @@ void JASPControl::setInitialized(const Json::Value &value)
 	{
 		for (JASPControl* c : _depends)
 			if (!c->initialized())
-				connect(c, &JASPControl::initializedChanged, this, [this, value]() { if (dependingControlsAreInitialized()) _setInitialized(value); });
+				_connections.push_back(connect(c, &JASPControl::initializedChanged, this, [this, value]() { if (dependingControlsAreInitialized()) _setInitialized(value); }));
 	}
 }
 
@@ -866,6 +867,13 @@ void JASPControl::setUnitialized()
 {
 	_initialized = false;
 	_initializedWithValue = Json::nullValue;
+}
+								 
+void JASPControl::cleanUp()									
+{ 
+	for(auto & c : _connections)
+		disconnect(c);
+	_connections.clear();
 }
 
 void JASPControl::_setInitialized(const Json::Value &value)

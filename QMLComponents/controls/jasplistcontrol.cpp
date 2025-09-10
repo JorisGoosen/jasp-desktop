@@ -38,7 +38,7 @@ JASPListControl::JASPListControl(QQuickItem *parent)
 	_hasUserInteractiveValue = false;
 	_allowedTypesModel		= new ColumnTypesModel(this);
 
-	connect(VariableInfo::info(),	&VariableInfo::dataSetChanged,		this,	&JASPListControl::levelsChanged);
+	_connections.push_back(connect(VariableInfo::info(),	&VariableInfo::dataSetChanged,		this,	&JASPListControl::levelsChanged));
 
 }
 
@@ -58,7 +58,7 @@ void JASPListControl::_checkAllSourcesAreConnected(bool addConnect)
 		{
 			allConnected = false;
 			if (addConnect)
-				connect(sourceItem, &SourceItem::sourceConnected, this, [this]() { _checkAllSourcesAreConnected(false); });
+				_connections.push_back(connect(sourceItem, &SourceItem::sourceConnected, this, [this]() { _checkAllSourcesAreConnected(false); }));
 		}
 	}
 
@@ -151,21 +151,21 @@ void JASPListControl::setUp()
 
 	_setAllowedVariables();
 
-	connect(this,								&JASPListControl::sourceChanged,				this,	&JASPListControl::sourceChangedHandler		);
-	connect(listModel,							&ListModel::termsChanged,						this,	&JASPListControl::_termsChangedHandler		);
-	connect(listModel,							&ListModel::termsChanged,						this,	[this]() { emit countChanged(); }			);
-	connect(listModel,							&ListModel::termsChanged,						this,	&JASPListControl::maxTermsWidthChanged		);
-	connect(DesktopCommunicator::singleton(),	&DesktopCommunicator::uiScaleChanged,			this,	&JASPListControl::maxTermsWidthChanged		);
-	connect(DesktopCommunicator::singleton(),	&DesktopCommunicator::interfaceFontChanged,		this,	&JASPListControl::maxTermsWidthChanged		);
-	connect(this,								&JASPListControl::maxLevelsChanged,				this,	&JASPListControl::checkLevelsConstraints	);
-	connect(this,								&JASPListControl::minLevelsChanged,				this,	&JASPListControl::checkLevelsConstraints	);
-	connect(this,								&JASPListControl::maxNumericLevelsChanged,		this,	&JASPListControl::checkLevelsConstraints	);
-	connect(this,								&JASPListControl::minNumericLevelsChanged,		this,	&JASPListControl::checkLevelsConstraints	);
-	connect(DesktopCommunicator::singleton(),	&DesktopCommunicator::currentJaspThemeChanged,	this,	&JASPListControl::_setAllowedVariables		);
-	connect(this,								&JASPListControl::allowedColumnsChanged,		this,	&JASPListControl::_setAllowedVariables		);
-	connect(listModel,							&ListModelDraggable::termsChanged,				this,	&JASPListControl::levelsChanged				);
-	connect(listModel,							&ListModelDraggable::filterChanged,				this,	&JASPListControl::levelsChanged				);
-	connect(listModel,							&ListModelDraggable::filterChanged,				this,	&JASPListControl::checkLevelsConstraints, Qt::QueuedConnection	);
+	_connections.push_back(connect(this,								&JASPListControl::sourceChanged,				this,	&JASPListControl::sourceChangedHandler		));
+	_connections.push_back(connect(listModel,							&ListModel::termsChanged,						this,	&JASPListControl::_termsChangedHandler		));
+	_connections.push_back(connect(listModel,							&ListModel::termsChanged,						this,	[this]() { emit countChanged(); }			));
+	_connections.push_back(connect(listModel,							&ListModel::termsChanged,						this,	&JASPListControl::maxTermsWidthChanged		));
+	_connections.push_back(connect(DesktopCommunicator::singleton(),	&DesktopCommunicator::uiScaleChanged,			this,	&JASPListControl::maxTermsWidthChanged		));
+	_connections.push_back(connect(DesktopCommunicator::singleton(),	&DesktopCommunicator::interfaceFontChanged,		this,	&JASPListControl::maxTermsWidthChanged		));
+	_connections.push_back(connect(this,								&JASPListControl::maxLevelsChanged,				this,	&JASPListControl::checkLevelsConstraints	));
+	_connections.push_back(connect(this,								&JASPListControl::minLevelsChanged,				this,	&JASPListControl::checkLevelsConstraints	));
+	_connections.push_back(connect(this,								&JASPListControl::maxNumericLevelsChanged,		this,	&JASPListControl::checkLevelsConstraints	));
+	_connections.push_back(connect(this,								&JASPListControl::minNumericLevelsChanged,		this,	&JASPListControl::checkLevelsConstraints	));
+	_connections.push_back(connect(DesktopCommunicator::singleton(),	&DesktopCommunicator::currentJaspThemeChanged,	this,	&JASPListControl::_setAllowedVariables		));
+	_connections.push_back(connect(this,								&JASPListControl::allowedColumnsChanged,		this,	&JASPListControl::_setAllowedVariables		));
+	_connections.push_back(connect(listModel,							&ListModelDraggable::termsChanged,				this,	&JASPListControl::levelsChanged				));
+	_connections.push_back(connect(listModel,							&ListModelDraggable::filterChanged,				this,	&JASPListControl::levelsChanged				));
+	_connections.push_back(connect(listModel,							&ListModelDraggable::filterChanged,				this,	&JASPListControl::checkLevelsConstraints, Qt::QueuedConnection	));
 }
 
 void JASPListControl::cleanUp()
@@ -176,7 +176,7 @@ void JASPListControl::cleanUp()
 
 		if (_model)
 		{
-			_model->disconnect();
+			_model->cleanUp();
 			for (RowControls* rowControls : _model->getAllRowControls().values())
 				for (JASPControl* control : rowControls->getJASPControlsMap().values())
 					control->cleanUp();
@@ -186,6 +186,11 @@ void JASPListControl::cleanUp()
 			source->disconnectModels();
 
 		JASPControl::cleanUp();
+		
+		for(auto & c : _connections)
+			disconnect(c);
+		
+		_connections.clear();
 	}
 	catch (...) {}
 }

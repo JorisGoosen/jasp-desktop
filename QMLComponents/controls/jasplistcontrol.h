@@ -221,6 +221,8 @@ protected:
 							_columnsNames,
 							_allowedColumns;
 	ColumnTypesModel	*	_allowedTypesModel					= nullptr;
+	
+	std::vector<QMetaObject::Connection>	_connections;
 
 };
 typedef std::vector<JASPListControl*> JASPListControls;

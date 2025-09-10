@@ -29,13 +29,13 @@ ListModel::ListModel(JASPListControl* listView)
 	, _listView(listView)
 {
 	// Connect all apecific signals to a general signal
-	connect(this,	&ListModel::modelReset,				this,	&ListModel::termsChanged);
-	connect(this,	&ListModel::rowsRemoved,			this,	&ListModel::termsChanged);
-	connect(this,	&ListModel::rowsMoved,				this,	&ListModel::termsChanged);
-	connect(this,	&ListModel::rowsInserted,			this,	&ListModel::termsChanged);
-	connect(this,	&ListModel::dataChanged,			this,	&ListModel::dataChangedHandler);
-	connect(this,	&ListModel::variableNamesChanged,	this,	&ListModel::termsChanged);
-	connect(this,	&ListModel::variableTypeChanged,	this,	&ListModel::termsChanged);
+	_connections.push_back(connect(this,	&ListModel::modelReset,				this,	&ListModel::termsChanged));
+	_connections.push_back(connect(this,	&ListModel::rowsRemoved,			this,	&ListModel::termsChanged));
+	_connections.push_back(connect(this,	&ListModel::rowsMoved,				this,	&ListModel::termsChanged));
+	_connections.push_back(connect(this,	&ListModel::rowsInserted,			this,	&ListModel::termsChanged));
+	_connections.push_back(connect(this,	&ListModel::dataChanged,			this,	&ListModel::dataChangedHandler));
+	_connections.push_back(connect(this,	&ListModel::variableNamesChanged,	this,	&ListModel::termsChanged));
+	_connections.push_back(connect(this,	&ListModel::variableTypeChanged,	this,	&ListModel::termsChanged));
 }
 
 QHash<int, QByteArray> ListModel::roleNames() const
@@ -76,9 +76,10 @@ void ListModel::addControlError(const QString &error) const
 	_listView->addControlError(error);
 }
 
-void ListModel::initTerms(const Terms &terms, const Terms::RelatedValuesPerTerm& allValuesMap, bool)
+void ListModel::initTerms(const Terms &terms, const Terms::RelatedValuesPerTerm& allValuesMap, bool reInit)
 {
-	_initTerms(terms, allValuesMap, true);
+
+	_initTerms(terms, allValuesMap, reInit);
 }
 
 void ListModel::_initTerms(const Terms &terms, const Terms::RelatedValuesPerTerm& allValuesMap, bool initRowControls)
@@ -92,7 +93,8 @@ void ListModel::_initTerms(const Terms &terms, const Terms::RelatedValuesPerTerm
 	_setTerms(terms);
 	endResetModel();
 
-	if (initRowControls)	_connectAllSourcesControls();
+	if (initRowControls)	
+		_connectAllSourcesControls();
 }
 
 void ListModel::_connectAllSourcesControls()
@@ -156,8 +158,9 @@ void ListModel::_connectSourceControls(SourceItem* sourceItem)
 				BoundControl * boundControl = control->boundControl();
 				if (boundControl && !_rowControlsConnected.contains(boundControl))
 				{
-					connect(control, &JASPControl::boundValueChanged, this, &ListModel::sourceTermsReset);
+					_connections.push_back(connect(control, &JASPControl::boundValueChanged, this, &ListModel::sourceTermsReset));
 					_rowControlsConnected.push_back(boundControl);
+					
 				}
 			}
 			else
@@ -193,6 +196,7 @@ void ListModel::setUpRowControls()
 	{
 		if (!_rowControlsMap.contains(term.value()))
 		{
+			
 			bool hasOptions = _rowControlsValues.contains(term.value());
 			RowControls* rowControls = new RowControls(this, _rowComponent, _rowControlsValues[term.value()]);
 			_rowControlsMap[term.value()] = rowControls;
@@ -202,7 +206,7 @@ void ListModel::setUpRowControls()
 			_rowControlsMap[term.value()]->setContext(row, term);
 		row++;
 	}
-
+	
 	QStringList removedKeys;
 	for (const QString& key : _rowControlsMap.keys())
 		if (!terms().containsValue(key))
@@ -437,6 +441,13 @@ void ListModel::selectAllItems()
 
 	emit dataChanged(index(0, 0), index(nbTerms - 1, 0), { ListModel::SelectedRole });
 	emit selectedItemsChanged();
+}
+
+void ListModel::cleanUp()
+{
+	for(auto & c : _connections)
+		disconnect(c);
+	_connections.clear();
 }
 
 void ListModel::sourceTermsReset()

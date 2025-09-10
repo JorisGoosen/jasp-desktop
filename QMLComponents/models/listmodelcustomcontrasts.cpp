@@ -36,12 +36,12 @@ ListModelCustomContrasts::ListModelCustomContrasts(TableViewBase *parent) : List
 
 	parent->setProperty("parseDefaultValue", false);
 
-	connect(this, &ListModelCustomContrasts::variableCountChanged,		_tableView, &TableViewBase::variableCountChanged);
-	connect(listView(), SIGNAL(scaleFactorChanged()),					this,		SLOT(scaleFactorChanged()));
-	connect(VariableInfo::info(),	&VariableInfo::labelsChanged,		this,		&ListModelCustomContrasts::sourceLabelsChanged);
-	connect(VariableInfo::info(),	&VariableInfo::labelsReordered,		this,		&ListModelCustomContrasts::sourceLabelsReordered);
-	connect(VariableInfo::info(),	&VariableInfo::variablesChanged,		this,		&ListModelCustomContrasts::sourceVariablesChanged);
-	connect(infoProviderModel(),	&QAbstractItemModel::modelReset	,	this,		&ListModelCustomContrasts::sourceTermsReset);
+	_connections.push_back(connect(this, &ListModelCustomContrasts::variableCountChanged,		_tableView, &TableViewBase::variableCountChanged));
+	_connections.push_back(connect(listView(), SIGNAL(scaleFactorChanged()),					this,		SLOT(scaleFactorChanged())));
+	_connections.push_back(connect(VariableInfo::info(),	&VariableInfo::labelsChanged,		this,		&ListModelCustomContrasts::sourceLabelsChanged));
+	_connections.push_back(connect(VariableInfo::info(),	&VariableInfo::labelsReordered,		this,		&ListModelCustomContrasts::sourceLabelsReordered));
+	_connections.push_back(connect(VariableInfo::info(),	&VariableInfo::variablesChanged,	this,		&ListModelCustomContrasts::sourceVariablesChanged));
+	_connections.push_back(connect(infoProviderModel(),	&QAbstractItemModel::modelReset	,		this,		&ListModelCustomContrasts::sourceTermsReset));
 }
 
 void ListModelCustomContrasts::sourceTermsReset()
@@ -255,7 +255,7 @@ void ListModelCustomContrasts::setup()
 		if (factorsSourceModel)
 		{
 			_setFactorsSource(factorsSourceModel);
-			connect(factorsSourceModel, &ListModelFactorLevels::termsChanged, this, &ListModelCustomContrasts::factorsSourceChanged);
+			_connections.push_back(connect(factorsSourceModel, &ListModelFactorLevels::termsChanged, this, &ListModelCustomContrasts::factorsSourceChanged));
 		}
 	}
 }

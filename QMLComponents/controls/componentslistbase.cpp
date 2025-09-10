@@ -32,11 +32,11 @@ void ComponentsListBase::setUpModel()
 	_termsModel = new ListModelTermsAssigned(this);
 	JASPListControl::setUpModel();
 
-	connect(this, &ComponentsListBase::keyValueChanged,		this, &ComponentsListBase::keyValueChangedHandler);
-	connect(this, &ComponentsListBase::addItem,				this, &ComponentsListBase::addItemHandler);
-	connect(this, &ComponentsListBase::removeItem,			this, &ComponentsListBase::removeItemHandler);
-	connect(this, &ComponentsListBase::initializedChanged,	this, &ComponentsListBase::resetDefaultValue);
-	connect(this, &ComponentsListBase::headerLabelsChanged, this, &ComponentsListBase::controlNameXOffsetMapChanged);
+	_connections.push_back(connect(this, &ComponentsListBase::keyValueChanged,		this, &ComponentsListBase::keyValueChangedHandler));
+	_connections.push_back(connect(this, &ComponentsListBase::addItem,				this, &ComponentsListBase::addItemHandler));
+	_connections.push_back(connect(this, &ComponentsListBase::removeItem,			this, &ComponentsListBase::removeItemHandler));
+	_connections.push_back(connect(this, &ComponentsListBase::initializedChanged,	this, &ComponentsListBase::resetDefaultValue));
+	_connections.push_back(connect(this, &ComponentsListBase::headerLabelsChanged,	this, &ComponentsListBase::controlNameXOffsetMapChanged));
 }
 
 void ComponentsListBase::bindTo(const Json::Value& value)
@@ -240,8 +240,8 @@ void ComponentsListBase::bindOffsets()
 		if (row)
 			for (JASPControl* control : row->getJASPControlsMap().values())
 			{
-				connect(control, &JASPControl::xChanged, this, &ComponentsListBase::controlNameXOffsetMapChanged, Qt::UniqueConnection);
-				connect(control, &JASPControl::visibleChanged, this, &ComponentsListBase::controlNameXOffsetMapChanged, Qt::UniqueConnection);
+				_connections.push_back(connect(control, &JASPControl::xChanged,			this, &ComponentsListBase::controlNameXOffsetMapChanged, Qt::UniqueConnection));
+				_connections.push_back(connect(control, &JASPControl::visibleChanged,	this, &ComponentsListBase::controlNameXOffsetMapChanged, Qt::UniqueConnection));
 			}
 	}
 }

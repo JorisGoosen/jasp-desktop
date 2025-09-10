@@ -241,15 +241,15 @@ void ListModelTermsAvailable::addAssignedModel(ListModelAssignedInterface *assig
 {
 	_assignedModels.push_back(assignedModel);
 
-	connect(this,			&ListModelTermsAvailable::availableTermsReset,		assignedModel,				&ListModelAssignedInterface::availableTermsResetHandler	);
-	connect(this,			&ListModelTermsAvailable::variableNamesChanged,		assignedModel,				&ListModelAssignedInterface::sourceVariableNamesChanged	);
-	connect(this,			&ListModelTermsAvailable::variablesChanged,			assignedModel,				&ListModelAssignedInterface::sourceVariablesChanged		);
-	connect(this,			&ListModelTermsAvailable::variableTypeChanged,		assignedModel,				&ListModelAssignedInterface::sourceVariableTypeChanged	);
-	connect(this,			&ListModelTermsAvailable::labelsChanged,			assignedModel,				&ListModelAssignedInterface::sourceLabelsChanged		);
-	connect(this,			&ListModelTermsAvailable::labelsReordered,			assignedModel,				&ListModelAssignedInterface::sourceLabelsReordered		);
-	connect(this,			&ListModelTermsAvailable::filterChanged,			assignedModel,				&ListModelAssignedInterface::filterChanged				);
-	connect(listView(),		&JASPListControl::containsVariablesChanged,			assignedModel->listView(),	&JASPListControl::containsVariablesChanged				);
-	connect(listView(),		&JASPListControl::containsInteractionsChanged,		assignedModel->listView(),	&JASPListControl::containsInteractionsChanged			);
+	_connections.push_back(connect(this,			&ListModelTermsAvailable::availableTermsReset,		assignedModel,				&ListModelAssignedInterface::availableTermsResetHandler	));
+	_connections.push_back(connect(this,			&ListModelTermsAvailable::variableNamesChanged,		assignedModel,				&ListModelAssignedInterface::sourceVariableNamesChanged	));
+	_connections.push_back(connect(this,			&ListModelTermsAvailable::variablesChanged,			assignedModel,				&ListModelAssignedInterface::sourceVariablesChanged		));
+	_connections.push_back(connect(this,			&ListModelTermsAvailable::variableTypeChanged,		assignedModel,				&ListModelAssignedInterface::sourceVariableTypeChanged	));
+	_connections.push_back(connect(this,			&ListModelTermsAvailable::labelsChanged,			assignedModel,				&ListModelAssignedInterface::sourceLabelsChanged		));
+	_connections.push_back(connect(this,			&ListModelTermsAvailable::labelsReordered,			assignedModel,				&ListModelAssignedInterface::sourceLabelsReordered		));
+	_connections.push_back(connect(this,			&ListModelTermsAvailable::filterChanged,			assignedModel,				&ListModelAssignedInterface::filterChanged				));
+	_connections.push_back(connect(listView(),		&JASPListControl::containsVariablesChanged,			assignedModel->listView(),	&JASPListControl::containsVariablesChanged				));
+	_connections.push_back(connect(listView(),		&JASPListControl::containsInteractionsChanged,		assignedModel->listView(),	&JASPListControl::containsInteractionsChanged			));
 }
 
 void ListModelTermsAvailable::removeAssignedModel(ListModelAssignedInterface *assignedModel)
