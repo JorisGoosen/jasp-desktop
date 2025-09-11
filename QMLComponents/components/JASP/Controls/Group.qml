@@ -114,6 +114,12 @@ GroupBoxBase
 
 		checkFormOverflowAndAlignTimer.start()
 	}
+	
+	Component.onDestruction: 
+	{
+		checkFormOverflowAndAlignTimer.stop();
+		alignTextFieldTimer.stop();
+	}
 
 	function _alignFields()
 	{

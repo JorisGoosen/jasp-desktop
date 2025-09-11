@@ -6,6 +6,7 @@
 #include "preferencesmodelbase.h"
 #include <QQmlProperty>
 #include <QQmlContext>
+#include <QQmlEngine>
 #include <QTimer>
 #include <QQuickWindow>
 
@@ -30,9 +31,15 @@ QQmlComponent* JASPControl::getMouseAreaComponent(QQmlEngine* engine)
 	QQmlComponent* result = _mouseAreaComponentMap[engine];
 	if (result == nullptr)
 	{
-		result = new QQmlComponent(engine);
+		result = new QQmlComponent(engine, engine);
 		result->setData(_mouseAreaDef, QUrl());
 		_mouseAreaComponentMap[engine] = result;
+		
+		//Make sure to remove it afterwards
+		connect(engine, &QObject::destroyed, [engine]()
+		{
+			_mouseAreaComponentMap.remove(engine);
+		});
 	}
 
 	return result;

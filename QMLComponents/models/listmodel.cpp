@@ -87,6 +87,11 @@ void ListModel::_initTerms(const Terms &terms, const Terms::RelatedValuesPerTerm
 	beginResetModel();
 	if (initRowControls)
 	{
+		for(auto & k : _rowControlsMap.keys())
+		{
+			_rowControlsMap[k]->disconnectAndDeleteControls();
+			_rowControlsMap[k]->deleteLater();
+		}
 		_rowControlsMap.clear();
 		_rowControlsValues = allValuesMap;
 	}
