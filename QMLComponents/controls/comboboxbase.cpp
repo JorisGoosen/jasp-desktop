@@ -131,15 +131,15 @@ void ComboBoxBase::setUp()
 
 	_model->sourceTermsReset();
 
-	connect(this,	&ComboBoxBase::activated,					this,	&ComboBoxBase::activatedSlot);
-	connect(this,	&JASPListControl::addEmptyValueChanged,		[this] () { _model->sourceTermsReset(); }	);
-	connect(this,	&ComboBoxBase::currentIndexChanged,			[this] () { _setCurrentProperties(currentIndex()); } ); // Case when currentIndex is changed in QML
-	connect(this,	&ComboBoxBase::currentValueChanged,			[this] () { if (containsVariables()) checkLevelsConstraints(); } );
+	_connections.push_back(connect(this,	&ComboBoxBase::activated,					this,	&ComboBoxBase::activatedSlot));
+	_connections.push_back(connect(this,	&JASPListControl::addEmptyValueChanged,		this,	[this] () { _model->sourceTermsReset(); }	));
+	_connections.push_back(connect(this,	&ComboBoxBase::currentIndexChanged,			this,	[this] () { _setCurrentProperties(currentIndex()); } )); // Case when currentIndex is changed in QML
+	_connections.push_back(connect(this,	&ComboBoxBase::currentValueChanged,			this,	[this] () { if (containsVariables()) checkLevelsConstraints(); } ));
 
 	if (form())
 	{
-		connect(form(), &AnalysisForm::languageChanged,			[this] () { _model->sourceTermsReset(); }	);
-		connect(form(), &AnalysisForm::analysisChanged,			[this] () { _unusedInitialValue = ""; });
+		_connections.push_back(connect(form(), &AnalysisForm::languageChanged,			this,	[this] () { _model->sourceTermsReset(); }	));
+		_connections.push_back(connect(form(), &AnalysisForm::analysisChanged,			this,	[this] () { _unusedInitialValue = ""; }));
 	}
 }
 

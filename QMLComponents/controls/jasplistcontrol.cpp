@@ -73,7 +73,10 @@ void JASPListControl::_checkAllSourcesAreConnected(bool addConnect)
 void JASPListControl::_setupSources()
 {
 	for (SourceItem* sourceItem : _sourceItems)
-		delete sourceItem;
+	{
+		sourceItem->deleteLater();
+		sourceItem->disconnect();
+	}
 
 	_sourceItems = SourceItem::readAllSources(this);
 
