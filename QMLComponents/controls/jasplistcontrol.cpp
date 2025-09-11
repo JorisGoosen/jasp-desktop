@@ -189,11 +189,6 @@ void JASPListControl::cleanUp()
 			source->disconnectModels();
 
 		JASPControl::cleanUp();
-		
-		for(auto & c : _connections)
-			disconnect(c);
-		
-		_connections.clear();
 	}
 	catch (...) {}
 }
