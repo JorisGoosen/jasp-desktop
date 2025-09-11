@@ -217,9 +217,19 @@ ComponentsListBase
 			{
 				if (rowComponentItem)
 				{
-					rowComponentItem.parent = itemWrapper;
-					rowComponentItem.anchors.left = itemWrapper.left
+					rowComponentItem.parent					= itemWrapper;
+					rowComponentItem.anchors.left			= itemWrapper.left
 					rowComponentItem.anchors.verticalCenter = itemWrapper.verticalCenter
+				}
+			}
+			
+			Component.onDestruction:
+			{
+				if (rowComponentItem)
+				{
+					rowComponentItem.parent					= undefined
+					rowComponentItem.anchors.left			= undefined
+					rowComponentItem.anchors.verticalCenter = undefined
 				}
 			}
 		}
