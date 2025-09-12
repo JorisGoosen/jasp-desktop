@@ -173,20 +173,6 @@ ComponentsListBase
 					id				: itemRepeater
 					model			: componentsList.model
 					delegate		: rowComponent
-					
-					onItemRemoved:	(index, item) => {
-						if(item && item.rowComponentItem)
-							item.rowComponentItem.parent = undefined;
-					};
-					
-					onItemAdded:	(index, item) => {
-						if(item && item.rowComponentItem)
-						{
-							item.rowComponentItem.parent					= itemWrapper;
-							item.rowComponentItem.anchors.left				= itemWrapper.left
-							item.rowComponentItem.anchors.verticalCenter	= itemWrapper.verticalCenter
-						}
-					};
 				}
 				Repeater
 				{
@@ -226,6 +212,16 @@ ComponentsListBase
 			width	: rowComponentItem ? rowComponentItem.width  : 0
 
 			property var rowComponentItem	: model.rowComponent
+
+			Component.onCompleted:
+			{
+				if (rowComponentItem)
+				{
+					rowComponentItem.parent = itemWrapper;
+					rowComponentItem.anchors.left = itemWrapper.left
+					rowComponentItem.anchors.verticalCenter = itemWrapper.verticalCenter
+				}
+			}
 		}
 	}
 
