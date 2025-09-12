@@ -148,7 +148,6 @@ protected:
 			QList<BoundControl *>			_rowControlsConnected;
 			QList<int>						_selectedItems;
 			QStringList						_columnsUsedForLabels;
-	std::vector<QMetaObject::Connection>	_connections;
 
 private:
 			void	_initTerms(const Terms &terms, const Terms::RelatedValuesPerTerm& allValuesMap, bool initRowControls = true);

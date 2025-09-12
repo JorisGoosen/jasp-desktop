@@ -30,7 +30,7 @@ using namespace std;
 ListModelTableViewBase::ListModelTableViewBase(TableViewBase * tableView)
 	: ListModel(tableView), _tableView(tableView), _tableTerms(TableTerms(this))
 {
-	_connections.push_back(connect(DesktopCommunicator::singleton(),	&DesktopCommunicator::uiScaleChanged,	this,	&ListModelTableViewBase::refresh));
+	connect(DesktopCommunicator::singleton(),	&DesktopCommunicator::uiScaleChanged,	this,	&ListModelTableViewBase::refresh);
 }
 
 QVariant ListModelTableViewBase::data(const QModelIndex &index, int role) const
@@ -463,7 +463,7 @@ bool ListModelTableViewBase::addRowControl(const QString &key, JASPControl *cont
 	{
 		TextInputBase* textInput = dynamic_cast<TextInputBase*>(control);
 		if (textInput && textInput->inputType() == TextInputBase::TextInputType::FormulaType)
-			_connections.push_back(connect(textInput, &TextInputBase::formulaCheckSucceeded, this, &ListModelTableViewBase::formulaCheckSucceededSlot));
+			connect(textInput, &TextInputBase::formulaCheckSucceeded, this, &ListModelTableViewBase::formulaCheckSucceededSlot);
 	}
 
 	return true;

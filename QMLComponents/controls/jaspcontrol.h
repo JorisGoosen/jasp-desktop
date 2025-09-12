@@ -326,7 +326,6 @@ protected:
 	static QByteArray								_mouseAreaDef;
 	static QQmlComponent*							getMouseAreaComponent(QQmlEngine* engine);
 	static const QStringList						_optionReservedNames;
-	std::vector<QMetaObject::Connection>			_connections;
 	
 };
 

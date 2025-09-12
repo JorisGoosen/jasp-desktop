@@ -29,13 +29,13 @@ ListModel::ListModel(JASPListControl* listView)
 	, _listView(listView)
 {
 	// Connect all apecific signals to a general signal
-	_connections.push_back(connect(this,	&ListModel::modelReset,				this,	&ListModel::termsChanged));
-	_connections.push_back(connect(this,	&ListModel::rowsRemoved,			this,	&ListModel::termsChanged));
-	_connections.push_back(connect(this,	&ListModel::rowsMoved,				this,	&ListModel::termsChanged));
-	_connections.push_back(connect(this,	&ListModel::rowsInserted,			this,	&ListModel::termsChanged));
-	_connections.push_back(connect(this,	&ListModel::dataChanged,			this,	&ListModel::dataChangedHandler));
-	_connections.push_back(connect(this,	&ListModel::variableNamesChanged,	this,	&ListModel::termsChanged));
-	_connections.push_back(connect(this,	&ListModel::variableTypeChanged,	this,	&ListModel::termsChanged));
+	connect(this,	&ListModel::modelReset,				this,	&ListModel::termsChanged);
+	connect(this,	&ListModel::rowsRemoved,			this,	&ListModel::termsChanged);
+	connect(this,	&ListModel::rowsMoved,				this,	&ListModel::termsChanged);
+	connect(this,	&ListModel::rowsInserted,			this,	&ListModel::termsChanged);
+	connect(this,	&ListModel::dataChanged,			this,	&ListModel::dataChangedHandler);
+	connect(this,	&ListModel::variableNamesChanged,	this,	&ListModel::termsChanged);
+	connect(this,	&ListModel::variableTypeChanged,	this,	&ListModel::termsChanged);
 }
 
 QHash<int, QByteArray> ListModel::roleNames() const
@@ -163,7 +163,7 @@ void ListModel::_connectSourceControls(SourceItem* sourceItem)
 				BoundControl * boundControl = control->boundControl();
 				if (boundControl && !_rowControlsConnected.contains(boundControl))
 				{
-					_connections.push_back(connect(control, &JASPControl::boundValueChanged, this, &ListModel::sourceTermsReset));
+					connect(control, &JASPControl::boundValueChanged, this, &ListModel::sourceTermsReset);
 					_rowControlsConnected.push_back(boundControl);
 					
 				}
@@ -450,9 +450,7 @@ void ListModel::selectAllItems()
 
 void ListModel::cleanUp()
 {
-	for(auto & c : _connections)
-		disconnect(c);
-	_connections.clear();
+	disconnect();
 }
 
 void ListModel::sourceTermsReset()

@@ -30,7 +30,7 @@ ListModelFactorsForm::ListModelFactorsForm(JASPListControl* listView)
 {
 	_factorsForm = qobject_cast<FactorsFormBase*>(listView);
 	_needsSource = false;
-	_connections.push_back(connect(_factorsForm, &FactorsFormBase::nestedChanged, this, &ListModelFactorsForm::nestedChangedHandler));
+	connect(_factorsForm, &FactorsFormBase::nestedChanged, this, &ListModelFactorsForm::nestedChangedHandler);
 }
 
 QHash<int, QByteArray> ListModelFactorsForm::roleNames() const
