@@ -3,6 +3,7 @@
 #include "log.h"
 #include "analysisform.h"
 #include "jasptheme.h"
+#include "utilities/qutils.h"
 #include "preferencesmodelbase.h"
 #include <QQmlProperty>
 #include <QQmlContext>
@@ -359,8 +360,12 @@ QList<JASPControl*> JASPControl::getChildJASPControls(const QQuickItem * item, b
 
 BoundControl *JASPControl::boundControl()
 {
-	if (isBound())	return dynamic_cast<BoundControl*>(this);
-	return nullptr;
+	return isBound() ? dynamic_cast<BoundControl*>(this) : nullptr;
+}
+
+const BoundControl *JASPControl::boundControl() const
+{
+	return isBound() ? dynamic_cast<const BoundControl*>(this) : nullptr;
 }
 
 bool JASPControl::addDependency(JASPControl *item)
@@ -608,6 +613,11 @@ QString JASPControl::printLabelMD(int depth) const
 bool JASPControl::hasLabelOrInfo() const
 {
 	return !fullLabel().isEmpty() || !info().isEmpty();
+}
+
+QJSValue JASPControl::boundJson() const
+{
+	return boundControl() ? tqj(boundControl()->createJson(), this) : QJSValue();
 }
 
 JASPControls JASPControl::getMDSubItems(const QQuickItem* parentItem) const
