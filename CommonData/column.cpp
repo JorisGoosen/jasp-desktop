@@ -1,10 +1,10 @@
 ﻿#include "log.h"
+#include <cassert>
 #include "column.h"
 #include "timers.h"
 #include "dataset.h"
 #include "columnutils.h"
 #include "databaseinterface.h"
-#include <cassert>
 
 bool Column::_autoSortByValuesByDefault = true;
 

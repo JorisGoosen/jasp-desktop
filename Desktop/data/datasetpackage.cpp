@@ -1493,7 +1493,8 @@ void DataSetPackage::loadDataSet(std::function<void(float)> progressCallback)
 	_db->load();		
 	_db->upgradeDBFromVersion(_jaspVersion);
 	
-	bool do019Upgrade = _jaspVersion < "0.19";
+	bool 	do019Upgrade  = _jaspVersion < "0.19",
+			do0953Upgrade = _jaspVersion < "0.95.3";
 	
 	_dataSet = new DataSet(0);
 	_dataSet->dbLoad(1, progressCallback, _jaspVersion); //Right now there can only be a dataSet with ID==1 so lets keep it simple
