@@ -34,7 +34,7 @@ function formatMoney(_currency='EUR', amount, thousands=true) {
 
 function handleNoZeroLead(number, result, noZeroLead)
 {
-	if(number >= 0 && number < 1 && noZeroLead && !result.startsWith("1")) //we need to check whether it starts with despite number < 1 because of rounding in the formatting
+	if(number >= 0 && number < 1 && noZeroLead && !result.startsWith("1")) //we need to check whether it starts with 1 despite number < 1 because of rounding in the formatting
 		return result.substring(1);
 	return result;
 }
