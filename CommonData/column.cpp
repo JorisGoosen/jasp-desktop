@@ -494,16 +494,6 @@ stringset Column::mergeOldMissingDataMap(const Json::Value &missingData)
 	return foundEmpty;
 }
 
-void Column::updateLabelsPostLocaleChange()
-{
-	beginBatchedLabelsDB();
-	
-	for(Label * label : _labels)
-		label->updateDoubleLabelsPostLocaleChange();
-	
-	endBatchedLabelsDB(true);	
-}
-
 columnType Column::setValues(const stringvec & values, const stringvec & labels, int thresholdScale, bool * aChange, bool useLocale)
 {
 	assert(values.size() == labels.size() || labels.size() == 0);
@@ -1337,7 +1327,7 @@ void Column::_labelMapUpdates(Label * label, const std::string & previousDisplay
 	bool	valueChanged	= previousOriginal		!= label->originalValueAsString(),
 			displayChanged	= previousDisplay		!= label->label(),
 			previousSame	= previousOriginal		== previousDisplay,
-			newSame			= label->label()	== label->originalValueAsString();
+			newSame			= label->label()		== label->originalValueAsString();
 
 	if(valueChanged)
 	{

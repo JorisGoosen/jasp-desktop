@@ -1266,10 +1266,7 @@ void DataSetPackage::prepareForLanguageChange()
 void DataSetPackage::languageChangeDone()
 {
 	_waitingForLanguageChange = false; //Dont accept changes while the interface changes
-	
-	if(_dataSet)
-		_dataSet->updateLabelsPostLocaleChange();
-	
+
 	refresh();
 }
 

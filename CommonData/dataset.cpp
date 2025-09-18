@@ -661,12 +661,6 @@ void DataSet::setDescription(const std::string &desc)
 	dbUpdate();
 }
 
-void DataSet::updateLabelsPostLocaleChange()
-{
-	for(Column * column : _columns)
-		column->updateLabelsPostLocaleChange();
-}
-
 DatabaseInterface &DataSet::db()	
 { 
 	return *DatabaseInterface::singleton(); 
