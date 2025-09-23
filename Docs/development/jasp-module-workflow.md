@@ -60,10 +60,8 @@ To start developing your own module you should first understand the [structure o
 Initially you do not need to add any of the .qml, .R or icon files, but you should minimally have the `Description.qml`, `DESCRIPTION` and `NAMESPACE`.
 Forking the aforementioned module template will make all of this for you.
 
-There are currently 2 ways to install a development module to JASP. 
-The first and preferred way is by precompiling or preinstalling your JASP module.
-The other and deprecated way is by using R inside JASP to install your module, so basically letting JASP handle the install for you.
-This is however error-prone and ignores any lockfile (which describes your dependencies) and so can fail at any time when a package does an update on CRAN.
+In order to test your module while developing, you'll need to install it on JASP as a development module.
+Below we show two alternative ways to do this.
 
 ### Precompile your module with renv
 The module installs as a regular R package, _i.e.:_,
