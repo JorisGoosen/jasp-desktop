@@ -88,7 +88,10 @@ R CMD INSTALL . --preclean --no-multiarch --with-keep.source <module name>
 
 ![](./img/dev-jasp.png)
 
-### Using JASP to install the development module
+### Using JASP to install the development module (deprecated)
+An alternative way is to use R inside JASP to install your module, so basically letting JASP handle the install for you.
+This is however error-prone and ignores any lockfile (which describes your dependencies) and so can fail at any time when a package does an update on CRAN.
+This installation method is deprecated and not recommended.
 
 1. Open JASP
 2. Click on the menu in the top left corner
