@@ -63,7 +63,7 @@ Forking the aforementioned module template will make all of this for you.
 In order to test your module while developing, you'll need to install it on JASP as a development module.
 Below we show two alternative ways to do this.
 
-### Precompile your module with renv
+### Precompile your module with renv (recommended)
 The module installs as a regular R package, _i.e.:_,
 ```sh
 R CMD INSTALL . --preclean --no-multiarch --with-keep.source <module name>
