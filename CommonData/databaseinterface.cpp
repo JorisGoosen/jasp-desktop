@@ -2054,10 +2054,15 @@ sqlite3 * DatabaseInterface::_db()
 	if(_dbCreated && _dbCreator == id)
 		return _dbCreated;
 
+	_dbCheckMutex.lock();
 	if(!_dbs.count(id))
 		load();
 
-	return _dbs.at(id);
+	sqlite3 * dbFound = _dbs.at(id);
+
+	_dbCheckMutex.unlock();
+
+	return dbFound;
 }
 
 void DatabaseInterface::create()
