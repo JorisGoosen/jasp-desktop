@@ -1,7 +1,7 @@
-#include "testall.h"
 #include "testinfo.h"
 #include "tempfiles.h"
 #include "processinfo.h"
+#include "testdebugdata.h"
 #include "utilities/qutils.h"
 #include "databaseinterface.h"
 #include "data/datasetpackage.h"
@@ -11,85 +11,45 @@
 #include "data/importers/rdataimporter.h"
 #include "data/importers/readstatimporter.h"
 
-void TestAll::initTestCase()
+void TestDebugData::initTestCase()
 {
 	TempFiles::init(ProcessInfo::currentPID()); // needed here so that the LRNAM can be passed the session directory
 
 }
 
-void TestAll::init()
+void TestDebugData::init()
 {
-	//_pkg->reset(false);
+	TempFiles::clearSessionDir();
+	
+	_pkg		= new DataSetPackage(this);
+	_importer	= new CSVImporter();
+	
+	_importer->loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), [](int i){});
+
+	_data = _pkg->dataSet();
 }
 
-void TestAll::cleanup()
+void TestDebugData::cleanup()
 {
+	if(_data)
+		delete _data;
+	_data = nullptr;
+	
+	if(_pkg)
+		delete _pkg;
+	_pkg = nullptr;
+	
 	if(_importer)
 		delete _importer;
 	_importer = nullptr;
 }
 
-#define TO_STR2(x) #x
-#define TO_STR(x) TO_STR2(x)
 
-
-void TestAll::testDataImport_data()
+void TestDebugData::testReverseNumericals()
 {
-	QTest::addColumn<QString>("folder");
-	QTest::addColumn<QString>("dataFileAbsolutePath");
-
-	for(const QString & folder : _testLibrary().entryList(QDir::Filter::Dirs | QDir::Filter::NoDotAndDotDot | QDir::Filter::NoSymLinks))
-	{
-		if(folder == "jasp")
-			continue;
-
-		QDir subDir(_testLibrary());
-		subDir.cd(folder);
-
-		for(QFileInfo & i : subDir.entryInfoList(QDir::Filter::Files | QDir::Filter::NoDotAndDotDot | QDir::Filter::NoSymLinks))
-			if(i.suffix() != "json")
-				QTest::newRow(i.fileName().toUtf8()) << folder << i.absoluteFilePath();
-	}
-}
-
-
-void TestAll::testDataImport()
-{
-	QFETCH(QString, folder);
-	QFETCH(QString, dataFileAbsolutePath);
-
-	QDir subDir(_testLibrary());
-	subDir.cd(folder);
-
-	auto getImporter = [&]() -> Importer *
-	{
-		if(folder == "readstat")	return new ReadStatImporter();
-		if(folder == "rdata")		return new RDataImporter();
-		if(folder == "excel")		return new ExcelImporter();
-		if(folder == "ods")			return new ods::ODSImporter();
-		if(folder == "csv")			return new CSVImporter();
-
-		return nullptr;
-	};
-
-	if(_pkg)
-		delete _pkg;
-
-	if(_importer)
-		delete _importer;
-
-	_pkg = new DataSetPackage(this);
-	_importer = getImporter();
-
-	QVERIFY2(_importer, "Getting importer failed...");
-
-	std::cerr << "Testing " << dataFileAbsolutePath << std::endl;
-	_importer->loadDataSet(fq(dataFileAbsolutePath), [](int i){});
-
-	DataSet * dataSet = _pkg->dataSet();
-	QVERIFY2(dataSet,						"No dataset!");
-
-	Json::Value compareMe = dataSet->jsonForCompare();
+	QVERIFY2(_data,						"No dataset!");
+	
+	Json::Value compareMe = _data->jsonForCompare();
 
 	QString jsonFilePath = dataFileAbsolutePath,
 			ext			 = QFileInfo(dataFileAbsolutePath).suffix();
@@ -138,4 +98,4 @@ void TestAll::testDataImport()
 }
 
 
-QTEST_MAIN(TestAll)
+QTEST_MAIN(TestDebugData)

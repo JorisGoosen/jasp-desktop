@@ -2074,11 +2074,11 @@ Json::Value Column::serialize() const
 	return json;
 }
 
-Json::Value	Column::serializeLabels() const
+Json::Value	Column::serializeLabels(bool forCompare) const
 {
 	Json::Value jsonLabels(Json::arrayValue);
 	for (const Label* label : _labels)
-		jsonLabels.append(label->serialize());
+		jsonLabels.append(label->serialize(forCompare));
 	
 	return jsonLabels;
 }
@@ -2099,6 +2099,7 @@ Json::Value Column::jsonForCompare() const
 	//json["error"]			= _error;
 	json["type"]			= columnTypeToString(_type);
 	json["customEmptyValues"]	= _emptyValues->toJson();
+	json["labels"]				= serializeLabels(true);
 	json["data"]				= Json::arrayValue;
 
 	for(int i=0; i<rowCount(); i++)

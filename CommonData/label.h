@@ -69,7 +69,7 @@ public:
 			void				setUserAdded(		bool userAddedIt);
 			void				setInformation(Column * column, int id, int order, const std::string &label, int value, bool filterAllows, const std::string & description, const Json::Value & originalValue);
 
-			Json::Value			serialize()	const;
+			Json::Value			serialize(bool forCompare = false)	const;
 
 			DatabaseInterface	& db();
 	const	DatabaseInterface	& db() const;

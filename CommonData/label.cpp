@@ -102,14 +102,17 @@ void Label::rememberCurrentOrigValDisplay()
 	_lastValDisMapping = origValDisplay();
 }
 
-Json::Value Label::serialize() const
+Json::Value Label::serialize(bool forCompare) const
 {
 	Json::Value json(Json::objectValue);
 	
-	json["id"]				= _dbId;
+	if(!forCompare)
+	{
+		json["id"]			= _dbId;
+		json["intsId"]		= _intsId;
+	}
 	json["order"]			= _order;
 	json["label"]			= _label;
-	json["intsId"]			= _intsId;
 	json["filterAllows"]	= _filterAllows;
 	json["description"]		= _description;
 	json["originalValue"]	= _originalValue;
