@@ -131,7 +131,7 @@ public:
 			
 			int						nonFilteredNumericsCount();
             stringvec				nonFilteredLevels();
-			void					nonFilteredCountersReset();
+			void					nonFilteredCountersReset(bool updateLabelIndexes = true);
 
 			std::set<size_t>		labelsMoveRows(std::vector<size_t> rows, bool up);
 			void					labelsReverse();

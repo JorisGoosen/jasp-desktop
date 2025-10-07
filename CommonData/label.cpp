@@ -88,6 +88,20 @@ void Label::setInformation(Column * column, int id, int order, const std::string
 	_label			= std::isnan(originalValueAsDouble()) || label != oriStr ? label : ""; // dont store a label if its simply the double
 }
 
+std::string Label::processLabel(const std::string & label, const std::string & value)
+{
+	double dbl;
+	
+	ColumnUtils::getDoubleValue(value, dbl);
+			
+	return std::isnan(dbl) || label != value ? label : "";
+}
+
+void Label::rememberCurrentOrigValDisplay()
+{
+	_lastValDisMapping = origValDisplay();
+}
+
 Json::Value Label::serialize() const
 {
 	Json::Value json(Json::objectValue);
@@ -121,7 +135,7 @@ bool Label::setLabel(const std::string & label)
 {
 	if(_label != label)
 	{
-		std::string oldLabel = _label;
+		std::string oldLabel = Label::label();
 		_label = label;
 		
 		_column->labelDisplayChanged(this, oldLabel);
@@ -160,10 +174,10 @@ bool Label::setOriginalValue(const Json::Value & originalValue)
 
 bool Label::setOrigValLabel(const Json::Value &originalValue)
 {
-	std::string oldLabel	= _label,
+	std::string oldLabel	= label(),
 				newLabel	= !originalValue.isDouble() ? originalValue.asString() : "";
 	Json::Value previous	= _originalValue;
-	bool		labelChange = _label			!= newLabel,
+	bool		labelChange = _label			!= newLabel || previous != originalValue, //If they are both "" it could still be a change because the originalValue apparently changed and that is what is shown
 				valChange	= _originalValue	!= originalValue,
 				aChange		= labelChange		|| valChange;
 	
