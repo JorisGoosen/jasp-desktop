@@ -15,6 +15,7 @@ private slots:
     void    init();
 	void	cleanup();
     void    testReverseNumericals();
+	void    testReverseLabels();
 	
 
 private:

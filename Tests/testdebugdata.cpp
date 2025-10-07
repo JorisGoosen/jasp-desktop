@@ -51,6 +51,140 @@ void TestDebugData::cleanup()
 void TestDebugData::testReverseNumericals()
 {
 	QVERIFY2(_data,						"No dataset!");
+	
+	Column * facFive = _data->column("facFive");
+	
+	QVERIFY2(facFive,						"No facFive!");
+	
+	Json::Value labelsBefore =	facFive->serializeLabels(true);
+								facFive->valuesReverse();
+	Json::Value labelsAfter1 =	facFive->serializeLabels(true);
+								facFive->valuesReverse();
+	Json::Value labelsAfter2 =	facFive->serializeLabels(true);
+	
+	QVERIFY2(labelsBefore == labelsAfter2,		"Reversing values is not reversible!");
+	QVERIFY2(labelsBefore != labelsAfter1,		"Reversing values does not change the labels!");
+	
+	const std::string jsonReversed = R"Something(
+[
+	{
+		"description" : "",
+		"filterAllows" : true,
+		"label" : "5",
+		"order" : 0,
+		"originalValue" : "1"
+	},
+	{
+		"description" : "",
+		"filterAllows" : true,
+		"label" : "4",
+		"order" : 1,
+		"originalValue" : "2"
+	},
+	{
+		"description" : "",
+		"filterAllows" : true,
+		"label" : "",
+		"order" : 2,
+		"originalValue" : "3"
+	},
+	{
+		"description" : "",
+		"filterAllows" : true,
+		"label" : "2",
+		"order" : 3,
+		"originalValue" : "4"
+	},
+	{
+		"description" : "",
+		"filterAllows" : true,
+		"label" : "1",
+		"order" : 4,
+		"originalValue" : "5"
+	}
+]
+)Something";
+	
+	Json::Value hardcoded;
+	Json::Reader parser;
+	
+	parser.parse(jsonReversed, hardcoded);
+	
+	QVERIFY2(hardcoded == labelsAfter1,		"Reversing values is not right!");
+	
+	if(hardcoded != labelsAfter1)
+		std::cerr << labelsAfter1 << std::endl;
+}
+
+
+void TestDebugData::testReverseLabels()
+{
+	QVERIFY2(_data,		"No dataset!");
+	
+	Column * facFive = _data->column("facFive");
+	
+	QVERIFY2(facFive,	"No facFive!");
+	
+	facFive->setAutoSortByValue(false);
+	
+	Json::Value labelsBefore =	facFive->serializeLabels(true);
+								facFive->labelsReverse();
+	Json::Value labelsAfter1 =	facFive->serializeLabels(true);
+								facFive->labelsReverse();
+	Json::Value labelsAfter2 =	facFive->serializeLabels(true);
+	
+	QVERIFY2(labelsBefore == labelsAfter2,		"Reversing labels is not reversible!");
+	QVERIFY2(labelsBefore != labelsAfter1,		"Reversing labels does not change the labels!");
+	
+	const std::string jsonReversed = R"Something(
+[
+	{
+		"description" : "",
+		"filterAllows" : true,
+		"label" : "",
+		"order" : 0,
+		"originalValue" : "5"
+	},
+	{
+		"description" : "",
+		"filterAllows" : true,
+		"label" : "",
+		"order" : 1,
+		"originalValue" : "4"
+	},
+	{
+		"description" : "",
+		"filterAllows" : true,
+		"label" : "",
+		"order" : 2,
+		"originalValue" : "3"
+	},
+	{
+		"description" : "",
+		"filterAllows" : true,
+		"label" : "",
+		"order" : 3,
+		"originalValue" : "2"
+	},
+	{
+		"description" : "",
+		"filterAllows" : true,
+		"label" : "",
+		"order" : 4,
+		"originalValue" : "1"
+	}
+]
+)Something";
+	
+	Json::Value hardcoded;
+	Json::Reader parser;
+	
+	parser.parse(jsonReversed, hardcoded);
+	
+	QVERIFY2(hardcoded == labelsAfter1,		"Reversing values is not right!");
+	
+	if(hardcoded != labelsAfter1)
+		std::cerr << labelsAfter1 << std::endl;
 }
 
 

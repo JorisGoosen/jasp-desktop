@@ -115,7 +115,7 @@ Json::Value Label::serialize(bool forCompare) const
 	json["label"]			= _label;
 	json["filterAllows"]	= _filterAllows;
 	json["description"]		= _description;
-	json["originalValue"]	= _originalValue;
+	json["originalValue"]	= !forCompare ? _originalValue : originalValueAsString();
 
 	return json;
 }
