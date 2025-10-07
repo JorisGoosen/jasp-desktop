@@ -205,6 +205,8 @@ void Column::setHasCustomEmptyValues(bool hasCustom)
 	_emptyValues->setHasCustomEmptyValues(hasCustom);
 	db().columnSetEmptyVals(_id, _emptyValues->toJson().toStyledString());
 	
+	nonFilteredCountersReset();
+	
 	incRevision();
 }
 
@@ -1065,6 +1067,8 @@ void Column::nonFilteredCountersReset()
 {
 	_nonFilteredLevels.clear();
 	_nonFilteredNumericsCount = -1;
+	
+	_updateNonEmptyIndexesAndLabelOrder();
 }
 
 int Column::labelIndexNonEmpty(Label *label) const
