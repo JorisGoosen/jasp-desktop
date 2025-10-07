@@ -1840,6 +1840,7 @@ void Column::valuesReverse()
 	for(size_t i=0; i<asc.size(); i++)
 		flipIt[asc[i]] = dsc[i];
 	
+	beginBatchedLabelsDB();
 	//and now to write them back into the data
 	for(Label * label : _labels)
 	{
@@ -1854,14 +1855,18 @@ void Column::valuesReverse()
 		{
 			std::string oldLabel = label->label();
 			label->_setOriginalValue(flipIt[aValue]); //Dont trigger the mapping stuff!
-			label->_label = oldLabel;
+			label->_label = Label::processLabel(oldLabel, label->originalValueAsString());
 		}
 	}
+	
+	upgradeExtractDoublesIntsFromLabels(); //Make sure _dbls reflect _ints
+	dbUpdateValues();
 	
 	labelsHandleAutoSort(false);
 	_resetLabelValueMap();
 	nonFilteredCountersReset(false); //dont update indexes because its done in _dbUpdateLabelOrder()
-	_dbUpdateLabelOrder();
+	endBatchedLabelsDB();
+
 }
 
 
