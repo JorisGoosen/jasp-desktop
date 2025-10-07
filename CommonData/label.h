@@ -45,7 +45,7 @@ public:
 	const	Json::Value		&	originalValue()				const	{ return _originalValue;	}
 			double				originalValueAsDouble()		const	{ return _dblValue;			}
 	std::pair<std::string
-		,std::string>			origValDisplay()			const	{ return std::make_pair(originalValueAsString(), label()); }
+		,std::string>			origValDisplay()			const	{ return std::make_pair(originalValueAsString(), _label); }
 
 	static	std::string			originalValueAsString(const Column * column, const Json::Value & originalValue, bool fancyEmptyValue = false, bool ignoreEmpty=true);
 			std::string			originalValueAsString(bool fancyEmptyValue = false, bool ignoreEmpty = true)		const;
