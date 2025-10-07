@@ -24,9 +24,14 @@ void TestAll::init()
 
 void TestAll::cleanup()
 {
-	if(_importer)
-		delete _importer;
+	
+	delete _importer;
 	_importer = nullptr;
+
+	DatabaseInterface::singleton()->close();
+	DatabaseInterface::singleton()->closeInterfaces();
+	delete _pkg;
+	_pkg = nullptr;
 }
 
 #define TO_STR2(x) #x
@@ -128,13 +133,7 @@ void TestAll::testDataImport()
 
 	QVERIFY2(hardcodedIsSame,			"Hardcoded json is different!");
 
-	delete _importer;
-	_importer = nullptr;
-
-	DatabaseInterface::singleton()->close();
-	DatabaseInterface::singleton()->closeInterfaces();
-	delete _pkg;
-	_pkg = nullptr;
+	
 }
 
 
