@@ -185,6 +185,9 @@ void TestDebugData::testReverseLabels()
 	
 	if(hardcoded != labelsAfter1)
 		std::cerr << labelsAfter1 << std::endl;
+	
+	DataSet loadMe(_data->id());
+	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
 void TestDebugData::testColumnStuff()
@@ -220,6 +223,9 @@ void TestDebugData::testColumnStuff()
 	QVERIFY2(Var1, "Rename column didnt update the dataset lookup");
 	
 	QVERIFY2(Var1 == V1, "Renamed column is not the same column");
+	
+	DataSet loadMe(_data->id());
+	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
 
