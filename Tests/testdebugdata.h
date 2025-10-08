@@ -11,17 +11,18 @@ class TestDebugData: public QObject
 {
     Q_OBJECT
 private slots:
-    void    initTestCase();
     void    init();
 	void	cleanup();
-    void    testReverseNumericals();
+	void    initTestCase();
+	void    testColumnStuff();
 	void    testReverseLabels();
+    void    testReverseNumericals();
 	
 
 private:
 	DataSetPackage		*	_pkg		= nullptr;
-	Importer			*	_importer	= nullptr;
 	DataSet				*	_data		= nullptr;
+	Importer			*	_importer	= nullptr;
 	const char			*	_debugCsv	= "";
 };
 

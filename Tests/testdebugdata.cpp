@@ -187,5 +187,40 @@ void TestDebugData::testReverseLabels()
 		std::cerr << labelsAfter1 << std::endl;
 }
 
+void TestDebugData::testColumnStuff()
+{
+	QVERIFY2(_data,		"No dataset!");
+	
+	auto originalColumnCount = _data->columnCount();
+	auto originalColumnNames = _data->getColumnNames();
+	
+	stringset	removeUs = { "debInf", "contcor1", "contcor2", "debString" },
+				oriNames = stringset(originalColumnNames.begin(), originalColumnNames.end());
+	
+	for(auto & remMe : removeUs)
+	{
+		QVERIFY2(oriNames.count(remMe),		"Test column to remove doesnt exist");
+		QVERIFY2(_data->column(remMe),		"Looking up column failed");
+		
+		_data->removeColumn(remMe);
+		QVERIFY2(_data->columnCount() == originalColumnCount - 1,	"Columncount didnt decrease");
+		
+		originalColumnCount = _data->columnCount();
+		
+		QVERIFY2(!_data->column(remMe),		"Column is still there!");
+	}
+	
+	Column * V1 = _data->column("V1");
+	QVERIFY2(V1, "Column V1 is missing...");
+	
+	V1->setName("Variable 1");
+	QVERIFY2(V1->name() == "Variable 1", "Rename failed");
+	
+	Column * Var1 = _data->column("Variable 1");
+	QVERIFY2(Var1, "Rename column didnt update the dataset lookup");
+	
+	QVERIFY2(Var1 == V1, "Renamed column is not the same column");
+}
+
 
 QTEST_MAIN(TestDebugData)
