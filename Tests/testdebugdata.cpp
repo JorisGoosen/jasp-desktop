@@ -114,6 +114,10 @@ void TestDebugData::testReverseNumericals()
 	
 	if(hardcoded != labelsAfter1)
 		std::cerr << labelsAfter1 << std::endl;
+	
+	DataSet loadMe(_data->id());
+	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
+	
 }
 
 
