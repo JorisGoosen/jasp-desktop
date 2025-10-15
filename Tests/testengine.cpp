@@ -81,6 +81,7 @@ void TestEngine::testComputedColumns()
 	QVERIFY2(spy.count() == 1,	"Did not get a response");
 	
 	QVariantList response = spy.takeFirst();
+	spy.clear();
 	
 	QVERIFY2(response[0].toString() == "contBinom",	"Did not get the right column back in response");
 	QVERIFY2(response[1].toString() == "",			"Got a warning!");
@@ -88,13 +89,66 @@ void TestEngine::testComputedColumns()
 
 	col->checkForUpdates();
 
-	Json::Value		jsonContBinom	= _data->column("contBinom")->jsonForCompare(),
+	Json::Value		jsonContBinom	= col->jsonForCompare(),
 					jsonV1			= _data->column("V1")->jsonForCompare();
 
 	//std::cout << jsonContBinom.toStyledString() << "\n" << jsonV1.toStyledString() << std::endl;
 	
 	QVERIFY2(jsonContBinom["labels"] == jsonV1["labels"], "Labels are not the same");
 	QVERIFY2(jsonContBinom["data"]   == jsonV1["data"],   "Data is not the same");
+
+
+
+	//Now lets see if it can also not be the same:
+	col->setRCode("V1+1");
+
+	_engines->computeColumn("contBinom", tq(col->rCode()), columnType::scale);
+
+	spy.wait(std::chrono::seconds(100));
+
+	QVERIFY2(spy.count() == 1,	"Did not get a response");
+
+	response = spy.takeFirst();
+	spy.clear();
+
+	QVERIFY2(response[0].toString() == "contBinom",	"Did not get the right column back in response");
+	QVERIFY2(response[1].toString() == "",			"Got a warning!");
+	QVERIFY2(response[2].toBool(),					"Did not get dataChanged back in response");
+
+	col->checkForUpdates();
+
+	jsonContBinom	= _data->column("contBinom")->jsonForCompare();
+	jsonV1			= _data->column("V1")->jsonForCompare();
+
+	QVERIFY2(jsonContBinom["labels"] != jsonV1["labels"], "Labels are the same, but they shouldnt be");
+	QVERIFY2(jsonContBinom["data"]   != jsonV1["data"],   "Data is the same, but they shouldnt be");
+
+	Column * col2 = _data->column("contcor1");
+	col2->setCodeType(computedColumnType::rCode);
+	col2->setRCode("contBinom-1"); //Should make it the same as V1 again
+
+	_engines->computeColumn("contcor1", tq(col2->rCode()), columnType::scale);
+
+	spy.wait(std::chrono::seconds(100));
+
+	QVERIFY2(spy.count() == 1,	"Did not get a response");
+
+	response = spy.takeFirst();
+	spy.clear();
+
+	QVERIFY2(response[0].toString() == "contcor1",	"Did not get the right column back in response");
+	QVERIFY2(response[1].toString() == "",			"Got a warning!");
+	QVERIFY2(response[2].toBool(),					"Did not get dataChanged back in response");
+
+	col2->checkForUpdates();
+
+	Json::Value		jsonContCor1	= col2->jsonForCompare();
+
+	std::cout << jsonContCor1.toStyledString() /*<< "\n" << jsonV1.toStyledString()*/ << std::endl;
+
+	QVERIFY2(jsonContCor1["data"]   == jsonV1["data"],   "Data is not the same");
+	QVERIFY2(jsonContCor1["labels"] == jsonV1["labels"], "Labels are not the same");
+
 }
 
 
