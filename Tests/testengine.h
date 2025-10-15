@@ -16,6 +16,7 @@ class TestEngine: public QObject
 private slots:
     void    init();
 	void	cleanup();
+	void    testFilters();
 	void    initTestCase();
 	void    testComputedColumns();
 

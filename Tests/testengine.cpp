@@ -13,15 +13,15 @@
 
 void TestEngine::initTestCase()
 {
-	Dirs::setLocalAppdataDir(AppDirs::appData(false).toStdString());
-	TempFiles::init(ProcessInfo::currentPID()); // needed here so that the LRNAM can be passed the session directory
 
 }
 
 void TestEngine::init()
 {
-	TempFiles::clearSessionDir();
-	
+	TempFiles	::	clearSessionDir();
+	Dirs		::	setLocalAppdataDir(AppDirs::appData(false).toStdString());
+	TempFiles	::	init(ProcessInfo::currentPID()); // needed here so that the LRNAM can be passed the session directory
+
 	_pkg		= new DataSetPackage(this);
 	_importer	= new CSVImporter();
 	_engines	= new EngineSync(this);
@@ -148,6 +148,38 @@ void TestEngine::testComputedColumns()
 
 	QVERIFY2(jsonContCor1["data"]   == jsonV1["data"],   "Data is not the same");
 	QVERIFY2(jsonContCor1["labels"] == jsonV1["labels"], "Labels are not the same");
+
+}
+
+void TestEngine::testFilters()
+{
+	QVERIFY2(_data,			"No dataset!");
+	QVERIFY2(_engines,		"No EngineSync!");
+	QVERIFY2(_engineRep,	"No EngineRepresentation!");
+
+	_engines->startStoppedEngine(_engineRep);
+
+	QSignalSpy spy(_engineRep, SIGNAL(filterDone(int)));
+
+	QVERIFY2(spy.isValid(),	"Spy is broken!");
+
+	_data->filter()->setRFilter("V1%%2==0");
+	_engines->sendFilter("", tq(_data->filter()->rFilter()));
+
+	spy.wait(std::chrono::seconds(100));
+
+	QVERIFY2(spy.count() == 1,	"Did not get a response");
+
+	QVariantList response = spy.takeFirst();
+	spy.clear();
+
+	std::cout << "Response was: " << response[0].toString() << std::endl;
+
+	_data->checkForUpdates();
+
+	QVERIFY2(_data->filter()->filteredRowCount() == _data->rowCount() / 2,	"Did not get right filtered rowCount!");
+	QVERIFY2(!_data->filter()->filtered()[0],								"Expected first filtered to be FALSE");
+	QVERIFY2(_data->filter()->filtered()[1],								"Expected second filtered to be TRUE");
 
 }
 
