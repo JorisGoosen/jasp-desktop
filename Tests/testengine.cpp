@@ -144,7 +144,7 @@ void TestEngine::testComputedColumns()
 
 	Json::Value		jsonContCor1	= col2->jsonForCompare();
 
-	std::cout << jsonContCor1.toStyledString() /*<< "\n" << jsonV1.toStyledString()*/ << std::endl;
+	//std::cout << jsonContCor1.toStyledString() /*<< "\n" << jsonV1.toStyledString()*/ << std::endl;
 
 	QVERIFY2(jsonContCor1["data"]   == jsonV1["data"],   "Data is not the same");
 	QVERIFY2(jsonContCor1["labels"] == jsonV1["labels"], "Labels are not the same");
