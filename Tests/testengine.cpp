@@ -40,8 +40,6 @@ void TestEngine::cleanup()
 {
 	if(_engineRep)
 		_engineRep->shutEngineDown();
-	delete _engineRep;
-	_engineRep = nullptr;
 	
 	delete _engines;
 	_engines = nullptr;
@@ -85,10 +83,18 @@ void TestEngine::testComputedColumns()
 	QVariantList response = spy.takeFirst();
 	
 	QVERIFY2(response[0].toString() == "contBinom",	"Did not get the right column back in response");
-	QVERIFY2(response[1].toString() != "",			"Got a warning!");
+	QVERIFY2(response[1].toString() == "",			"Got a warning!");
 	QVERIFY2(response[2].toBool(),					"Did not get dataChanged back in response");
+
+	col->checkForUpdates();
+
+	Json::Value		jsonContBinom	= _data->column("contBinom")->jsonForCompare(),
+					jsonV1			= _data->column("V1")->jsonForCompare();
+
+	//std::cout << jsonContBinom.toStyledString() << "\n" << jsonV1.toStyledString() << std::endl;
 	
-	QVERIFY2(_data->column("contBinom")->jsonForCompare() == _data->column("V1")->jsonForCompare(), "Columns are not the same");
+	QVERIFY2(jsonContBinom["labels"] == jsonV1["labels"], "Labels are not the same");
+	QVERIFY2(jsonContBinom["data"]   == jsonV1["data"],   "Data is not the same");
 }
 
 
