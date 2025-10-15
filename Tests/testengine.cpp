@@ -22,18 +22,14 @@ void TestEngine::init()
 	Dirs		::	setLocalAppdataDir(AppDirs::appData(false).toStdString());
 	TempFiles	::	init(ProcessInfo::currentPID()); // needed here so that the LRNAM can be passed the session directory
 
-	_pkg		= new DataSetPackage(this);
-	_importer	= new CSVImporter();
-	_engines	= new EngineSync(this);
-	
-	_engines->start();
-	
-	_engineRep	= _engines->createNewEngine(true, 0);
-	
-	
-	_importer->loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), [](int i){});
+	_pkg		=	new DataSetPackage(this);
+	_importer	=	new CSVImporter();
+	_engines	=	new EngineSync(this);
 
-	_data		= _pkg->dataSet();
+	_engines	->	start();
+	_engineRep	=	_engines->createNewEngine(true, 0);
+	_importer	->	loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), [](int i){});
+	_data		=	_pkg->dataSet();
 }
 
 void TestEngine::cleanup()
@@ -76,7 +72,7 @@ void TestEngine::testComputedColumns()
 	
 	_engines->computeColumn("contBinom", tq(col->rCode()), columnType::ordinal);
 	
-	spy.wait(std::chrono::seconds(100));
+	spy.wait();
 	
 	QVERIFY2(spy.count() == 1,	"Did not get a response");
 	
@@ -104,7 +100,7 @@ void TestEngine::testComputedColumns()
 
 	_engines->computeColumn("contBinom", tq(col->rCode()), columnType::scale);
 
-	spy.wait(std::chrono::seconds(100));
+	spy.wait();
 
 	QVERIFY2(spy.count() == 1,	"Did not get a response");
 
@@ -129,7 +125,7 @@ void TestEngine::testComputedColumns()
 
 	_engines->computeColumn("contcor1", tq(col2->rCode()), columnType::scale);
 
-	spy.wait(std::chrono::seconds(100));
+	spy.wait();
 
 	QVERIFY2(spy.count() == 1,	"Did not get a response");
 
@@ -166,7 +162,7 @@ void TestEngine::testFilters()
 	_data->filter()->setRFilter("V1%%2==0");
 	_engines->sendFilter("", tq(_data->filter()->rFilter()));
 
-	spy.wait(std::chrono::seconds(100));
+	spy.wait();
 
 	QVERIFY2(spy.count() == 1,	"Did not get a response");
 
