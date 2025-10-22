@@ -314,9 +314,6 @@ void DynamicModule::loadDESCRIPTION(const QString &descriptionText)
 		entries[entryName] = entryText;
 	}
 	
-	
-	_description->setTitle(			entries["Title"]);
-	_description->setDescription(	entries["Description"]);
 	_description->setVersion(		entries["Version"]);
 	_description->setAuthor(		entries["Author"]);
 	_description->setMaintainer(	entries["Maintainer"]);

@@ -24,10 +24,10 @@ class AnalysisEntry;
 class Description : public QQuickItem
 {
 	Q_OBJECT
-	Q_PROPERTY(QString					name			READ name				WRITE setDummy						NOTIFY nameChanged				)
-	Q_PROPERTY(QString					title			READ title				WRITE setDummy				NOTIFY titleChanged				)
+	Q_PROPERTY(QString					name			READ name				WRITE setDummy				NOTIFY nameChanged				)
+	Q_PROPERTY(QString					title			READ title				WRITE setTitle				NOTIFY titleChanged				)
 	Q_PROPERTY(QString					icon			READ icon				WRITE setIcon				NOTIFY iconChanged				)
-	Q_PROPERTY(QString					description		READ description		WRITE setDummy				NOTIFY descriptionChanged		)
+	Q_PROPERTY(QString					description		READ description		WRITE setDescription		NOTIFY descriptionChanged		)
 	Q_PROPERTY(QString					version			READ version			WRITE setDummy				NOTIFY versionChanged			)
 	Q_PROPERTY(QString					author			READ author				WRITE setDummy				NOTIFY authorChanged			)
 	Q_PROPERTY(QString					maintainer		READ maintainer			WRITE setDummy				NOTIFY maintainerChanged		)
@@ -115,8 +115,8 @@ private:
 	QUrl					_website;
 	Version					_version;
 	bool					_requiresDataDef	= true,
-							_hasWrappers		= false,
-							_preloadData		= false;
+							_hasWrappers		= true,
+							_preloadData		= true;
 	DynamicModule		*	_dynMod				= nullptr;
 	QList<EntryBase*>		_entries;
 	QTimer					_timer;
