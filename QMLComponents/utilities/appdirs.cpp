@@ -221,7 +221,7 @@ QDir AppDirs::programDir()
 	if(QCoreApplication::applicationName() == "JASP")
 		return path;
 	
-	return path.absoluteFilePath("../Desktop/");
+	return path.absoluteFilePath("../Desktop/"); //The testapplications arent in Desktop/ and I dont want to pollute the folder, so instead this
 }
 
 //After getting an error on giving "consent" to renv to do stuff I checked the page https://rstudio.github.io/renv/reference/paths.html
