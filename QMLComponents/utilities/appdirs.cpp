@@ -218,7 +218,7 @@ if (AppDirs::rHomeDir().isEmpty())
 QDir AppDirs::programDir()
 {
 	QDir path = QFileInfo( QCoreApplication::applicationFilePath() ).absoluteDir();
-	if(QCoreApplication::applicationName() == "JASP")
+	if(QCoreApplication::applicationName() == "JASP" || QCoreApplication::applicationName() == "JASPDesktop")
 		return path;
 	
 	return path.absoluteFilePath("../Desktop/"); //The testapplications arent in Desktop/ and I dont want to pollute the folder, so instead this
