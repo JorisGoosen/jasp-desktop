@@ -7,6 +7,7 @@
 #include <vector>
 #include <thread>
 #include <mutex>
+#include "log.h"
 static std::map<std::string, customtimer *> * timers = nullptr;
 
 
@@ -63,7 +64,7 @@ void _printAllTimers()
 	});
 
 	for(const nameTimerPair & keyval : sortMe)
-		std::cerr << keyval.first << " ran for " << keyval.second->format() << std::endl;
+		Log::log() << keyval.first << " ran for " << keyval.second->format() << std::endl;
 }
 
 #endif
