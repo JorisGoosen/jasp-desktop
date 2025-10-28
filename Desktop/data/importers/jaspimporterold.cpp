@@ -146,8 +146,9 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 	if (rowCount < 0 || columnCount < 0)
 		throw std::runtime_error("Data size has been corrupted.");
 
-
-	packageData->setDataSetSize(columnCount, rowCount);
+	packageData->dataSet()->setColumnCount(columnCount);
+	packageData->dataSet()->setRowCount(rowCount, false);
+	
 
 	unsigned long long	progress,
 						lastProgress = -1;
@@ -250,6 +251,7 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 		}
 		
 		column->setValues(values, labels, 0);
+		column->nonFilteredCountersReset();
 
 	}
 
