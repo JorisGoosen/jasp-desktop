@@ -132,7 +132,7 @@ bool Column::setName(const std::string &name)
 	if (orgName == _name) // Special case when the getUniqueName gives back the original name (e.g 2 columns 'test' and 'test 2' and the user rename 'test 2' to 'test')
 		return false;
 
-	if(_title.empty() || _title == orgName)
+	if(!_title.empty() && (_title == orgName || _title == _name)) 
 		setTitle(_name);
 
 	db().columnSetName(_id, _name);
@@ -144,11 +144,11 @@ bool Column::setName(const std::string &name)
 void Column::setTitle(const std::string &title)
 {
 	JASPTIMER_SCOPE(Column::setTitle);
-
-	if(_title == title)
+	
+	if(Column::title() == title)
 		return;
 
-	_title = title;
+	_title = _name != title ? title : "";
 	db().columnSetTitle(_id, _title);
 	incRevision();
 }

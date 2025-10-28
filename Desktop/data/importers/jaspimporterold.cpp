@@ -251,6 +251,7 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 		}
 		
 		column->setValues(values, labels, 0);
+		column->labelsHandleAutoSort();
 		column->nonFilteredCountersReset();
 
 	}
