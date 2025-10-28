@@ -2089,17 +2089,17 @@ Json::Value Column::jsonForCompare() const
 {
 	Json::Value json(Json::objectValue);
 
-	json["name"]			= _name;
-	json["title"]			= _title;
-	json["rCode"]			= _rCode;
-	//json["analysisId"]		= _analysisId;
-	//json["invalidated"]		= _invalidated;
-	json["constructorJson"] = _constructorJson;
-	json["autoSortByValue"] = _autoSortByValue;
-	json["description"]		= _description;
-	json["codeType"]		= computedColumnTypeToString(_codeType);
-	//json["error"]			= _error;
-	json["type"]			= columnTypeToString(_type);
+	json["name"]				= _name;
+	json["title"]				= _title;
+	json["rCode"]				= _rCode;
+	//json["analysisId"]			= _analysisId;
+	//json["invalidated"]			= _invalidated;
+	json["constructorJson"]		= _constructorJson;
+	json["autoSortByValue"]		= _autoSortByValue;
+	json["description"]			= _description;
+	json["codeType"]			= computedColumnTypeToString(_codeType);
+	//json["error"]				= _error;
+	json["type"]				= columnTypeToString(_type);
 	json["customEmptyValues"]	= _emptyValues->toJson();
 	json["labels"]				= serializeLabels(true);
 	json["data"]				= Json::arrayValue;
@@ -2117,6 +2117,10 @@ Json::Value Column::jsonForCompare() const
 
 		json["data"].append(row);
 	}
+	
+	json["nonEmptyLabels"]		= Json::arrayValue;
+	for(const std::string & nonEmptyLabel : nonEmptyLevelsStrings())
+		json["nonEmptyLabels"].append(nonEmptyLabel);
 
 	return json;
 }

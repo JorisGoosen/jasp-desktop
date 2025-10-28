@@ -111,6 +111,7 @@ Json::Value Label::serialize(bool forCompare) const
 		json["id"]			= _dbId;
 		json["intsId"]		= _intsId;
 	}
+	
 	json["order"]			= _order;
 	json["label"]			= _label;
 	json["filterAllows"]	= _filterAllows;
