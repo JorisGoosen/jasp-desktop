@@ -221,15 +221,33 @@ void TestDebugData::testColumnStuff()
 	QVERIFY2(V1, "Column V1 is missing...");
 	
 	V1->setName("Variable 1");
-	QVERIFY2(V1->name() == "Variable 1", "Rename failed");
+	QVERIFY2(V1->name()  == "Variable 1", "Rename failed");
+	QVERIFY2(V1->title() == "Variable 1", "Rename failed to also change the title");
 	
 	Column * Var1 = _data->column("Variable 1");
 	QVERIFY2(Var1, "Rename column didnt update the dataset lookup");
-	
 	QVERIFY2(Var1 == V1, "Renamed column is not the same column");
+	
+	V1->setTitle("Something else entirely");
+	QVERIFY2(V1->title() == "Something else entirely", "Retitle failed");
+	
+	V1->setName("Var1");
+	QVERIFY2(V1->name()  == "Var1", "Rename failed");
+	QVERIFY2(V1->title() == "Something else entirely", "Got retitled even though it shouldnt have been!");
+	
+	V1->setTitle("Var1");
+	QVERIFY2(V1->title() == "Var1", "Retitle failed");
+	
+	V1->setName("Variable 1");
+	QVERIFY2(V1->name()  == "Variable 1", "Rename failed");
+	QVERIFY2(V1->title() == "Variable 1", "Rename failed to also change the title");
+
 	
 	DataSet loadMe(_data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
+	
+	
+	
 }
 
 
