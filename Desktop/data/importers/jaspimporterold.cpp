@@ -213,8 +213,9 @@ void JASPImporterOld::loadDataArchive_1_00(const std::string &path, std::functio
 
 				Label * label = nullptr;
 				
+				
 				if (value != EmptyValues::missingValueInteger)
-					label = column->labelByIntsId(value-1); //-1 to avoid 1-based nonsense!
+					label = column->labelByIntsId(value); 
 				
 				else if(columnNameToMissingData.count(column->name()) && columnNameToMissingData[column->name()].count(r))
 				{
@@ -520,9 +521,9 @@ void JASPImporterOld::columnLabelsFromJsonForJASPFile(Json::Value xData, Json::V
 		bool filterAllow	= keyValueFilterTrip.get(2,			true).asBool();
 		
 		Json::Value	orgVal	= columnType == columnType::nominalText ? Json::Value(label) : Json::Value(labelValue);
-		
+
 		//Do -1 on labelValue to make sure everything is zero-based from here on out
-		labels[labelValue] = column->labelByIntsId(column->labelsAdd(labelValue-1, label, filterAllow, "", orgVal));
+		labels[labelValue] = column->labelByIntsId(column->labelsAdd(labelValue, label, filterAllow, "", orgVal));
 	}
 
 	for (Json::Value & keyValuePair : orgStringValuesDesc)
