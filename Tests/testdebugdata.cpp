@@ -278,6 +278,9 @@ void TestDebugData::testEmptyValues()
 	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 1,	"Not right amount of non-empty labels after adding one empty value to workspace!");
 	QVERIFY2(contBinom->nonEmptyLevelsStrings()[0] == "0",		"Not right non-empty label left after adding one empty value to workspace!");
 	
+	contBinom->setHasCustomEmptyValues(true);
+	contBinom->setCustomEmptyValues({"0"});
+	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 0,	"There should be no labels anymore!");
 }
 
 
