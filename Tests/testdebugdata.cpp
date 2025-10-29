@@ -250,5 +250,35 @@ void TestDebugData::testColumnStuff()
 	
 }
 
+void TestDebugData::testEmptyValues()
+{
+	QVERIFY2(_data,		"No dataset!");
+	
+	Column * contBinom = _data->column("contBinom");
+	
+	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 2, "Not right amount of non-empty labels!");
+	
+	contBinom->setHasCustomEmptyValues(true);
+	contBinom->setCustomEmptyValues({"1"});
+	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 1,	"Not right amount of non-empty labels after adding one!");
+	QVERIFY2(contBinom->nonEmptyLevelsStrings()[0] == "0",		"Not right non-empty label left after adding one empty value!");
+	
+	contBinom->setCustomEmptyValues({"0"});
+	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 1,	"Not right amount of non-empty labels after changing one empty value into another!");
+	QVERIFY2(contBinom->nonEmptyLevelsStrings()[0] == "1",		"Not right non-empty label left after adding one empty value!");
+
+	
+	contBinom->setCustomEmptyValues({"0", "1"});
+	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 0,	"There should be no labels anymore!");
+	
+	contBinom->setHasCustomEmptyValues(false);
+	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 2,	"Not right amount of non-empty labels after disabling custom empty values!");
+	
+	_data->setWorkspaceEmptyValues({"1"});
+	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 1,	"Not right amount of non-empty labels after adding one empty value to workspace!");
+	QVERIFY2(contBinom->nonEmptyLevelsStrings()[0] == "0",		"Not right non-empty label left after adding one empty value to workspace!");
+	
+}
+
 
 QTEST_MAIN(TestDebugData)
