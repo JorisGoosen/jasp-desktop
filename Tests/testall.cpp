@@ -139,6 +139,8 @@ void TestAll::testDataImport()
 	QVERIFY2(hardcodedIsSame,			"Hardcoded json is different!");
 
 	
+	DataSet loadMe(dataSet->id());
+	QVERIFY2(dataSet->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
 
@@ -233,6 +235,8 @@ void TestAll::testJaspDataImport()
 	QVERIFY2(hardcodedIsSame,			"Hardcoded json is different!");
 
 	
+	DataSet loadMe(dataSet->id());
+	QVERIFY2(dataSet->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
 

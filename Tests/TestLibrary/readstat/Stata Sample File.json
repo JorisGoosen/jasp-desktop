@@ -667,16 +667,16 @@
                 {
                     "description": "",
                     "filterAllows": true,
-                    "label": ".m",
+                    "label": "nan",
                     "order": 21,
-                    "originalValue": ".m"
+                    "originalValue": ""
                 },
                 {
                     "description": "",
                     "filterAllows": true,
-                    "label": "nan",
+                    "label": ".m",
                     "order": 22,
-                    "originalValue": ""
+                    "originalValue": ".m"
                 },
                 {
                     "description": "",

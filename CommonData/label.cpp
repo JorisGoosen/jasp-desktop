@@ -154,6 +154,9 @@ bool Label::setLabel(const std::string & label)
 void Label::_setOriginalValue(const Json::Value & originalValue)
 {
 	_originalValue			= originalValue;
+	
+	if(_originalValue.toStyledString() == "null\n")
+		_originalValue		= ""; //NaN gets converted into null by json cause the format sucks
 		
 	ColumnUtils::getDoubleValue(originalValueAsString(false, true), _dblValue);
 }
