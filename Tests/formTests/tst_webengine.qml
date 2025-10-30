@@ -73,8 +73,48 @@ TestCase
 		
 		spy.wait(1000);
 		compare(spy.count, 1);
-		//console.log(spy.signalArguments[0][0])
 		compare(spy.signalArguments[0][0], "1.234");
+		
+		spy.clear()
+		resultsView.runJavaScript(	"result = formatColumn(column=column, type='number', format='dp:3', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+								  function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		compare(spy.signalArguments[0][0], "1.234");
+		
+		
+		spy.clear()
+		resultsView.runJavaScript(	"result = formatColumn(column=column, type='number', format='dp:1', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+								  function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		compare(spy.signalArguments[0][0], "1.2");
+		
+		
+		spy.clear()
+		resultsView.runJavaScript(	"column=[{content: 0.9999}];" +
+									"result = formatColumn(column=column, type='number', format='p:0.01;dp:3', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+								  function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		compare(spy.signalArguments[0][0], "1.000");
+		
+		
+		spy.clear()
+		resultsView.runJavaScript(	"column=[{content: 0.9}];" +
+									"result = formatColumn(column=column, type='number', format='p:0.01;dp:3', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+								  function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		compare(spy.signalArguments[0][0], ".900");
 	}
 }
 
