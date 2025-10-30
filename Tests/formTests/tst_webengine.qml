@@ -149,6 +149,38 @@ TestCase
 		spy.wait(1000);
 		compare(spy.count, 1);
 		compare(spy.signalArguments[0][0], "€1,000,234");
+		
+		
+		spy.clear()
+		resultsView.runJavaScript(	"column=[{content: 1.01}];" +
+									"result = formatColumn(column=column, type='number', format='pc', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+								  function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		compare(spy.signalArguments[0][0], "101.00&thinsp;%");
+		
+		
+		spy.clear()
+		resultsView.runJavaScript(	"column=[{content: 0.01}];" +
+									"result = formatColumn(column=column, type='number', format='pc', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+								  function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		compare(spy.signalArguments[0][0], "1.00&thinsp;%");
+		
+		spy.clear()
+		resultsView.runJavaScript(	"column=[{content: 0.9999}];" +
+									"result = formatColumn(column=column, type='number', format='pc', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+								  function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		compare(spy.signalArguments[0][0], "99.99&thinsp;%");
 	}
 }
 
