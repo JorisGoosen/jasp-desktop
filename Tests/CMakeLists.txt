@@ -126,6 +126,9 @@ target_link_libraries(
   PRIVATE
   Qt6::Core
   Qt6::Qml
+  Qt::WebEngineQuick
+  Qt::WebChannel
+  Qt::WebChannelQuick
 )
 
 target_link_libraries(
