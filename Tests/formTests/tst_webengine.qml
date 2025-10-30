@@ -63,11 +63,18 @@ TestCase
 								  function(result) { resultsView.jsDone(result); });
 		spy.wait(1000);
 		compare(spy.count, 1);
-		console.log(spy.signalArguments[0][0])
 		compare(spy.signalArguments[0][0], "1.2");
 		
 		
-		//compare(control.boundJson(),  2);
+		spy.clear()
+		resultsView.runJavaScript(	"result = formatColumn(column=column, type='number', format='sf:4', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+								  function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		//console.log(spy.signalArguments[0][0])
+		compare(spy.signalArguments[0][0], "1.234");
 	}
 }
 
