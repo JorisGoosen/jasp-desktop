@@ -76,9 +76,20 @@ TestCase
 		compare(spy.signalArguments[0][0], "1.234");
 		
 		spy.clear()
-		resultsView.runJavaScript(	"result = formatColumn(column=column, type='number', format='dp:3', alignNumbers=true, combine=false, modelFootnotes='');" +
+		resultsView.runJavaScript(	"column=[{content: 123456789}];" +
+									"result = formatColumn(column=column, type='number', format='sf:3', alignNumbers=true, combine=false, modelFootnotes='');" +
 									"result[0].content",
-								  function(result) { resultsView.jsDone(result); });
+									function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		compare(spy.signalArguments[0][0], "1.23&times;10<sup>+8</sup>");
+		
+		spy.clear()
+		resultsView.runJavaScript(	"column=[{content: 1.234}];" +
+									"result = formatColumn(column=column, type='number', format='dp:3', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+									function(result) { resultsView.jsDone(result); });
 		
 		spy.wait(1000);
 		compare(spy.count, 1);
