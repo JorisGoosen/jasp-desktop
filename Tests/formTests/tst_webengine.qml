@@ -115,6 +115,40 @@ TestCase
 		spy.wait(1000);
 		compare(spy.count, 1);
 		compare(spy.signalArguments[0][0], ".900");
+		
+		
+		spy.clear()
+		resultsView.runJavaScript(	"column=[{content: 1000234}];" +
+									"setCurrentLocaleID('en', false);"+
+									"result = formatColumn(column=column, type='number', format='monetary:EUR;thousands', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+								  function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		compare(spy.signalArguments[0][0], "€1,000,234");
+		
+		spy.clear()
+		resultsView.runJavaScript(	"column=[{content: 1000234}];" +
+									"setCurrentLocaleID('en', false);"+
+									"result = formatColumn(column=column, type='number', format='monetary:EUR', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+								  function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		compare(spy.signalArguments[0][0], "€1000234");
+		
+		spy.clear()
+		resultsView.runJavaScript(	"column=[{content: 1000234}];" +
+									"setCurrentLocaleID('en', true);"+
+									"result = formatColumn(column=column, type='number', format='monetary:EUR', alignNumbers=true, combine=false, modelFootnotes='');" +
+									"result[0].content",
+								  function(result) { resultsView.jsDone(result); });
+		
+		spy.wait(1000);
+		compare(spy.count, 1);
+		compare(spy.signalArguments[0][0], "€1,000,234");
 	}
 }
 
