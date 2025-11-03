@@ -3,6 +3,7 @@
 #include <QQmlContext>
 #include "jasptheme.h"
 #include "preferencesmodelbase.h"
+#include "utilities/qmlutils.h"
 
 TestQml::TestQml(QObject *parent)
 	: QObject{parent}
@@ -21,6 +22,8 @@ void TestQml::qmlEngineAvailable(QQmlEngine *engine)
 	engine->rootContext()->setContextProperty("myContextProperty", QVariant(true));
 
 	static QStringList originalImportPaths = engine->importPathList();
+
+	QmlUtils::setGlobalPropertiesInQMLContext(engine->rootContext());
 
 	QStringList newImportPaths = originalImportPaths;
 
