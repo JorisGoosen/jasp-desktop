@@ -17,9 +17,16 @@ TestCase
 
 	SignalSpy
 	{
-		id:				spyVarLoader
-		target:			allVars
-		signalName:		"initializedChanged"
+		id:				spyAssigned
+		target:			vars
+		signalName:		"countChanged"
+	}
+
+	SignalSpy
+	{
+			id:			spyError
+			target:		vars
+			signalName: "hasErrorChanged"
 	}
 
 
@@ -36,13 +43,49 @@ TestCase
 		}
 	}
 
-	function test_rowcontrols()
+	function test_variableLists()
 	{
-		spyLoader.wait(1000)
+		spyLoader.wait(400)
 		compare(spyLoader.count, 1);
 		compare(allVars.count, 1);
-		compare(allVars.num, 1);
 
-		//Assign stuff in vars I guess?
+		allVars.setSelectedItem(0)
+		allVars.moveSelectedItems(vars);
+
+		spyAssigned.clear()
+		spyAssigned.wait(400);
+		compare(spyAssigned.count,	1);
+		compare(allVars.count,		0);
+		compare(vars.count,			1);
+
+		vars.setSelectedItem(0)
+		vars.moveSelectedItems(allVars);
+
+		spyAssigned.clear()
+		spyAssigned.wait(400);
+		compare(spyAssigned.count,	1);
+		compare(allVars.count,		1);
+		compare(vars.count,			0);
+
+		allVars.setSelectedItem(0)
+		allVars.moveSelectedItems(vars);
+
+		spyAssigned.clear()
+		spyAssigned.wait(400);
+		compare(spyAssigned.count,	1);
+		compare(allVars.count,		0);
+		compare(vars.count,			1);
+
+
+		spyError.clear();
+		vars.minNumericLevels = 10; //TestColumn has only 5
+		spyError.wait(500);
+		compare(vars.hasError,			true);
+
+
+		spyError.clear();
+		vars.minNumericLevels = 2;
+		spyError.wait(500);
+		compare(vars.hasError,			false);
 	}
 }

@@ -181,9 +181,12 @@ bool DataSetProvider::absorbInfo(VariableInfo::InfoType info, const QString &col
 		case VariableInfo::DataSetValues:
 		{
 			int r=0;
+			if(_dataSet->rowCount() < value.toList().size())
+				_dataSet->setRowCount(value.toList().size(), false);
+
 			for(const QVariant & val : value.toList())
 				if (row + r < _dataSet->rowCount())
-					column->setStringValue(row + r++, fq(val.toString()));
+					column->setStringValue(row + r++, fq(val.toString()), "", false);
 			return true;
 		}
 		}
