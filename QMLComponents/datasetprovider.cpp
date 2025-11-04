@@ -31,10 +31,19 @@ DataSetProvider* DataSetProvider::getProvider(bool inMemory, bool reset)
 	return _singleton;
 }
 
+DataSetProvider::~DataSetProvider()
+{
+	assert(_singleton == this);
+	delete VariableInfo::info();
+	delete _dataSet;
+	delete _db;
+	_singleton = nullptr;
+}
+
 DataSetProvider::DataSetProvider(bool inMemory, QObject *parent) : QAbstractTableModel(parent)
 {
 	_db	= new DatabaseInterface(true, inMemory);
-	_dataset = new DataSet();
+	_dataSet = new DataSet();
 
 	new VariableInfo(this);
 	_singleton = this;
@@ -42,28 +51,28 @@ DataSetProvider::DataSetProvider(bool inMemory, QObject *parent) : QAbstractTabl
 
 void DataSetProvider::resetDataSet()
 {
-	if (_dataset)
+	if (_dataSet)
 	{
-		_dataset->dbDelete();
-		delete _dataset;
+		_dataSet->dbDelete();
+		delete _dataSet;
 	}
 	
-	_dataset = new DataSet();
+	_dataSet = new DataSet();
 }
 
 int	DataSetProvider::rowCount(const QModelIndex &) const
 {
-	return _dataset->columnCount();
+	return _dataSet->columnCount();
 }
 
 int	DataSetProvider::columnCount(const QModelIndex &) const
 {
-	return _dataset->rowCount();
+	return _dataSet->rowCount();
 }
 
 QVariant DataSetProvider::data(const QModelIndex & index, int role) const
 {
-	Column * column = index.row() > columnCount() ? nullptr : _dataset->column(index.row());
+	Column * column = index.row() > columnCount() ? nullptr : _dataSet->column(index.row());
 
 	if (!column)						return QVariant();
 	else if (role == Qt::DisplayRole)	return tq(column->name());
@@ -93,7 +102,7 @@ QVariantList DataSetProvider::_getStringList(Column * column) const
 	if (!column)
 		return list;
 
-	int rows = _dataset->rowCount();
+	int rows = _dataSet->rowCount();
 	for (int r = 0; r < rows; r++)
 		list.append(tq(column->getDisplay(r)));
 
@@ -104,9 +113,9 @@ QStringList DataSetProvider::_getColumnNames() const
 {
 	QStringList result;
 
-	int cols = _dataset->columnCount();
+	int cols = _dataSet->columnCount();
 	for (int i = 0; i < cols; i++)
-		result.append(tq(_dataset->column(i)->name()));
+		result.append(tq(_dataSet->column(i)->name()));
 	return result;
 }
 
@@ -115,7 +124,7 @@ QVariant DataSetProvider::provideInfo(VariableInfo::InfoType info, const QString
 {
 	try
 	{
-		Column * column = _dataset->column(fq(colName));
+		Column * column = _dataSet->column(fq(colName));
 
 		switch(info)
 		{
@@ -125,17 +134,17 @@ QVariant DataSetProvider::provideInfo(VariableInfo::InfoType info, const QString
 		case VariableInfo::TotalLevels:					return	!column ? 0 : (int)column->nonFilteredLevels().size();
 		case VariableInfo::Labels:						return	!column ? QStringList() : tq(column->nonFilteredLevels());
 		case VariableInfo::NameRole:					return	Qt::DisplayRole;
-		case VariableInfo::DataSetRowCount:				return  _dataset->rowCount();
+		case VariableInfo::DataSetRowCount:				return  _dataSet->rowCount();
 		case VariableInfo::DataSetValue:				return	!column ? "" : tq(column->getValue(row));
 		case VariableInfo::DataSetValues:				return	_getStringList(column);
 		case VariableInfo::MaxWidth:					return	100;
 		case VariableInfo::SignalsBlocked:				return	false;
 		case VariableInfo::VariableNames:				return	_getColumnNames();
-		case VariableInfo::DataAvailable:				return	_dataset->columnCount() > 0;
+		case VariableInfo::DataAvailable:				return	_dataSet->columnCount() > 0;
 		case VariableInfo::PreviewScale:				return	"";
 		case VariableInfo::PreviewOrdinal:				return	"";
 		case VariableInfo::PreviewNominal:				return	"";
-		case VariableInfo::DataSetPointer:				return	QVariant::fromValue<void*>(_dataset);
+		case VariableInfo::DataSetPointer:				return	QVariant::fromValue<void*>(_dataSet);
 
 
 		default: break;
@@ -152,7 +161,7 @@ bool DataSetProvider::absorbInfo(VariableInfo::InfoType info, const QString &col
 {
 	try
 	{
-		Column * column = _dataset->column(fq(colName));
+		Column * column = _dataSet->column(fq(colName));
 		if (!column)
 			return false;
 
@@ -164,7 +173,7 @@ bool DataSetProvider::absorbInfo(VariableInfo::InfoType info, const QString &col
 		{
 			int r=0;
 			for(const QVariant & val : value.toList())
-				if (row + r < _dataset->rowCount())
+				if (row + r < _dataSet->rowCount())
 					column->setStringValue(row + r++, fq(val.toString()));
 			return true;
 		}

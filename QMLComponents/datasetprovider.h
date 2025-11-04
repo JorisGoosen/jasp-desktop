@@ -31,7 +31,9 @@ class DataSetProvider : public QAbstractTableModel, public VariableInfoProvider
 public:
 	static DataSetProvider	*	getProvider(bool inMemory, bool reset = true);
 
-	DataSet					*	dataSet()	{ return _dataset; }
+	~DataSetProvider();
+
+	DataSet					*	dataSet()	{ return _dataSet; }
 	void						resetDataSet();
 
 	int							rowCount(	const QModelIndex & parent = QModelIndex())									const	override;
@@ -53,7 +55,7 @@ private:
 	QStringList					_getColumnNames()				const;
 
 	DatabaseInterface		*	_db					= nullptr;
-	DataSet					*	_dataset			= nullptr;
+	DataSet					*	_dataSet			= nullptr;
 
 };
 

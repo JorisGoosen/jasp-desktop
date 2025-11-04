@@ -16,8 +16,6 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import JASP
-
 VariablesList
 {
 	listViewType:	JASP.AssignedVariables

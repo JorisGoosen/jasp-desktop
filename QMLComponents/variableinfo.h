@@ -44,6 +44,7 @@ public:
 
 public:
 	VariableInfo(VariableInfoProvider* provider);
+	~VariableInfo();
 
 	Q_PROPERTY(int	rowCount		READ rowCount		NOTIFY rowCountChanged		)
 	Q_PROPERTY(bool	dataAvailable	READ dataAvailable	NOTIFY dataAvailableChanged	)

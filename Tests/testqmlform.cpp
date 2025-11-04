@@ -1,8 +1,13 @@
-#include "testqmlform.h"
+#include <iostream>
 #include <QQmlEngine>
 #include <QQmlContext>
+#include "tempfiles.h"
 #include "jasptheme.h"
+#include "processinfo.h"
+#include "testqmlform.h"
+#include "datasetprovider.h"
 #include "preferencesmodelbase.h"
+#include "utilities/qmlutils.h"
 
 TestForm::TestForm(QObject *parent)
 	: QObject{parent}
@@ -17,8 +22,14 @@ void TestForm::applicationAvailable()
 
 void TestForm::qmlEngineAvailable(QQmlEngine *engine)
 {
+	TempFiles::init(ProcessInfo::currentPID());
+
+	TempFiles::clearSessionDir();
+
 	// Initialization requiring the QQmlEngine to be constructed
 	engine->rootContext()->setContextProperty("myContextProperty", QVariant(true));
+
+	QmlUtils::setGlobalPropertiesInQMLContext(engine->rootContext());
 
 	static QStringList originalImportPaths = engine->importPathList();
 
@@ -35,10 +46,19 @@ void TestForm::qmlEngineAvailable(QQmlEngine *engine)
 	engine->rootContext()->setContextProperty("jaspTheme",			_theme);
 	engine->rootContext()->setContextProperty("preferencesModel",	_prefs);
 
+	_prov = DataSetProvider::getProvider(false, false);
+
+	_prov->absorbInfo(VariableInfo::DataSetValues, "TestColumn", 0, QVariantList({1,2,3,4,5}));
 }
 
 void TestForm::cleanupTestCase()
 {
+	delete _theme;
+	delete _prov;
+
+	_theme = nullptr;
+	_prefs = nullptr;
+	_prov  = nullptr;
 }
 
 
