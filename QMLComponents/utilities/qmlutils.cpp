@@ -202,6 +202,8 @@ void QmlUtils::setGlobalPropertiesInQMLContext(QQmlContext * ctxt)
 	ctxt->setContextProperty("INTERACTION_SEPARATOR",	Term::separator);
 	ctxt->setContextProperty("dataSetInfo",				VariableInfo::info());
 	ctxt->setContextProperty("messages",				MessageForwarder::msgForwarder());
+	ctxt->setContextProperty("backgroundForms",			nullptr);
+
 
 	qmlRegisterUncreatableType<JASPControl>(					"JASP",		1, 0, "JASP",					"Impossible to create JASP Object");
 	qmlRegisterUncreatableType<ALTNavPostfixAssignmentStrategy>("JASP",		1, 0, "AssignmentStrategy",		"Can't make it"	);
