@@ -157,6 +157,15 @@ QVariant DataSetProvider::provideInfo(VariableInfo::InfoType info, const QString
 	return QVariant("");
 }
 
+void DataSetProvider::createColumn(const QString columnName, columnType columnType)
+{
+	if(!_dataSet->column(fq(columnName)))
+	{
+		Column * col = _dataSet->newColumn(fq(columnName));
+		col->setType(columnType);
+	}
+}
+
 bool DataSetProvider::absorbInfo(VariableInfo::InfoType info, const QString &colName, int row, QVariant value)
 {
 	try

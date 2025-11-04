@@ -40,6 +40,8 @@ public:
 	int							columnCount(const QModelIndex & parent = QModelIndex())									const	override;
 	QVariant					data(		const QModelIndex & index, int role = Qt::DisplayRole)						const	override;
 
+	void						createColumn(const QString columnName, columnType columnType = columnType::scale);
+
 
 	QVariant					provideInfo(VariableInfo::InfoType info, const QString& colName = "", int row = 0)		const	override;
 	bool						absorbInfo(	VariableInfo::InfoType info, const QString& name, int row, QVariant value)			override;

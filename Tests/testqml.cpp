@@ -49,6 +49,7 @@ void TestQml::qmlEngineAvailable(QQmlEngine *engine)
 
 	_prov = DataSetProvider::getProvider(false, false);
 
+	_prov->createColumn("TestColumn");
 	_prov->absorbInfo(VariableInfo::DataSetValues, "TestColumn", 0, QVariantList({1,2,3,4,5}));
 }
 

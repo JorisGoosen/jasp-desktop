@@ -14,6 +14,16 @@ TestCase
 		signalName:		"formCompletedSignal"
 	}
 
+
+	SignalSpy
+	{
+		id:				spyVarLoader
+		target:			allVars
+		signalName:		"initializedChanged"
+	}
+
+
+
 	Form
 	{
 		id:		jaspForm
@@ -30,7 +40,9 @@ TestCase
 	{
 		spyLoader.wait(1000)
 		compare(spyLoader.count, 1);
-
 		compare(allVars.count, 1);
+		compare(allVars.num, 1);
+
+		//Assign stuff in vars I guess?
 	}
 }
