@@ -18,13 +18,14 @@
 
 #include "datasetprovider.h"
 #include "utilities/qutils.h"
+#include "columnencoder.h"
 
 DataSetProvider		*	DataSetProvider::_singleton		= nullptr;
 
-DataSetProvider* DataSetProvider::getProvider(bool inMemory, bool reset)
+DataSetProvider* DataSetProvider::getProvider(bool inMemory, bool reset, QObject* parent)
 {
 	if (!_singleton)
-		_singleton = new DataSetProvider(inMemory);
+		_singleton = new DataSetProvider(inMemory, parent);
 	else if (reset)
 		_singleton->resetDataSet();
 
@@ -79,7 +80,38 @@ QVariant DataSetProvider::data(const QModelIndex & index, int role) const
 	else								return QVariant(); //QAbstractTableModel::data(index, role);
 }
 
+void DataSetProvider::loadDataSet(const std::map<std::string, stringvec > & dataSet, int threshold, bool orderLabelsByValue)
+{
 
+	_dataSet->beginBatchedToDB();
+
+	int rowCount = 0;
+	for (const auto it : dataSet)
+		rowCount = rowCount >= it.second.size() ? rowCount : it.second.size();
+
+
+	_dataSet->setColumnCount(dataSet.size());
+	_dataSet->setRowCount(rowCount);
+
+	int colNr = 0;
+
+	for (const auto it : dataSet)
+	{
+		auto lookup = [&](size_t r)
+		{
+			return dataSet.at(it.first)[r];
+		};
+
+		_dataSet->column(colNr)->initFromLookups(it.first, rowCount, lookup, lookup, it.first, columnType::unknown, {}, threshold, orderLabelsByValue);
+
+		colNr++;
+	}
+
+	_dataSet->endBatchedToDB([](float f) {});
+
+	ColumnEncoder::columnEncoder()->setCurrentNames(_dataSet->getColumnTypesMap());
+
+}
 
 QVariantList DataSetProvider::_getDoubleList(Column * column) const
 {
@@ -155,15 +187,6 @@ QVariant DataSetProvider::provideInfo(VariableInfo::InfoType info, const QString
 		throw e;
 	}
 	return QVariant("");
-}
-
-void DataSetProvider::createColumn(const QString columnName, columnType columnType)
-{
-	if(!_dataSet->column(fq(columnName)))
-	{
-		Column * col = _dataSet->newColumn(fq(columnName));
-		col->setType(columnType);
-	}
 }
 
 bool DataSetProvider::absorbInfo(VariableInfo::InfoType info, const QString &colName, int row, QVariant value)

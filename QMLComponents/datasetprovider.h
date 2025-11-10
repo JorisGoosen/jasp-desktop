@@ -29,7 +29,7 @@ class DataSetProvider : public QAbstractTableModel, public VariableInfoProvider
 {
 
 public:
-	static DataSetProvider	*	getProvider(bool inMemory, bool reset = true);
+	static DataSetProvider	*	getProvider(bool inMemory, bool reset = true, QObject * parent = nullptr);
 
 	~DataSetProvider();
 
@@ -40,12 +40,11 @@ public:
 	int							columnCount(const QModelIndex & parent = QModelIndex())									const	override;
 	QVariant					data(		const QModelIndex & index, int role = Qt::DisplayRole)						const	override;
 
-	void						createColumn(const QString columnName, columnType columnType = columnType::scale);
-
-
+	void						loadDataSet(const std::map<std::string, stringvec > & dataSet, int threshold = 10, bool orderLabelsByValue = true);
 	QVariant					provideInfo(VariableInfo::InfoType info, const QString& colName = "", int row = 0)		const	override;
 	bool						absorbInfo(	VariableInfo::InfoType info, const QString& name, int row, QVariant value)			override;
 	QAbstractItemModel		*	providerModel()																					override	{ return this;	}
+
 
 private:
 	explicit DataSetProvider(bool inMemory = true, QObject* parent = nullptr);

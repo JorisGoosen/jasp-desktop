@@ -47,6 +47,7 @@ public:
 	~VariableInfo();
 
 	Q_PROPERTY(int	rowCount		READ rowCount		NOTIFY rowCountChanged		)
+	Q_PROPERTY(int	variableCount	READ variableCount	NOTIFY variableCountChanged	)
 	Q_PROPERTY(bool	dataAvailable	READ dataAvailable	NOTIFY dataAvailableChanged	)
 
 	static VariableInfo		*	info();
@@ -56,6 +57,7 @@ public:
 	VariableInfoProvider	*	provider()	{ return _provider; }
 
 	int							rowCount();
+	int							variableCount();
 	bool						dataAvailable();
 	DataSet					*	dataSet();
 
@@ -67,6 +69,7 @@ signals:
 	void variablesChanged(	QStringList changedColumns);
 	void dataSetChanged();
 	void rowCountChanged();
+	void variableCountChanged();
 	void labelsReordered(	QString columnName);
 	void variableTypeChanged(Term variable);
 	void dataAvailableChanged();

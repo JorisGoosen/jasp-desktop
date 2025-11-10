@@ -1,18 +1,25 @@
-#include <iostream>
 #include <QQmlEngine>
-#include <QQmlContext>
 #include "tempfiles.h"
-#include "jasptheme.h"
 #include "processinfo.h"
 #include "testqml.h"
 #include "datasetprovider.h"
-#include "preferencesmodelbase.h"
 #include "utilities/qmlutils.h"
 
 TestQml::TestQml(QObject *parent)
 	: QObject{parent}
 {
+	TempFiles::init(ProcessInfo::currentPID());
+	TempFiles::clearSessionDir();
 
+	DataSetProvider* prov = DataSetProvider::getProvider(false, true, parent);
+
+	std::map<std::string, stringvec > dataSet;
+	dataSet["TestInts"] = {"1", "2", "3", "4", "5"};
+	dataSet["TestLetters"] = {"A", "B", "C", "D", "E"};
+	dataSet["TestDoubles"] = {".2", "1.2", "0.6", "3.2", "1"};
+	dataSet["TestNominal"] = {"1", "1", "1", "2", "2"};
+
+	prov->loadDataSet(dataSet);
 }
 
 void TestQml::applicationAvailable()
@@ -22,45 +29,13 @@ void TestQml::applicationAvailable()
 
 void TestQml::qmlEngineAvailable(QQmlEngine *engine)
 {
-
-	TempFiles::init(ProcessInfo::currentPID());
-
-	TempFiles::clearSessionDir();
-
 	// Initialization requiring the QQmlEngine to be constructed
-	engine->rootContext()->setContextProperty("myContextProperty", QVariant(true));
+	QmlUtils::setupQMLEngine(engine);
 
-	static QStringList originalImportPaths = engine->importPathList();
-
-	QmlUtils::setGlobalPropertiesInQMLContext(engine->rootContext());
-
-	QStringList newImportPaths = originalImportPaths;
-
-	newImportPaths.append(":/jasp-stats.org/imports");
-	newImportPaths.append("qrc:///components");
-
-	engine->setImportPathList(newImportPaths);
-
-	_theme = new JaspTheme();
-	_prefs = new PreferencesModelBase(engine);
-
-	engine->rootContext()->setContextProperty("jaspTheme",			_theme);
-	engine->rootContext()->setContextProperty("preferencesModel",	_prefs);
-
-	_prov = DataSetProvider::getProvider(false, false);
-
-	_prov->createColumn("TestColumn");
-	_prov->absorbInfo(VariableInfo::DataSetValues, "TestColumn", 0, QVariantList({1,2,3,4,5}));
 }
 
 void TestQml::cleanupTestCase()
 {
-	delete _theme;
-	delete _prov;
-
-	_theme = nullptr;
-	_prefs = nullptr;
-	_prov  = nullptr;
 }
 
 QUICK_TEST_MAIN_WITH_SETUP(qmltest, TestQml);

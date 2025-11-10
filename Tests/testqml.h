@@ -20,11 +20,6 @@ public slots:
 	void qmlEngineAvailable(QQmlEngine *engine);
 
 	void cleanupTestCase();
-
-private:
-	JaspTheme				* _theme = nullptr;
-	PreferencesModelBase	* _prefs = nullptr;
-	DataSetProvider			* _prov  = nullptr;
 };
 
 #endif // TESTQML_H

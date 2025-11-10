@@ -58,6 +58,11 @@ int VariableInfo::rowCount()
 	return _provider ? _provider->provideInfo(VariableInfo::DataSetRowCount).toInt() : 0;
 }
 
+int VariableInfo::variableCount()
+{
+	return _provider ? _provider->provideInfo(VariableInfo::VariableNames).toStringList().count() : 0;
+}
+
 bool VariableInfo::dataAvailable()
 {
 	return _provider ? _provider->provideInfo(VariableInfo::DataAvailable).toBool() : false;
