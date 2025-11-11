@@ -78,10 +78,10 @@ bool jaspRCPP_columnIsScale(				const std::string & columnName	);
 bool jaspRCPP_columnIsOrdinal(				const std::string & columnName		  );
 bool jaspRCPP_columnIsNominal(				const std::string & columnName				 );
 
-bool jaspRCPP_setColumnDataAsScale(			const std::string & columnName,	Rcpp::RObject scalarData	);
-bool jaspRCPP_setColumnDataAsOrdinal(		const std::string & columnName,	Rcpp::RObject ordinalData		);
-bool jaspRCPP_setColumnDataAsNominal(		const std::string & columnName,	Rcpp::RObject nominalData			);
-bool _jaspRCPP_setColumnDataAndType(		const std::string & columnName, Rcpp::RObject data, columnType colType);
+bool jaspRCPP_setColumnDataAsScale(			const std::string & columnName,	Rcpp::RObject scalarData,               bool computed = true);
+bool jaspRCPP_setColumnDataAsOrdinal(		const std::string & columnName,	Rcpp::RObject ordinalData,              bool computed = true);
+bool jaspRCPP_setColumnDataAsNominal(		const std::string & columnName,	Rcpp::RObject nominalData,              bool computed = true);
+bool _jaspRCPP_setColumnDataAndType(		const std::string & columnName, Rcpp::RObject data, columnType colType, bool computed = true);
 
 void jaspRCPP_setColumnDataHelper_FactorsLevels(Rcpp::Vector<INTSXP> data, int *& outputData, size_t & numLevels, const char **& labelPointers, std::string *& labels);
 
@@ -91,7 +91,7 @@ typedef void (*sendFuncDef)(const char *);
 //Calls from jaspBase
 typedef void			(*logFuncDef)(const std::string &);
 typedef bool			(*shouldEnDecodeFuncDef)	(std::string);
-typedef bool			(*setColumnDataFuncDef)		(const std::string &, Rcpp::RObject);
+typedef bool			(*setColumnDataFuncDef)		(const std::string &, Rcpp::RObject, bool);
 typedef columnType		(*getColumnTypeFuncDef)		(std::string);
 typedef int				(*getColumnAnIdFuncDef)		(std::string);
 typedef bool			(*getColumnExistsFDef)		(std::string);
