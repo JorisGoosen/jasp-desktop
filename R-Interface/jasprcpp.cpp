@@ -894,21 +894,21 @@ bool jaspRCPP_columnIsScale(		const std::string & columnName) { return jaspRCPP_
 bool jaspRCPP_columnIsOrdinal(		const std::string & columnName) { return jaspRCPP_getColumnType(columnName) == columnType::ordinal;		}
 bool jaspRCPP_columnIsNominal(		const std::string & columnName) { return jaspRCPP_getColumnType(columnName) == columnType::nominal;		}
 
-bool jaspRCPP_setColumnDataAsScale(const std::string & columnName, Rcpp::RObject scalarData, bool computed)
+bool jaspRCPP_setColumnDataAsScale(const std::string & columnName, Rcpp::RObject scalarData, int computed)
 {
-	return _jaspRCPP_setColumnDataAndType(columnName, scalarData, columnType::scale, computed);
+	return _jaspRCPP_setColumnDataAndType(columnName, scalarData, columnType::scale, computed==1);
 }
 
 
-bool jaspRCPP_setColumnDataAsOrdinal(const std::string & columnName, Rcpp::RObject ordinalData, bool computed)
+bool jaspRCPP_setColumnDataAsOrdinal(const std::string & columnName, Rcpp::RObject ordinalData, int computed)
 {
-	return _jaspRCPP_setColumnDataAndType(columnName, ordinalData, columnType::ordinal, computed);
+	return _jaspRCPP_setColumnDataAndType(columnName, ordinalData, columnType::ordinal, computed==1);
 }
 
 
-bool jaspRCPP_setColumnDataAsNominal(const std::string & columnName, Rcpp::RObject nominalData, bool computed)
+bool jaspRCPP_setColumnDataAsNominal(const std::string & columnName, Rcpp::RObject nominalData, int computed)
 {
-	return _jaspRCPP_setColumnDataAndType(columnName, nominalData, columnType::nominal, computed);
+	return _jaspRCPP_setColumnDataAndType(columnName, nominalData, columnType::nominal, computed==1);
 }
 
 bool _jaspRCPP_setColumnDataAndType(const std::string & columnName, Rcpp::RObject data, columnType colType, bool computed)
