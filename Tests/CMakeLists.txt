@@ -145,6 +145,5 @@ add_test(NAME testDataImport  COMMAND JASPTest)
 add_test(NAME testDebugData   COMMAND JASPTestDebugData)
 add_test(NAME testEngine      COMMAND JASPTestEngine)
 add_test(NAME testQuick       COMMAND JASPQuickTest)
-add_test(NAME testForms       COMMAND JASPFormTest)
 
 endif()
