@@ -75,7 +75,6 @@ Item
 			for(dragKey in dragKeyToCheck)
 				if(dropSpot.dropKeys.indexOf(dragKeyToCheck))
 					return true;
-			//return dropSpot != undefined && dropSpot.objectName == "DropSpot" && dropSpot.dropKeys.indexOf(dragKeyToCheck) >= 0	
 			return false;
 		}
 		
