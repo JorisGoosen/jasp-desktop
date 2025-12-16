@@ -16,10 +16,6 @@ ListView
 
 	delegate: MouseArea
 	{
-		required property string type;
-		required property string columnName;
-		required property string toolTip;
-		
 		implicitWidth:  orientation === ListView.Horizontal ? elementLoader.item.width	: ListView.view.width
 		implicitHeight: orientation === ListView.Horizontal ? ListView.view.height	: elementLoader.item.height
 
