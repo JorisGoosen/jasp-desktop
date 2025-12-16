@@ -113,8 +113,6 @@ QString ColumnsModel::getColumnTransformedToolTip(const QString &name, columnTyp
 
 QVariant ColumnsModel::data(const QModelIndex &index, int role) const
 {
-	if(index.row() < 0 || index.row() >= rowCount()) return QVariant();
-
 	QString				colName		= QTransposeProxyModel::data(index, int(DataSetPackage::specialRoles::name)).toString();
 	columnType			colType		= static_cast<columnType>			(QTransposeProxyModel::data(index, int(DataSetPackage::specialRoles::columnType			)).toInt());
 	computedColumnType	codeType	= static_cast<computedColumnType>	(QTransposeProxyModel::data(index, int(DataSetPackage::specialRoles::computedColumnType	)).toInt());
