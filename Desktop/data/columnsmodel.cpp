@@ -161,7 +161,6 @@ QVariant ColumnsModel::provideInfo(VariableInfo::InfoType info, const QString& c
 		if (colIndex < 0)
 			return QVariant();
 
-		//remember, the model is transposed:
 		QModelIndex qColIndex	= index(colIndex, 0),
 					tableCIndex	= _tableModel->index(0, colIndex),
 					tableVIndex	= _tableModel->index(row, colIndex);
@@ -216,18 +215,14 @@ bool ColumnsModel::absorbInfo(VariableInfo::InfoType info, const QString &colNam
 		if (colIndex < 0)
 			return false;
 
-		//remember, the model is transposed:
-		QModelIndex qColIndex = index(colIndex, 0),
-					qValIndex = index(colIndex, row);
-
-		int			colTypeInt	= data(qColIndex, ColumnsModel::ColumnTypeRole).toInt();
-		//columnType	colTypeHere	= static_cast<columnType>(colTypeInt);
+		QModelIndex qColIndex	= _tableModel->index(0, colIndex),
+					qValIndex	= _tableModel->index(row, colIndex);
 
 		switch(info)
 		{
 		default:										return	false;
-		case VariableInfo::DataSetValue:				return	QAbstractTableModel::setData(qValIndex, value, int(DataSetPackage::specialRoles::value));
-		case VariableInfo::DataSetValues:				return	QAbstractTableModel::setData(qColIndex, value,	int(DataSetPackage::specialRoles::valuesStrList));
+		case VariableInfo::DataSetValue:				return	_tableModel->setData(qValIndex, value,	int(DataSetPackage::specialRoles::value));
+		case VariableInfo::DataSetValues:				return	_tableModel->setData(qColIndex, value,	int(DataSetPackage::specialRoles::valuesStrList));
 		}
 	}
 	catch(std::exception & e)
