@@ -2123,7 +2123,6 @@ void MainWindow::setProgressBarVisible(bool progressBarVisible, bool wasAutoSave
 	{
 		int64_t diff = lastShownMs == -1 ? -1 : Utils::currentMillis() - lastShownMs;
 		
-		Log::log() << "diff: " << diff << " lastShownMs: " << lastShownMs << " possible duration timer: " << (minimumShow-diff) << std::endl;
 		
 		if(!wasAutoSave || lastShownMs == -1 || diff >= minimumShow)
 			_setProgressBarVisible(false);
