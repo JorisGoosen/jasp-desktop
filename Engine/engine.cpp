@@ -671,7 +671,7 @@ void Engine::receiveAnalysisMessage(const Json::Value & jsonRequest)
 		_analysisRFile			= jsonRequest.get("rfile",				"").asString();
 		_dynamicModuleCall		= jsonRequest.get("dynamicModuleCall",	"").asString();
 		_resultFont				= jsonRequest.get("resultFont",			"").asString();
-		_analysisPreloadData	= jsonRequest.get("preloadData",		true).asBool();
+		_analysisPreloadData	= jsonRequest.get("preloadData",		false).asBool();
 		_engineState			= engineState::analysis;
 
 		Json::Value optionsEnc	= jsonRequest.get("options",			Json::nullValue);
@@ -733,7 +733,7 @@ void Engine::runAnalysis()
 
 	_analysisColsTypes = ColumnEncoder::encodeColumnNamesinOptions(encodedAnalysisOptions, _analysisPreloadData);
 
-	
+	//Log::log() << "Encoded options right before calling R are:\n" << encodedAnalysisOptions << std::endl;
 
 	_analysisResultsString = rbridge_runModuleCall(_analysisName, _analysisTitle, _dynamicModuleCall, _analysisDataKey,
 								encodedAnalysisOptions.toStyledString(), _analysisStateKey, _analysisId, _analysisRevision, 

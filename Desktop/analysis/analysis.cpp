@@ -405,6 +405,45 @@ std::string Analysis::statusToString(Status status)
 	}
 }
 
+Json::Value Analysis::loadPlotlyJsonInResults(Json::Value  results) const
+{
+	auto loadFile = [](const std::string & tempFileRelativePath)
+	{
+		QFile plotlyJsonFile(tq(TempFiles::sessionDirName() + "/" + tempFileRelativePath));
+		
+		if(plotlyJsonFile.open(QFile::OpenModeFlag::ReadOnly))
+		{
+			Json::Value plotlyJson;
+			Json::Reader jsonReader;
+			
+			jsonReader.parse(plotlyJsonFile.readAll().toStdString(),plotlyJson, false);
+			
+			return plotlyJson;
+		}
+		return Json::Value("\"Couldnt read file\"");
+	};
+	
+	
+	std::function<void(Json::Value &)> recursiveFixer;
+	
+	recursiveFixer = [&loadFile, &recursiveFixer](Json::Value & results)
+	{
+		if(results.isObject() && results.isMember("interactiveJsonData"))
+			results["interactiveJsonData"] = loadFile(results["interactiveJsonData"].asString());
+		
+		if(results.isObject())
+			for(const std::string & member : results.getMemberNames())
+				recursiveFixer(results[member]);
+		else if(results.isArray())
+			for(int arrayIndex = 0; arrayIndex < results.size(); arrayIndex++)
+				recursiveFixer(results[arrayIndex]);
+	};
+			
+	recursiveFixer(results);
+	
+	return results;
+}
+
 Json::Value Analysis::asJSON(bool withRSource) const
 {
 	Json::Value analysisAsJson = Json::objectValue;
@@ -416,7 +455,7 @@ Json::Value Analysis::asJSON(bool withRSource) const
 	analysisAsJson["rfile"]			= _rfile;
 	analysisAsJson["hasReport"]		= _hasReport;
 	analysisAsJson["progress"]		= _progress;
-	analysisAsJson["results"]		= _results;
+	analysisAsJson["results"]		= loadPlotlyJsonInResults(_results);
 	analysisAsJson["status"]		= statusToString(_status);
 	analysisAsJson["options"]		= boundValues();
 	analysisAsJson["userdata"]		= userData();
