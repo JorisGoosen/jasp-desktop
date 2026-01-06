@@ -113,7 +113,7 @@ private:
 	Version					_version;
 	bool					_requiresDataDef	= true,
 							_hasWrappers		= false,
-							_preloadData		= false;
+							_preloadData		= true;
 	DynamicModule		*	_dynMod				= nullptr;
 	QList<EntryBase*>		_entries;
 	QTimer					_timer;

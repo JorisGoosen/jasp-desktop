@@ -671,7 +671,7 @@ void Engine::receiveAnalysisMessage(const Json::Value & jsonRequest)
 		_analysisRFile			= jsonRequest.get("rfile",				"").asString();
 		_dynamicModuleCall		= jsonRequest.get("dynamicModuleCall",	"").asString();
 		_resultFont				= jsonRequest.get("resultFont",			"").asString();
-		_analysisPreloadData	= jsonRequest.get("preloadData",		false).asBool();
+		_analysisPreloadData	= jsonRequest.get("preloadData",		true).asBool();
 		_engineState			= engineState::analysis;
 
 		Json::Value optionsEnc	= jsonRequest.get("options",			Json::nullValue);
