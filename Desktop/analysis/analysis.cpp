@@ -23,6 +23,7 @@
 #include "dirs.h"
 #include "analyses.h"
 #include "analysisform.h"
+#include "columnencoder.h"
 //#include <boost/bind.hpp>
 #include "utilities/qutils.h"
 #include "utilities/settings.h"
@@ -417,6 +418,8 @@ Json::Value Analysis::loadPlotlyJsonInResults(Json::Value  results) const
 			Json::Reader jsonReader;
 			
 			jsonReader.parse(plotlyJsonFile.readAll().toStdString(),plotlyJson, false);
+			
+			ColumnEncoder::decodeJson(plotlyJson);
 			
 			return plotlyJson;
 		}
