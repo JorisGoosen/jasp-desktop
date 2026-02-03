@@ -171,11 +171,13 @@ bool DynamicModules::initializeModule(DynamicModule * module)
 		}
 		else if(oldModule)
 		{
+			emit storeAnalysesJson();
 			unloadModule(moduleName);
 			emit dynamicModuleReplaced(oldModule, module);
 			delete oldModule;
 			emit dynamicModuleChanged(module);
 			emit loadModuleTranslationFile(module);
+			emit reloadAnalysesJson();
 		}		
 
 		emit reloadQmlImportPaths();

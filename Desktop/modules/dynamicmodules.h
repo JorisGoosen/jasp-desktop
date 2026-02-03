@@ -147,6 +147,8 @@ signals:
 	void moduleEnabledChanged(QString moduleName, bool enabled);
 	void dataLoadedChanged(bool dataLoaded);
 	void loadedModulesChanged();
+	void reloadAnalysesJson();
+	void storeAnalysesJson();
 
 private:
 	Modules::DynamicModule	*	requestModuleForSomethingAndRemoveIt(std::set<std::string> & theSet);

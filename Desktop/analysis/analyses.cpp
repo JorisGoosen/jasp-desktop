@@ -265,6 +265,22 @@ Json::Value Analyses::asJson() const
 	return analysesJson;
 }
 
+void Analyses::saveAnalysesJsonForReload()
+{
+	_tempSave = asJson();	
+}
+
+void Analyses::reloadSavedAnalysesJson()
+{
+	if(!_tempSave.isObject() || !_tempSave.isMember("analyses") || !_tempSave.isMember("meta"))
+		return;
+	
+	bool errorFound;
+	std::stringstream errors;
+	loadAnalysesFromJaspFileJson(_tempSave["analyses"], _tempSave["meta"], errorFound, errors, RibbonModel::singleton());
+}
+
+
 
 void Analyses::removeAnalysis(Analysis *analysis)
 {
@@ -364,9 +380,13 @@ void Analyses::rescanAnalysisEntriesOfDynamicModule(Modules::DynamicModule * mod
 
 void Analyses::reloadQmlAnalysesDynamicModule(Modules::DynamicModule * module)
 {
+	saveAnalysesJsonForReload();
+	
 	for(auto idAnalysis : _analysisMap)
 		if(idAnalysis.second->dynamicModule() == module)
 			idAnalysis.second->analysisQMLFileChanged();
+	
+	reloadSavedAnalysesJson();
 }
 
 void Analyses::refreshAllAnalyses()
@@ -406,75 +426,74 @@ void Analyses::loadAnalysesFromDatasetPackage(bool & errorFound, stringstream & 
 {
 	if (DataSetPackage::pkg()->hasAnalyses())
 	{
-		int				corruptAnalyses = 0;
-		stringstream	corruptionStrings;
-
 		Json::Value analysesData = DataSetPackage::pkg()->analysesData();
+		
 		if (analysesData.isNull())
 		{
 			errorFound = true;
 			errorMsg << "An error has been detected and analyses could not be loaded.";
+			return;
 		}
-		else
+		
+		Json::Value meta, analysesDataList;
+		if (!analysesData.isArray())
 		{
-			Json::Value analysesDataList = analysesData;
-			if (!analysesData.isArray())
+			analysesDataList	= analysesData.get("analyses",	analysesData);
+			meta				= analysesData.get("meta",		Json::nullValue);
+
+			if (!meta.isNull())
 			{
-				analysesDataList = analysesData.get("analyses", Json::arrayValue);
-				Json::Value meta = analysesData.get("meta",		Json::nullValue);
-
-				if (!meta.isNull())
-				{
-					QString results = tq(analysesData["meta"].toStyledString());
-					resultsMetaChanged(results);
-					emit setResultsMeta(results);
-				}
+				QString results = tq(analysesData["meta"].toStyledString());
+				resultsMetaChanged(results);
+				emit setResultsMeta(results);
 			}
-
-			JASPTIMER_START(Analyses::loadAnalysesFromDatasetPackage for analysisData : analysesDataList);
-
-			Log::log() << "Loading analyses from jasp-file, entering loop." << std::endl;
-			
-			//There is no point trying to show progress here because qml is not updated while this function runs...
-			for (Json::Value & analysisData : analysesDataList)
-			{
-				try
-				{
-					createFromJaspFileEntry(analysisData, ribbonModel);
-				}
-				catch (Modules::ModuleException modProb)
-				{
-					//Maybe show a nicer messagebox?
-					errorFound = true;
-					corruptionStrings << "\n" << (++corruptAnalyses) << ": " << modProb.what();
-					
-					Log::log() << "Caught module exception: " << modProb.what() << std::endl;
-				}
-				catch (runtime_error & e)
-				{
-					errorFound = true;
-					corruptionStrings << "\n" << (++corruptAnalyses) << ": " << e.what();
-					
-					Log::log() << "Caught runtime_error exception: " << e.what() << std::endl;
-				}
-				catch (exception & e)
-				{
-					errorFound = true;
-					corruptionStrings << "\n" << (++corruptAnalyses) << ": " << e.what();
-					
-					Log::log() << "Caught exception: " << e.what() << std::endl;
-				}
-			}
-
-			JASPTIMER_STOP(Analyses::loadAnalysesFromDatasetPackage for analysisData : analysesDataList);
 		}
-
-		if (corruptAnalyses == 1)			errorMsg << "An error was detected in an analysis. This analysis has been removed for the following reason:\n" << corruptionStrings.str();
-		else if (corruptAnalyses > 1)		errorMsg << "Errors were detected in " << corruptAnalyses << " analyses. These analyses have been removed for the following reasons:\n" << corruptionStrings.str();
-		else								Log::log() << "Loading analyses seems to have worked out fine." << std::endl;
+		
+		loadAnalysesFromJaspFileJson(analysesDataList, meta, errorFound, errorMsg, ribbonModel);
 	}
-	
+}
 
+void Analyses::loadAnalysesFromJaspFileJson(const Json::Value & analysesDataList, const Json::Value & meta, bool & errorFound, stringstream & errorMsg, RibbonModel * ribbonModel)
+{
+	int				corruptAnalyses = 0;
+	stringstream	corruptionStrings;
+
+	Log::log() << "Loading analyses from jasp-file, entering loop." << std::endl;
+	
+	//There is no point trying to show progress here because qml is not updated while this function runs...
+	for (const Json::Value & analysisData : analysesDataList)
+	{
+		try
+		{
+			createFromJaspFileEntry(analysisData, ribbonModel);
+		}
+		catch (Modules::ModuleException modProb)
+		{
+			//Maybe show a nicer messagebox?
+			errorFound = true;
+			corruptionStrings << "\n" << (++corruptAnalyses) << ": " << modProb.what();
+			
+			Log::log() << "Caught module exception: " << modProb.what() << std::endl;
+		}
+		catch (runtime_error & e)
+		{
+			errorFound = true;
+			corruptionStrings << "\n" << (++corruptAnalyses) << ": " << e.what();
+			
+			Log::log() << "Caught runtime_error exception: " << e.what() << std::endl;
+		}
+		catch (exception & e)
+		{
+			errorFound = true;
+			corruptionStrings << "\n" << (++corruptAnalyses) << ": " << e.what();
+			
+			Log::log() << "Caught exception: " << e.what() << std::endl;
+		}
+	}
+
+	if (corruptAnalyses == 1)			errorMsg << "An error was detected in an analysis. This analysis has been removed for the following reason:\n" << corruptionStrings.str();
+	else if (corruptAnalyses > 1)		errorMsg << "Errors were detected in " << corruptAnalyses << " analyses. These analyses have been removed for the following reasons:\n" << corruptionStrings.str();
+	else								Log::log() << "Loading analyses seems to have worked out fine." << std::endl;
 }
 
 void Analyses::applyToSome(std::function<bool(Analysis *analysis)> applyThis)
@@ -833,6 +852,7 @@ void Analyses::dataModeChanged(bool dataMode)
 			a->refresh();
 	});
 }
+
 
 void Analyses::resultsMetaChanged(QString json)
 {
