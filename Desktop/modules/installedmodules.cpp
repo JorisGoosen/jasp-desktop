@@ -73,7 +73,7 @@ std::vector<InstalledModules::ModuleInfo> InstalledModules::getModules() {
 	auto modulesAll = getAllAvailableModules();
 	std::map<std::string, InstalledModules::ModuleInfo> modules;
 	for(const auto& module : modulesAll) { //remove duplicates take highest version
-		if(modules.find(module.name) == modules.end() || modules[module.name].version >= module.version) {
+		if(modules.find(module.name) == modules.end() || modules[module.name] < module) {
 			modules[module.name] = module;
 		}
 	}
@@ -88,10 +88,10 @@ std::vector<InstalledModules::ModuleInfo> InstalledModules::getModules() {
 	std::ifstream in(settings);
 	Json::Value root;
 	Json::Reader().parse(in, root);
-	Json::Value commonNamesJson = root.get("common", Json::arrayValue);
-	Json::Value extraNamesJson = root.get("extra", Json::arrayValue);
-	if(!commonNamesJson.isArray()) commonNamesJson = Json::arrayValue;
-	if(!extraNamesJson.isArray()) extraNamesJson = Json::arrayValue;
+	Json::Value commonNamesJson = root.get("common", Json::arrayValue),
+				extraNamesJson	= root.get("extra", Json::arrayValue);
+	if(!commonNamesJson.isArray())	commonNamesJson = Json::arrayValue;
+	if(!extraNamesJson.isArray())	extraNamesJson = Json::arrayValue;
 
 
 	std::vector<InstalledModules::ModuleInfo> orderedModules = {};

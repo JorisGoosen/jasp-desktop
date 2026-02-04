@@ -50,7 +50,6 @@ public:
 							~DynamicModules() override;
 	static DynamicModules * dynMods()	{ return _singleton; }
 
-	void					initializeInstalledModules();
 	void					registerQMLTypes();
 
 	bool					unpackAndInstallModule(		const	std::string & moduleZipFilename);
