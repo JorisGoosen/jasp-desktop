@@ -28,7 +28,7 @@ public:
 	virtual				bool				isDuplicate()												const	{ return false;				}
 	virtual				bool				wasUpgraded()												const	{ return false;				}
 	virtual				bool				needsRefresh()												const	{ return false;				}
-	virtual				const std::string & module()													const	{ return emptyString;		}
+	virtual				const std::string   module()													const	{ return emptyString;		}
 	virtual				const std::string & name()														const	{ return emptyString;		}
 	virtual				const std::string & title()														const	{ return emptyString;		}
 	virtual				const std::string & titleDefault()												const	{ return emptyString;		}

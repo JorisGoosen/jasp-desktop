@@ -672,9 +672,10 @@ void AnalysisForm::setAnalysisUp()
 
 	_setUpControls();
 
-	Json::Value defaultOptions = _analysis->orgBoundValues();
-	_analysis->clearOptions();
-	bindTo(defaultOptions);
+	Json::Value defaultOptions	= _analysis->orgBoundValues(),
+				prevOptions		= _analysis->boundValues();
+	//_analysis->clearOptions();
+	bindTo(prevOptions.isArray() && prevOptions.size() > 0 ? prevOptions : defaultOptions);
 	lockOptions();
 
 	blockValueChangeSignal(false, false);

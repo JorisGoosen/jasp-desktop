@@ -267,7 +267,15 @@ Json::Value Analyses::asJson() const
 
 void Analyses::saveAnalysesJsonForReload()
 {
-	_tempSave = asJson();	
+	_tempSave = asJson();
+	
+	destroyAllForms();
+	
+	for(auto & idAnalysis : _analysisMap)
+		delete idAnalysis.second;
+	
+	_analysisMap.clear();
+	_orderedIds.clear();
 }
 
 void Analyses::reloadSavedAnalysesJson()
@@ -278,6 +286,8 @@ void Analyses::reloadSavedAnalysesJson()
 	bool errorFound;
 	std::stringstream errors;
 	loadAnalysesFromJaspFileJson(_tempSave["analyses"], _tempSave["meta"], errorFound, errors, RibbonModel::singleton());
+	
+	applyToAll([](Analysis * a){ a->setBeingTranslated(true); });
 }
 
 
@@ -365,11 +375,20 @@ void Analyses::rescanAnalysisEntriesOfDynamicModule(Modules::DynamicModule * mod
 			else
 			{
 				Analysis * a = keyval.second;
+				
+				//Json::Value prevBound = Json::nullValue;
+				//if(a->form())
+				//	prevBound = a->asJSON();
 
 				//This function is called once after 300 ms upon translation due to delayedUpdate in description
 				//and causes the set analysis options to be cleared without this additional flag check set at the start of translations
 				if(a->readyToCreateForm() && !a->beingTranslated())
+				{
 					a->createForm();
+					
+					//if(!prevBound.isNull())
+					//	a->form()->bindTo(prevBound);
+				}
 				a->setBeingTranslated(false);
 			}
 		}
@@ -380,13 +399,9 @@ void Analyses::rescanAnalysisEntriesOfDynamicModule(Modules::DynamicModule * mod
 
 void Analyses::reloadQmlAnalysesDynamicModule(Modules::DynamicModule * module)
 {
-	saveAnalysesJsonForReload();
-	
 	for(auto idAnalysis : _analysisMap)
 		if(idAnalysis.second->dynamicModule() == module)
 			idAnalysis.second->analysisQMLFileChanged();
-	
-	reloadSavedAnalysesJson();
 }
 
 void Analyses::refreshAllAnalyses()
