@@ -267,6 +267,8 @@ Json::Value Analyses::asJson() const
 
 void Analyses::saveAnalysesJsonForReload()
 {
+	beginResetModel();
+	
 	_tempSave = asJson();
 	
 	destroyAllForms();
@@ -276,6 +278,8 @@ void Analyses::saveAnalysesJsonForReload()
 	
 	_analysisMap.clear();
 	_orderedIds.clear();
+	
+	endResetModel();
 }
 
 void Analyses::reloadSavedAnalysesJson()
@@ -283,11 +287,14 @@ void Analyses::reloadSavedAnalysesJson()
 	if(!_tempSave.isObject() || !_tempSave.isMember("analyses") || !_tempSave.isMember("meta"))
 		return;
 	
+	beginResetModel();
+	
 	bool errorFound;
 	std::stringstream errors;
 	loadAnalysesFromJaspFileJson(_tempSave["analyses"], _tempSave["meta"], errorFound, errors, RibbonModel::singleton());
 	
 	applyToAll([](Analysis * a){ a->setBeingTranslated(true); });
+	endResetModel();
 }
 
 
