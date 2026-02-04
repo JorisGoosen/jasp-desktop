@@ -293,8 +293,10 @@ void Analyses::reloadSavedAnalysesJson()
 	std::stringstream errors;
 	loadAnalysesFromJaspFileJson(_tempSave["analyses"], _tempSave["meta"], errorFound, errors, RibbonModel::singleton());
 	
-	applyToAll([](Analysis * a){ a->setBeingTranslated(true); });
+	//applyToAll([](Analysis * a){ a->setBeingTranslated(true); });
 	endResetModel();
+	
+	_tempSave = Json::nullValue;
 }
 
 
@@ -382,19 +384,12 @@ void Analyses::rescanAnalysisEntriesOfDynamicModule(Modules::DynamicModule * mod
 			else
 			{
 				Analysis * a = keyval.second;
-				
-				//Json::Value prevBound = Json::nullValue;
-				//if(a->form())
-				//	prevBound = a->asJSON();
 
 				//This function is called once after 300 ms upon translation due to delayedUpdate in description
 				//and causes the set analysis options to be cleared without this additional flag check set at the start of translations
 				if(a->readyToCreateForm() && !a->beingTranslated())
 				{
 					a->createForm();
-					
-					//if(!prevBound.isNull())
-					//	a->form()->bindTo(prevBound);
 				}
 				a->setBeingTranslated(false);
 			}

@@ -674,7 +674,6 @@ void AnalysisForm::setAnalysisUp()
 
 	Json::Value defaultOptions	= _analysis->orgBoundValues(),
 				prevOptions		= _analysis->boundValues();
-	//_analysis->clearOptions();
 	bindTo(prevOptions.isArray() && prevOptions.size() > 0 ? prevOptions : defaultOptions);
 	lockOptions();
 
