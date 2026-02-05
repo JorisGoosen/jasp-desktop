@@ -95,14 +95,14 @@ std::vector<InstalledModules::ModuleInfo> InstalledModules::getModules() {
 
 
 	std::vector<InstalledModules::ModuleInfo> orderedModules = {};
-	for(auto name : commonNamesJson) {
+	for(auto & name : commonNamesJson) {
 		if(modules.find(name.asString()) != modules.end()) {
 			modules[name.asString()].common = true;
 			orderedModules.push_back(modules[name.asString()]);
 			modules.erase(name.asString());
 		}
 	}
-	for(auto& name : extraNamesJson) {
+	for(auto & name : extraNamesJson) {
 		if(modules.find(name.asString()) != modules.end()) {
 			orderedModules.push_back(modules[name.asString()]);
 			modules.erase(name.asString());

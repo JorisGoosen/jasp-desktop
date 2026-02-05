@@ -520,6 +520,8 @@ void DynamicModules::installJASPDeveloperModule()
 
 	try
 	{
+		emit storeAnalysesJson();
+		
 		DynamicModule * devMod = directLibpathEnabled ? new DynamicModule(this, modulePath) : new DynamicModule(this);
 
 		std::string origin	= devMod->modulePackage(),
@@ -537,11 +539,15 @@ void DynamicModules::installJASPDeveloperModule()
 		if(directLibpathEnabled) {
 			initializeModule(devMod);
 		}
+		
+		emit reloadAnalysesJson();
 	}
 	catch(ModuleException & e)
 	{
 		MessageForwarder::showWarning(tr("Problem initializing module"), tr("There was a problem loading the developer module:\n\n") + e.what());
 		setDevelopersModuleInstallButtonEnabled(true);
+		
+		emit reloadAnalysesJson();
 	}
 }
 

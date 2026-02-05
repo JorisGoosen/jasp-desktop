@@ -64,50 +64,19 @@ Analysis* Analyses::createFromJaspFileEntry(Json::Value analysisData, RibbonMode
 
 	if(_nextId <= id) _nextId = id + 1;
 
-	Analysis				*	analysis		= nullptr;
+	
 	Modules::UpgradeMsgs		msgs;
 	bool						wasUpgraded		= Upgrader::upgrader()->upgradeAnalysisData(analysisData, msgs);
 	Json::Value				&	optionsJson		= analysisData["options"];
-	Modules::AnalysisEntry	*	analysisEntry	= nullptr;
-
-	if(analysisData.get("dynamicModule", Json::nullValue).isNull()) //This used to be the code to load our "standard modules", seeing as how those are gone and the've become dynamic as well it should figure out somehow which one is meant
+	std::string					title			= analysisData.get("title", "").asString();
+	Modules::AnalysisEntry	*	analysisEntry	= Modules::DynamicModules::dynMods()->retrieveCorrespondingAnalysisEntry(analysisData["dynamicModule"]);
+	Analysis				*	analysis		= create(analysisData, analysisEntry, id, status, false, title, analysisData["dynamicModule"]["moduleVersion"].asString(), &optionsJson);
+	
+	if(msgs.count(Modules::analysisLog))
 	{
-		Log::log() << "It is a builtin analysis, " << std::flush;
-		
-		Json::Value	&	versionJson		= analysisData["version"];
-		Version			version			= Version(versionJson.isNull() ? "0.0.0" : versionJson.asString()); //0.0.0 as module version to be sure we show the "made with old version". If the version was given we should make sure all the modules have a version > 0.14.2
-
-		QString			name			= tq(analysisData["name"].asString()),
-						module			= analysisData["module"].asString() != "" ? tq(analysisData["module"].asString()) : "Common",
-						title			= tq(analysisData.get("title", "").asString());
-						analysisEntry	= ribbonModel->getAnalysis(module.toStdString(), name.toStdString());
-		QString			qml				= analysisEntry ? tq(analysisEntry->qml()) : name + ".qml";
-		
-		Log::log() << " titled: '" << title << "'" << std::endl;
-
-		if(!analysisEntry)
-			throw Modules::ModuleException(fq(module), "Problem loading analysis \"" + fq(name) + "\" from module \"" + fq(module) + "\". This module cannot be found in your JASP or the analysis cannot be found in it, this is likely a bug as we still ship all modules in the installer.");
-
-		if(title == "")
-			title = tq(analysisEntry->title());
-		
-		analysis = create(analysisData, analysisEntry, id, status, false, fq(title), version.asString(3), &optionsJson); 
-	}
-	else
-	{
-		std::string title			= analysisData.get("title", "").asString();
-		
-		Log::log() << "It is a dynmod analysis with title: '" << title << "'" << std::endl;
-		
-		analysisEntry		= Modules::DynamicModules::dynMods()->retrieveCorrespondingAnalysisEntry(analysisData["dynamicModule"]);
-		analysis			= create(analysisData, analysisEntry, id, status, false, title, analysisData["dynamicModule"]["moduleVersion"].asString(), &optionsJson);
-		
-		if(msgs.count(Modules::analysisLog))
-		{
-			QStringList msgAna = tq(msgs[Modules::analysisLog]);
-			analysis->setErrorInResults(fq(msgAna.join("\n")));
-		}
-	}
+		QStringList msgAna = tq(msgs[Modules::analysisLog]);
+		analysis->setErrorInResults(fq(msgAna.join("\n")));
+	}	
 
 	if(wasUpgraded)
 		analysis->setUpgradeMsgs(msgs);
@@ -296,7 +265,7 @@ void Analyses::reloadSavedAnalysesJson()
 	//applyToAll([](Analysis * a){ a->setBeingTranslated(true); });
 	endResetModel();
 	
-	_tempSave = Json::nullValue;
+	_tempSave = Json::nullValue; 
 }
 
 
