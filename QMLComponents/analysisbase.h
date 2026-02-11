@@ -51,15 +51,13 @@ public:
 	virtual bool optionLocked(const QString& name) const { return false; };
 
 						const Json::Value &	boundValues()												const	{ return _boundValues;		}
-						const Json::Value &	orgBoundValues()											const	{ return _orgBoundValues;	}
 						const Json::Value &	boundValue(const std::string& name,
 														 const QVector<JASPControl::ParentKey>& parentKeys = {});
 
 						void				setBoundValue(const std::string& name, const Json::Value& value, const Json::Value& meta, const QVector<JASPControl::ParentKey>& parentKeys = {});
 						void				setBoundValues(const Json::Value& boundValues);
-						void				setOrgBoundValues(const Json::Value& orgBoundValues)				{ _orgBoundValues = orgBoundValues; }
 						const Json::Value	optionsMeta()												const	{ return _boundValues.get(".meta", Json::nullValue);	}
-						void				clearOptions()														{ _boundValues.clear();		}
+						void				clearBoundValues()														{ _boundValues.clear();		}
 
 						const Version	  &	moduleVersion()												const	{ return _moduleVersion;	}
 
@@ -98,9 +96,7 @@ protected:
 	Version			_moduleVersion;
 
 private:
-	Json::Value		_boundValues		= Json::objectValue,
-					_orgBoundValues		= Json::objectValue;
-
+	Json::Value		_boundValues		= Json::objectValue;
 
 
 protected:
