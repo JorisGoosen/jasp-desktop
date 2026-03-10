@@ -43,7 +43,7 @@ FileMenu::FileMenu(QObject *parent) : QObject(parent)
 
 	
 
-	connect(&_watcher,			&QFileSystemWatcher::fileChanged,			this,			&FileMenu::dataFileModifiedHandler	);
+	//connect(&_watcher,			&QFileSystemWatcher::fileChanged,			this,			&FileMenu::dataFileModifiedHandler	);
 	connect(_actionButtons,		&ActionButtons::buttonClicked,				this,			&FileMenu::actionButtonClicked		);
 	connect(_actionButtons,		&ActionButtons::selectedActionChanged,		this,			&FileMenu::setFileoperation			);
 	connect(_resourceButtons,	&ResourceButtons::selectedButtonChanged,	this,			&FileMenu::resourceButtonClicked	);
@@ -149,6 +149,7 @@ FileEvent *FileMenu::save()
 
 void FileMenu::sync()
 {
+#ifdef NOT_IGNORING_SYNCHING
 	if(DataSetPackage::pkg()->databaseJson() != Json::nullValue)
 	{
 		FileEvent *event = new FileEvent(this, FileEvent::FileSyncData);
@@ -172,6 +173,7 @@ void FileMenu::sync()
 		_mainWindow->setCheckAutomaticSync(false);
 		setSyncRequest(path);
 	}	
+#endif
 }
 
 void FileMenu::close()
@@ -186,6 +188,8 @@ void FileMenu::close()
 void FileMenu::setCurrentDataFile(const QString &path)
 {
 	QString currentPath = _currentDataFile->getCurrentFilePath();
+	
+#ifdef NOT_IGNORING_SYNCHING
 	if (!currentPath.isEmpty())
 		_watcher.removePath(currentPath);
 
@@ -201,13 +205,14 @@ void FileMenu::setCurrentDataFile(const QString &path)
 		else
 			setCurrentPath = false;
 	}
-
 	if (setCurrentPath)
+#endif
 		_currentDataFile->setCurrentFilePath(path);
 }
 
 void FileMenu::setDataFileWatcher(bool watch)
 {
+#ifdef NOT_IGNORING_SYNCHING
 	QString path = _currentDataFile->getCurrentFilePath();
 	if (path.isEmpty())
 		return;
@@ -217,6 +222,7 @@ void FileMenu::setDataFileWatcher(bool watch)
 
 	else if(_watcher.addPath(path))
 		dataFileModifiedHandler(path);
+#endif
 
 }
 
@@ -283,16 +289,17 @@ void FileMenu::dataSetIOCompleted(FileEvent *event)
 			{
 				QString datafile = event->dataFilePath();
 				if (datafile.isEmpty())
-					datafile = QString::fromStdString(DataSetPackage::pkg()->dataFilePath());
+					datafile = QString::fromStdString(DataSetPackage::pkg()->dataSet()->dataFilePath());
 				setCurrentDataFile(datafile);
-
+#ifdef NOT_IGNORING_SYNCHING
 				if	(	event->operation() == FileEvent::FileOpen
 					&& !event->isReadOnly()
 					&&	event->type() == FileTypeBase::jasp
-					&& !DataSetPackage::pkg()->dataFileReadOnly()
+					&& !DataSetPackage::pkg()->isReadOnlyFile()
 					&&	DataSetPackage::pkg()->dataSet()->dataFileSynch()
 				)
 					DataSetPackage::pkg()->setSynchingExternally(true);
+#endif
 			}
 
 			// all this stuff is a hack
@@ -306,12 +313,14 @@ void FileMenu::dataSetIOCompleted(FileEvent *event)
 			_OSF->setProcessing(false);
 		}
 	}
+	#ifdef NOT_IGNORING_SYNCHING
 	else if (event->operation() == FileEvent::FileSyncData)
 	{
 		if (event->isSuccessful())		setCurrentDataFile(event->dataFilePath());
 		else
 			Log::log() << "Sync failed: " << event->getLastError().toStdString() << std::endl;
 	}
+#endif
 	else if (event->operation() == FileEvent::FileClose)
 	{
 		_computer->clearFileName();
@@ -347,13 +356,6 @@ void FileMenu::dataSetIOCompleted(FileEvent *event)
 	}
 }
 
-void FileMenu::syncDataFile(const QString& path, bool waitForExistence)
-{
-	bool autoSync = DataSetPackage::pkg()->synchingExternally();
-	if (autoSync)
-		setSyncRequest(path, waitForExistence);
-}
-
 void FileMenu::refresh()
 {
 	_resourceButtons->refresh();
@@ -364,7 +366,7 @@ void FileMenu::refresh()
 void FileMenu::dataFileModifiedHandler(QString path)
 {
 	_mainWindow->setCheckAutomaticSync(false);
-	syncDataFile(path, true);
+	//syncDataFile(path, true);
 }
 
 void FileMenu::dataSetIORequestHandler(FileEvent *event)
@@ -397,21 +399,6 @@ void FileMenu::setSyncFile(FileEvent *event)
 		setCurrentDataFile(event->path());
 }
 
-void FileMenu::dataColumnAdded(QString columnName)
-{
-	if(_currentDataFile->getCurrentFilePath() != "" && checkSyncFileExists(_currentDataFile->getCurrentFilePath()))
-	{
-		//Ok a column was added to the data but we already have a sync file so we should re-generate the data!
-
-		FileEvent * event = new FileEvent(this, FileEvent::FileGenerateData);
-
-		connect(event, &FileEvent::completed, this, &FileMenu::setSyncFile);
-		event->setPath(_currentDataFile->getCurrentFilePath());
-
-		dataSetIORequestHandler(event);
-	}
-}
-
 void FileMenu::analysesExportResults()
 {
 	_computer->analysesExportResults();
@@ -425,7 +412,9 @@ void FileMenu::actionButtonClicked(const ActionButtons::FileOperation action)
 	case ActionButtons::FileOperation::SaveAs:				setMode(FileEvent::FileSave);			break;
 	case ActionButtons::FileOperation::ExportResults:		setMode(FileEvent::FileExportResults);	break;
 	case ActionButtons::FileOperation::ExportData:  		setMode(FileEvent::FileExportData);		break;
+#ifdef NOT_IGNORING_SYNCHING
 	case ActionButtons::FileOperation::SyncData:			setMode(FileEvent::FileSyncData);		break;
+#endif
 	case ActionButtons::FileOperation::Close:				close();								break;
 	case ActionButtons::FileOperation::Save:
 		if (getCurrentFileType() == Utils::FileType::jasp && !DataSetPackage::pkg()->currentJaspFileIsNonSaveable())
@@ -485,6 +474,7 @@ void FileMenu::showContactRequest()
 
 void FileMenu::setSyncRequest(const QString& path, bool waitForExistence)
 {
+#ifdef NOT_IGNORING_SYNCHING
 	if (path.isEmpty())
 		return;
 
@@ -495,6 +485,7 @@ void FileMenu::setSyncRequest(const QString& path, bool waitForExistence)
 
 		dataSetIORequestHandler(event);
 	}
+#endif
 }
 
 bool FileMenu::checkSyncFileExists(const QString &path, bool waitForExistence)

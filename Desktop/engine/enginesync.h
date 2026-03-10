@@ -65,10 +65,10 @@ public:
 public slots:
 	void		destroyEngine(EngineRepresentation * engine);
 	void		stopAndDestroyEngine(EngineRepresentation * engine);
-	int			sendFilter(			const QString & generatedFilter,	const QString & filter);
-	void		sendFilterByName(	const QString & name,				const QString & module);
-	void		sendRCode(			const QString & rCode,				int requestId,					bool whiteListedVersion, QString module);
-	void		computeColumn(		const QString & columnName,			const QString & computeCode,	columnType columnType);
+	int			sendFilter(			int dataSetId, const QString & generatedFilter,	const QString & filter);
+	void		sendFilterByName(	int dataSetId, const QString & name,				const QString & module);
+	void		sendRCode(			int dataSetId, const QString & rCode,				int requestId,					bool whiteListedVersion, QString module);
+	void		computeColumn(		int dataSetId, const QString & columnName,			const QString & computeCode,	columnType columnType);
 	void		pauseEngines(bool  unloadData = false);
 	void		stopEngines();
 	void		resumeEngines();
@@ -92,16 +92,9 @@ public slots:
 	
 
 signals:
-	void		processNewFilterResult(int requestId);
-	void		processFilterErrorMsg(const QString & error, int requestID);
 	void		engineTerminated();
 	void		filterUpdated(int requestID);
-	void		filterErrorTextChanged(const QString & error);
-
-	void		computeColumnSucceeded(			const QString & columnName, const QString & warning, bool dataChanged);
-	void		computeColumnRemoved(			const QString & columnName);
-	void		computeColumnFailed(			const QString & columnName, const QString & error);
-	void		columnDataTypeChanged(			const QString & columnName);
+	void		filterErrorTextChanged(			const QString & error);
 
 	void		moduleInstallationSucceeded(	const QString & moduleName);
 	void		moduleInstallationFailed(		const QString & moduleName, const QString & errorMessage);

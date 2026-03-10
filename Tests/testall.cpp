@@ -19,7 +19,7 @@
 #include "testinfo.h"
 #include "tempfiles.h"
 #include "processinfo.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "databaseinterface.h"
 #include "utilities/settings.h"
 #include "data/datasetpackage.h"
@@ -109,7 +109,7 @@ void TestAll::testDataImport()
 	QVERIFY2(_importer, "Getting importer failed...");
 
 	std::cerr << "Testing " << dataFileAbsolutePath << std::endl;
-	_importer->loadDataSet(fq(dataFileAbsolutePath), [](int i){});
+	_importer->loadDataSet(fq(dataFileAbsolutePath), _pkg->createDataSet(), [](int i){});
 
 	DataSet * dataSet = _pkg->dataSet();
 	QVERIFY2(dataSet,						"No dataset!");
@@ -156,7 +156,7 @@ void TestAll::testDataImport()
 	QVERIFY2(hardcodedIsSame, "Hardcoded json is different!" );
 
 
-	DataSet loadMe(dataSet->id());
+DataSet loadMe(nullptr, dataSet->id());
 	QVERIFY2(dataSet->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -289,8 +289,7 @@ void TestAll::testJaspDataImport()
 
 	QVERIFY2(hardcodedIsSame,			"Hardcoded json is different!");
 
-
-	DataSet loadMe(dataSet->id());
+DataSet loadMe(nullptr, dataSet->id());
 	QVERIFY2(dataSet->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 

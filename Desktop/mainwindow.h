@@ -29,12 +29,10 @@
 #include "data/asyncloader.h"
 #include "data/asyncloaderthread.h"
 #include "data/columnsmodel.h"
-#include "data/computedcolumnmodel.h"
-#include "data/datasettablemodel.h"
+#include "datasettablemodel.h"
 #include "data/fileevent.h"
 #include "data/filtermodel.h"
 #include "data/columnmodel.h"
-#include "data/labelfiltergenerator.h"
 #include "engine/enginesync.h"
 #include "gui/aboutmodel.h"
 #include "gui/encryptionsettingsmodel.h"
@@ -141,6 +139,7 @@ public:
 	bool				hadFatalError() const;
 	
 public slots:
+	void addNewDataSet();
 	void setImageBackgroundHandler(QString value);
 	void plotPPIChangedHandler(int ppi, bool wasUserAction);
 	void setProgressBarProgress(int progressBarProgress);
@@ -152,7 +151,7 @@ public slots:
 	void setScreenPPI(int screenPPI);
 	void setContactVisible(bool newContactVisible);
 	void setCommunityVisible(bool newCommunityVisible);
-	void setDefaultWorkspaceEmptyValues();
+	void onWorkspaceChanged();
 
 	void showRCommander();
 
@@ -192,6 +191,7 @@ public slots:
 	void	setCheckAutomaticSync(bool check)									{  _checkAutomaticSync = check;	}
 	void	openGitHubBugReport() const;
 	void	reloadResults() const;
+	void	updateShownFilterInQmlContext();
 
 private slots:
 	void _setProgressBarVisible(bool progressBarVisible);
@@ -262,7 +262,7 @@ signals:
 	void contactTextChanged();
 	void resizeData(int row, int col);
 	void qmlLoadedChanged();
-
+	void resetVariableTypes();
 	void hadFatalErrorChanged();
 	
 private slots:
@@ -316,11 +316,8 @@ private:
 	ResultsJsInterface			*	_resultsJsInterface		= nullptr;
 	MessageForwarder			*	_msgForwarder			= nullptr;
 	DataSetPackage				*	_package				= nullptr;
-	DataSetTableModel			*	_datasetTableModel		= nullptr,
-								*	_dataSetModelVarInfo	= nullptr;
-	labelFilterGenerator		*	_labelFilterGenerator	= nullptr;
+	DataSetTableModel			*	_datasetTableModel		= nullptr;
 	ColumnsModel				*	_columnsModel			= nullptr;
-	ComputedColumnModel			*	_computedColumnsModel	= nullptr;
 	FilterModel					*	_filterModel			= nullptr;
 	OnlineDataManager			*	_odm					= nullptr;
 	DynamicModules				*	_dynamicModules			= nullptr;

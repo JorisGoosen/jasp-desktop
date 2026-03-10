@@ -17,31 +17,25 @@
 
 #include "datasetpackage.h"
 #include "log.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include <QThread>
-#include "engine/enginesync.h"
-#include "columnencoder.h"
 #include "timers.h"
-#include "utilities/appdirs.h"
 #include "utils.h"
-#include "columnutils.h"
+#include "columnencoder.h"
+#include "utilities/appdirs.h"
+#include "engine/enginesync.h"
+#include "gui/preferencesmodel.h"
 #include "utilities/messageforwarder.h"
-#include "datasetpackagesubnodemodel.h"
 #include "databaseconnectioninfo.h"
-#include "utilities/settings.h"
-#include "modules/ribbonmodel.h"
 #include "filtermodel.h"
 #include <ranges>
 #include "variableinfo.h"
 #include "fileevent.h"
 
-//Im having problems getting the proxy models to play nicely with beginRemoveRows etc
-//So just reset the whole thing as that is what happens in datasetview
-#define ROUGH_RESET
 
 DataSetPackage * DataSetPackage::_singleton = nullptr;
 
-DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
+DataSetPackage::DataSetPackage(QObject * parent) : QObject(parent)
 {
 	if(_singleton) throw std::runtime_error("DataSetPackage can be constructed only once!");
 	_singleton = this;
@@ -49,8 +43,7 @@ DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 	
 	_db			= new DatabaseInterface(true);
 
-	_dataSet	= new DataSet(); //We create one here to make sure filter() etc can actually work
-	setDefaultWorkspaceValues();
+	createWorkspace();
 	
 	connect(this, &DataSetPackage::isModifiedChanged,					this, &DataSetPackage::windowTitleChanged);
 	connect(this, &DataSetPackage::loadedChanged,						this, &DataSetPackage::windowTitleChanged);
@@ -59,17 +52,10 @@ DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 	connect(this, &DataSetPackage::isModifiedAfterAutoSaveChanged,		this, &DataSetPackage::windowTitleChanged);
 	connect(this, &DataSetPackage::currentFileChanged,					this, &DataSetPackage::nameChanged);
 	connect(this, &DataSetPackage::dataModeChanged,						this, &DataSetPackage::onDataModeChanged);
-	connect(this, &DataSetPackage::columnDataTypeChanged,				this, [this]() {ColumnEncoder::setCurrentColumnNames(getColumnTypesMap());}	);
 	
 	connect(PreferencesModel::prefs(), &PreferencesModel::autoSaveAtAllChanged,			this, &DataSetPackage::handleAutoSavePrefChange);
 	connect(PreferencesModel::prefs(), &PreferencesModel::autoSaveIntervalSecChanged,	this, &DataSetPackage::handleAutoSavePrefChange);
 
-	_dataSubModel	= new SubNodeModel("data",		_dataSet->dataNode());
-	_filterSubModel = new SubNodeModel("filters",	_dataSet->filtersNode());
-	_labelsSubModel = new SubNodeModel("labels");
-	
-	connect(&_databaseIntervalSyncher,	&QTimer::timeout, this, &DataSetPackage::synchingIntervalPassed);
-	connect(&_delayedRefreshTimer,		&QTimer::timeout, this, &DataSetPackage::delayedRefresh);
 	connect(&_doWalCheckPointTimer,		&QTimer::timeout, this, &DataSetPackage::doWalCheckPoint);
 	connect(&_autoSaveTimer,			&QTimer::timeout, this, &DataSetPackage::handleAutoSave);
 	
@@ -86,15 +72,126 @@ DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 
 DataSetPackage::~DataSetPackage() 
 { 
-	_databaseIntervalSyncher.stop();
-	_delayedRefreshTimer.stop();
-	
 	_singleton = nullptr; 
 }
 
+
+void DataSetPackage::createWorkspace()
+{
+	assert(!_workspace);
+	
+	_workspace = new Workspace(this);
+	
+	_workspace->setShowRSyntax(PreferencesModel::prefs()->showRSyntaxInResults());
+	
+	connectWorkspace();
+	
+	emit workspaceChanged();
+}
+
+DataSet * DataSetPackage::createDataSet()
+{
+	JASPTIMER_SCOPE(DataSetPackage::createDataSet);
+	
+	//The assumption here is that a new DataSet is needed. But not that anything else needs to be destroyed.
+	
+	if(!_workspace)
+		createWorkspace();
+	
+	DataSet * dataSet = workspace()->createDataSet();
+		
+	return dataSet;
+}
+
+void DataSetPackage::loadWorkspace(std::function<void(float)> progressCallback)
+{
+	if(workspace())
+		deleteWorkspace(false); //no dbDelete necessary cause we just copied an old sqlite file here from the JASP file
+	
+	_db->close();
+	stopEngines();
+	_db->load();		
+	_db->upgradeDBFromVersion(_jaspVersion);
+	
+	bool do019Upgrade = _jaspVersion < "0.19"; // A tweak needs to be made to the data as its loaded, see https://github.com/jasp-stats/jasp-desktop/pull/5367
+	
+	createWorkspace();
+	
+	workspace()->dbLoad(progressCallback, _jaspVersion);
+	
+	if (do019Upgrade)
+	{
+		// In 0.18.3 and before, there was a bug with the order of dataFilePath and description in the database.
+		// dataFilePath was set empty and description has dataFilePath.
+		if (dataSet()->dataFilePath().empty())
+		{
+			QFileInfo fileInfo(description());
+			if (fileInfo.isFile())
+				dataSet()->setDataFileQ(description());
+		}
+	}
+
+	workspace()->initializeComputedColumns();
+
+	refresh();
+	
+	restartEngines();
+}
+
+void DataSetPackage::deleteWorkspace(bool dbDeletePlease)
+{
+	JASPTIMER_SCOPE(DataSetPackage::deleteWorkspace);
+	
+	if(dbDeletePlease)
+		dbDelete();
+	delete _workspace;
+	_workspace = nullptr;
+	_undoStack->clear();
+	
+	if(dbDeletePlease)
+	{
+		emit shownDataSetChanged(nullptr); //This can trigger models to read from DataSet and if we dont want dbDelete we most likely dont want this either
+		emit workspaceChanged();
+	}
+}
+
+void DataSetPackage::connectWorkspace()
+{
+	if(!workspace())
+		return;
+	
+	Workspace		::connect(workspace(),	&Workspace::showWarning,						this,			&DataSetPackage::showWarning						);
+	Workspace		::connect(workspace(),	&Workspace::showAnalysis,						this,			&DataSetPackage::showAnalysis						);
+	Workspace		::connect(workspace(),	&Workspace::datasetChanged,						this,			&DataSetPackage::datasetChanged						);
+	Workspace		::connect(workspace(),	&Workspace::somethingModified,					this,			&DataSetPackage::setModifiedFileMenu				);
+	Workspace		::connect(workspace(),	&Workspace::dataModeChanged,					this,			&DataSetPackage::dataModeChanged					);
+	Workspace		::connect(workspace(),	&Workspace::sendFilter,							this,			&DataSetPackage::sendFilter							);
+	Workspace		::connect(workspace(),	&Workspace::sendFilterByName,					this,			&DataSetPackage::sendFilterByName					);
+	Workspace		::connect(workspace(),	&Workspace::filtersCountChanged,				this,			&DataSetPackage::filtersCountChanged				);
+	Workspace		::connect(workspace(),	&Workspace::shownFilterChanged,					this,			&DataSetPackage::shownFilterChanged					);
+	Workspace		::connect(workspace(),	&Workspace::refreshAllAnalyses,					this,			&DataSetPackage::refreshAllAnalyses					);
+	Workspace		::connect(workspace(),	&Workspace::enginesPrepareForData,				this,			&DataSetPackage::enginesPrepareForDataSignal		);
+	Workspace		::connect(workspace(),	&Workspace::enginesReceiveNewData,				this,			&DataSetPackage::enginesReceiveNewDataSignal		);
+	Workspace		::connect(workspace(),	&Workspace::shownDataSetChanged,				this,			&DataSetPackage::shownDataSetChanged				);	
+	Workspace		::connect(workspace(),	&Workspace::dataSetSynchingStart,				this,			&DataSetPackage::beginLoadingData					);	
+	Workspace		::connect(workspace(),	&Workspace::dataSetSynchingDone,				this,			&DataSetPackage::endLoadingData						);	
+	Workspace		::connect(workspace(),	&Workspace::runComputedColumn,					this,			&DataSetPackage::runComputedColumn					);	
+	Workspace		::connect(workspace(),	&Workspace::checkForDependentAnalyses,			this,			&DataSetPackage::checkForDependentAnalyses			);	
+	Workspace		::connect(workspace(),	&Workspace::emptyValuesChanged,					this,			&DataSetPackage::workspaceEmptyValuesChanged		);	
+	
+
+	DataSetPackage	::connect(this,			&DataSetPackage::filterByNameDone,				workspace(),	&Workspace::filterByNameDone						);
+	DataSetPackage	::connect(this,			&DataSetPackage::createDataSetBlockingQueued,	workspace(),	&Workspace::createDataSet,							Qt::BlockingQueuedConnection);
+	
+	
+	emit shownDataSetChanged(nullptr);
+	emit shownFilterChanged();
+}
+
+
 Filter * DataSetPackage::filter()
 {
-	return !pkg()->_dataSet ? nullptr : pkg()->_dataSet->filter();
+    return pkg()->workspace() && pkg()->workspace()->shownDataSet() ? pkg()->workspace()->shownDataSet()->shownFilter() : nullptr;
 }
 
 void DataSetPackage::setEngineSync(EngineSync * engineSync)
@@ -104,6 +201,7 @@ void DataSetPackage::setEngineSync(EngineSync * engineSync)
 	//These signals should *ONLY* be called from a different thread than _engineSync!
 	connect(this,	&DataSetPackage::enginesPrepareForDataSignal,	_engineSync,	&EngineSync::enginesPrepareForData,	Qt::QueuedConnection);
 	connect(this,	&DataSetPackage::enginesReceiveNewDataSignal,	_engineSync,	&EngineSync::enginesReceiveNewData,	Qt::QueuedConnection);
+
 
 	reset();
 }
@@ -115,7 +213,7 @@ bool DataSetPackage::isThisTheSameThreadAsEngineSync()
 
 void DataSetPackage::enginesPrepareForData()
 {
-	if(_dataMode)
+	if(dataMode())
 		return;
 
 	if(isThisTheSameThreadAsEngineSync())	_engineSync->enginesPrepareForData();
@@ -124,79 +222,74 @@ void DataSetPackage::enginesPrepareForData()
 
 void DataSetPackage::enginesReceiveNewData()
 {
-	if(!_dataMode)
+	if(!dataMode())
 	{
 		if(isThisTheSameThreadAsEngineSync())	_engineSync->enginesReceiveNewData();
 		else									emit enginesReceiveNewDataSignal();
 	}
-
-	ColumnEncoder::setCurrentColumnNames(	getColumnTypesMap()); //Same place as in engine, should be fine right?
-}
-
-bool DataSetPackage::dataSetBaseNodeStillExists(DataSetBaseNode *node) const
-{
-	return _dataSet && _dataSet->nodeStillExists(node);
 }
 
 void DataSetPackage::reset(bool newDataSet)
 {
 	Log::log() << "DataSetPackage::reset()" << std::endl;
-	_databaseIntervalSyncher.stop();
-	_delayedRefreshTimer.stop();
 	
 	beginLoadingData();
 
-	if(newDataSet)	createDataSet();
-	else			deleteDataSet();
+	emit chooseColumn(-1); //Unselect any column in ColumnModel
+	
+	deleteWorkspace();
 
+	if(newDataSet)	
+		createDataSet();
+	
 	_archiveVersion				= Version();
 	_jaspVersion				= Version();
 	_analysesHTML				= QString();
 	_analysesData				= Json::arrayValue;
 	_warningMessage				= std::string();
 	_hasAnalysesWithoutData		= false;
-	_filterShouldRunInit		= false;
 	_analysesHTMLReady			= false;
-	_database					= Json::nullValue;
 	_isJaspFile					= false;
-	_dataMode					= false;
-	_manualEdits				= false;
-
-	_columnNameUsedInEasyFilter.clear();
 
 	setLoaded(false);
 	setModified(false);
-	setSynchingExternally(false); //Default is off, AsyncLoader::loadPackage(...) will turn it on for non-jasp
 	setCurrentFile("");
 
 	endLoadingData();
 }
 
+///This function assumes there should afterwards be only 1 DataSet!
 void DataSetPackage::generateEmptyData()
 {
-	if(isLoaded())
-	{
-		Log::log() << "void DataSetPackage::generateEmptyData() called but dataset already loaded, ignoring it." << std::endl;
-		return;
-	}
+	bool wasAlreadyLoaded = isLoaded();
 
-	beginLoadingData();
-
-	createDataSet();
+	if(workspace())
+		deleteWorkspace();
+	createWorkspace();
 	
-	setDataSetSize(1, 1);
-	_dataSet->column(0)->initFromLookups(freeNewColumnName(0), 1, [](size_t){return "";}, [](size_t){return "";}, "", columnType::scale, {}, PreferencesModel::prefs()->thresholdScale(), PreferencesModel::prefs()->orderByValueByDefault());
-
-	endLoadingData();
+	DataSet * newSet = dataSet() ? dataSet() : createDataSet();
+	
+	newSet->setColumnCount(1);
+	newSet->setRowCount(1, false);
+	
+	newSet->column(0)->initFromLookups(newSet->freeNewColumnName(0), 1, [](size_t){return "";}, [](size_t){return "";}, "", columnType::scale, {}, PreferencesModel::prefs()->thresholdScale(), PreferencesModel::prefs()->orderByValueByDefault());
 	
 	setModified(false);
 	
-	emit newDataLoaded();
-	resetAllFilters();
-	setSynchingExternally(false);
+	if(!wasAlreadyLoaded)
+	{
+		emit newDataLoaded();
+	}
+	
+	newSet->resetAllFilters();
+	newSet->setDataFileSynch(false);
+	
+	if(workspace()->shownDataSet() != newSet)
+		workspace()->setShownDataSet(newSet);
+	else
+		workspace()->refresh();
 }
 
-//Some debugprinting
 void DataSetPackage::onDataModeChanged(bool dataMode)
 {
 	Log::log() << "Data Mode " << (dataMode ? "on" : "off") << "!" << std::endl;
@@ -210,11 +303,8 @@ void DataSetPackage::onDataModeChanged(bool dataMode)
 	if(false)
 		enginesReceiveNewData();
 	
-	/*if(dataSet())
-	{
-		if(_dataMode)	dataSet()->beginBatchedToDB();
-		else			dataSet()->endBatchedToDB();
-	}*/
+	if(workspace())
+		workspace()->setDataMode(dataMode);
 }
 
 DataSetBaseNode * DataSetPackage::indexPointerToNode(const QModelIndex & index) const
@@ -1082,6 +1172,7 @@ QHash<int, QByteArray> DataSetPackage::roleNames() const
 
 	return roles;
 }
+}
 
 void DataSetPackage::setModified(bool value)
 {
@@ -1129,135 +1220,16 @@ void DataSetPackage::setLoaded(bool loaded)
 
 QString DataSetPackage::description() const
 {
-	return tq(_dataSet ? _dataSet->description() : "");
-}
-
-bool DataSetPackage::dataFileCanHaveLabels() const
-{ 
-	return _dataSet && !tq(_dataSet->dataFilePath()).endsWith(".csv");  
+	return tq(dataSet() ? dataSet()->description() : "");
 }
 
 void DataSetPackage::setDescription(const QString &description)
 {
-	if (!_dataSet) return;
+	if (!dataSet()) return;
 	
-	_dataSet->setDescription(fq(description));
+	dataSet()->setDescription(fq(description));
 
 	emit descriptionChanged();
-}
-
-int DataSetPackage::findIndexByName(const std::string & name) const
-{
-	return _dataSet->getColumnIndex(name);
-}
-
-bool DataSetPackage::isColumnNameFree(const std::string & name) const
-{
-	return findIndexByName(name) == -1;
-}
-
-bool DataSetPackage::isColumnComputed(size_t colIndex) const
-{
-	const Column * normalCol = _dataSet->columns().at(colIndex);
-	
-	return normalCol->isComputed();
-}
-
-bool DataSetPackage::isColumnComputed(const std::string & name) const
-{
-	const Column * normalCol = _dataSet->column(name);
-
-	return normalCol && normalCol->isComputed();
-}
-
-bool DataSetPackage::isColumnAnalysisNotComputed(const std::string & name) const
-{
-	const Column * normalCol = _dataSet->column(name);
-
-	return normalCol && normalCol->codeType() == computedColumnType::analysisNotComputed;
-}
-
-bool DataSetPackage::isColumnInvalidated(size_t colIndex) const
-{
-	return colIndex <= dataColumnCount() && _dataSet->columns().at(colIndex)->invalidated();
-}
-
-std::string DataSetPackage::getComputedColumnError(size_t colIndex) const
-{
-	return colIndex >= dataColumnCount() ? "" : _dataSet->columns().at(colIndex)->error();
-}
-
-void DataSetPackage::setColumnsUsedInEasyFilter(std::set<std::string> usedColumns)
-{
-	std::set<std::string> toUpdate(usedColumns);
-
-	for(const auto & nameAndUsed : _columnNameUsedInEasyFilter)
-		if(nameAndUsed.second)
-			toUpdate.insert(nameAndUsed.first);
-
-	_columnNameUsedInEasyFilter.clear();
-
-	for(const std::string & col : usedColumns)
-		_columnNameUsedInEasyFilter[col] = true;
-
-	if(_dataSet)
-		for(const std::string & col: toUpdate)
-		{
-			int idx = findIndexByName(col);
-			if(idx >= 0)
-				notifyColumnFilterStatusChanged(idx);
-		}
-}
-
-
-bool DataSetPackage::isColumnUsedInEasyFilter(const std::string & colName) const
-{
-	return _columnNameUsedInEasyFilter.count(colName) > 0 && _columnNameUsedInEasyFilter.at(colName);
-}
-
-void DataSetPackage::notifyColumnFilterStatusChanged(int columnIndex)
-{
-	JASPTIMER_SCOPE(DataSetPackage::notifyColumnFilterStatusChanged);
-
-	emit columnsFilteredCountChanged();
-	//emit headerDataChanged(Qt::Horizontal, columnIndex, columnIndex); //this keeps crashing jasp and i dont know why
-	beginResetModel();
-	endResetModel();
-}
-
-
-QVariant DataSetPackage::getColumnTypesWithIcons() const
-{
-	static QVariantList ColumnTypeAndIcons;
-
-	if(ColumnTypeAndIcons.size() == 0)
-	{
-		ColumnTypeAndIcons.push_back("");
-		ColumnTypeAndIcons.push_back("variable-scale.svg");
-		ColumnTypeAndIcons.push_back("variable-ordinal.svg");
-		ColumnTypeAndIcons.push_back("variable-nominal.svg");
-	}
-
-	return QVariant(ColumnTypeAndIcons);
-}
-
-int DataSetPackage::columnsFilteredCount()
-{
-	if(_dataSet == nullptr) return 0;
-
-	int colsFiltered = 0;
-
-	for(Column * col : _dataSet->columns())
-		if(col->hasFilter())
-			colsFiltered++;
-
-	return colsFiltered;
-}
-
-void DataSetPackage::resetFilterCounters()
-{
-	for(Column * col : _dataSet->columns())
-		col->nonFilteredCountersReset();
 }
 
 void DataSetPackage::prepareForLanguageChange()
@@ -1269,7 +1241,7 @@ void DataSetPackage::languageChangeDone()
 {
 	_waitingForLanguageChange = false; //Dont accept changes while the interface changes
 
-	refresh();
+	dataSet()->refresh();
 }
 
 void DataSetPackage::handleAutoSavePrefChange()
@@ -1286,67 +1258,6 @@ void DataSetPackage::handleAutoSavePrefChange()
 }
 
 
-
-void DataSetPackage::resetAllFilters()
-{
-	for(Column * col : _dataSet->columns())
-		col->resetFilter();
-
-	emit allFiltersReset();
-	emit columnsFilteredCountChanged();
-	//this is only used in conjunction with a reset so dont do: emit headerDataChanged(Qt::Horizontal, 0, columnCount());
-}
-
-bool DataSetPackage::setColumnType(int columnIndex, columnType newColumnType)
-{
-	return setColumnTypes({columnIndex}, newColumnType);
-}
-
-bool DataSetPackage::setColumnTypes(intset columnIndexes, columnType newColumnType)
-{
-	if (_dataSet == nullptr)
-		return true;
-	
-	bool somethingChanged = false;
-
-	for(int columnIndex : columnIndexes)
-	{
-		Column *col = _dataSet->column(columnIndex);
-	
-		if (col->type() == newColumnType)
-			continue;
-	
-	
-		//the only possible "fail" is when an analysis made the column and thus decides the type
-		//the user might bet
-		if(col->changeType(newColumnType) == columnTypeChangeResult::generatedFromAnalysis)
-		{
-			emit showWarning(tr("Changing column type failed"), tr("The column '%1' is generated by an analysis and its type is fixed.").arg(tq(col->name())));
-			continue;
-		}
-	
-		emit columnDataTypeChanged(tq(_dataSet->column(columnIndex)->name()));
-		somethingChanged = true;
-	}
-	
-	if(somethingChanged)
-		refreshWithDelay();
-
-	return somethingChanged;
-}
-
-void DataSetPackage::refreshWithDelay()
-{
-	_delayedRefreshTimer.setSingleShot(true);
-	_delayedRefreshTimer.setInterval(100);
-	_delayedRefreshTimer.start();	
-}
-
-void DataSetPackage::delayedRefresh()
-{
-	refresh();	
-}
-
 void DataSetPackage::doWalCheckPoint()
 {
 	if(DatabaseInterface::singleton())
@@ -1356,64 +1267,29 @@ void DataSetPackage::doWalCheckPoint()
 
 void DataSetPackage::refreshColumn(QString columnName)
 {
-	beginResetModel();
-	endResetModel();
-
-	return;
-/*
-	if(!_dataSet) return;
-
-	int colIndex = getColumnIndex(columnName);
-
-	if(colIndex >= 0)
+	if(dataSet())
 	{
-		QModelIndex p = indexForSubNode(_dataSet->dataNode());
-		emit dataChanged(index(0, colIndex, p), index(rowCount(p), colIndex, p));
-		emit headerDataChanged(Qt::Horizontal, colIndex, colIndex);
-	}*/
+		dataSet()->column(columnName)->refresh();
+		refresh(); //Hopefully trigger sortfilterproxymodel model reconstruction
+	}
 }
+
 
 void DataSetPackage::columnWasOverwritten(const std::string & columnName, const std::string &)
 {
-	for(size_t col=0; col<_dataSet->columns().size(); col++)
-		if(_dataSet->columns()[col]->name() == columnName)
-			emit dataChanged(index(0, col, indexForSubNode(_dataSet->dataNode())), index(rowCount()-1, col, indexForSubNode(_dataSet->dataNode())) );
+	dataSet()->emitColumnChanged(tq(columnName));
 }
 
-void DataSetPackage::beginSynchingData(bool informEngines)
+
+void DataSetPackage::refresh()
 {
-	beginLoadingData(informEngines);
-	_synchingData = true;
+	if(!dataSet())
+		return;
+	
+	dataSet()->refresh();
 }
 
-void DataSetPackage::endSynchingDataChangedColumns(stringvec &	changedColumns, bool hasNewColumns, bool informEngines)
-{
-	 stringvec				missingColumns;
-	 strstrmap		changeNameColumns;
 
-	endSynchingData(changedColumns, missingColumns, changeNameColumns, hasNewColumns, informEngines);
-}
-
-void DataSetPackage::endSynchingData(	const stringvec	&	changedColumns,
-										const stringvec	&	missingColumns,
-										const strstrmap	&	changeNameColumns,  //origname -> newname
-										bool				rowCountChanged,
-										bool				hasNewColumns,
-										bool				informEngines)
-{
-
-	endLoadingData(informEngines);
-	_synchingData = false;
-	//We convert all of this stuff to qt containers even though this takes time etc. Because it needs to go through a (queued) connection and it might not work otherwise
-	emit datasetChanged(tq(changedColumns), tq(missingColumns), tq(changeNameColumns), rowCountChanged, hasNewColumns);
-
-	setManualEdits(false);
-}
-
-void DataSetPackage::emitColumnChanged(const QString & colName)
-{
-	emit datasetChanged({colName}, {}, {}, false, false);
-}
 
 
 void DataSetPackage::beginLoadingData(bool)
@@ -1422,7 +1298,6 @@ void DataSetPackage::beginLoadingData(bool)
 
 	enginesPrepareForData();
 	doWalCheckPoint();
-	beginResetModel();
 }
 
 void DataSetPackage::stopEngines()
@@ -1446,100 +1321,16 @@ void DataSetPackage::endLoadingData(bool)
 	Log::log() << "DataSetPackage::endLoadingData" << std::endl;
 	
 	doWalCheckPoint();
-	endResetModel();
 	enginesReceiveNewData();
-
-	emit modelInit();
-}
-
-void DataSetPackage::setDataSetSize(size_t columnCount, size_t rowCount)
-{
 	
-	JASPTIMER_SCOPE(DataSetPackage::setDataSetSize);
-		
-	_dataSet->setColumnCount(columnCount);
-	_dataSet->setRowCount(rowCount);
+	refresh();
 }
 
 void DataSetPackage::dbDelete()
 {
 	JASPTIMER_SCOPE(DataSetPackage::dbDelete);
-	if(_dataSet && _dataSet->id() != -1)
-		_dataSet->dbDelete();
-}
-
-void DataSetPackage::createDataSet()
-{
-	JASPTIMER_SCOPE(DataSetPackage::createDataSet);
-					
-	dbDelete();
-	deleteDataSet();
-	_dataSet = new DataSet();
-	setDefaultWorkspaceValues();
-	_dataSubModel->selectNode(_dataSet->dataNode());
-	_filterSubModel->selectNode(_dataSet->filtersNode());
-	
-	_dataSet->filter()->setRFilter(FilterModel::defaultRFilter());
-	
-	_dataSet->setModifiedCallback([&](){ setModified(true); }); //DataSet and co dont use Qt so instead we just use a callback
-}
-
-void DataSetPackage::loadDataSet(std::function<void(float)> progressCallback)
-{
-	if(_dataSet)
-		deleteDataSet(); //no dbDelete necessary cause we just copied an old sqlite file here from the JASP file
-	
-	_db->close();
-	stopEngines();
-	_db->load();		
-	_db->upgradeDBFromVersion(_jaspVersion);
-	
-	bool 	do019Upgrade  = _jaspVersion < "0.19";
-	
-	_dataSet = new DataSet(0);
-	_dataSet->dbLoad(1, progressCallback, _jaspVersion); //Right now there can only be a dataSet with ID==1 so lets keep it simple
-	
-	if (do019Upgrade)
-	{
-		// In 0.18.3 and before, there was a bug with the order of dataFilePath and description in the database.
-		// dataFilePath was set empty and description has dataFilePath.
-		if (dataFilePath().empty())
-		{
-			QFileInfo fileInfo(description());
-			if (fileInfo.isFile())
-				setDataFilePath(fq(description()));
-		}
-	}
-	_dataSubModel->selectNode(_dataSet->dataNode());
-	_filterSubModel->selectNode(_dataSet->filtersNode());
-
-	// Do not compute computed columns when loading a JASP file!
-	// DataSetPackage::pkg()->initializeComputedColumns();
-
-	emit synchingExternallyChanged(synchingExternally());
-	restartEngines();
-}
-
-void DataSetPackage::deleteDataSet()
-{
-	JASPTIMER_SCOPE(DataSetPackage::deleteDataSet);
-
-
-	_dataSubModel->selectNode(nullptr);
-	_filterSubModel->selectNode(nullptr);
-	
-	delete _dataSet;
-	_dataSet = nullptr;
-	_undoStack->clear();
-}
-
-int DataSetPackage::getColIndex(QVariant colID)
-{
-	if(colID.typeId() == QMetaType::Int || colID.typeId() == QMetaType::UInt)
-		return colID.typeId() == QMetaType::Int ? colID.toInt() : colID.toUInt();
-
-	else
-		return _dataSet->getColumnIndex(fq(colID.toString()));
+	if(dataSet() && dataSet()->id() != -1)
+		dataSet()->dbDelete();
 }
 
 int DataSetPackage::thresholdScale()
@@ -1552,10 +1343,11 @@ int DataSetPackage::orderByValueByDefault()
 	return PreferencesModel::prefs()->orderByValueByDefault();
 }
 
-void DataSetPackage::initializeComputedColumns()
+void DataSetPackage::resetVariableTypes()
 {
-	for(const Column * col : dataSet()->columns())
-		emit checkForDependentColumnsToBeSent(tq(col->name()));
+	if(workspace())
+		for(DataSet * dataSet : workspace()->dataSets())
+			dataSet->resetVariableTypes(PreferencesModel::prefs()->thresholdScale());
 }
 
 
@@ -2016,432 +1808,45 @@ const stringset& DataSetPackage::workspaceEmptyValues() const
 	static stringset emptyVec;
 	return _dataSet ? _dataSet->workspaceEmptyValues() : emptyVec;
 }
+}
 
 bool DataSetPackage::workspaceShowRSyntax() const
 {
-	return _dataSet ? _dataSet->showRSyntax() : PreferencesModel::prefs()->showRSyntaxInResults();
+	return workspace() ? workspace()->showRSyntax() : PreferencesModel::prefs()->showRSyntaxInResults();
 }
 
-void DataSetPackage::setDefaultWorkspaceValues()
-{
-	_dataSet->setShowRSyntax(PreferencesModel::prefs()->showRSyntaxInResults());
 
-	setDefaultWorkspaceEmptyValues();
+void DataSetPackage::setDataSetEmptyValues(const stringset &emptyValues, bool reset)
+{
+	if (!workspace()) 
+		return;
+	
+	
+	for(DataSet * dataSet : workspace()->dataSets())
+		dataSet->setEmptyValuesFromStrings(emptyValues);
+	
+	if(reset)	
+		refresh();
+	
+	emit workspaceEmptyValuesChanged();
 }
 
 void DataSetPackage::setDefaultWorkspaceEmptyValues()
 {
 	stringvec prefs = fq(PreferencesModel::prefs()->emptyValues());
-	setWorkspaceEmptyValues(stringset(prefs.begin(), prefs.end()));
-}
-
-void DataSetPackage::setWorkspaceEmptyValues(const stringset &emptyValues, bool reset)
-{
-	if (!_dataSet || _dataSet->workspaceEmptyValues() == emptyValues) return;
-	
-	if(reset)	beginResetModel();
-	_dataSet->setWorkspaceEmptyValues(emptyValues);
-	if(reset)	endResetModel();
-	
-	emit workspaceEmptyValuesChanged();
+	setDataSetEmptyValues(stringset(prefs.begin(), prefs.end()));
 }
 
 void DataSetPackage::setWorkspaceShowRSyntax(bool show)
 {
-	if (!_dataSet || _dataSet->showRSyntax() == show) return;
+	if (!workspace() || workspace()->showRSyntax() == show) 
+		return;
 
-	_dataSet->setShowRSyntax(show);
-
-	setModified(true);
-}
-
-void DataSetPackage::pasteSpreadsheet(size_t row, size_t col, const std::vector<std::vector<QString>> & values, const std::vector<std::vector<QString>> &  labels, const intvec & coltypes, const QStringList & colNames, const std::vector<boolvec> & selected)
-{
-	JASPTIMER_SCOPE(DataSetPackage::pasteSpreadsheet);
-
-	int		rowMax			= ( values.size() > 0 ? values[0].size() : 0), 
-			colMax			= values.size();
-	bool	rowCountChanged = int(row + rowMax) > dataRowCount()	,
-			colCountChanged = int(col + colMax) > dataColumnCount()	;
-	
-	auto isSelected = [&selected](int row, int col)
-	{
-		return selected.size() == 0 || 	selected[col][row];
-	};
-
-	beginSynchingData(false);
-	_dataSet->beginBatchedToDB();
-	
-	if(colCountChanged || rowCountChanged)	
-		setDataSetSize(std::max(size_t(dataColumnCount()), colMax + col), std::max(size_t(dataRowCount()), rowMax + row));
-	
-	stringvec changed;
-	strstrmap changeNameColumns;
-
-	for(int c=0; c<colMax; c++)
-	{
-		Column	*	column		= _dataSet->column(c + col);
-		columnType	desiredType	= coltypes.size() > c ? columnType(coltypes[c]) : column->type();
-					desiredType = desiredType == columnType::unknown ? columnType::scale : desiredType;
-		std::string colName		= (colNames.size() > c && !colNames[c].isEmpty()) ? fq(colNames[c]) : column->name();
-		
-		column->setType(desiredType);
-
-		bool aChange = false;
-		for(int r=0; r<rowMax; r++)
-			if(isSelected(r, c))
-				aChange = column->setStringValue(r+row, fq(values[c][r]), labels.size() <= c || labels[c].size() <= r ? "" : fq(labels[c][r])) || aChange;
-			
-		aChange = aChange || colName != column->name() || desiredType != column->type();
-		
-		if(colName != column->name())
-			changeNameColumns[column->name()] = colName;
-		
-		column->setName(colName);
-
-		if(aChange)
-		{
-			changed.push_back(colName);
-			column->nonFilteredCountersReset();
-		}
-	}
-
-	_dataSet->endBatchedToDB();
-	
-	stringvec		missingColumns;
-
-	endSynchingData(changed, missingColumns, changeNameColumns, rowCountChanged, colCountChanged, false);
-	setManualEdits(true); //set manual edits here so external synching is turned off, endSynchingData also just reset it, so thats why it is way down here
-}
-
-QString DataSetPackage::insertColumnSpecial(int columnIndex, const QMap<QString, QVariant>& props, bool setManualEditsPar)
-{
-	if(columnIndex < 0)
-		columnIndex = 0;
-
-	if(columnIndex > dataColumnCount())
-		columnIndex = dataColumnCount(); //the column will be created if necessary but only if it is in a logical place. So the end of the vector
-
-	if(setManualEditsPar)
-		setManualEdits(true); //Don't synch with external file after editing
-	
-	//So, we are inserting a column here, but maybe there are engines running, doing whatever (maybe loading a really big datafile)
-	//Instead of waiting for this, and then inserting the column, and then waiting for it again, we can also simply stop those engines.
-	enginesPrepareForData();
-	beginResetModel();
-
-	_dataSet->insertColumn(columnIndex);
-	
-	Column * column = _dataSet->column(columnIndex);
-
-	column->setName(			props.contains("name")			? fq(props["name"].toString())					: freeNewColumnName(columnIndex)	);
-	column->setDefaultValues(	props.contains("type")			? columnType(props["type"].toInt())				: columnType::scale					);
-	column->setCodeType(		props.contains("computed")		? computedColumnType(props["computed"].toInt())	: computedColumnType::notComputed	);
-	column->setComputeFilter(fq(props.contains("computeFilter")	? props["computeFilter"].toString()				: ""								));
-
-	_dataSet->incRevision();
-
-	endResetModel();
-	
-	emit datasetChanged(tq(stringvec{column->name()}), {}, {}, false, true);
-
-	ColumnEncoder::setCurrentColumnNames(	getColumnTypesMap());
-	
-	if(column->codeType() == computedColumnType::constructorCode || column->codeType() == computedColumnType::rCode)
-		emit columnAddedManually(tq(column->name())); //Will trigger setChosenColumn and setVisible(true) on ColumnModel, showing it to the user
-	
-	enginesReceiveNewData();
-
-	return QString::fromStdString(column->name());
-}
-
-QString DataSetPackage::appendColumnSpecial(const QMap<QString, QVariant>& props, bool setManualEdits)
-{
-	return insertColumnSpecial(dataColumnCount(), props, setManualEdits);
-}
-
-
-bool DataSetPackage::insertColumns(int column, int count, const QModelIndex & aparent)
-{
-	if(column > dataColumnCount())
-		column = dataColumnCount(); //the column will be created if necessary but only if it is in a logical place. So the end of the vector
-
-	setManualEdits(true); //Don't synch with external file after editing
-#ifdef ROUGH_RESET
-	beginResetModel();
-#else
-	beginInsertColumns(indexForSubNode(_dataSet->dataNode()), column, column + count - 1);
-#endif
-
-	stringvec changed;
-
-	for(int c = column; c<column+count; c++)
-	{
-		_dataSet->insertColumn(c);
-		const std::string & name = freeNewColumnName(c);
-		_dataSet->column(c)->setName(name);
-		_dataSet->column(c)->setDefaultValues(columnType::scale);
-
-		changed.push_back(name);
-	}
-#ifdef ROUGH_RESET
-	endResetModel();
-#else
-	endInsertColumns();
-#endif
-
-	strstrmap		changeNameColumns;
-	stringvec		missingColumns;
-
-	emit datasetChanged(tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
-
-	ColumnEncoder::setCurrentColumnNames(	getColumnTypesMap());
-
-	return true;
-}
-
-bool DataSetPackage::removeColumns(int column, int count, const QModelIndex & aparent)
-{
-	if(column == -1)
-		return false;
-
-	emit columnsBeingRemoved(column, count);
-
-	setManualEdits(true); //Don't synch with external file after editing
-#ifdef ROUGH_RESET
-	beginResetModel();
-#else
-	beginRemoveColumns(indexForSubNode(_dataSet->dataNode()), column, column + count - 1);
-#endif
-
-	stringvec	changed;
-	strstrmap	changeNameColumns;
-	stringvec	missingColumns;
-
-	for(int c = column + count; c>column; c--)
-	{
-		missingColumns.push_back(getColumnName(c - 1));
-		_dataSet->removeColumn(c - 1);
-	}
-#ifdef ROUGH_RESET
-	endResetModel();
-#else
-	endRemoveColumns();
-#endif
-	emit datasetChanged(tq(changed), tq(missingColumns), tq(changeNameColumns), false, true);
-
-	ColumnEncoder::setCurrentColumnNames(getColumnTypesMap());
-
-	return true;
-}
-
-bool DataSetPackage::insertRows(int row, int count, const QModelIndex & aparent)
-{
-	if(row > dataRowCount())
-		row = dataRowCount();
-
-	setManualEdits(true); //Don't synch with external file after editing
-#ifdef ROUGH_RESET
-	beginResetModel();
-#else
-	beginInsertRows(indexForSubNode(_dataSet->dataNode()), row, row + count - 1);
-#endif
-	stringvec changed;
-
-
-	dataSet()->beginBatchedToDB();
-
-	for(int c=0; c<dataColumnCount(); c++)
-	{
-		const std::string & name = getColumnName(c);
-		changed.push_back(name);
-
-		for(int r=row; r<row+count; r++)
-			dataSet()->column(c)->rowInsertEmptyVal(r);
-	}
-
-	dataSet()->setRowCount(dataSet()->rowCount() + count);
-	dataSet()->incRevision();
-	dataSet()->endBatchedToDB();
-#ifdef ROUGH_RESET
-	endResetModel();
-#else
-	endInsertRows();
-#endif
-	strstrmap		changeNameColumns;
-	stringvec		missingColumns;
-
-	emit datasetChanged(tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
-
-	return true;
-}
-
-bool DataSetPackage::removeRows(int row, int count, const QModelIndex & aparent)
-{
-	if(row == -1)
-		return false;
-
-	setManualEdits(true); //Don't synch with external file after editing
-#ifdef ROUGH_RESET
-	beginResetModel();
-#else
-	beginRemoveRows(indexForSubNode(_dataSet->dataNode()), row, row + count - 1);
-#endif
-	stringvec changed;
-
-	dataSet()->beginBatchedToDB();
-	
-	for(Column * column : dataSet()->columns())
-	{
-		changed.push_back(column->name());
-	
-		for(int r=row+count; r>row; r--)
-			column->rowDelete(r-1);
-	}
-
-	dataSet()->setRowCount(dataSet()->rowCount() - count);
-	dataSet()->incRevision();
-	dataSet()->endBatchedToDB();
-
-	strstrmap		changeNameColumns;
-	stringvec		missingColumns;
-#ifdef ROUGH_RESET
-	endResetModel();
-#else
-	endRemoveRows();
-#endif
-	emit datasetChanged(tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
-
-	return true;
-}
-
-Column * DataSetPackage::createColumn(const std::string & name, columnType columnType)
-{
-	if(getColumnIndex(name) >= 0)
-		return nullptr;
+	workspace()->setShowRSyntax(show);
 
 	setModified(true);
-
-	size_t newColumnIndex	= dataColumnCount();
-
-	enginesPrepareForData();
-	beginResetModel();
-	_dataSet->insertColumn(newColumnIndex);
-	_dataSet->column(newColumnIndex)->setName(name);
-	_dataSet->column(newColumnIndex)->setDefaultValues(columnType);
-	endResetModel();
-	enginesReceiveNewData();
-
-	return _dataSet->column(newColumnIndex);
 }
 
-void DataSetPackage::removeColumn(const std::string & name)
-{
-	int colIndex = getColumnIndex(name);
-	if(colIndex == -1) return;
-
-	removeColumns(colIndex, 1);
-}
-
-bool DataSetPackage::columnExists(Column *column)
-{
-	if(_dataSet)
-		for(const Column * col : _dataSet->columns())
-			if(col == column)
-				return true;
-		
-	return false;
-}
-
-void DataSetPackage::columnsReorder(const stringvec &order)
-{
-	beginResetModel();
-	_dataSet->columnsReorder(order);
-	endResetModel();
-}
-
-boolvec DataSetPackage::filterVector()
-{
-	boolvec out;
-
-	if(_dataSet)
-		out = boolvec(_dataSet->filter()->filtered().begin(), _dataSet->filter()->filtered().end());
-	
-	return out;
-}
-
-void DataSetPackage::databaseStopSynching()
-{
-	_databaseIntervalSyncher.stop();	
-}
-
-void DataSetPackage::databaseStartSynching(bool syncImmediately)
-{
-	if(_database == Json::nullValue)
-		throw std::runtime_error("Cannot start synching with a database if we arent connected to a database...");
-	
-	_databaseIntervalSyncher.stop(); //Is this even necessary? Probaly not but lets do it just in case
-
-	DatabaseConnectionInfo dbCI(_database);
-	
-	if(dbCI._interval > 0)
-	{
-		if(dbCI._hadPassword && !dbCI._rememberMe && dbCI._password == "")
-		{
-			bool tryAgain = true, couldConnect;
-
-			while(tryAgain)
-			{
-				dbCI._password	= MessageForwarder::askPassword(tr("Database Password"), dbCI._username != "" ? tr("The databaseconnection needs a password for user '%1'").arg(dbCI._username) : tr("The databaseconnection needs a password"));
-				tryAgain		= dbCI.connect() ? false : MessageForwarder::showYesNo(tr("Connection failed"), tr("Could not connect to database because of '%1', want to try a different password?").arg(dbCI.lastError()));
-			}
-
-			if(!dbCI.connected())
-			{
-				MessageForwarder::showWarning(tr("Could not connect to the database so synchronizing will be disabled."));
-				return;
-			}
-			else
-				_database = dbCI.toJson();
-		}
-	
-		_databaseIntervalSyncher.setInterval(1000 * 60 * dbCI._interval);
-		_databaseIntervalSyncher.start();
-		
-		if(syncImmediately)
-			emit synchingIntervalPassed();
-
-		emit synchingExternallyChanged(synchingExternally());
-	}
-}
-
-bool DataSetPackage::synchingExternally() const
-{
-	return _dataSet && _dataSet->dataFileSynch() && (!_dataSet->dataFilePath().empty() || (_database != Json::nullValue && _databaseIntervalSyncher.isActive()));
-}
-
-void DataSetPackage::setSynchingExternallyFriendly(bool synchingExternally)
-{
-	if (synchingExternally && emit askUserForExternalDataFile())
-	{
-		setSynchingExternally(synchingExternally);
-		setModified(true); //Perhaps someone would like to save the fact that it shouldnt be synchronized
-	}
-	else if(!synchingExternally)
-	{
-		if(_dataSet && _dataSet->dataFileSynch())
-			setSynchingExternally(false);
-		setModified(true);
-	}
-}
-
-void DataSetPackage::setSynchingExternally(bool synchingExternally)
-{	
-	if(_dataSet)
-		_dataSet->setDataFileSynch(synchingExternally);
-
-	emit synchingExternallyChanged(DataSetPackage::synchingExternally());
-}
 
 void DataSetPackage::setCurrentFile(QString currentFile)
 {
@@ -2497,12 +1902,7 @@ QString DataSetPackage::name() const
 
 bool DataSetPackage::dataMode() const
 {
-	return RibbonModel::singleton()->dataMode();
-}
-
-QModelIndex DataSetPackage::lastCurrentCell()
-{
- throw std::runtime_error("Not implemented!");
+	return workspace() && workspace()->dataMode();
 }
 
 QString DataSetPackage::windowTitle() const
@@ -2539,7 +1939,7 @@ void DataSetPackage::setAnalysesData(const Json::Value &analysesData)
 {
 	QString		previousASF					= analysesData.type() != Json::objectValue ? "" : tq(analysesData.get("autoSaveFileName", "").asString());
 				_analysesData				= analysesData;
-	QFileInfo	dataFile					( tq(_dataSet->dataFilePath()) ),
+	QFileInfo	dataFile					( tq(dataSet() ? dataSet()->dataFilePath() : "") ),
 				curFileI					( currentFile() );
 	QString		dataFileName				= dataFile.fileName(),
 				curFile						= currentFile(),
@@ -2553,33 +1953,6 @@ void DataSetPackage::setAnalysesData(const Json::Value &analysesData)
 QString DataSetPackage::autoSavedFileName() const
 {
 	return tq(_analysesData.get("autoSaveFileName", fq(currentFile())).asString());
-}
-
-void DataSetPackage::setDataFilePath(std::string filePath, long timestamp)
-{
-	if(!_dataSet || (_dataSet->dataFilePath() == filePath && timestamp == _dataSet->dataFileTimestamp()))
-		return;
-
-	if (timestamp == 0 && !filePath.empty())
-	{
-		QFileInfo fileInfo(tq(filePath));
-		timestamp = fileInfo.isFile() ? fileInfo.lastModified().toSecsSinceEpoch() : 0;
-	}
-
-	_dataSet->setDataFile(filePath, timestamp);
-	if (tq(filePath).startsWith(AppDirs::examples()))
-		setDataFileReadOnly(true);
-
-	setModified(true);
-	emit synchingExternallyChanged(synchingExternally());
-}
-
-void DataSetPackage::setDatabaseJson(const Json::Value &dbInfo)		
-{
-	_database						= dbInfo;			
-	Log::log() << "DataSetPackage::setDatabaseJson got:" << dbInfo << std::endl;
-
-	_dataSet->setDatabaseJson(_database.toStyledString());
 }
 
 // This function can be called from a different thread then where the underlying value for isReady() is set, but I don't think a mutex or whatever is necessary here. What could go wrong with checking a boolean?
@@ -2604,105 +1977,12 @@ void DataSetPackage::waitForExportResultsReady()
 }
 
 
-void DataSetPackage::checkComputedColumnDependenciesForAnalysis(Analysis * analysis)
-{
-	if(!_dataSet)
-		return;
-
-	for(Column * col : _dataSet->columns())
-		if(col->isComputedByAnalysis(analysis->id()))
-			col->setDependsOn(analysis->usedVariables());
-
-}
-
-stringset DataSetPackage::columnsCreatedByAnalysis(Analysis * analysis)
-{
-	if(!_dataSet)
-		return {};
-
-	stringset cols;
-
-	for(Column * col : _dataSet->columns())
-		if(col->analysisId() == analysis->id())
-			cols.insert(col->name());
-
-	return cols;
-}
-
-Column * DataSetPackage::createComputedColumn(const std::string & name, columnType type, computedColumnType desiredType, Analysis * analysis)
-{
-	QString nameTemp = insertColumnSpecial(dataColumnCount(), { std::make_pair("computed", int(desiredType)) }, false);
-
-	Column	* newComputedColumn = DataSetPackage::pkg()->dataSet()->column(nameTemp.toStdString());
-
-	beginResetModel();
-
-	newComputedColumn->setName(name);
-	newComputedColumn->setType(type);
-
-	if(analysis)
-		newComputedColumn->setAnalysisId(analysis->id());
-
-	endResetModel();
-
-	return newComputedColumn;
-}
-
-Column * DataSetPackage::requestComputedColumnCreation(const std::string & columnName, Analysis * analysis)
-{
-	if(!DataSetPackage::pkg()->isColumnNameFree(columnName))
-		return nullptr;
-
-	return createComputedColumn(columnName, columnType::scale, computedColumnType::analysis, analysis);
-}
-
-bool DataSetPackage::requestColumnCreation(const std::string & columnName, Analysis * analysis, columnType type)
-{
-	if(!DataSetPackage::pkg()->isColumnNameFree(columnName))
-		return false;
-	
-	createComputedColumn(columnName, type, computedColumnType::analysisNotComputed, analysis);
-	return true;
-}
-
-
-bool DataSetPackage::requestComputedColumnDestruction(const std::string& columnName, Analysis * analysis)
-{
-	if(columnName.empty())
-		return false;
-
-	Column * col = dataSet()->column(columnName);
-
-	if(!col || !col->isComputed() || !col->isComputedByAnalysis(analysis->id()))
-		return false;
-
-	removeColumn(columnName);
-
-	emit checkForDependentColumnsToBeSent(tq(columnName));
-	
-	return true;
-}
-
 void DataSetPackage::checkDataSetForUpdates()
 {
-	if(!_dataSet)
+	if(!_workspace)
 		return;
 
-	stringvec changedCols, missingCols;
-	bool newCols = false, rowCountChanged = false;
-
-	if(_dataSet->checkForUpdates(&changedCols, &missingCols, &newCols, &rowCountChanged))
-	{
-		ColumnEncoder::setCurrentColumnNames(	getColumnTypesMap());
-
-		Log::log()	<< "Updates found for DataSet " << _dataSet->id() 
-					<< "| missing cols: '" << tq(missingCols).join(",")
-					<< "' | changed cols: '" << tq(changedCols).join(",")
-					<< "' | " << (newCols ? " has new cols" : "") << (rowCountChanged ? "| rowcount changed |" : "|") << std::endl;
-		refresh();
-
-		emit datasetChanged(tq(changedCols), tq(missingCols), {}, newCols, rowCountChanged);
-	}
+	_workspace->checkForUpdates();
 }
 
 bool DataSetPackage::manualEdits() const
@@ -2712,14 +1992,11 @@ bool DataSetPackage::manualEdits() const
 
 void DataSetPackage::setManualEdits(bool newManualEdits)
 {
-	// During synchronization, even if some data are changed, manualEdits should not be set to true
-	if ((_synchingData && newManualEdits) || _manualEdits == newManualEdits)
+	if (_manualEdits == newManualEdits)
 		return;
 
 	_manualEdits = newManualEdits;
 
-	if(_manualEdits)
-		setSynchingExternally(false);
-
 	emit manualEditsChanged();
 }
+

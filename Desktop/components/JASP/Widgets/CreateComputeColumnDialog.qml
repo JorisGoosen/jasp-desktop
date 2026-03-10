@@ -147,6 +147,7 @@ Popup
 	
 							ToolTip.visible:		columnNameInUse
 							ToolTip.text:			qsTr("Column name is already used, please choose a different one.")
+							ToolTip.toolTip.background:		Rectangle { color: jaspTheme.tooltipBackgroundColor; radius: jaspTheme.borderRadius }
 	
 							Keys.onReturnPressed:	(event)=>	rootCreateComputedColumn.createComputedColumn()
 								
@@ -291,7 +292,7 @@ Popup
 	
 									anchors.verticalCenter: parent.verticalCenter
 	
-									source:					jaspTheme.iconPath + dataSetModel.getColumnTypesWithIcons()[iconRepeater.model[index]]
+									source:					jaspTheme.iconPath + dataSetModel.columnTypesWithIcons()[iconRepeater.model[index]]
 									width:					height
 									height:					parent.height
 									sourceSize.width:		width

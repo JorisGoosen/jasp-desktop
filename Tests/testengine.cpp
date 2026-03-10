@@ -1,10 +1,10 @@
 #include "dirs.h"
+#include "qutils.h"
 #include "testengine.h"
 #include <QSignalSpy>
 #include "testinfo.h"
 #include "tempfiles.h"
 #include "processinfo.h"
-#include "utilities/qutils.h"
 #include "engine/enginesync.h"
 #include "utilities/appdirs.h"
 #include "utilities/settings.h"
@@ -30,7 +30,7 @@ void TestEngine::init()
 
 	_engines	->	start();
 	_engineRep	=	_engines->createNewEngine(true, 0);
-	_importer	->	loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), [](int i){});
+	_importer	->	loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), _pkg->createDataSet(), [](int i){});
 	_data		=	_pkg->dataSet();
 }
 
@@ -75,8 +75,7 @@ void TestEngine::testComputedColumns()
 	col->setCodeType(computedColumnType::rCode);
 	col->setRCode("V1");
 	
-	
-	_engines->computeColumn("contBinom", tq(col->rCode()), columnType::ordinal);
+	_engines->computeColumn(_data->id(), "contBinom", tq(col->rCode()), columnType::ordinal);
 	
 	spy.wait();
 	
@@ -105,7 +104,7 @@ void TestEngine::testComputedColumns()
 	//Now lets see if it can also not be the same:
 	col->setRCode("V1+1");
 
-	_engines->computeColumn("contBinom", tq(col->rCode()), columnType::scale);
+	_engines->computeColumn(_data->id(), "contBinom", tq(col->rCode()), columnType::scale);
 
 	spy.wait();
 
@@ -134,7 +133,7 @@ void TestEngine::testComputedColumns()
 	if(!col2->hasLabels())
 		col2->noLabelsToLabels();
 
-	_engines->computeColumn("contcor1", tq(col2->rCode()), columnType::scale);
+	_engines->computeColumn(_data->id(), "contcor1", tq(col2->rCode()), columnType::scale);
 
 	spy.wait();
 
@@ -170,8 +169,8 @@ void TestEngine::testFilters()
 
 	QVERIFY2(spy.isValid(),	"Spy is broken!");
 
-	_data->filter()->setRFilter("V1%%2==0");
-	_engines->sendFilter("", tq(_data->filter()->rFilter()));
+	_data->defaultFilter()->setRFilter("V1%%2==0");
+	_engines->sendFilter(_data->id(), "", tq(_data->defaultFilter()->rFilter()));
 
 	spy.wait();
 
@@ -184,9 +183,9 @@ void TestEngine::testFilters()
 
 	_data->checkForUpdates();
 
-	QVERIFY2(_data->filter()->filteredRowCount() == _data->rowCount() / 2,	"Did not get right filtered rowCount!");
-	QVERIFY2(!_data->filter()->filtered()[0],								"Expected first filtered to be FALSE");
-	QVERIFY2(_data->filter()->filtered()[1],								"Expected second filtered to be TRUE");
+	QVERIFY2(_data->defaultFilter()->filteredRowCount() == _data->rowCount() / 2,	"Did not get right filtered rowCount!");
+	QVERIFY2(!_data->defaultFilter()->filtered()[0],								"Expected first filtered to be FALSE");
+	QVERIFY2(_data->defaultFilter()->filtered()[1],									"Expected second filtered to be TRUE");
 
 }
 

@@ -28,7 +28,7 @@
 #include "tempfiles.h"
 #include <json/json.h>
 #include "processinfo.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "utilities/appdirs.h"
 #include "analysis/analyses.h"
 #include "gui/preferencesmodel.h"
@@ -265,39 +265,35 @@ EngineRepresentation * EngineSync::createNewEngine(bool addToEngines, int overri
 
 		if(Analyses::analyses()) //Could be missing if testing
 		{
-			connect(engine,						&EngineRepresentation::rCodeReturned,					Analyses::analyses(),	&Analyses::rCodeReturned												);
-			connect(engine,						&EngineRepresentation::filterByNameDone,				Analyses::analyses(),	&Analyses::filterByNameDone,					Qt::QueuedConnection	);
-			connect(Analyses::analyses(),		&Analyses::analysisRemoved,								engine,					&EngineRepresentation::analysisRemoved									);
+			connect(engine,					&EngineRepresentation::rCodeReturned,					Analyses::analyses(),	&Analyses::rCodeReturned												);
+			connect(engine,					&EngineRepresentation::filterByNameDone,				Analyses::analyses(),	&Analyses::filterByNameDone,						Qt::QueuedConnection	);
+			connect(Analyses::analyses(),	&Analyses::analysisRemoved,								engine,					&EngineRepresentation::analysisRemoved									);
 		}
-		connect(engine,						&EngineRepresentation::engineTerminated,				this,					&EngineSync::engineTerminated											);
-		connect(engine,						&EngineRepresentation::processNewFilterResult,			this,					&EngineSync::processNewFilterResult										);
-		connect(engine,						&EngineRepresentation::filterDone,						this,					&EngineSync::filterDone													);
-		connect(engine,						&EngineRepresentation::processFilterErrorMsg,			this,					&EngineSync::processFilterErrorMsg										);
-		connect(engine,						&EngineRepresentation::columnDataTypeChanged,			this,					&EngineSync::columnDataTypeChanged,				Qt::QueuedConnection	);
-		connect(engine,						&EngineRepresentation::computeColumnSucceeded,			this,					&EngineSync::computeColumnSucceeded,			Qt::QueuedConnection	);
-		connect(engine,						&EngineRepresentation::computeColumnRemoved,			this,					&EngineSync::computeColumnRemoved,				Qt::QueuedConnection	);
-		connect(engine,						&EngineRepresentation::computeColumnFailed,				this,					&EngineSync::computeColumnFailed,				Qt::QueuedConnection	);
-		connect(engine,						&EngineRepresentation::moduleInstallationFailed,		this,					&EngineSync::moduleInstallationFailed									);
-		connect(engine,						&EngineRepresentation::moduleInstallationSucceeded,		this,					&EngineSync::moduleInstallationSucceeded								);
-		connect(engine,						&EngineRepresentation::moduleUninstallationSucceeded,	this,					&EngineSync::moduleUninstallationSucceeded									);
-		connect(engine,						&EngineRepresentation::moduleUninstallationFailed,		this,					&EngineSync::moduleUninstallationFailed									);
-		connect(engine,						&EngineRepresentation::moduleLoadingSucceeded,			this,					&EngineSync::moduleLoadingSucceeded										);
-		connect(engine,						&EngineRepresentation::moduleLoadingFailed,				this,					&EngineSync::moduleLoadingFailed										);
-		connect(engine,						&EngineRepresentation::logCfgReplyReceived,				this,					&EngineSync::logCfgReplyReceived										);
-		connect(engine,						&EngineRepresentation::plotEditorRefresh,				this,					&EngineSync::plotEditorRefresh											);
-		connect(engine,						&EngineRepresentation::requestEngineRestartAfterCrash,	this,					&EngineSync::restartEngineAfterCrash,			Qt::QueuedConnection	);
-		connect(engine,						&EngineRepresentation::registerForModule,				this,					&EngineSync::registerEngineForModule									);
-		connect(engine,						&EngineRepresentation::unregisterForModule,				this,					&EngineSync::unregisterEngineForModule									);
-		connect(engine,						&EngineRepresentation::moduleHasEngine,					this,					&EngineSync::moduleHasEngine											);
-		connect(engine,						&EngineRepresentation::checkDataSetForUpdates,			this,					&EngineSync::checkDataSetForUpdates										);
-		connect(engine,						&EngineRepresentation::channelSignal,					this,					&EngineSync::channel,							Qt::DirectConnection	);
-		connect(engine,						&EngineRepresentation::stopAndDestroyEngine,			this,					&EngineSync::stopAndDestroyEngine,				Qt::QueuedConnection	);
-		connect(engine,						&EngineRepresentation::stopModuleEngine,				this,					&EngineSync::stopModuleEngine											);
-		connect(this,						&EngineSync::reloadData,								engine,					&EngineRepresentation::reloadData										);
-		connect(this,						&EngineSync::settingsChanged,							engine,					&EngineRepresentation::settingsChanged									);
 		
-		connect(engine,						&EngineRepresentation::stateChanged,					this,					&EngineSync::resetListModel,					Qt::QueuedConnection	);
-		connect(engine,						&EngineRepresentation::analysisStatusChanged,			this,					&EngineSync::resetListModel,					Qt::QueuedConnection	);
+		connect(engine,						&EngineRepresentation::filterByNameDone,				DataSetPackage::pkg(),	&DataSetPackage::filterByNameDone,					Qt::QueuedConnection	);
+		connect(engine,						&EngineRepresentation::engineTerminated,				this,					&EngineSync::engineTerminated												);
+		connect(engine,						&EngineRepresentation::filterDone,						this,					&EngineSync::filterDone														);
+		connect(engine,						&EngineRepresentation::moduleInstallationFailed,		this,					&EngineSync::moduleInstallationFailed										);
+		connect(engine,						&EngineRepresentation::moduleInstallationSucceeded,		this,					&EngineSync::moduleInstallationSucceeded									);
+		connect(engine,						&EngineRepresentation::moduleUninstallationSucceeded,	this,					&EngineSync::moduleUninstallationSucceeded									);
+		connect(engine,						&EngineRepresentation::moduleUninstallationFailed,		this,					&EngineSync::moduleUninstallationFailed										);
+		connect(engine,						&EngineRepresentation::moduleLoadingSucceeded,			this,					&EngineSync::moduleLoadingSucceeded											);
+		connect(engine,						&EngineRepresentation::moduleLoadingFailed,				this,					&EngineSync::moduleLoadingFailed											);
+		connect(engine,						&EngineRepresentation::logCfgReplyReceived,				this,					&EngineSync::logCfgReplyReceived											);
+		connect(engine,						&EngineRepresentation::plotEditorRefresh,				this,					&EngineSync::plotEditorRefresh												);
+		connect(engine,						&EngineRepresentation::requestEngineRestartAfterCrash,	this,					&EngineSync::restartEngineAfterCrash,				Qt::QueuedConnection	);
+		connect(engine,						&EngineRepresentation::registerForModule,				this,					&EngineSync::registerEngineForModule										);
+		connect(engine,						&EngineRepresentation::unregisterForModule,				this,					&EngineSync::unregisterEngineForModule										);
+		connect(engine,						&EngineRepresentation::moduleHasEngine,					this,					&EngineSync::moduleHasEngine												);
+		connect(engine,						&EngineRepresentation::checkDataSetForUpdates,			this,					&EngineSync::checkDataSetForUpdates											);
+		connect(engine,						&EngineRepresentation::channelSignal,					this,					&EngineSync::channel,								Qt::DirectConnection	);
+		connect(engine,						&EngineRepresentation::stopAndDestroyEngine,			this,					&EngineSync::stopAndDestroyEngine,					Qt::QueuedConnection	);
+		connect(engine,						&EngineRepresentation::stopModuleEngine,				this,					&EngineSync::stopModuleEngine												);
+		connect(this,						&EngineSync::reloadData,								engine,					&EngineRepresentation::reloadData											);
+		connect(this,						&EngineSync::settingsChanged,							engine,					&EngineRepresentation::settingsChanged										);
+		
+		connect(engine,						&EngineRepresentation::stateChanged,					this,					&EngineSync::resetListModel,						Qt::QueuedConnection	);
+		connect(engine,						&EngineRepresentation::analysisStatusChanged,			this,					&EngineSync::resetListModel,						Qt::QueuedConnection	);
 
 		resetListModel();
 
@@ -348,7 +344,7 @@ void EngineSync::restartEngines()
 	for(auto * engine : _engines)
 		if(engine->killed())
 		{
-            engine->restartEngine(startSlaveProcess(engine->channelNumber(), engine->isPriviliged()));
+            engine->restartEngine(startSlaveProcess(engine->channelNumber(), engine->isPrivileged()));
 			Log::log() << "restarted engine " << engine->channelNumber() << std::endl;
 		}
 
@@ -361,7 +357,7 @@ void EngineSync::restartEngineAfterCrash(EngineRepresentation * engine)
 {
 	Log::log() << "restartEngineAfterCrash(" << engine->channelNumber() << ")" << std::endl;
 	
-    engine->restartEngine(startSlaveProcess(engine->channelNumber(), engine->isPriviliged()));
+    engine->restartEngine(startSlaveProcess(engine->channelNumber(), engine->isPrivileged()));
 	logCfgRequest();
 }
 
@@ -375,7 +371,7 @@ void EngineSync::restartAKilledOrStoppedEngine(EngineRepresentation * engine)
 {
 
 	if(engine->killed() || !engine->jaspEngineStillRunning())
-        engine->restartEngine(startSlaveProcess(engine->channelNumber(), engine->isPriviliged()));
+        engine->restartEngine(startSlaveProcess(engine->channelNumber(), engine->isPrivileged()));
 
 	else if(engine->stopped())
 		engine->resumeEngine();
@@ -542,7 +538,7 @@ void EngineSync::process()
 			engine->resumeEngine();
 }
 
-int EngineSync::sendFilter(const QString & generatedFilter, const QString & filter)
+int EngineSync::sendFilter(int dataSetId, const QString & generatedFilter, const QString & filter)
 {
 	JASPTIMER_SCOPE(EngineSync::sendFilter);
 	
@@ -552,7 +548,7 @@ int EngineSync::sendFilter(const QString & generatedFilter, const QString & filt
 	{
 		delete _waitingFilter;
 	
-		_waitingFilter = new RFilterStore(generatedFilter, filter, ++_filterCurrentRequestID);
+		_waitingFilter = new RFilterStore(dataSetId, generatedFilter, filter, ++_filterCurrentRequestID);
 		Log::log() << "waiting filter with requestid: " << _filterCurrentRequestID << " is now:\n" << generatedFilter.toStdString() << "\n" << filter.toStdString() << std::endl;
 	}
 	else
@@ -564,7 +560,7 @@ int EngineSync::sendFilter(const QString & generatedFilter, const QString & filt
 	return _filterCurrentRequestID;
 }
 
-void EngineSync::sendFilterByName(const QString & name, const QString & module)
+void EngineSync::sendFilterByName(int dataSetId, const QString & name, const QString & module)
 {
 	std::queue<RScriptStore *> copyQueue = _waitingScripts;
 	
@@ -577,15 +573,15 @@ void EngineSync::sendFilterByName(const QString & name, const QString & module)
 				return;
 		}
 					
-	_waitingScripts.push(new RFilterByNameStore(name, module));
+	_waitingScripts.push(new RFilterByNameStore(dataSetId, name, module));
 }
 
-void EngineSync::sendRCode(const QString & rCode, int requestId, bool whiteListedVersion, QString module)
+void EngineSync::sendRCode(int dataSetId, const QString & rCode, int requestId, bool whiteListedVersion, QString module)
 {
-	_waitingScripts.push(new RScriptStore(requestId, rCode, module, engineState::rCode, whiteListedVersion));
+	_waitingScripts.push(new RScriptStore(dataSetId, requestId, rCode, module, engineState::rCode, whiteListedVersion));
 }
 
-void EngineSync::computeColumn(const QString & columnName, const QString & computeCode, columnType colType)
+void EngineSync::computeColumn(int dataSetId, const QString & columnName, const QString & computeCode, columnType colType)
 {
 	//first we remove the previously sent requests for this same column!
 	std::queue<RComputeColumnStore*> copiedWaiting(_waitingCompCols);
@@ -599,7 +595,7 @@ void EngineSync::computeColumn(const QString & columnName, const QString & compu
 		copiedWaiting.pop();
 	}
 
-	_waitingCompCols.push(new RComputeColumnStore(columnName, computeCode, colType));
+	_waitingCompCols.push(new RComputeColumnStore(dataSetId, columnName, computeCode, colType));
 }
 
 void EngineSync::processFilterScript()
@@ -689,8 +685,20 @@ stringset EngineSync::processRCodeQueue()
 			if(waiting->typeScript == engineState::rCode || waiting->typeScript == engineState::filterByName)
 			{
 				const std::string mod = fq(waiting->module);
+				
+				bool anyEngineCanRunIt = waiting->module == "*";
 			
-				if(!moduleHasEngine(mod))	
+				if(anyEngineCanRunIt)
+				{
+					for(auto & engine : _engines)
+						if(engine->idle())
+						{
+							foundEngine		= true;
+							engine->runScriptOnProcess(waiting);
+							break;
+						}
+				}
+				else if(!moduleHasEngine(mod))	
 				{
 					for(auto & engine : _engines)
 						if(engine->idle() && engine->module() == "")
@@ -1103,7 +1111,7 @@ void EngineSync::pauseEngines(bool unloadData)
 void EngineSync::startStoppedEngine(EngineRepresentation * engine)
 {
 	if(!engine->jaspEngineStillRunning())
-        engine->restartEngine(startSlaveProcess(engine->channelNumber(), engine->isPriviliged()));
+        engine->restartEngine(startSlaveProcess(engine->channelNumber(), engine->isPrivileged()));
 	else
 		engine->resumeEngine();
 }
@@ -1205,6 +1213,7 @@ void EngineSync::enginesPrepareForData()
 	//	if(!engine->paused())
 	//		engine->killEngine();
 }
+
 
 void EngineSync::enginesReceiveNewData()
 {

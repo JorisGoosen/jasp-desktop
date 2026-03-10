@@ -122,6 +122,7 @@ FocusScope
 				columnHeaderDelegate:	Rectangle
 				{
 						z:				-2
+						width:			implicitWidth
 						implicitWidth:	levelsTableView.width
 						color:			"transparent"
 						border.width:	1
@@ -137,7 +138,6 @@ FocusScope
 									right:					parent.right
 									bottom:                 parent.bottom
 									topMargin:				-2 //otherwise you see bits of the items scrolling by above headers
-
 							}
 						}
 						
@@ -219,7 +219,7 @@ FocusScope
 									id:						removeText
 									text:					qsTr("Remove")
 									font:					jaspTheme.font
-									color:					enabled  ? jaspTheme.textEnabled : jaspTheme.textDisabled
+									color:					enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled
 									anchors.centerIn:		parent
 								}
 							}
@@ -564,7 +564,7 @@ FocusScope
 					Rectangle
 					{
 						id:					selectionRectangle
-						color:				itemSelected ? jaspTheme.itemHighlight : "transparent"
+						color:				enabled && itemSelected ? jaspTheme.itemHighlight : "transparent"
 						width:				columnModel.rowWidth
 						anchors
 						{
@@ -703,6 +703,7 @@ FocusScope
 			width:				buttonColumnVariablesWindow.width
 			contentWidth:		buttonColumnVariablesWindow.width
 			contentHeight:		buttonColumnVariablesWindow.height
+			clip:				true
 			
 			anchors
 			{
@@ -770,7 +771,7 @@ FocusScope
 					height:			buttonColumnVariablesWindow.buttonHeight
 					implicitHeight: buttonColumnVariablesWindow.buttonHeight
 					width:			height
-					enabled:		!columnModel.autoSort && columnModel.rowsTotal > 1
+					enabled:		!columnModel.autoSort && columnModel.column.rowCount > 1
 				}
 	
 				RoundedButton

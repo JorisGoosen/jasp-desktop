@@ -19,13 +19,13 @@
 #include "analysisform.h"
 #include "knownissues.h"
 #include "boundcontrols/boundcontrol.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "controls/jasplistcontrol.h"
 #include "controls/expanderbuttonbase.h"
 #include "log.h"
 #include "controls/jaspcontrol.h"
 #include "rsyntax/rsyntax.h"
-
+#include "filter.h"
 #include <QQmlProperty>
 #include <QQmlContext>
 #include <QQmlEngine>
@@ -41,19 +41,22 @@ AnalysisForm::AnalysisForm(QQuickItem *parent) : QQuickItem(parent)
 	setObjectName("AnalysisForm");
 
 	_rSyntax = new RSyntax(this);
+	_varInfo = new VariableInfo();
+	
+	connect(this,									&AnalysisForm::filterChanged,					varInfo(),	&VariableInfo::setProvider	);
 
 	// _startRSyntaxTimer is used to call setRSyntaxText only once in a event loop.
 
-	connect(this,									&AnalysisForm::infoChanged,						this, &AnalysisForm::helpMDChanged									);
-	connect(this,									&AnalysisForm::infoBottomChanged,				this, &AnalysisForm::helpMDChanged									);
-	connect(this, 									&AnalysisForm::formCompletedSignal, 			this, &AnalysisForm::formCompletedHandler, 		Qt::DirectConnection);
-	connect(this,									&AnalysisForm::analysisChanged,					this, &AnalysisForm::knownIssuesUpdated,		Qt::QueuedConnection);
-	connect(KnownIssues::issues(),					&KnownIssues::knownIssuesUpdated,				this, &AnalysisForm::knownIssuesUpdated,		Qt::QueuedConnection);
-	connect(this,									&AnalysisForm::showAllROptionsChanged,			this, &AnalysisForm::rSyntaxTextChanged,		Qt::QueuedConnection);
-	connect(PreferencesModelBase::preferences(),	&PreferencesModelBase::showRSyntaxChanged,		this, &AnalysisForm::rSyntaxTextChanged,		Qt::QueuedConnection);
-	connect(PreferencesModelBase::preferences(),	&PreferencesModelBase::showAllROptionsChanged,	this, &AnalysisForm::showAllROptionsChanged,	Qt::QueuedConnection);
-	connect(PreferencesModelBase::preferences(),	&PreferencesModelBase::developerModeChanged,	this, &AnalysisForm::helpMDChanged,				Qt::QueuedConnection);
-	connect(this,									&AnalysisForm::analysisChanged,					this, &AnalysisForm::rSyntaxTextChanged,		Qt::QueuedConnection);
+	connect(this,									&AnalysisForm::infoChanged,						this,		&AnalysisForm::helpMDChanged								);
+	connect(this,									&AnalysisForm::infoBottomChanged,				this,		&AnalysisForm::helpMDChanged								);
+	connect(this, 									&AnalysisForm::formCompletedSignal, 			this,		&AnalysisForm::formCompletedHandler, 	Qt::DirectConnection);
+	connect(this,									&AnalysisForm::analysisChanged,					this,		&AnalysisForm::knownIssuesUpdated,		Qt::QueuedConnection);
+	connect(KnownIssues::issues(),					&KnownIssues::knownIssuesUpdated,				this,		&AnalysisForm::knownIssuesUpdated,		Qt::QueuedConnection);
+	connect(this,									&AnalysisForm::showAllROptionsChanged,			this,		&AnalysisForm::rSyntaxTextChanged,		Qt::QueuedConnection);
+	connect(PreferencesModelBase::preferences(),	&PreferencesModelBase::showRSyntaxChanged,		this,		&AnalysisForm::rSyntaxTextChanged,		Qt::QueuedConnection);
+	connect(PreferencesModelBase::preferences(),	&PreferencesModelBase::showAllROptionsChanged,	this,		&AnalysisForm::showAllROptionsChanged,	Qt::QueuedConnection);
+	connect(PreferencesModelBase::preferences(),	&PreferencesModelBase::developerModeChanged,	this,		&AnalysisForm::helpMDChanged,			Qt::QueuedConnection);
+	connect(this,									&AnalysisForm::analysisChanged,					this,		&AnalysisForm::rSyntaxTextChanged,		Qt::QueuedConnection);
 }
 
 AnalysisForm::~AnalysisForm()
@@ -77,6 +80,11 @@ void AnalysisForm::runFilter(const QString & name)
 		if(_valueChangedSignalsBlocked == 0)	_analysis->sendFilter(name);
 		else									_waitingFilters.insert(name);
 	}
+}
+
+Filter *AnalysisForm::filter()
+{
+	return _analysis->filter();
 }
 
 void AnalysisForm::refreshAnalysis()
@@ -189,10 +197,10 @@ void AnalysisForm::runScriptRequestDone(const QString& result, const QString& co
 		Log::log() << "Unknown item " << controlName.toStdString() << std::endl;
 }
 
-void AnalysisForm::filterByNameDone(const QString & name, const QString & error)
+void AnalysisForm::filterByNameDone(int dataSetID, const QString & name, const QString & error)
 {
 	for(JASPControl * control : _controls)
-		control->filterDoneHandler(name, error);
+		control->filterDoneHandler(dataSetID, name, error);
 }
 
 void AnalysisForm::addControl(JASPControl *control)
@@ -686,6 +694,7 @@ void AnalysisForm::setAnalysisUp()
 
 	// Don't bind boundValuesChanged before it is initialized: each setup of all controls will generate a boundValuesChanged
 	connect(_analysis,					&AnalysisBase::boundValuesChanged,		this,			&AnalysisForm::rSyntaxTextChanged,				Qt::QueuedConnection	);
+	connect(_analysis,					&AnalysisBase::filterChanged,			this,			&AnalysisForm::filterChanged	);
 
 	emit analysisChanged();
 }

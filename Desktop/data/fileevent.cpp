@@ -204,7 +204,6 @@ QString FileEvent::getProgressMsg() const
 	case FileEvent::FileExportResults:	return tr("Exporting Results");
 	case FileEvent::FileExportData:
 	case FileEvent::FileGenerateData:	return tr("Exporting Data");
-	case FileEvent::FileSyncData:		return tr("Synchronizing Data");
 	default:							break;
 	}
 

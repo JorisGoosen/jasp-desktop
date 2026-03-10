@@ -1,8 +1,8 @@
+#include "qutils.h"
 #include "testinfo.h"
 #include "tempfiles.h"
 #include "processinfo.h"
 #include "testdebugdata.h"
-#include "utilities/qutils.h"
 #include "databaseinterface.h"
 #include "utilities/settings.h"
 #include "data/datasetpackage.h"
@@ -22,7 +22,7 @@ void TestDebugData::init()
 	_pkg		= new DataSetPackage(this);
 	_importer	= new CSVImporter();
 	
-	_importer->loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), [](int i){});
+	_importer->loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), _pkg->createDataSet(), [](int i){});
 
 	_data = _pkg->dataSet();
 	
@@ -117,9 +117,8 @@ void TestDebugData::testReverseNumericals()
 		std::cerr << labelsAfter1 << std::endl;
 	
 	QVERIFY2(hardcoded == labelsAfter1,		"Reversing values is not right!");
-	
-	
-	DataSet loadMe(_data->id());
+		
+	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 	
 }
@@ -194,7 +193,7 @@ void TestDebugData::testReverseLabels()
 	if(hardcoded != labelsAfter1)
 		std::cerr << labelsAfter1 << std::endl;
 	
-	DataSet loadMe(_data->id());
+	DataSet loadMe(nullptr, _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -247,7 +246,7 @@ void TestDebugData::testColumnStuff()
 	QVERIFY2(V1->title() == "Variable 1", "Rename failed to also change the title");
 
 	
-	DataSet loadMe(_data->id());
+	DataSet loadMe(nullptr, _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 	
 	
@@ -281,7 +280,7 @@ void TestDebugData::testEmptyValues()
 	contBinom->setHasCustomEmptyValues(false);
 	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 2,	"Not right amount of non-empty labels after disabling custom empty values!");
 	
-	_data->setWorkspaceEmptyValues({"1"});
+	_data->setEmptyValuesFromStrings({"1"});
 	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 1,	"Not right amount of non-empty labels after adding one empty value to workspace!");
 	QVERIFY2(contBinom->nonEmptyLevelsStrings()[0] == "0",		"Not right non-empty label left after adding one empty value to workspace!");
 	
@@ -298,14 +297,13 @@ void TestDebugData::testChangeLabel()
 	
 	QVERIFY2(contBinom->hasLabels(),							"contBinom should have labels");
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(contBinom->labels()[0]), "A", int(DataSetPackage::specialRoles::label));
+	_data->setData(_data->index(0,0), "A", int(dataPkgRoles::label));
 	
 	QVERIFY2(contBinom->labels()[0]->labelDisplay() == "A",		"contBinom failed renaming first label to A");
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(contBinom->labels()[1]), "B", int(DataSetPackage::specialRoles::value));
+	_data->setData(_data->index(1,0), "B", int(dataPkgRoles::value));
 	
 	QVERIFY2(contBinom->labels()[1]->labelDisplay() == "B",		"contBinom failed renaming first value (and thus also label!) to B");
-	
 }
 
 void TestDebugData::testShadowDisplay()

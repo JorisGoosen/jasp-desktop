@@ -3,7 +3,7 @@
 #include "log.h"
 #include "analysisform.h"
 #include "jasptheme.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "preferencesmodelbase.h"
 #include <QQmlProperty>
 #include <QQmlContext>
@@ -218,6 +218,8 @@ void JASPControl::componentComplete()
 		// They are created either from a ListView (or a TableView): when all terms of the ListView are set, the row components are created, and then initialized (via rhe ListModel::setUpRowControls function).
 		// Here the parent ListView and the key for this control is stored.
 		JASPListControl* parentlistView = nullptr;
+								 
+		emit formIsKnown(_form);
 
 		QVariant listViewVar = context->contextProperty("listView");
 		if (!listViewVar.isNull())
@@ -829,7 +831,7 @@ void JASPControl::rScriptDoneHandler(const QString &)
 	throw std::runtime_error("runRScript done but handler not implemented!\nImplement an override for rScriptDoneHandler\n");
 }
 
-void JASPControl::filterDoneHandler(const QString &name, const QString & error)
+void JASPControl::filterDoneHandler(int dataSetID, const QString &name, const QString & error)
 {
 	//throw std::runtime_error("runFilter done but handler not implemented!\nImplement an override for filterDoneHandler\n");
 	//No need to be annoying about it, each control that cares about a particular filter can just check it and the default does nothing.

@@ -75,12 +75,14 @@ void DataSetLoader::loadPackage(const string &locator, const string &extension, 
 
 	if (importer)
 	{
-		importer->loadDataSet(locator, progress);
+DataSet * dataSet = DataSetPackage::pkg()->createDataSet();
+		importer->loadDataSet(locator, dataSet, progress);
 		char chosenDelimiter = DesktopCommunicator::singleton()->knownCsvDelimiter();
-		if (chosenDelimiter != '\0' && DataSetPackage::pkg()->dataSet())
-			DataSetPackage::pkg()->dataSet()->setCsvDelimiter(chosenDelimiter);
+		if (chosenDelimiter != '\0' && dataSet)
+			dataSet->setCsvDelimiter(chosenDelimiter);
 		DesktopCommunicator::singleton()->setKnownCsvDelimiter('\0');
 		delete importer;
+		DataSetPackage::pkg()->workspace()->setShownDataSet(dataSet);
 	}
 	else if(extension == ".jasp" || extension == "jasp")
 		JASPImporter::loadDataSet(locator, progress);
@@ -97,9 +99,10 @@ void DataSetLoader::syncPackage(const string &locator, const string &extension, 
 
 	if (importer)
 	{
-		if (DataSetPackage::pkg()->dataSet())
-			DesktopCommunicator::singleton()->setKnownCsvDelimiter(DataSetPackage::pkg()->dataSet()->csvDelimiter());
-		importer->syncDataSet(locator, progress);
+DataSet * dataSet = DataSetPackage::pkg()->dataSet();
+		if (dataSet)
+			DesktopCommunicator::singleton()->setKnownCsvDelimiter(dataSet->csvDelimiter());
+		importer->syncDataSet(locator, dataSet, progress);
 		DesktopCommunicator::singleton()->setKnownCsvDelimiter('\0');
 		delete importer;
 	}
