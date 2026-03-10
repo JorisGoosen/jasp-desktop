@@ -5,25 +5,26 @@
 #include "qmlutils.h"
 #include "qutils.h"
 #include "log.h"
-#include "columnencoder.h"
-#include "models/term.h"
-#include "jaspcontrol.h"
-#include "altnavpostfixassignmentstrategy.h"
-#include "variableinfo.h"
-#include "messageforwarder.h"
-#include "preferencesmodelbase.h"
-#include "jasptheme.h"
-#include "knownissues.h"
-#include "modules/upgrader/upgrades.h"
+#include "modules/description/description.h"
+#include "modules/description/entrybase.h"
 #include "modules/upgrader/upgrade.h"
+#include "modules/upgrader/upgrades.h"
 #include "modules/upgrader/changejs.h"
 #include "modules/upgrader/changecopy.h"
 #include "modules/upgrader/changeremove.h"
 #include "modules/upgrader/changerename.h"
 #include "modules/upgrader/changesetvalue.h"
 #include "modules/upgrader/changeincompatible.h"
-#include "modules/description/description.h"
-#include "modules/description/entrybase.h"
+#include "columnencoder.h"
+#include "models/term.h"
+#include "jaspcontrol.h"
+#include "altnavpostfixassignmentstrategy.h"
+#include "messageforwarder.h"
+#include "preferencesmodelbase.h"
+#include "jasptheme.h"
+#include "knownissues.h"
+#include "workspace.h"
+
 
 #ifdef linux
 #include <QtGlobal>
@@ -243,7 +244,7 @@ void QmlUtils::setGlobalPropertiesInQMLContext(QQmlContext * ctxt)
 #endif
 	ctxt->setContextProperty("INTERACTION_SEPARATOR",	Term::separator);
 	
-	ctxt->setContextProperty("dataSetInfo",				VariableInfo::info());
+	ctxt->setContextProperty("dataSetInfo",				Workspace::singleton() ? Workspace::singleton()->varInfo() : nullptr);
 	ctxt->setContextProperty("messages",				MessageForwarder::msgForwarder());
 	ctxt->setContextProperty("backgroundForms",			nullptr);
 

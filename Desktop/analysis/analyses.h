@@ -62,8 +62,7 @@ public:
 	static Analyses *	analyses()	{ return _singleton; }
 
 	Analysis	*	createFromJaspFileEntry(Json::Value analysisData, RibbonModel* ribbonModel);
-
-	Analysis	*	create(const Json::Value & analysisData, Modules::AnalysisEntry * analysisEntry, size_t id, Analysis::Status status = Analysis::Empty, bool notifyAll = true, const std::string & title = "", const Version & loadedVersion = "", const Json::Value & options = Json::nullValue);
+	Analysis	*	create(const Json::Value & analysisData, Modules::AnalysisEntry * analysisEntry, size_t id, Analysis::Status status = Analysis::Empty, bool notifyAll = true, const std::string & title = "", const Version & loadedVersion = "", const Json::Value & options = Json::nullValue, std::string filter="DEFAULT_FILTER");
 	Analysis	*	create(Modules::AnalysisEntry * analysisEntry)													{ return create(Json::nullValue, analysisEntry, _nextId++);						}
 	Analysis	*	create(Modules::AnalysisEntry * analysisEntry, const Json::Value & options);
 
@@ -91,7 +90,7 @@ public:
 
 	Json::Value asJson() const;
 
-	void		selectAnalysis(Analysis * analysis);
+	
 	
 	int						rowCount(const QModelIndex & = QModelIndex())				const override	{ return int(count()); }
 	QVariant				data(const QModelIndex &index, int role = Qt::DisplayRole)	const override;
@@ -107,9 +106,12 @@ public:
 	Analysis*				createAnalysis(const QString& module, const QString& analysis);
 
 public slots:
+	void selectAnalysis(Analysis * analysis);
+	void selectAnalysisById(int analysisId);
 	void removeAnalysisById(size_t id);
 	void removeAnalysis(Analysis *analysis);
 	void refreshAllAnalyses();
+	void refreshAllAnalysesOfFilter(Filter * f);
 	void refreshAllPlots(std::set<Analysis*> exceptThese = {});
 	void analysisClickedHandler(QString analysisFunction, QString analysisQML, QString analysisTitle, QString module);
 	void setCurrentAnalysisIndex(int currentAnalysisIndex);
@@ -118,7 +120,7 @@ public slots:
 	void selectAnalysisAtRow(int row);
 	void unselectAnalysis();
 	void rCodeReturned(QString result, int requestId, bool hasError);
-	void filterByNameDone(QString name, QString error);
+	void filterByNameDone(int dataSetID, QString name, QString error);
 	void setCurrentFormHeight(double currentFormHeight);
 	void setVisible(bool visible);
 	void setMoving(bool moving);
@@ -143,6 +145,7 @@ public slots:
 	void dataModeChanged(bool dataMode);
 	void saveAnalysesJsonForReload();
 	void reloadSavedAnalysesJson();
+	void checkForDependentAnalyses(Column * column);
 
 signals:
 	void analysesUnselected();
@@ -156,8 +159,8 @@ signals:
 	void analysisTitleChanged(			Analysis *  source);
 	void analysisOverwriteUserdata(		Analysis *	source);
 	void analysisStatusChanged(			Analysis *	source);
-	void sendRScript(					QString		script, int requestID, bool whiteListedVersion, QString module);
-	void sendFilterByName(				QString		name,	QString module);
+	void sendRScript(					int dataSetId, QString		script, int requestID, bool whiteListedVersion, QString module);
+	void sendFilterByName(				int dataSetId, QString		name,	QString module);
 
 	void analysisSelectedIndexResults(	int			row);
 	void showAnalysisInResults(			int			id);
@@ -181,7 +184,8 @@ signals:
 
 private slots:
 	void sendRScriptHandler(QString script, QString controlName, bool whiteListedVersion, QString module);
-	void sendFilterHandler(QString name, QString module);
+	void sendFilterHandler(	QString name, QString module);
+	
 
 private:
 	void bindAnalysisHandler(Analysis* analysis);

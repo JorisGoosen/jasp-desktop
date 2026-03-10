@@ -168,6 +168,7 @@ ComponentsListBase
 
 					QtControls.ToolTip.text			: tabView.removeTooltip
 					QtControls.ToolTip.visible		: tabView.removeTooltip !== "" && deleteMouseArea.containsMouse
+					QtControls.ToolTip.toolTip.background:		Rectangle { color: jaspTheme.tooltipBackgroundColor; radius: jaspTheme.borderRadius }
 
 					MouseArea
 					{

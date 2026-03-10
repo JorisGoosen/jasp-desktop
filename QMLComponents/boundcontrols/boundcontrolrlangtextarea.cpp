@@ -21,6 +21,7 @@
 #include "log.h"
 #include "columnencoder.h"
 #include "analysisform.h"
+#include "filter.h"
 #include <QQuickTextDocument>
 
 BoundControlRlangTextArea::BoundControlRlangTextArea(TextAreaBase *textArea, RLangType type)
@@ -31,7 +32,8 @@ BoundControlRlangTextArea::BoundControlRlangTextArea(TextAreaBase *textArea, RLa
 	if (textDocumentQQuick)
 	{
 		QTextDocument* doc = textDocumentQQuick->textDocument();
-        _rLangHighlighter = new RSyntaxHighlighter(doc);
+        _rLangHighlighter = new RSyntaxHighlighter(doc, textArea->form()->varInfo());
+		
 		//connect(doc, &QTextDocument::contentsChanged, this, &BoundQMLTextArea::contentsChangedHandler);
 	}
 	else

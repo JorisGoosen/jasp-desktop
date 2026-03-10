@@ -60,17 +60,17 @@ private:
 	void					receiveAnalysisMessage(			const Json::Value & jsonRequest);
 	void					receiveComputeColumnMessage(	const Json::Value & jsonRequest);
 	void					receiveModuleRequestMessage(	const Json::Value & jsonRequest);
-	void					receiveReloadData();
+	void					receiveReloadData(				const Json::Value & jsonRequest);
 	void					receiveLogCfg(					const Json::Value & jsonRequest);
 	void					receiveSettings(				const Json::Value & jsonRequest);
 	void					absorbSettings(					const Json::Value & json);
 
 	void					runAnalysis();
-	void					runComputeColumn(	const std::string & computeColumnName,	const std::string & computeColumnCode,	columnType computeColumnType	);
-	void					runFilter(			const std::string & filter,				const std::string & generatedFilter,	int filterRequestId				);
-	void 					runFilterByName(	const std::string & name);
-	void					runRCode(			const std::string & rCode,				int rCodeRequestId,						bool whiteListed				);
-	void					runRCodeCommander(		  std::string   rCode																						);
+	void					runComputeColumn(	int dataSet,		const std::string & computeColumnName,	const std::string & computeColumnCode,	columnType computeColumnType	);
+	void					runFilter(			int dataSet,		const std::string & filter,				const std::string & generatedFilter,	int filterRequestId				);
+	void 					runFilterByName(	const std::string & name, int dataSet);
+	void					runRCode(			int dataSet,		const std::string & rCode,				int rCodeRequestId,						bool whiteListed				);
+	void					runRCodeCommander(	int dataSet,		std::string   rCode																						);
 
 	void					stopEngine();
 	void					pauseEngine(	const Json::Value & jsonRequest);
@@ -102,6 +102,7 @@ private: // Data:
 									_lastRequest			= engineState::initializing;
 	Status							_analysisStatus			= Status::empty;
 	int								_analysisRevision,
+									_analysisDataSetId		= -1,
 									_progress,
 									_ppi					= 96,
 									_numDecimals			= 3;
@@ -113,6 +114,7 @@ private: // Data:
 									_analysisPreloadData;
 	std::string						_analysisName,
 									_analysisTitle,
+									_analysisFilter,
 									_analysisDataKey,
 									_analysisResultsMeta,
 									_analysisStateKey,

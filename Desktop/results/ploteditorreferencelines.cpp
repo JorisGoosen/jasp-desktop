@@ -1,6 +1,6 @@
 #include "ploteditorreferencelines.h"
-#include "data/datasetpackageenums.h"
-#include "utilities/qutils.h"
+#include "dataenums.h"
+#include "qutils.h"
 #include "ploteditormodel.h"
 
 namespace PlotEditor

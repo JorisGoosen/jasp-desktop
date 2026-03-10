@@ -1,8 +1,9 @@
-#include "databaseconnectioninfo.h"
-#include "utilities/qutils.h"
-#include <QSqlDatabase>
-#include <QSqlError>
 #include "log.h"
+#include "qutils.h"
+#include <QSqlError>
+#include <QSqlDatabase>
+#include <QCoreApplication>
+#include "databaseconnectioninfo.h"
 
 Json::Value DatabaseConnectionInfo::toJson(bool forJaspFile) const
 {
@@ -23,6 +24,11 @@ Json::Value DatabaseConnectionInfo::toJson(bool forJaspFile) const
 	out["hadPassword"]	= forJaspFile ? _password != "" : _hadPassword;
 
 	return out;
+}
+
+void DatabaseConnectionInfo::init()
+{
+	QObject::connect(&_syncher,	&QTimer::timeout, this,	&DatabaseConnectionInfo::synchingIntervalPassed);
 }
 
 void DatabaseConnectionInfo::fromJson(const Json::Value & json)
@@ -76,21 +82,65 @@ QString DatabaseConnectionInfo::lastError() const
 QSqlQuery DatabaseConnectionInfo::runQuery() const
 {
 	if(!QSqlDatabase::database().isOpen())
-		throw std::runtime_error(fq(QObject::tr("JASP thinks it's connected to the database but the QSqlDatabase isn't opened...")));
+		throw std::runtime_error(fq(tr("JASP thinks it's connected to the database but the QSqlDatabase isn't opened...")));
 	
 	QSqlQuery query;
 	query.setForwardOnly(true);
 
 	if(!query.exec(_query))
-		throw std::runtime_error(fq(QObject::tr("Query failed with: '%1'").arg(query.lastError().text())));
+		throw std::runtime_error(fq(tr("Query failed with: '%1'").arg(query.lastError().text())));
 
 	if(!query.isSelect())
-		throw std::runtime_error(fq(QObject::tr("Query wasn't a SELECT-like statement and returned nothing.")));
+		throw std::runtime_error(fq(tr("Query wasn't a SELECT-like statement and returned nothing.")));
 
 	if(!query.isActive())
-		throw std::runtime_error(fq(QObject::tr("No active result found, maybe there is something wrong with your query?")));
+		throw std::runtime_error(fq(tr("No active result found, maybe there is something wrong with your query?")));
 	
 	return query;
+}
+
+bool DatabaseConnectionInfo::startSynching(bool syncImmediately)
+{
+	if(_interval > 0)
+	{
+		if(_hadPassword && !_rememberMe && _password == "")
+		{
+			bool tryAgain = true, couldConnect;
+
+			while(tryAgain)
+			{
+				_password	= emit askPassword(tr("Database Password"), _username != "" ? tr("The databaseconnection needs a password for user '%1'").arg(_username) : tr("The databaseconnection needs a password"));
+				tryAgain		= connect() ? false :  emit showYesNo(tr("Connection failed"), tr("Could not connect to database because of '%1', want to try a different password?").arg(lastError()));
+			}
+
+			if(!connected())
+			{
+				emit showWarning(tr("Database connection failed"), tr("Could not connect to the database so synchronizing will be disabled."));
+				return false;
+			}
+		}
+
+		_syncher.setInterval(1000 * 60 * _interval);
+		_syncher.start();
+
+		if(syncImmediately)
+			emit synchingIntervalPassed();
+
+		emit synchingChanged();
+		
+		return true;
+	}
+
+	return false;
+}
+
+void DatabaseConnectionInfo::stopSynching()
+{
+	if(!_syncher.isActive())
+		return;
+	
+	_syncher.stop();
+	emit synchingChanged();
 }
 
 

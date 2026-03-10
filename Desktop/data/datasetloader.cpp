@@ -73,8 +73,10 @@ void DataSetLoader::loadPackage(const string &locator, const string &extension, 
 
 	if (importer)
 	{
-		importer->loadDataSet(locator, progress);
+		DataSet * dataSet = DataSetPackage::pkg()->createDataSet();
+		importer->loadDataSet(locator, dataSet, progress);
 		delete importer;
+		DataSetPackage::pkg()->workspace()->setShownDataSet(dataSet);
 	}
 	else if(extension == ".jasp" || extension == "jasp")
 		JASPImporter::loadDataSet(locator, progress);
@@ -91,7 +93,9 @@ void DataSetLoader::syncPackage(const string &locator, const string &extension, 
 
 	if (importer)
 	{
-		importer->syncDataSet(locator, progress);
+		throw std::runtime_error("Implement proper coupling between synchronizing a dataset and the actual dataset being synched!");
+		DataSet * dataSet = DataSetPackage::pkg()->dataSet();
+		importer->syncDataSet(locator, dataSet, progress);
 		delete importer;
 	}
 }

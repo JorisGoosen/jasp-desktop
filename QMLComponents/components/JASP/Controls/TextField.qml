@@ -259,6 +259,9 @@ TextInputBase
 		QTC.ToolTip.text		: control.text
 		QTC.ToolTip.visible		: tooLongText && (hovered || control.activeFocus) && control.echoMode != QTC.TextInput.Password
 
+		//QTC.ToolTip.text		: control.text
+		//QTC.ToolTip.visible		: contentWidth > width - leftPadding - rightPadding && (hovered || control.activeFocus)
+		
 		// The acceptableInput is checked even if the user is still typing in the TextField.
 		// In this case, the error should not appear immediately (only when the user is pressing the return key, or going out of focus),
 		// so the checkValue is called with addErrorIfNotFocussed set to true: it should not display an error if in focus.

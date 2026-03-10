@@ -19,12 +19,13 @@
 #ifndef DATABRIDGE_H
 #define DATABRIDGE_H
 
-#include "dataset.h"
+#include "workspace.h"
 
 class DataBridge
 {
 public:
 	DataBridge(unsigned long sessionID, bool useMemory = false);
+	~DataBridge();
 
 	std::string				createColumn(				const std::string & columnName, bool computed=false); ///< Returns encoded columnname on success or "" on failure (cause it already exists)
 	bool					deleteColumn(				const std::string & columnName);
@@ -32,20 +33,21 @@ public:
 	int						getColumnType(				const std::string & columnName);
 	int						getColumnAnalysisId(		const std::string & columnName);
 	int						getColumnOriginalIndex(		const std::string & columnName);
-	DataSet				*	provideAndUpdateDataSet();
+	DataSet				*	provideAndUpdateDataSet(	int dataSetId = -1);
 	void					provideJaspResultsFileName(										std::string & root,	std::string & relativePath);
 	void					provideStateFileName(											std::string & root,	std::string & relativePath);
 	void					provideTempFileName(		const std::string & extension,		std::string & root,	std::string & relativePath);
 	void					provideSpecificFileName(	const std::string & specificName,	std::string & root,	std::string & relativePath);
 	int						dataSetRowCount()		{ return static_cast<int>(provideAndUpdateDataSet()->rowCount()); }
 	void 					updateOptionsAccordingToMeta(Json::Value & options);
+	
 
 protected:
 	bool					isColumnNameOk(const std::string & columnName);
 	void					reloadColumnNames();
 
 
-	DataSet				*	_dataSet		= nullptr;
+	Workspace			*	_workspace		= nullptr;
 	DatabaseInterface	*	_db				= nullptr;
 	int						_analysisId		= -1;
 	std::function<void()>	_datasetProvidedCallback;

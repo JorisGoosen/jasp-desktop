@@ -1,11 +1,11 @@
 #ifndef EXPANDDATAPROXYMODEL_H
 #define EXPANDDATAPROXYMODEL_H
 
-#include <QAbstractItemModel>
+#include <QIdentityProxyModel>
 #include "utils.h"
 #include "undostack.h"
 
-class ExpandDataProxyModel : public QAbstractItemModel
+class ExpandDataProxyModel : public QIdentityProxyModel
 {
 	Q_OBJECT
 
@@ -20,14 +20,13 @@ public:
 	Qt::ItemFlags				flags(				const QModelIndex &index)														const	override;
 	QModelIndex					index(				int row, int column, const QModelIndex &parent = QModelIndex())					const	override;
 	QModelIndex					parent(				const QModelIndex &index)														const	override;
+	
+	DataSet					*	dataSetSourceModel() const;
 
 	bool						isRowVirtual(		int row)																		const;
 	bool						isColumnVirtual(	int col)																		const;
 	bool						expandDataSet()																						const { return _expandDataSet; }
 	void						setExpandDataSet(	bool expand)																			{ _expandDataSet = expand; }
-
-	void						setSourceModel(		QAbstractItemModel* model);
-	QAbstractItemModel*			sourceModel()																						const { return _sourceModel; }
 
 	void						removeRows(			int start, int count);
 	void						removeColumns(		int start, int count);
@@ -43,21 +42,20 @@ public:
 	void						copyColumns(		int startCol, const std::vector<Json::Value>& copiedColumns);
 	Json::Value					serializedColumn(	int col);
 
-	void						undo()				{ _undoStack->undo(); }
-	void						redo()				{ _undoStack->redo(); }
-	QString						undoText()			{ return _undoStack->undoText(); }
-	QString						redoText()			{ return _undoStack->redoText(); }
+	UndoStack				*	undoStack()			{ return UndoStack::singleton(); }
+	void						undo()				{ undoStack()->undo(); }
+	void						redo()				{ undoStack()->redo(); }
+	QString						undoText()			{ return undoStack()->undoText(); }
+	QString						redoText()			{ return undoStack()->redoText(); }
 	void						resize(int row, int col, bool onlyExpand = true, const QString& undoText = QString());
 	bool						useUndoStack() const;
 
+	stringset columnIndexesToNames(intset columnIndexes);
 signals:
 	void						undoChanged();
 
 protected:
-	QAbstractItemModel*			_sourceModel			= nullptr;
 	bool						_expandDataSet			= false;
-
-	UndoStack*					_undoStack				= nullptr;
 
 	const int	EXTRA_COLS				= 7;
 	const int	EXTRA_ROWS				= 20;

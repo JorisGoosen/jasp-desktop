@@ -36,6 +36,17 @@ DataBridge::DataBridge(unsigned long sessionID, bool useMemory)
 	}
 }
 
+DataBridge::~DataBridge()
+{
+	delete _workspace;
+	_workspace = nullptr;
+	
+	_db->close();
+	
+	delete _db;
+	_db = nullptr;
+}
+
 void DataBridge::provideStateFileName(std::string & root, std::string & relativePath)
 {
 	return TempFiles::createSpecific("state", _analysisId, root, relativePath);
@@ -81,27 +92,27 @@ int DataBridge::getColumnOriginalIndex(const std::string &columnName)
 	return provideAndUpdateDataSet()->getColumnIndex(columnName);
 }
 
-DataSet * DataBridge::provideAndUpdateDataSet()
+DataSet * DataBridge::provideAndUpdateDataSet(int dataSetId)
 {
 	JASPTIMER_RESUME(DataBridge::provideAndUpdateDataSet());
-
-	bool setColumnNames = !_dataSet;
-
-	if(!_dataSet && _db->dataSetGetId() == 1 && _db->tableExists(_db->dataSetName(1)))
-		_dataSet = new DataSet(_db->dataSetGetId());
-
-	if(_dataSet)
-		setColumnNames |= _dataSet->checkForUpdates();
-
-	if(_dataSet && setColumnNames)
-		ColumnEncoder::columnEncoder()->setCurrentNames(_dataSet->getColumnTypesMap());
 	
-	if(_dataSet && _datasetProvidedCallback)
+	if(!_workspace)
+		_workspace = new Workspace();
+
+	_workspace->checkForUpdates();
+	
+	if(dataSetId != -1)
+		_workspace->setShownDataSet(dataSetId);
+			
+	if(_workspace->shownDataSet())
+		ColumnEncoder::columnEncoder()->setCurrentNames(_workspace->shownDataSet()->getColumnTypesMap());
+	
+	if(_workspace->shownDataSet() && _datasetProvidedCallback)
 		_datasetProvidedCallback();
 
 	JASPTIMER_STOP(DataBridge::provideAndUpdateDataSet());
 
-	return _dataSet;
+	return _workspace->shownDataSet();
 }
 
 std::string DataBridge::createColumn(const std::string &columnName, bool computed)
@@ -110,7 +121,7 @@ std::string DataBridge::createColumn(const std::string &columnName, bool compute
 		return "";
 
 	DataSet * data = provideAndUpdateDataSet();
-	Column  * col  = data->newColumn(columnName);
+	Column  * col  = data->createColumn(columnName);
 
 	col->setAnalysisId(_analysisId);
 	col->setCodeType(computed ? computedColumnType::analysis : computedColumnType::analysisNotComputed);
@@ -179,19 +190,19 @@ void DataBridge::updateOptionsAccordingToMeta(Json::Value & encodedOptions)
 			if(loadFilteredData.isObject())
 			{
 				const std::string	colName = loadFilteredData["column"].asString(),
-					filterN	= loadFilteredData["filter"].asString();
+									filterN	= loadFilteredData["filter"].asString();
 				DataSet			*	data	= provideAndUpdateDataSet();
 				Column			*	col		= data->column(colName);
 
 				if(!col)
 					return;
 
-				Filter			*	filter	= new Filter(data, filterN, false);
+				Filter			*	filter	= data->createFilter(filterN, false);
 
 				if(col && filter)
 				{
 					Json::Value rowIndices	= Json::arrayValue,
-						values		= Json::arrayValue;
+								values		= Json::arrayValue;
 					doublevec	dbls		= col->dataAsRDoubles({}); //We dont pass a filter because we need to know the rowindices.
 
 					for(size_t r=0; r<dbls.size(); r++)

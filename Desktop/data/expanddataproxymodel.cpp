@@ -1,48 +1,49 @@
 #include "expanddataproxymodel.h"
 #include "datasettablemodel.h"
+#include "dataenums.h"
+#include "qutils.h"
 
 ExpandDataProxyModel::ExpandDataProxyModel(QObject *parent)
-	: QAbstractItemModel{parent}
+	: QIdentityProxyModel{parent}
 {
-	_undoStack = DataSetPackage::pkg()->undoStack();
-	connect(_undoStack, &QUndoStack::indexChanged, this, &ExpandDataProxyModel::undoChanged) ;
+	connect(undoStack(), &QUndoStack::indexChanged, this, &ExpandDataProxyModel::undoChanged) ;
 }
 
 int ExpandDataProxyModel::rowCount(const QModelIndex &) const
 {
-	if (!_sourceModel)
+	if (!dataSetSourceModel())
 		return 0;
-	return _sourceModel->rowCount() + (_expandDataSet ? EXTRA_ROWS : 0);
+	return dataSetSourceModel()->rowCount() + (_expandDataSet ? EXTRA_ROWS : 0);
 }
 
 int ExpandDataProxyModel::columnCount(const QModelIndex &) const
 {
-	if (!_sourceModel)
+	if (!dataSetSourceModel())
 		return 0;
-	return _sourceModel->columnCount() + (_expandDataSet ? EXTRA_COLS : 0);
+	return dataSetSourceModel()->columnCount() + (_expandDataSet ? EXTRA_COLS : 0);
 }
 
-QVariant ExpandDataProxyModel::data(const QModelIndex &index, int role) const
+QVariant ExpandDataProxyModel::data(const QModelIndex &indexP, int role) const
 {
-	if (!_sourceModel || role == -1) // Role not defined
+	if (!dataSetSourceModel() || role == -1) // Role not defined
 		return QVariant();
 
-	int row		= index.row(),
-		column	= index.column();
+	int row		= indexP.row(),
+		column	= indexP.column();
 
-	if (column < _sourceModel->columnCount() && row < _sourceModel->rowCount())
-		return _sourceModel->data(_sourceModel->index(row, column), role);
+	if (column < dataSetSourceModel()->columnCount() && row < dataSetSourceModel()->rowCount())
+		return dataSetSourceModel()->data(dataSetSourceModel()->index(row, column), role);
 
 	switch(role)
 	{
 	case int(dataPkgRoles::selected):				return false;
 	case int(dataPkgRoles::lines):
 	{
-		DataSetTableModel * dataSetTable = dynamic_cast<DataSetTableModel *>(_sourceModel);
+		DataSetTableModel * dataSetTable = dynamic_cast<DataSetTableModel *>(dataSetSourceModel());
 
-		if (row < _sourceModel->rowCount() && dataSetTable && dataSetTable->showInactive() && !DataSetPackage::pkg()->getRowFilter(row))
-			return DataSetPackage::getDataSetViewLines(false, false, false, false);
-		return DataSetPackage::getDataSetViewLines(column>0, row>0, true, true);
+		if (row < dataSetSourceModel()->rowCount() && dataSetTable && dataSetTable->showInactive() && !data(index(row,0), int(dataPkgRoles::filter)).toBool())
+			return DataSet::getDataSetViewLines(false, false, false, false);
+		return DataSet::getDataSetViewLines(column>0, row>0, true, true);
 	}
 	case int(dataPkgRoles::value):					return "";
 	case int(dataPkgRoles::columnType):				return int(columnType::scale);
@@ -54,13 +55,13 @@ QVariant ExpandDataProxyModel::data(const QModelIndex &index, int role) const
 
 QVariant ExpandDataProxyModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-	if (!_sourceModel || role == -1) // Role not defined
+	if (!dataSetSourceModel() || role == -1) // Role not defined
 		return QVariant();
 
 	if (orientation == Qt::Orientation::Horizontal)
 	{
-		if (section < _sourceModel->columnCount())
-			return _sourceModel->headerData(section, orientation, role);
+		if (section < dataSetSourceModel()->columnCount())
+			return dataSetSourceModel()->headerData(section, orientation, role);
 		else
 			switch(role)
 			{
@@ -75,12 +76,12 @@ QVariant ExpandDataProxyModel::headerData(int section, Qt::Orientation orientati
 	}
 	else if (orientation == Qt::Orientation::Vertical)
 	{
-		if (section < _sourceModel->rowCount())
-			return _sourceModel->headerData(section, orientation, role);
+		if (section < dataSetSourceModel()->rowCount())
+			return dataSetSourceModel()->headerData(section, orientation, role);
 		else if (section == 0 && role == int(dataPkgRoles::maxRowHeaderString))
 			return "XXXX";
 		else
-			return  DataSetPackage::pkg()->dataRowCount() + (section - _sourceModel->rowCount()) + 1;
+			return  section + 1;
 	}
 
 	return QVariant();
@@ -88,18 +89,18 @@ QVariant ExpandDataProxyModel::headerData(int section, Qt::Orientation orientati
 
 Qt::ItemFlags ExpandDataProxyModel::flags(const QModelIndex &index) const
 {
-	if (!_sourceModel)
+	if (!dataSetSourceModel())
 		return Qt::NoItemFlags;
 
-	if (index.column() < _sourceModel->columnCount() && index.row() < _sourceModel->rowCount())
-		return _sourceModel->flags(_sourceModel->index(index.row(), index.column()));
+	if (index.column() < dataSetSourceModel()->columnCount() && index.row() < dataSetSourceModel()->rowCount())
+		return dataSetSourceModel()->flags(dataSetSourceModel()->index(index.row(), index.column()));
 
 	return Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable;
 }
 
 QModelIndex ExpandDataProxyModel::index(int row, int column, const QModelIndex &) const
 {
-	if (!_sourceModel)
+	if (!dataSetSourceModel())
 		return QModelIndex();
 
 	return createIndex(row, column);
@@ -113,54 +114,30 @@ QModelIndex ExpandDataProxyModel::parent(const QModelIndex &index) const
 
 bool ExpandDataProxyModel::isRowVirtual(int row) const
 {
-	if (!_sourceModel)
+	if (!dataSetSourceModel())
 		return false;
 
-	return row >= _sourceModel->rowCount();
+	return row >= dataSetSourceModel()->rowCount();
 }
 
 bool ExpandDataProxyModel::isColumnVirtual(int col) const
 {
-	if (!_sourceModel)
+	if (!dataSetSourceModel())
 		return false;
 
-	return col >= _sourceModel->columnCount();
+	return col >= dataSetSourceModel()->columnCount();
 }
 
-void ExpandDataProxyModel::setSourceModel(QAbstractItemModel *sourceModel)
-{
-	_sourceModel = sourceModel;
-	
-	if(_sourceModel)
-	{
-		connect(_sourceModel,				&QAbstractItemModel::modelReset,				this, &ExpandDataProxyModel::modelReset					);
-		connect(_sourceModel,				&QAbstractItemModel::dataChanged,				this, &ExpandDataProxyModel::dataChanged				);
-		connect(_sourceModel,				&QAbstractItemModel::headerDataChanged,			this, &ExpandDataProxyModel::headerDataChanged			);
-		connect(_sourceModel,				&QAbstractItemModel::modelAboutToBeReset,		this, &ExpandDataProxyModel::modelAboutToBeReset		);
-		connect(_sourceModel,				&QAbstractItemModel::columnsAboutToBeInserted,	this, &ExpandDataProxyModel::columnsAboutToBeInserted	);
-		connect(_sourceModel,				&QAbstractItemModel::columnsAboutToBeRemoved,	this, &ExpandDataProxyModel::columnsAboutToBeRemoved	);
-		connect(_sourceModel,				&QAbstractItemModel::columnsAboutToBeMoved,		this, &ExpandDataProxyModel::columnsAboutToBeMoved		);
-		connect(_sourceModel,				&QAbstractItemModel::rowsAboutToBeInserted,		this, &ExpandDataProxyModel::rowsAboutToBeInserted		);
-		connect(_sourceModel,				&QAbstractItemModel::rowsAboutToBeRemoved,		this, &ExpandDataProxyModel::rowsAboutToBeRemoved		);
-		connect(_sourceModel,				&QAbstractItemModel::rowsAboutToBeMoved,		this, &ExpandDataProxyModel::rowsAboutToBeMoved			);
-		connect(_sourceModel,				&QAbstractItemModel::columnsInserted,			this, &ExpandDataProxyModel::columnsInserted			);
-		connect(_sourceModel,				&QAbstractItemModel::columnsRemoved,			this, &ExpandDataProxyModel::columnsRemoved				);
-		connect(_sourceModel,				&QAbstractItemModel::columnsMoved,				this, &ExpandDataProxyModel::columnsMoved				);
-		connect(_sourceModel,				&QAbstractItemModel::rowsInserted,				this, &ExpandDataProxyModel::rowsInserted				);
-		connect(_sourceModel,				&QAbstractItemModel::rowsRemoved,				this, &ExpandDataProxyModel::rowsRemoved				);
-		connect(_sourceModel,				&QAbstractItemModel::rowsMoved,					this, &ExpandDataProxyModel::rowsMoved					);
-	}
-}
 
 void ExpandDataProxyModel::removeRows(int start, int count)
 {
-	if (!_sourceModel || count <= 0 || start < 0 || start >= _sourceModel->rowCount())
+	if (!dataSetSourceModel() || count <= 0 || start < 0 || start >= dataSetSourceModel()->rowCount())
 		return;
 
-	if (start + count > _sourceModel->rowCount())
-		count = _sourceModel->rowCount() - start;
+	if (start + count > dataSetSourceModel()->rowCount())
+		count = dataSetSourceModel()->rowCount() - start;
 
-	_undoStack->pushCommand(new RemoveRowsCommand(_sourceModel, start, count));
+	undoStack()->pushCommand(new RemoveRowsCommand(dataSetSourceModel(), start, count));
 }
 
 void ExpandDataProxyModel::removeRowGroups(std::vector<std::pair<int, int> > groups)
@@ -172,22 +149,22 @@ void ExpandDataProxyModel::removeRowGroups(std::vector<std::pair<int, int> > gro
 	if(!rows)
 		return;
 	
-	_undoStack->startMacro(tr("Remove %1 rows").arg(rows));
+	undoStack()->startMacro(tr("Remove %1 rows").arg(rows));
 	for(const auto & startCount : groups)
-		_undoStack->pushCommand(new RemoveRowsCommand(_sourceModel, startCount.first, startCount.second));
+		undoStack()->pushCommand(new RemoveRowsCommand(dataSetSourceModel(), startCount.first, startCount.second));
 	
-	_undoStack->endMacro();
+	undoStack()->endMacro();
 }
 
 void ExpandDataProxyModel::removeColumns(int start, int count)
 {
-	if (!_sourceModel || count <= 0 || start < 0 || start >= _sourceModel->columnCount())
+	if (!dataSetSourceModel() || count <= 0 || start < 0 || start >= dataSetSourceModel()->columnCount())
 		return;
 
-	if (start + count > _sourceModel->columnCount())
-		count = _sourceModel->columnCount() - start;
+	if (start + count > dataSetSourceModel()->columnCount())
+		count = dataSetSourceModel()->columnCount() - start;
 	
-	_undoStack->pushCommand(new RemoveColumnsCommand(_sourceModel, start, count));
+	undoStack()->pushCommand(new RemoveColumnsCommand(dataSetSourceModel(), start, count));
 }
 
 void ExpandDataProxyModel::removeColumnGroups(std::vector<std::pair<int, int> > groups)
@@ -199,148 +176,167 @@ void ExpandDataProxyModel::removeColumnGroups(std::vector<std::pair<int, int> > 
 	if(!cols)
 		return;
 	
-	_undoStack->startMacro(tr("Remove %1 columns").arg(cols));
+	undoStack()->startMacro(tr("Remove %1 columns").arg(cols));
 	for(const auto & startCount : groups)
-		new RemoveColumnsCommand(_sourceModel, startCount.first, startCount.second);
+		new RemoveColumnsCommand(dataSetSourceModel(), startCount.first, startCount.second);
 	
-	_undoStack->endMacro();
+	undoStack()->endMacro();
 }
 
 void ExpandDataProxyModel::insertRows(int row, int count)
 {
-	if (!_sourceModel)
+	if (!dataSetSourceModel())
 		return;
 
-	_undoStack->pushCommand(new InsertRowsCommand(_sourceModel, row, count));
+	undoStack()->pushCommand(new InsertRowsCommand(dataSetSourceModel(), row, count));
 }
 
 
 void ExpandDataProxyModel::insertColumns(int col, int count)
 {
-	if (!_sourceModel)
+	if (!dataSetSourceModel())
 		return;
 
-	_undoStack->pushCommand(new InsertColumnsCommand(_sourceModel, col, count));
+	undoStack()->pushCommand(new InsertColumnsCommand(dataSetSourceModel(), col, count));
 }
 
 
 void ExpandDataProxyModel::insertColumn(int col, bool computed, bool R)
 {
-	if (!_sourceModel)
+	if (!dataSetSourceModel())
 		return;
 
 	QMap<QString, QVariant> props;
 	if (computed)
 		props["computed"] = int(R ? computedColumnType::rCode : computedColumnType::constructorCode);
-	_undoStack->pushCommand(new InsertColumnCommand(_sourceModel, col, props));
+	undoStack()->pushCommand(new InsertColumnCommand(dataSetSourceModel(), col, props));
 }
 
 void ExpandDataProxyModel::resize(int row, int col, bool onlyExpand, const QString& undoText)
 {
-	if (!_sourceModel || row < 0 || col < 0)
+	if (!dataSetSourceModel() || row < 0 || col < 0)
 		return;
 
 	if (onlyExpand)
 	{
-		if (col < _sourceModel->columnCount() && row < _sourceModel->rowCount()) return;
+		if (col < dataSetSourceModel()->columnCount() && row < dataSetSourceModel()->rowCount()) return;
 	}
 	else
 	{
-		if (col == (_sourceModel->columnCount() - 1) && row == (_sourceModel->rowCount() - 1)) return;
+		if (col == (dataSetSourceModel()->columnCount() - 1) && row == (dataSetSourceModel()->rowCount() - 1)) return;
 	}
 
-	_undoStack->startMacro(undoText);
+	undoStack()->startMacro(undoText);
 
-	if(col >= _sourceModel->columnCount())
+	if(col >= dataSetSourceModel()->columnCount())
 	{	
-		int colNr = _sourceModel->columnCount(),
+		int colNr = dataSetSourceModel()->columnCount(),
 			colC  = 1 + col - colNr;
 		
 		if(colC > 0)
 			insertColumns(colNr, colC);
 	}
-	else if (!onlyExpand && col < (_sourceModel->columnCount() - 1))
-		removeColumns(col + 1, _sourceModel->columnCount() - col - 1);
+	else if (!onlyExpand && col < (dataSetSourceModel()->columnCount() - 1))
+		removeColumns(col + 1, dataSetSourceModel()->columnCount() - col - 1);
 
-	if(row >= _sourceModel->rowCount())
+	if(row >= dataSetSourceModel()->rowCount())
 	{	
-		int rowNr = _sourceModel->rowCount(),
+		int rowNr = dataSetSourceModel()->rowCount(),
 			rowC  = 1 + row - rowNr;
 		
 		if(rowC > 0)
 			insertRows(rowNr, rowC);
 	}
-	else if (!onlyExpand && row < (_sourceModel->rowCount() - 1))
-		removeRows(row + 1, _sourceModel->rowCount() - row - 1);
+	else if (!onlyExpand && row < (dataSetSourceModel()->rowCount() - 1))
+		removeRows(row + 1, dataSetSourceModel()->rowCount() - row - 1);
 
 	if (!undoText.isEmpty())
-		_undoStack->endMacro();
+		undoStack()->endMacro();
 }
 
 bool ExpandDataProxyModel::useUndoStack() const
 {
-	return dynamic_cast<DataSetTableModel*>(_sourceModel);
+	return dynamic_cast<DataSetTableModel*>(dataSetSourceModel());
 }
 
 bool ExpandDataProxyModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-	if (!_sourceModel || index.row() < 0 || index.column() < 0)
+	if (!dataSetSourceModel() || index.row() < 0 || index.column() < 0)
 		return false;
 	
 	if(!useUndoStack())
 	{
-		return _sourceModel->setData(_sourceModel->index(index.row(), index.column()), value, role);	
+		return dataSetSourceModel()->setData(dataSetSourceModel()->index(index.row(), index.column()), value, role);	
 	}
 
 	resize(index.row(), index.column());
-	_undoStack->endMacro(new SetDataCommand(_sourceModel, index.row(), index.column(), value, role));
+	undoStack()->endMacro(new SetDataCommand(dataSetSourceModel(), index.row(), index.column(), value, role));
 	return true;
 }
 
 void ExpandDataProxyModel::pasteSpreadsheet(int row, int col, const std::vector<std::vector<QString>> & values, const std::vector<std::vector<QString>> & labels, const QStringList & colNames, const std::vector<boolvec> & selected)
 {
-	if (!_sourceModel || row < 0 || col < 0 || values.size() == 0 || values[0].size() == 0 )
+	if (!dataSetSourceModel() || row < 0 || col < 0 || values.size() == 0 || values[0].size() == 0 )
 		return;
 
 	resize(row + values[0].size() - 1, col + values.size() - 1);
-	_undoStack->endMacro(new PasteSpreadsheetCommand(_sourceModel, row, col, values, labels, selected, colNames));
+	undoStack()->endMacro(new PasteSpreadsheetCommand(dataSetSourceModel(), row, col, values, labels, selected, colNames));
+}
+
+stringset ExpandDataProxyModel::columnIndexesToNames(intset columnIndexes)
+{
+	stringset colNames;
+
+	for(int i : columnIndexes)
+		colNames.insert(fq(headerData(i, Qt::Horizontal, int(dataPkgRoles::name)).toString()));
+
+	return colNames;
 }
 
 int ExpandDataProxyModel::setColumnType(intset columnIndexes, int columnType)
 {
-	_undoStack->pushCommand(new SetColumnTypeCommand(_sourceModel, columnIndexes, columnType));
+
+	undoStack()->pushCommand(new SetColumnTypeCommand(dataSetSourceModel(), columnIndexesToNames(columnIndexes), columnType));
 
 	return columnType; //it always works
 }
 
 void ExpandDataProxyModel::columnReverseValues(intset columnIndexes)
 {
-	_undoStack->pushCommand(new ColumnReverseValuesCommand(_sourceModel, columnIndexes));
+	undoStack()->pushCommand(new ColumnReverseValuesCommand(dataSetSourceModel(), columnIndexesToNames(columnIndexes)));
 }
 
 void ExpandDataProxyModel::columnautoSortByValues(intset columnIndexes)
 {
-    _undoStack->pushCommand(new ColumnToggleAutoSortByValuesCommand(_sourceModel, columnIndexes));
+	undoStack()->pushCommand(new ColumnToggleAutoSortByValuesCommand(dataSetSourceModel(), columnIndexesToNames(columnIndexes)));
 }
 
 void ExpandDataProxyModel::copyColumns(int startCol, const std::vector<Json::Value>& copiedColumns)
 {
-	if (!_sourceModel || startCol < 0 || copiedColumns.size() == 0)
+	if (!dataSetSourceModel() || startCol < 0 || copiedColumns.size() == 0)
 		return;
 
 	resize(0, startCol + copiedColumns.size() - 1);
-	_undoStack->endMacro(new CopyColumnsCommand(_sourceModel, startCol, copiedColumns));
+	undoStack()->endMacro(new CopyColumnsCommand(dataSetSourceModel(), startCol, copiedColumns));
 }
 
 Json::Value ExpandDataProxyModel::serializedColumn(int col)
 {
-	Json::Value result;
-	if (col < _sourceModel->columnCount())
+	if (col < dataSetSourceModel()->columnCount())
 	{
-		QString colName = _sourceModel->headerData(col, Qt::Orientation::Horizontal).toString();
-		if (!colName.isEmpty())
-			result = DataSetPackage::pkg()->serializeColumn(colName.toStdString());
+		
+		return dataSetSourceModel()->column(col)->serialize();
 	}
 
-	return result;
+	return Json::nullValue;
+}
+
+DataSet	* ExpandDataProxyModel::dataSetSourceModel() const 
+{ 
+	DataSetTableModel * table = qobject_cast<DataSetTableModel*>(sourceModel()); 
+	
+	if(table)
+		return table->dataSetSourceModel();
+	
+	return nullptr;
 }

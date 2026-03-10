@@ -77,7 +77,6 @@ public:
 	QSet<QString>			usedControls()				const;
 	bool					connected()					const	{ return _connected;						}
 
-
 	void										connectModels();
 	void										disconnectModels();
 	static QVector<SourceItem*>					readAllSources(JASPListControl* _listControl);

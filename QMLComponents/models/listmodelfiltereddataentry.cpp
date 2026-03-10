@@ -1,11 +1,12 @@
 #include "listmodelfiltereddataentry.h"
 #include "columnutils.h"
 #include "controls/tableviewbase.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "log.h"
 #include "controls/jaspcontrol.h"
 #include "filter.h"
-
+#include "dataset.h"
+#include "analysisform.h"
 
 ListModelFilteredDataEntry::ListModelFilteredDataEntry(TableViewBase * parent)
 	: ListModelTableViewBase(parent)
@@ -22,9 +23,15 @@ ListModelFilteredDataEntry::ListModelFilteredDataEntry(TableViewBase * parent)
 	{
 		_filterName = "ListModelFilteredDataEntry_" + std::to_string(counter++);
 	}
-	while(!Filter::filterNameIsFree(_filterName));
+	while(!Filter::filterNameIsFree(_tableView->form()->analysisObj()->dataSet(), _filterName));
 	
-	connect(VariableInfo::info(),	&VariableInfo::dataSetChanged,					this, &ListModelFilteredDataEntry::dataSetChangedHandler);
+	assert(parent->form());
+	connect(parent->form()->filter()->varInfo(),	&VariableInfo::dataSetChanged,					this, &ListModelFilteredDataEntry::dataSetChangedHandler, Qt::UniqueConnection);
+	
+	connect(parent->form(), &AnalysisForm::filterChanged, this, [&](Filter * f)
+	{
+		connect(parent->form()->filter()->varInfo(),	&VariableInfo::dataSetChanged,				this, &ListModelFilteredDataEntry::dataSetChangedHandler, Qt::UniqueConnection);
+	});
 }
 
 ListModelFilteredDataEntry::~ListModelFilteredDataEntry()
@@ -42,7 +49,7 @@ void ListModelFilteredDataEntry::dataSetChangedHandler()
 
 size_t ListModelFilteredDataEntry::getDataSetRowCount() const
 {
-	return requestInfo(VariableInfo::DataSetRowCount).toUInt();
+	return requestInfo(varInfoType::DataSetRowCount).toUInt();
 }
 
 void ListModelFilteredDataEntry::setFilter(QString filter)
@@ -67,9 +74,9 @@ void ListModelFilteredDataEntry::runFilter()
 	runFilterByName(tq(_filter->name()));
 }
 
-void ListModelFilteredDataEntry::filterDoneHandler(const QString &name, const QString & error)
+void ListModelFilteredDataEntry::filterDoneHandler(int dataSetID, const QString &name, const QString & error)
 {
-	if(name.toStdString() != _filter->name())
+	if(name.toStdString() != _filter->name() || _filter->data()->id() != dataSetID)
 		return;
 
 	Log::log() << "ListModelFilteredDataEntry::filterDoneHandler for " << name << " and error '" << error << "'" << std::endl;
@@ -150,14 +157,14 @@ void ListModelFilteredDataEntry::initialValuesChanged()
 		const Terms& terms = _tableView->initialValuesControl()->model()->terms();
 		if (terms.size() > 0)
 		{
-			QList<QVariant> values = requestInfo(VariableInfo::DoubleValues, terms[0].value()).toList();
+			QList<QVariant> values = requestInfo(varInfoType::DoubleValues, terms[0].value()).toList();
 			for (const QVariant& value : values)
 				_initialValues.push_back(value.toDouble());
 		}
 	}
 	else if(_tableView->initialValuesSource().toString().isEmpty())
 	{
-		int			rowCount		= requestInfo(VariableInfo::DataSetRowCount).toInt();
+		int			rowCount		= requestInfo(varInfoType::DataSetRowCount).toInt();
 		QVariant	defaultValue	= _tableView->defaultValue();	
 		double		dblVal;
 		
@@ -178,12 +185,12 @@ void ListModelFilteredDataEntry::initTableTerms(const TableTerms& terms)
 	{
 		//We dont apparently have a previous filterName, so this is a fresh one, we need a new filter!
 		assert(!_filter && !_filterName.empty());
-		_filter = new Filter(VariableInfo::info()->dataSet(), _filterName, true);
+        _filter =   listView()->form()->varInfo()->dataSet()->createFilter(_filterName, true);
 	}
 	else if(!_filter)
 	{
 		_filterName = fq(terms.filterName);
-		_filter		= new Filter(VariableInfo::info()->dataSet(), _filterName, true);
+        _filter		= listView()->form()->varInfo()->dataSet()->createFilter(_filterName, true);
 	}
 
 	if (terms.colName.isEmpty())
@@ -267,7 +274,7 @@ QVariant ListModelFilteredDataEntry::data(const QModelIndex &index, int role) co
 	//Otherwise get it from the data:
 	QString colName		= _tableTerms.colNames[column];
 	size_t rowData		= _filteredRowToData[static_cast<size_t>(row)];
-	return requestInfo(VariableInfo::DataSetValue, colName, rowData);
+	return requestInfo(varInfoType::DataSetValue, colName, rowData);
 }
 
 
@@ -284,7 +291,7 @@ void ListModelFilteredDataEntry::itemChanged(int column, int row, QVariant value
 		//Otherwise get it from the data:
 		QString colName		= _tableTerms.colNames[column];
 		size_t rowData		= _filteredRowToData[static_cast<size_t>(row)];
-		sendInfo(VariableInfo::DataSetValue, colName, rowData, value);
+		sendInfo(varInfoType::DataSetValue, colName, rowData, value);
 	}
 }
 
@@ -300,7 +307,7 @@ int ListModelFilteredDataEntry::getMaximumColumnWidthInCharacters(size_t column)
 	if (colIndex < _tableTerms.colNames.size() && colIndex >= 0)
 	{
 		QString colName	= _tableTerms.colNames[colIndex];
-		return requestInfo(VariableInfo::MaxWidth, colName).toInt();
+		return requestInfo(varInfoType::MaxWidth, colName).toInt();
 	}
 
 
@@ -372,7 +379,7 @@ void ListModelFilteredDataEntry::informDataSetOfInitialValues()
 		
 		if(somethingFilled)
 		{
-			sendInfo(VariableInfo::DataSetValues, _tableTerms.colName, 0, vals);
+			sendInfo(varInfoType::DataSetValues, _tableTerms.colName, 0, vals);
 			_informOnce = false;
 			refresh();
 		}

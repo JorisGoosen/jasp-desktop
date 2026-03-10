@@ -21,7 +21,7 @@
 
 #include <QAbstractTableModel>
 #include "variableinfo.h"
-#include "dataset.h"
+#include "workspace.h"
 #include "databaseinterface.h"
 
 
@@ -33,7 +33,7 @@ public:
 
 	~DataSetProvider();
 
-	DataSet					*	dataSet()	{ return _dataSet; }
+	DataSet					*	dataSet()	const	{ return _workspace ? _workspace->shownDataSet() : nullptr; }
 	void						resetDataSet();
 
 	int							rowCount(	const QModelIndex & parent = QModelIndex())									const	override;
@@ -43,9 +43,10 @@ public:
 	void						loadDataSet(const std::map<std::string, stringvec > & dataSet, int threshold = 10, bool orderLabelsByValue = true);
 	void						loadDatabase(const Version & jaspVersion);
 
-	QVariant					provideInfo(VariableInfo::InfoType info, const QString& colName = "", int row = 0)		const	override;
-	bool						absorbInfo(	VariableInfo::InfoType info, const QString& name, int row, QVariant value)			override;
+	QVariant					provideInfo(varInfoType info, const QString& colName = "", int row = 0)		const	override;
+	bool						absorbInfo(	varInfoType info, const QString& name, int row, QVariant value)			override;
 	QAbstractItemModel		*	providerModel()																					override	{ return this;	}
+
 
 
 private:
@@ -58,7 +59,7 @@ private:
 	QStringList					_getColumnNames()				const;
 
 	DatabaseInterface		*	_db					= nullptr;
-	DataSet					*	_dataSet			= nullptr;
+	Workspace				*	_workspace			= nullptr;
 
 };
 

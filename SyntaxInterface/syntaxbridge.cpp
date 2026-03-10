@@ -315,7 +315,7 @@ const char*	STDCALL syntaxBridgeGetVariableNames()
 
 	static std::string result;
 
-	QStringList names = provider->provideInfo(VariableInfo::VariableNames).toStringList();
+	QStringList names = provider->provideInfo(varInfoType::VariableNames).toStringList();
 	Json::Value jsonNames(Json::arrayValue);
 
 	for (const QString & name : names)

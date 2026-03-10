@@ -92,10 +92,8 @@ public:
 	bool			busyWithData()			const;
 	bool			needsReloadData()		const { return idle() && _reloadData; }
 	bool			moduleLoaded()			const { return _moduleLoaded; }
-    bool        isPriviliged()           const { return _isPriviliged; }
-
-
-    void        setIsPrivileged(bool value) { _isPriviliged = value;}
+    bool			isPrivileged()          const { return _isPrivileged; }
+    void			setIsPrivileged(bool value) { _isPrivileged = value;}
 
 	///How many seconds has this engine been idle?
 	int64_t			idleFor() const;
@@ -152,19 +150,13 @@ public slots:
 signals:
 	void			engineTerminated();
 	void			checkDataSetForUpdates();
-	void			filterByNameDone(				QString name, QString error);
+	void			filterByNameDone(				int dataSetID, QString name, QString error);
 	void			filterDone(																int requestID);
 	void			processFilterErrorMsg(			const QString & error,					int requestId = -1);
-	void			processNewFilterResult(			int requestId);
-	void			computeColumnErrorTextChanged(	const QString & error);
-
+	
 	void			rCodeReturned(					const QString & result, int requestId, bool hasError	);
 	void			rCodeReturnedLog(				const QString & log, bool hasError						);
 
-	void			computeColumnSucceeded(			const QString & columnName, const QString & warning, bool dataChanged);
-	void			computeColumnRemoved(			const QString & columnName);
-	void			computeColumnFailed(			const QString & columnName, const QString & error);
-	void			columnDataTypeChanged(			const QString & columnName);
 
 	void			moduleInstallationSucceeded(	const QString & moduleName);
 	void			moduleInstallationFailed(		const QString & moduleName, const QString & errorMessage);
@@ -219,7 +211,8 @@ private:
 	int64_t			_idRemovedAnalysis	= -1,		///<If the analysis was deleted we should ignore its results
 					_lastRequestId		= -1,		///<for R code requests from qml components, so that we can send it back to the right element
 					_abortTime			= -1,		///<When did we tell the analysis to abort? So that we can kill it if it takes too long
-					_idleStartSecs		= -1;
+					_idleStartSecs		= -1,
+					_lastCompColDataSet = -1;
 	bool			_pauseRequested		= false,	///<should tell the engine to pause as soon as possible
 					_stopRequested		= false,	///<should tell the engine to stop as soon as possible
 					_slaveCrashed		= false,	///<My slave crashed
@@ -232,7 +225,7 @@ private:
 					_pauseUnloadData	= false,
 					_reloadData			= false,	///<when the idle is engine and this true, it should reload the data
                     _moduleLoaded		= false,	///<If _dynModName is set but this is false the engine should still load the module.
-                    _isPriviliged        = false;
+                    _isPrivileged        = false;
 	std::string		_lastCompColName	= "???",
 					_dynModName			= "",		///<If filled: refers to the particular dynamic module this engine was meant for.
 					_requestModName		= "";		///<To keep track of which engine is handling a request for a module

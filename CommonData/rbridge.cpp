@@ -425,7 +425,7 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSet(RBridgeColumnType* colHead
 	datasetColMax = colMax;
 	datasetStatic = static_cast<RBridgeColumn*>(calloc(datasetColMax + 1, sizeof(RBridgeColumn)));
 
-	size_t filteredRowCount = obeyFilter ? rbridge_dataSet->filter()->filteredRowCount() : rbridge_dataSet->rowCount();
+	size_t filteredRowCount = obeyFilter ? rbridge_dataSet->shownFilter()->filteredRowCount() : rbridge_dataSet->rowCount();
 
 	// lets make some rownumbers/names for R that takes into account being filtered or not!
 	datasetStatic[colMax].ints		= filteredRowCount == 0 ? nullptr : static_cast<int*>(calloc(filteredRowCount, sizeof(int)));
@@ -435,9 +435,9 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSet(RBridgeColumnType* colHead
 	//If you change anything here, make sure that "label outliers" in Descriptives still works properly (including with filters)
 	for(size_t i=0; i<rbridge_dataSet->rowCount() && filteredRow < datasetStatic[colMax].nbRows; i++)
 		if(
-				!obeyFilter ||
-				(rbridge_dataSet->filter()->filtered().size() > i && rbridge_dataSet->filter()->filtered()[i])
-			)
+			!obeyFilter ||
+					(rbridge_dataSet->shownFilter()->filtered().size() > i && rbridge_dataSet->shownFilter()->filtered()[i])
+		)
 			datasetStatic[colMax].ints[filteredRow++] = int(i + 1); //R needs 1-based index
 
 	//std::cout << "reading " << colMax << " columns!\nRowCount: " << filteredRowCount << "" << std::endl;
@@ -467,7 +467,7 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSet(RBridgeColumnType* colHead
 			
 			boolvec filterToUse;
 			if(obeyFilter)
-				filterToUse = rbridge_dataSet->filter()->filtered();
+				filterToUse = rbridge_dataSet->shownFilter()->filtered();
 
 			for(double value : column->dataAsRDoubles(filterToUse))
 				resultCol.doubles[rowNo++] = value;
@@ -481,7 +481,7 @@ extern "C" RBridgeColumn* STDCALL rbridge_readDataSet(RBridgeColumnType* colHead
 			intvec vals;
 			boolvec filterToUse;
 			if(obeyFilter)
-				filterToUse = rbridge_dataSet->filter()->filtered();
+				filterToUse = rbridge_dataSet->shownFilter()->filtered();
 			
 			stringvec levels = column->dataAsRLevels(vals, filterToUse);
 			
@@ -878,9 +878,11 @@ std::string rbridge_evalRComputedColumn(const std::string &rCode, const std::str
 	if(!rbridge_dataSet)
 		return "null"; // How would doing a computed column make any sense without data?
 	
-	computedColumnFilter = filterToUse;
+	computedColumnFilter = filterToUse == "" ? "DEFAULT_FILTER" : filterToUse;
+	
+	rbridge_dataSet->showFilter(computedColumnFilter);
 
-	int rowCount	= computedColumnFilter == "" ? rbridge_dataSet->rowCount() : Filter(rbridge_dataSet, computedColumnFilter, false).filteredRowCount();
+	int rowCount	= rbridge_dataSet->shownFilter()->filteredRowCount();
 
 	jaspRCPP_resetErrorMsg();
 
@@ -892,7 +894,7 @@ std::string rbridge_evalRComputedColumn(const std::string &rCode, const std::str
 
 	rbridge_setupRCodeEnv(rowCount);
 	std::string result = jaspRCPP_evalComputedColumn(rCode64.c_str(), setColumnFunc.c_str());
-	jaspRCPP_runScript("detach(data)");	//and afterwards we make sure it is detached to avoid superfluous messages and possible clobbering of analyses
+	jaspRCPP_runScript("detach(data)");	//a	nd afterwards we make sure it is detached to avoid superfluous messages and possible clobbering of analyses
 
 	jaspRCPP_setErrorMsg(ColumnEncoder::columnEncoder()->decodeAll(jaspRCPP_getLastErrorMsg()).c_str());
 
