@@ -45,7 +45,8 @@ JASPWidgets.imageView = JASPWidgets.objectView.extend({
 	isEditable:					function() {	return this.model.get("error") === null;						},
 	isConvertible:				function() {	return this.model.get("error") === null && this.model.get("convertible") ===  true;	},
 	hasCollapse:				function() {	return this.$el.hasClass('jasp-collection-item')	=== false;	},
-	hasInteractive:				function() {	return this.model.get("interactiveJsonData") !== null && this.model.get("interactiveJsonData") !== undefined;	},
+	hasConvertError:			function() {	return this.model.get("interactiveConvertError") !== null	&& this.model.get("interactiveConvertError") !== undefined	&& this.model.get("interactiveConvertError") !== "";	},
+	hasInteractive:				function() {	return !this.hasConvertError() && this.model.get("interactiveJsonData") !== null		&& this.model.get("interactiveJsonData") !== undefined		&& this.model.get("interactiveJsonData") !== "";	},
 	saveImageClicked:			function() {	this.model.trigger("SaveImage:clicked",							{ data: this.model.get("data"), width: this.model.get("width"), height: this.model.get("height"), name: this.model.get("name")							});	},
 	editImageClicked:			function() {	this.model.trigger("EditImage:clicked",			this.myView,	{ data: this.model.get("data"), width: this.model.get("width"), height: this.model.get("height"), name: this.model.get("name"), title: this.model.get("title"), type: "interactive"		});	},
 	interactiveImageClicked:	function() {
@@ -56,7 +57,7 @@ JASPWidgets.imageView = JASPWidgets.objectView.extend({
 		if(!wasUserInteractive && this.hasInteractive())
 			isCurrentlyInteractive = window.globSet.showInteractiveDefault
 		
-		this.model.set("interactive",		!isCurrentlyInteractive);
+		this.model.set("interactive",		this.hasInteractive() && !isCurrentlyInteractive);
 		this.model.set("userInteractive",	true);
 
 		// Clear the current content and re-render
@@ -213,7 +214,10 @@ JASPWidgets.imagePrimitive = JASPWidgets.View.extend({
 
 	render: function () {//interactive = false) {
 
-		var hasInteractive = this.model.get("interactiveJsonData") !== null && this.model.get("interactiveJsonData") !== undefined;
+		var hasInteractive = this.model.get("interactiveJsonData") !== null && this.model.get("interactiveJsonData") !== undefined && this.model.get("interactiveJsonData") !== "";
+
+		if(this.model.get("interactive") && this.model.get("interactiveConvertError") != "")
+			this.model.set("interactive", false)
 		
 		if (hasInteractive && ((this.model.get("userInteractive") && this.model.get("interactive")) || (!this.model.get("userInteractive") && window.globSet.showInteractiveDefault))) {
 
@@ -225,6 +229,10 @@ JASPWidgets.imagePrimitive = JASPWidgets.View.extend({
 			if (!error) {
 				this.plotlyRetryCount = 0; // Reset retry counter
 				jQuery(document).ready(() => this.renderPlotlyIfDivExists());
+			}
+			else
+			{
+				
 			}
 
 		} else {
