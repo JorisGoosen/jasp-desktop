@@ -83,7 +83,7 @@ void Column::dbLoad(int id, bool getValues)
 	db().transactionReadEnd();
 }
 
-void Column::dbLoadOldIndex(int index, bool do019Fix)
+void Column::dbLoadOldIndex(int index)
 {
 	JASPTIMER_SCOPE(Column::dbLoadOldIndex);
 	
@@ -98,7 +98,7 @@ void Column::dbLoadOldIndex(int index, bool do019Fix)
 	db().columnGetValues(_id, _ints,		"INT");
 	db().columnGetValues(_id, _dbls, _strs, "DBL");
 	
-	if(std::none_of(_ints.begin(), _ints.end(), [&do019Fix](int i){ return i != Label::NO_LABEL && i != EmptyValues::missingValueInteger && (do019Fix && i != 0); }))
+	if(std::none_of(_ints.begin(), _ints.end(), [](int i){ return i != Label::NO_LABEL && i != EmptyValues::missingValueInteger; }))
 	{
 		_hasLabels = false;
 		_ints.clear();
