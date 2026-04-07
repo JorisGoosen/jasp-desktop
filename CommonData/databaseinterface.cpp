@@ -91,7 +91,10 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 	if(originalVersion < "0.96.1")	
 	{
 		if(!tableHasColumn("Columns", "hasLabels"))
-			runStatements("ALTER TABLE Columns  ADD COLUMN hasLabels		INT DEFAULT 0;");
+			runStatements(
+				"ALTER TABLE Columns  ADD COLUMN hasLabels		INT DEFAULT 0;\n"
+				"UPDATE Columns SET hasLabels=1;" //Make sure old columns all "hasLabels" enabled
+			);
 	}
 
 	transactionWriteEnd();
