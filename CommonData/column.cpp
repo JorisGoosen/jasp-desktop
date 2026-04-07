@@ -91,7 +91,7 @@ void Column::dbLoadOldIndex(int index)
 
 	assert(_id != -1);
 
-	db().transactionReadBegin();
+	db().transactionWriteBegin();
 	
 	dbLoad(_id, false);
 	
@@ -137,7 +137,7 @@ void Column::dbLoadOldIndex(int index)
 	db().columnSetHasLabels(_id, _hasLabels);
 	incRevision();
 	
-	db().transactionReadEnd();
+	db().transactionWriteEnd();
 }
 
 void Column::dbLoadIndex(int index, bool getValues)
@@ -565,7 +565,7 @@ stringset Column::mergeOldMissingDataMap(const Json::Value &missingData)
 	return foundEmpty;
 }
 
-columnType Column::setValues(const stringvec & values, const stringvec & labels, int thresholdScale, bool * aChange, bool useLocale)
+columnType Column::setValues(const stringvec & values, const stringvec & labels, int thresholdScale, bool * aChange, bool useLocale, bool determineWhetherOneWantsLabels)
 {
 	assert(values.size() == labels.size() || labels.size() == 0);
 	
@@ -575,12 +575,13 @@ columnType Column::setValues(const stringvec & values, const stringvec & labels,
 				[&labels](size_t r){return r < labels.size() ? labels[r] : "";},
 				thresholdScale,
 				aChange,
-				useLocale
+				useLocale,
+				determineWhetherOneWantsLabels
 				);
 }
 
 				
-columnType Column::setValues(size_t rows, const std::function<std::string(size_t)> valueLookup, const std::function<std::string(size_t)> labelLookup, int thresholdScale, bool * aChange, bool useLocale)
+columnType Column::setValues(size_t rows, const std::function<std::string(size_t)> valueLookup, const std::function<std::string(size_t)> labelLookup, int thresholdScale, bool * aChange, bool useLocale, bool determineWhetherOneWantsLabels)
 {
 	JASPTIMER_SCOPE(Column::setValues);
 
@@ -601,11 +602,18 @@ columnType Column::setValues(size_t rows, const std::function<std::string(size_t
 	
 	bool allTheSame = true;
 	
-	if(prevSize == 0)
-		//Should we have labels?
-		for(int r=0; r<rows && allTheSame; r++)
-			if(valueLookup(r) != labelLookup(r) && labelLookup(r) != "")
-				allTheSame = false;
+	if(determineWhetherOneWantsLabels)
+	{
+		if(prevSize == 0)
+			//Should we have labels?
+			for(int r=0; r<rows && allTheSame; r++)
+				if(valueLookup(r) != labelLookup(r) && labelLookup(r) != "")
+					allTheSame = false;
+	}
+	else
+	{
+		allTheSame = !_hasLabels;	
+	}
 	
 	if(allTheSame)
 	{
@@ -2758,7 +2766,6 @@ stringvec Column::previewTransform(columnType transformType)
 }
 
 bool Column::initFromLookups(const std::string & newName, size_t rows, const std::function<std::string(size_t)> valueLookup, const std::function<std::string(size_t)> labelLookup, const std::string & title, columnType desiredType, const stringset & emptyValues, int threshold, bool orderLabelsByValue, bool leaveBatchedUnfinished)
-
 {
 									setHasCustomEmptyValues(emptyValues.size());
 									setCustomEmptyValues(emptyValues);
@@ -2768,7 +2775,7 @@ bool Column::initFromLookups(const std::string & newName, size_t rows, const std
 	
 	bool		anyChanges		=	title != Column::title() || newName != name();
 	columnType	prevType		=	type(),
-				suggestedType	=	setValues(rows, valueLookup, labelLookup,	threshold, &anyChanges);  //If less unique integers than the thresholdScale then we think it must be ordinal: https://github.com/jasp-stats/INTERNAL-jasp/issues/270
+				suggestedType	=	setValues(rows, valueLookup, labelLookup,	threshold, &anyChanges, true, true);  //If less unique integers than the thresholdScale then we think it must be ordinal: https://github.com/jasp-stats/INTERNAL-jasp/issues/270
 									setType(type() != columnType::unknown ? type() : desiredType == columnType::unknown ? suggestedType : desiredType);
 
 	if((suggestedType == columnType::ordinal || suggestedType == columnType::nominal) && suggestedType == type() && !_hasLabels)
