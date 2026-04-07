@@ -2769,7 +2769,12 @@ bool Column::initFromLookups(const std::string & newName, size_t rows, const std
 	bool		anyChanges		=	title != Column::title() || newName != name();
 	columnType	prevType		=	type(),
 				suggestedType	=	setValues(rows, valueLookup, labelLookup,	threshold, &anyChanges);  //If less unique integers than the thresholdScale then we think it must be ordinal: https://github.com/jasp-stats/INTERNAL-jasp/issues/270
-									setType(type() != columnType::unknown ? type() : desiredType == columnType::unknown ? suggestedType : desiredType);			
+									setType(type() != columnType::unknown ? type() : desiredType == columnType::unknown ? suggestedType : desiredType);
+
+	if((suggestedType == columnType::ordinal || suggestedType == columnType::nominal) && suggestedType == type() && !_hasLabels)
+		noLabelsToLabels();
+		
+									
 	if(orderLabelsByValue)			labelsOrderByValue();
 	if(!leaveBatchedUnfinished)		endBatchedLabelsDB();
 
