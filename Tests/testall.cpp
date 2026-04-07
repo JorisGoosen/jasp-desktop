@@ -183,35 +183,25 @@ void TestAll::testJaspRoundRobin()
 	_pkg = new DataSetPackage(this);
 	
 	std::cerr << "Testing " << dataFileAbsolutePath << std::endl;
-
 	JASPImporter::loadDataSet(fq(dataFileAbsolutePath),		[](int){});
 	
-	DataSet * dataSet = _pkg->dataSet();
-	QVERIFY2(dataSet,						"No dataset!");
+	DataSet *	dataSet		= _pkg->dataSet();
+	QVERIFY2(dataSet,			"No dataset!");
 	
-	Json::Value compareMe = dataSet->jsonForCompare();
+	Json::Value compareMe	= dataSet->jsonForCompare();
+	std::string jaspFile	= TempFiles::createSpecific("testjasp", "temp.jasp");
 
-	JASPExporter exporter;
-	
-	std::string jaspFile = TempFiles::createSpecific("testjasp", "temp.jasp");
-	
 	std::cerr << "Storing jasp file temporarily to: " << jaspFile << std::endl;
-	
-	exporter.saveDataSet(jaspFile, [](int){});
-	
-	dataSet = nullptr;
+	JASPExporter().saveDataSet(jaspFile, [](int){});
 	
 	_pkg->reset();
-	
-	
 	QVERIFY2(_pkg->dataSet()->jsonForCompare() != compareMe, "DataSet should be different after resetting DataSetPackage!");
 	
 	JASPImporter::loadDataSet(jaspFile, [](int){});
 	
 	dataSet = _pkg->dataSet();
-	QVERIFY2(dataSet,						"No dataset!");
-	
-	QVERIFY2(dataSet->jsonForCompare() == compareMe, "DataSet should be the same after reloading!");
+	QVERIFY2(dataSet,									"No dataset!");
+	QVERIFY2(dataSet->jsonForCompare() == compareMe,	"DataSet should be the same after reloading!");
 }
 
 
