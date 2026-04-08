@@ -1800,7 +1800,7 @@ void Column::labelValDisplayChanged(Label *label, const std::string &previousDis
 
 Label * Column::labelByRow(int row) const
 {
-	if (row < rowCount() && _type != columnType::scale && _ints[row] != EmptyValues::missingValueInteger)
+	if (row < rowCount() && _ints[row] != EmptyValues::missingValueInteger)
 		return labelByIntsId(_ints[row]);
 
 	return nullptr;
