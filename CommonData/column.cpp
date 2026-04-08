@@ -579,6 +579,11 @@ columnType Column::setValues(const stringvec & values, const stringvec & labels,
 				determineWhetherOneWantsLabels
 				);
 }
+				
+static bool IsIntegral(double d) {
+  double integral_part;
+  return modf(d, &integral_part) == 0.0;
+}
 
 				
 columnType Column::setValues(size_t rows, const std::function<std::string(size_t)> valueLookup, const std::function<std::string(size_t)> labelLookup, int thresholdScale, bool * aChange, bool useLocale, bool determineWhetherOneWantsLabels)
@@ -630,7 +635,6 @@ columnType Column::setValues(size_t rows, const std::function<std::string(size_t
 			_dbls[resetRow]	= EmptyValues::missingValueDouble;
 			_strs[resetRow] = "";
 		}
-
 	
 		JASPTIMER_RESUME(Column::setValues call setValue and count integers);
 		
@@ -657,8 +661,7 @@ columnType Column::setValues(size_t rows, const std::function<std::string(size_t
 			}
 			else
 			{
-				//If the string made from a double is the same as the string made from a double made from an int made from a double, then it must be an integer?
-				if(doubleToDisplayString(valueDbl) ==  doubleToDisplayString(double(int(valueDbl))))
+				if(IsIntegral(valueDbl))
 					ints.insert(int(valueDbl));
 				else if(!isEmptyValue(valueDbl))
 					onlyInts = false;
@@ -1315,6 +1318,9 @@ std::string Column::getDisplay(size_t row, bool fancyEmptyValue, bool sepas) con
 
 std::string Column::getShadow(size_t row, bool fancyEmptyValue, bool sepas) const
 {
+	if(!_hasLabels)
+		return getValue(row, fancyEmptyValue, false, sepas);
+	
 	return _type != columnType::scale	
 		?	getValue(row, fancyEmptyValue, true, sepas)
 		:	getLabel(row, fancyEmptyValue, true, sepas);
