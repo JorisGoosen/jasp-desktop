@@ -1151,7 +1151,7 @@ void DatabaseInterface::columnGetValues(int columnId, doublevec &dbls, stringvec
 		double				dbl = _doubleTroubleReader(		stmt, 0);
 		const std::string & str = _wrap_sqlite3_column_text(stmt, 0);
 
-		strs[row] = str;
+		strs[row] = !std::isnan(dbl) ? "" : str;
 		dbls[row] = dbl;
 	};
 
