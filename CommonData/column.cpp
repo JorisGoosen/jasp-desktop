@@ -107,7 +107,7 @@ void Column::dbLoadOldIndex(int index)
 		
 		for(int row=0; row<_strs.size() && row < _dbls.size(); row++)
 		{
-			//Log::log() << "_strs["<< row << "] == " << _strs[row] << " and  _dbls["<< row << "] == " << _dbls[row]  << std::endl;
+			Log::log() << "_strs["<< row << "] == " << _strs[row] << " and  _dbls["<< row << "] == " << _dbls[row]  << std::endl;
 			
 			double dbl;
 			
@@ -126,12 +126,12 @@ void Column::dbLoadOldIndex(int index)
 		_strs.clear();
 		_dbls.clear();
 		
-		//for(int row=0; row<_ints.size() && row < _dbls.size(); row++)
-		//{
-		//	//if(_ints[row] == 	
-		//	Label * l = labelByIntsId(_ints[row]);
-		//	//Log::log() << "_ints["<< row << "] == " << _ints[row] << " and  _dbls["<< row << "] == " << _dbls[row] << " label is: '" << ( !l ? "null" : l->labelDisplay()) << "'" << std::endl;
-		//}
+		for(int row=0; row<_ints.size() && row < _dbls.size(); row++)
+		{
+			//if(_ints[row] == 	
+			Label * l = labelByIntsId(_ints[row]);
+			Log::log() << "_ints["<< row << "] == " << _ints[row] << " and  _dbls["<< row << "] == " << _dbls[row] << " label is: '" << ( !l ? "null" : l->labelDisplay()) << "'" << std::endl;
+		}
 	}
 	
 	db().columnSetHasLabels(_id, _hasLabels);
@@ -2765,7 +2765,7 @@ stringvec Column::previewTransform(columnType transformType)
 	return out;
 }
 
-bool Column::initFromLookups(const std::string & newName, size_t rows, const std::function<std::string(size_t)> valueLookup, const std::function<std::string(size_t)> labelLookup, const std::string & title, columnType desiredType, const stringset & emptyValues, int threshold, bool orderLabelsByValue, bool leaveBatchedUnfinished)
+bool Column::initFromLookups(const std::string & newName, size_t rows, const std::function<std::string(size_t)> valueLookup, const std::function<std::string(size_t)> labelLookup, const std::string & title, columnType desiredType, const stringset & emptyValues, int threshold, bool orderLabelsByValue)
 {
 									setHasCustomEmptyValues(emptyValues.size());
 									setCustomEmptyValues(emptyValues);
@@ -2782,8 +2782,10 @@ bool Column::initFromLookups(const std::string & newName, size_t rows, const std
 		noLabelsToLabels();
 		
 									
-	if(orderLabelsByValue)			labelsOrderByValue();
-	if(!leaveBatchedUnfinished)		endBatchedLabelsDB();
+	if(orderLabelsByValue)			
+		labelsOrderByValue();
+	
+	endBatchedLabelsDB();
 
 	return anyChanges || type() != prevType;
 }
