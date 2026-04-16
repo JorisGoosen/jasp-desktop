@@ -37,6 +37,7 @@ public:
 
 	void				addFactorModel(ListModelFactorLevels* factorModel);
 	QList<QStringList>	getLevels()									const;
+	void				encodeValue() 										override { return true; }
 	
 private:
 	ListModelMeasuresCellsAssigned*		_measuresCellsModel;
