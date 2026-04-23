@@ -18,9 +18,11 @@ public:
 	bool useNativeFileDialog();
 	bool engineSandbox();
 	bool queryEncryptionSettings(bool readingMode = false);
+	char askCsvDelimiter(char autoDelimiter);
 
 signals:
 	void queryEncryptionSettingsSignal(bool readingMode);
+	void askCsvDelimiterSignal(char autoDelimiter);
 	void currentJaspThemeChanged();
 	void uiScaleChanged();
 	void interfaceFontChanged();
@@ -29,14 +31,19 @@ signals:
 
 public slots:
 	void encryptionSettingsQueryComplete(bool submit);
+	void delimiterChosen(char delimiter);
 
 private:
 	static DesktopCommunicator * _singleton;
 
-	bool queryCondition = false; // against spurious wakeup
-	bool querySubmitted = false;
-	std::mutex queryLock;
-	std::condition_variable query_cv;
+	bool						_queryCondition	= false, // against spurious wakeup
+								_querySubmitted	= false,
+								_csvCondition	= false;
+	char						_csvSubmitted	= '\0';
+	std::mutex					_queryLock,
+								_csvLock;
+	std::condition_variable		_query_cv,
+								_csv_cv;
 };
 
 #endif // DESKTOPCOMMUNICATOR_H
