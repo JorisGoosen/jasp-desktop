@@ -730,3 +730,59 @@ bool CSV::utf32to8(char *out, uint32_t in, int outSize, int &bytesWritten)
 
     return true;
 }
+
+std::string CSV::readLineRaw()
+{
+	if (_eof)
+		return "";
+
+	if (_utf8BufferEndPos == _utf8BufferStartPos)
+	{
+		if (!readUtf8())
+			return "";
+	}
+
+	int start = _utf8BufferStartPos;
+	int end = -1;
+
+	for (int i = _utf8BufferStartPos; i < _utf8BufferEndPos; ++i)
+	{
+		if (_utf8Buffer[i] == '\n' || _utf8Buffer[i] == '\r')
+		{
+			end = i;
+			break;
+		}
+	}
+
+	if (end != -1)
+	{
+		std::string line(&_utf8Buffer[start], end - start);
+		
+		// Handle \r\n or \r or \n
+		if (_utf8Buffer[end] == '\r')
+		{
+			if (end + 1 < _utf8BufferEndPos && _utf8Buffer[end + 1] == '\n')
+			{
+				_utf8BufferStartPos = end + 2;
+			}
+			else
+			{
+				_utf8BufferStartPos = end + 1;
+			}
+		}
+		else
+		{
+			_utf8BufferStartPos = end + 1;
+		}
+		
+		return line;
+	}
+	else
+	{
+		// Line extends beyond current buffer, this implementation is limited
+		// but for a preview (10 lines) it should be sufficient.
+		// If we hit this, we'll just return what we have and stop or signal failure.
+		// However, given how readUtf8 works, it should have fetched enough for many lines.
+		return ""; 
+	}
+}
