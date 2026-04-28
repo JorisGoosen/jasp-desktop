@@ -299,9 +299,20 @@ Window
 	CsvPreview
 	{
 		id:					csvPreview
-		z:					11
-		anchors.fill:		parent
+		z:					12
+		anchors.centerIn:	parent
 		visible:			csvPreviewModel.visible
+		width:				Math.max(300 * jaspTheme.uiScale, parent.width  * 0.5)
+		height:				Math.max(300 * jaspTheme.uiScale, parent.height * 0.5)
+	}
+	
+	Rectangle
+	{
+		z:				11
+		visible:		csvPreviewModel.visible
+		color:			"#000000"
+		opacity:		0.25
+		anchors.fill:	parent
 	}
 
 }

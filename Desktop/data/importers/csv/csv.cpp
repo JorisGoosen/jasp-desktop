@@ -568,19 +568,13 @@ string CSV::firstRowsPlease()
 	//This should return the first couple of rows (including the header with the columns) only.
 	string snippet;
 	int rowsRead = 0;
-	const int maxRows = 10;
+	const int maxRows = 20;
 
 	while (rowsRead < maxRows)
 	{
 		string line = readLineRaw();
 		if (line.empty())
-		{
-			// Check if we are actually at EOF or just an empty line
-			if (_eof) break;
-			// If it's just an empty line, we can treat it as one row (except maybe at very beginning)
-			// but for CSV preview, let's just stop if we can't get more content.
 			break;
-		}
 		snippet += line + "\n";
 		rowsRead++;
 	}
