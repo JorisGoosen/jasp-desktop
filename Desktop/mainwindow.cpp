@@ -46,6 +46,7 @@
 
 #include "modules/installedmodules.h"
 #include "modules/dynamicmodules.h"
+#include "utilities/reporter.h"
 #include "modules/menumodel.h"
 
 #include "qquick/datasetview.h"
@@ -656,7 +657,7 @@ void MainWindow::loadQML()
 	_qml->rootContext()->setContextProperty("computedColumnTypeNotComputed",			int(computedColumnType::notComputed)			);
 	_qml->rootContext()->setContextProperty("computedColumnTypeConstructorCode",		int(computedColumnType::constructorCode)		);
 	_qml->rootContext()->setContextProperty("computedColumnTypeAnalysisNotComputed",	int(computedColumnType::analysisNotComputed)	);
-	_qml->rootContext()->setContextProperty("csvPreviewModel", _csvPreviewModel);
+	_qml->rootContext()->setContextProperty("csvPreviewModel",							_csvPreviewModel);
 
 	_qml->setOutputWarningsToStandardError(true);
 

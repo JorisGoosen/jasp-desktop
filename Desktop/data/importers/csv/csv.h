@@ -45,7 +45,9 @@ public:
 	enum Status { OK = 0, NotRead, Empty };
 
 	Status status();
-
+	char delimiter() { return _delim; }
+	void setDelimiter(char d) { _delim = d; }
+	
 private:
 
 	int64_t _fileSize,
@@ -63,6 +65,7 @@ private:
 	void determineEncoding();
 	void determineDelimiters(size_t fromHere = 0);
 	void determineNumRows();
+
 
 private:
 
