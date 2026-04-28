@@ -554,7 +554,7 @@ void MainWindow::makeConnections()
 	connect(dCSingleton,			&DesktopCommunicator::useNativeFileDialogSignal,	_preferences,			&PreferencesModel::useNativeFileDialog			);
 	connect(dCSingleton,			&DesktopCommunicator::engineSandboxSignal,			_preferences,			&PreferencesModel::engineSandbox				);
 	connect(dCSingleton,			&DesktopCommunicator::queryEncryptionSettingsSignal, _encryptionModel,		&EncryptionSettingsModel::queryEncryptionSettings);
-	connect(_encryptionModel,		&EncryptionSettingsModel::queryComplete,			dCSingleton,			&DesktopCommunicator::encryptionSettingsQueryComplete);
+	connect(dCSingleton,			&DesktopCommunicator::askCsvDelimiterSignal,	_csvPreviewModel,		&CsvPreviewModel::preparePreview);
 
 
 	connect(_filterModel,			&FilterModel::refreshAllAnalyses,					_analyses,				&Analyses::refreshAllAnalyses,								Qt::QueuedConnection);
@@ -657,7 +657,7 @@ void MainWindow::loadQML()
 	_qml->rootContext()->setContextProperty("computedColumnTypeNotComputed",			int(computedColumnType::notComputed)			);
 	_qml->rootContext()->setContextProperty("computedColumnTypeConstructorCode",		int(computedColumnType::constructorCode)		);
 	_qml->rootContext()->setContextProperty("computedColumnTypeAnalysisNotComputed",	int(computedColumnType::analysisNotComputed)	);
-	_qml->rootContext()->setContextProperty("csvPreviewModel",							_csvPreviewModel);
+	_qml->rootContext()->setContextProperty("desktopCommunicator", DesktopCommunicator::singleton());
 
 	_qml->setOutputWarningsToStandardError(true);
 

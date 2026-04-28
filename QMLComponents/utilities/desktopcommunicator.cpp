@@ -1,6 +1,7 @@
 #include "desktopcommunicator.h"
 #include <QThread>
 #include <QGuiApplication>
+#include <cassert>
 
 DesktopCommunicator * DesktopCommunicator::_singleton = nullptr;
 
@@ -57,7 +58,7 @@ bool DesktopCommunicator::queryEncryptionSettings(bool readingMode)
 #endif
 }
 
-char DesktopCommunicator::askCsvDelimiter(char autoDelimiter)
+bool DesktopCommunicator::askCsvDelimiter(char autoDelimiter, const QString &data)
 {
 #ifdef BUILDING_JASP
 	if(QThread::currentThread() == qApp->thread()) {
@@ -66,8 +67,10 @@ char DesktopCommunicator::askCsvDelimiter(char autoDelimiter)
 
 	_csvCondition = false;
 	_csvSubmitted = autoDelimiter;
+	
+	emit askCsvDelimiterSignal(data, autoDelimiter);
+
 	std::unique_lock<std::mutex> lock(_csvLock);
-	emit askCsvDelimiterSignal(autoDelimiter);
 	_csv_cv.wait(lock, [&] { return _csvCondition; });
 
 	return _csvSubmitted;
