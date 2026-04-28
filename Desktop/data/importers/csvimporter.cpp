@@ -1,7 +1,7 @@
 //
 // Copyright (C) 2013-2018 University of Amsterdam
 //
-// This program is free software: you can redistribute it and/or modify
+// This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 2 of the License, or
 // (at your option) any later version.
@@ -14,12 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
+//
 
 #include "csvimporter.h"
 #include "csv/csvimportcolumn.h"
 #include "csv/csv.h"
 #include "timers.h"
 #include "utilities/desktopcommunicator.h"
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -36,11 +39,28 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
 	stringvec colNames;
 	CSV csv(locator);
     csv.open();
-	
-	try {
-		csv.setDelimiter(DesktopCommunicator::singleton()->askCsvDelimiter(csv.delimiter()));
-	} catch (...) {}
 
+	// Read the file into a string to pass to the UI for preview
+	string fileContent;
+	{
+		ifstream file(locator);
+		if (file.is_open()) {
+			stringstream buffer;
+			buffer << file.rdbuf();
+			fileContent = buffer.str();
+		}
+	}
+
+	// Try to detect delimiter first
+	char delimiter = csv.delimiter();
+	try {
+		// Call askCsvDelimiter which will internally emit the signal
+		delimiter = DesktopCommunicator::singleton()->askCsvDelimiter(delimiter, QString::fromStdString(fileContent));
+	} catch (...) {
+		delimiter = ',';
+	}
+
+	csv.setDelimiter(delimiter);
 	csv.readLine(colNames);
 	vector<CSVImportColumn *> importColumns;
 	importColumns.reserve(colNames.size());
