@@ -289,10 +289,19 @@ Window
 
 	UIScaleNotifier { anchors.centerIn:	parent }
 
-	ProgressBarHolder
-	{
-		visible:			mainWindow.progressBarVisible
-		z:					10
-		anchors.fill:		parent
-	}
+		ProgressBarHolder
+		{
+			visible:			mainWindow.progressBarVisible
+			z:					10
+			anchors.fill:		parent
+		}
+
+		CsvPreview
+		{
+			id:					csvPreview
+			z:					11
+			anchors.fill:		parent
+			visible:			csvPreviewModel.visible
+		}
+
 }

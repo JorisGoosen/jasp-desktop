@@ -20,6 +20,11 @@ void CsvPreviewModel::setDelimiter(QChar delim)
     updateInternalStructure();
 }
 
+void CsvPreviewModel::setDelimiterFromChar(char delim)
+{
+    setDelimiter(QChar(delim));
+}
+
 void CsvPreviewModel::updateInternalStructure()
 {
     // Prepare the model for a complete reset
