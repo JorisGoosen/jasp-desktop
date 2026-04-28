@@ -1,8 +1,7 @@
 //
 // Copyright (C) 2013-2018 University of Amsterdam
 //
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
+// This program is free to redistribute and/or modify under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 2 of the License, or
 // (at your option) any later version.
 //
@@ -15,7 +14,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //
-
 #include "csvimporter.h"
 #include "csv/csvimportcolumn.h"
 #include "csv/csv.h"
@@ -40,23 +38,12 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
 	CSV csv(locator);
     csv.open();
 
-	// Read the file into a string to pass to the UI for preview
-	string fileContent;
-	{
-		ifstream file(locator);
-		if (file.is_open()) {
-			stringstream buffer;
-			buffer << file.rdbuf();
-			fileContent = buffer.str();
-		}
-	}
-	//Actually fileContent should be taken from CSV
-
 	// Try to detect delimiter first
 	char delimiter = csv.delimiter();
 	try {
 		// Call askCsvDelimiter which will internally emit the signal
-		delimiter = DesktopCommunicator::singleton()->askCsvDelimiter(delimiter, QString::fromStdString(fileContent));
+		// Using firstRowsPlease() to only pass a snippet of the file for preview
+		delimiter = DesktopCommunicator::singleton()->askCsvDelimiter(delimiter, QString::fromStdString(csv.firstRowsPlease()));
 	} catch (...) {
 		delimiter = ',';
 	}

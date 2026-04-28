@@ -37,6 +37,7 @@ public:
 
 	void		open();
 	bool		readLine(std::vector<std::string> &items);
+	std::string	readLineRaw();
 	int64_t		pos();
 	int64_t		size();
 	int64_t		numRows();
