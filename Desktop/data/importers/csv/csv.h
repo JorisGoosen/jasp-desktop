@@ -41,6 +41,8 @@ public:
 	int64_t		size();
 	int64_t		numRows();
 	void		close();
+	
+	std::string	firstRowsPlease();
 
 	enum Status { OK = 0, NotRead, Empty };
 

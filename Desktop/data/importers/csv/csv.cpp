@@ -564,6 +564,13 @@ void CSV::close()
 	_stream.close();
 }
 
+string CSV::firstRowsPlease()
+{
+	//This should return the first couple of rows (including the header with the columns) only.
+	//...
+	throw std::runtime_error("IMPLEMENT ME");
+}
+
 bool CSV::utf16to8(char *out, char *in, int outSize, int inSize, int &written, int &read, bool bigEndian)
 {
 	written = 0;

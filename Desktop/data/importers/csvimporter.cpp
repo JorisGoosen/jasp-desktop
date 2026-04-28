@@ -50,6 +50,7 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
 			fileContent = buffer.str();
 		}
 	}
+	//Actually fileContent should be taken from CSV
 
 	// Try to detect delimiter first
 	char delimiter = csv.delimiter();

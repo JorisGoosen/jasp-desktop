@@ -8,11 +8,12 @@ FocusScope
 
 	Rectangle
 	{
-		color: "purple"
-		anchors.fill:	parent
-		z:				-1
-		border.width:	1
-		border.color:	jaspTheme.uiBorder
+		color:				jaspTheme.white
+		anchors.fill:		parent
+		anchors.margins:	jaspTheme.generalMenuMargin
+		z:					-1
+		border.width:		1
+		border.color:		jaspTheme.uiBorder
 
 		ColumnLayout
 		{
@@ -41,19 +42,19 @@ FocusScope
 
 					Button {
 						text: ","
-						onClicked: csvPreviewModel.selectDelimiter(',')
+						onClicked: csvPreviewModel.delimiter = ','
 					}
 					Button {
 						text: ";"
-						onClicked: csvPreviewModel.selectDelimiter(';')
+						onClicked: csvPreviewModel.delimiter = ';'
 					}
 					Button {
 						text: "Tab"
-						onClicked: csvPreviewModel.selectDelimiter('\t')
+						onClicked: csvPreviewModel.delimiter = '\t'
 					}
 					Button {
 						text: "|"
-						onClicked: csvPreviewModel.selectDelimiter('|')
+						onClicked: csvPreviewModel.delimiter = '|'
 					}
 					
 					Button {
@@ -69,10 +70,16 @@ FocusScope
 			{
 				id:						dataTableView
 				focus:					__myRoot.focus
-				Layout.fillWidth: true
-				Layout.fillHeight: true
+				Layout.fillWidth:		true
+				Layout.fillHeight:		true
 				
 				model:					csvPreviewModel
+				delegate:				Text
+				{ 
+					text:				modelData 
+					color:				jaspTheme.textEnabled
+					font:				jaspTheme.font
+				}
 			}
 		}
 	}
