@@ -19,6 +19,7 @@ public:
 	bool useNativeFileDialog();
 	bool engineSandbox();
 	char askCsvDelimiter(char autoDelimiter, const QString &data);
+	bool queryEncryptionSettings(bool readingMode = false);
 	
 signals:
 	void queryEncryptionSettingsSignal(bool readingMode);
@@ -36,13 +37,16 @@ public slots:
 private:
 	static DesktopCommunicator * _singleton;
 
-	bool						_queryCondition	= false, // against spurious wakeup
-								_querySubmitted	= false,
-	char						_csvSubmitted	= '\0';
-	std::mutex					_queryLock,
-								_csvLock;
-	std::condition_variable		_query_cv,
-								_csv_cv;
+	bool _queryCondition = false;
+	bool _querySubmitted = false;
+	bool _csvCondition = false;
+	char _csvSubmitted = '\0';
+
+	std::mutex _queryLock;
+	std::mutex _csvLock;
+
+	std::condition_variable _query_cv;
+	std::condition_variable _csv_cv;
 };
 
 #endif // DESKTOPCOMMUNICATOR_H
