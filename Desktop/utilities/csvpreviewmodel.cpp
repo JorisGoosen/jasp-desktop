@@ -110,6 +110,10 @@ void CsvPreviewModel::setVisible(bool newVisible)
 {
 	if (_visible == newVisible)
 		return;
+	
 	_visible = newVisible;
 	emit visibleChanged();
+	
+	if(!_visible)
+		DesktopCommunicator::singleton()->delimiterChosen(_delimiter.toLatin1());
 }
