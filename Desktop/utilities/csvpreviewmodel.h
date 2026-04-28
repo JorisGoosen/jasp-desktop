@@ -26,6 +26,7 @@ public:
 
     QChar					delimiter() const { return _delimiter; }
     void					setDelimiter(QChar delim);
+    void					setDelimiterFromChar(char delim);
 
 	bool					visible() const;
 	void					setVisible(bool newVisible);

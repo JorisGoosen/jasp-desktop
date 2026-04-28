@@ -19,6 +19,7 @@
 #include "csv/csvimportcolumn.h"
 #include "csv/csv.h"
 #include "timers.h"
+#include "utilities/desktopcommunicator.h"
 
 using namespace std;
 
@@ -36,6 +37,15 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
 	CSV csv(locator);
     csv.open();
 
+	// Try to detect delimiter first
+	char delimiter = ',';
+	try {
+		delimiter = DesktopCommunicator::singleton()->askCsvDelimiter(',');
+	} catch (...) {
+		delimiter = ',';
+	}
+
+	csv.setDelimiter(delimiter);
 	csv.readLine(colNames);
 	vector<CSVImportColumn *> importColumns;
 	importColumns.reserve(colNames.size());
@@ -46,7 +56,7 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
 		string colName = *it;
         
 		if (colName == "")
-            colName = "V" + std::to_string(colNo+1);
+			colName = "V" + std::to_string(colNo+1);
 		else
 		{
 			// Colname should not be just an integer
@@ -84,8 +94,8 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
 		}
 
 		if (line.size() != 0) //ignore empty lines
-            for(size_t i = 0; i<columnCount; i++)
-                importColumns.at(i)->addValue(i < line.size() ? line[i] : ""); //add components and add empty vals for missing columns
+			for(size_t i = 0; i<columnCount; i++)
+				importColumns.at(i)->addValue(i < line.size() ? line[i] : ""); //add components and add empty vals for missing columns
 
 		line.clear();
 		success = csv.readLine(line);

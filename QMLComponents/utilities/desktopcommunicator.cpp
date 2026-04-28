@@ -67,7 +67,7 @@ char DesktopCommunicator::askCsvDelimiter(char autoDelimiter)
 	_csvCondition = false;
 	_csvSubmitted = autoDelimiter;
 	std::unique_lock<std::mutex> lock(_csvLock);
-	emit queryEncryptionSettingsSignal(autoDelimiter);
+	emit askCsvDelimiterSignal(autoDelimiter);
 	_csv_cv.wait(lock, [&] { return _csvCondition; });
 
 	return _csvSubmitted;
@@ -88,6 +88,6 @@ void DesktopCommunicator::delimiterChosen(char delimiter)
 {
 	std::lock_guard<std::mutex> lock(_csvLock);
 	_csvCondition = true;
-	_csvSubmitted = true;
+	_csvSubmitted = delimiter;
 	_csv_cv.notify_one();
 }
