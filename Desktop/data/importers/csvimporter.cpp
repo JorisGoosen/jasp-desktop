@@ -36,16 +36,11 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
 	stringvec colNames;
 	CSV csv(locator);
     csv.open();
-
-	// Try to detect delimiter first
-	char delimiter = ',';
+	
 	try {
-		delimiter = DesktopCommunicator::singleton()->askCsvDelimiter(',');
-	} catch (...) {
-		delimiter = ',';
-	}
+		csv.setDelimiter(DesktopCommunicator::singleton()->askCsvDelimiter(csv.delimiter()));
+	} catch (...) {}
 
-	csv.setDelimiter(delimiter);
 	csv.readLine(colNames);
 	vector<CSVImportColumn *> importColumns;
 	importColumns.reserve(colNames.size());

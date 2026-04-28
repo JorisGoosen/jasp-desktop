@@ -50,6 +50,8 @@
 #include "modules/ribbonmodeluncommon.h"
 #include "results/resultmenumodel.h"
 #include "utilities/helpmodel.h"
+#include "utilities/messageforwarder.h"
+#include "utilities/reporter.h"
 #include "utilities/csvpreviewmodel.h"
 #include "utilities/csvpreviewmodel.h"
 #include "utilities/codepageswindows.h"
