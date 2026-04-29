@@ -14,37 +14,35 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 #ifndef JASPEXPORTER_H
 #define JASPEXPORTER_H
 
 #include "exporter.h"
 #include <archive.h>
-#include <time.h>
 
-///
-/// To export to *.JASP files
-/// Those are basically zips with some json files in there btw
-class JASPExporter: public Exporter
+class JASPExporter : public Exporter
 {
 public:
-	static const Version jaspArchiveVersion;
-
 	JASPExporter();
-	void saveDataSet(const std::string &path, std::function<void (int)> progressCallback) override;
+	virtual void saveDataSet(const std::string &path, std::function<void(int)> progressCallback) override;
+
+	static void setGlobalWorkspaceSnapshot(const std::string &path);
+	static std::string getGlobalWorkspaceSnapshot();
 
 private:
-    static void saveManifest(       archive * a);
-	static void saveResults(		archive * a);
-	static void saveAnalyses(		archive * a);
-	static void saveDatabase(		archive * a);
-	static void saveTempFile(archive *a, const std::string &filePath);
-	static void makeEntry(archive * a, const std::string & filename, const std::string & data);
+	void saveManifest(archive * a, const std::string &sourceDir);
+	void saveAnalyses(archive * a, const std::string &sourceDir);
+	void saveResults(archive * a, const std::string &sourceDir);
+	void saveDatabase(archive * a, const std::string &sourceDir);
+	void saveTempFile(archive *a, const std::string & filePath, const std::string &sourceDir);
+	void makeEntry(archive * a, const std::string & filename, const std::string & data, const std::string &sourceDir);
 
+	static Version jaspArchiveVersion;
 	static time_t _now;
 
-
-	JASPTIMER_CLASS(JASPExporter);
+	static std::string _globalWorkspaceSnapshot;
+	static std::mutex _snapshotMutex;
 };
 
 #endif // JASPEXPORTER_H
+

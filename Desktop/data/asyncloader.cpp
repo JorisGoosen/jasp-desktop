@@ -2,36 +2,38 @@
 // Copyright (C) 2013-2018 University of Amsterdam
 //
 // This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
+// GNU General Public License for more details.
 //
-// You should have received a copy of the GNU Affero General Public
-// License along with this program.  If not, see
-// <http://www.gnu.org/licenses/>.
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 #include "asyncloader.h"
 
-
+#include <sys/stat.h>
 #include <fstream>
-#include <QTimer>
-#include <QFileInfo>
-
-#include <boost/bind.hpp>
-
-#include "utilities/qutils.h"
-#include "utils.h"
-#include "osf/onlinedatamanager.h"
+#include <QThread>
+#include "data/asyncloader.h"
+#include "data/fileevent.h"
+#include "data/jaspencryptiondata.h"
+#include "data/jaspencrypt.h"
+#include "version.h"
+#include "tempfiles.h"
 #include "log.h"
-#include "exporters/exporter.h"
-
-using namespace std;
+#include "utilenums.h"
+#include "appinfo.h"
+#include "gui/preferencesmodel.h"
+#include "data/datasetpackage.h"
+#include "databaseinterface.h"
+#include "data/exporters/exporter.h"
+#include "data/exporters/jaspexporter.h"
+#include "utilities/desktopcommunicator.h"
 
 LoaderException::LoaderException(const std::string & _problemDescription, bool _cancelled)
 	: std::runtime_error(_problemDescription), cancelled(_cancelled)
@@ -46,7 +48,6 @@ AsyncLoader::AsyncLoader(QObject *parent) :
 
 void AsyncLoader::io(FileEvent *event)
 {
-
 	switch (event->operation())
 	{
 	case FileEvent::FileNew:
@@ -100,31 +101,18 @@ void AsyncLoader::loadTask(FileEvent *event)
 
 void AsyncLoader::saveTask(FileEvent *event)
 {
-
-	_currentEvent = event;
-
-	QString path = event->path();
-	if (event->isOnlineNode())
-		path = _odm->getLocalPath(path);
-
-	QString tempPath = path + QString(".tmp");
-
 	try
 	{
-		int	maxSleepTime	= 2000,
-			sleepTime		= 100,
-			delay			= 0;
-		
-		while (DataSetPackage::pkg()->isReady() == false)
-		{
-			if (delay > maxSleepTime)
-				break;
-
-			Utils::sleep(sleepTime);
-			delay += sleepTime;
-		}
-		
 		DataSetPackage::pkg()->doWalCheckPoint();
+
+		if (!event->workspaceSnapshotPath().isEmpty()) {
+			QString snapshotDir = event->workspaceSnapshotPath();
+			Log::log() << "AsyncLoader: Using workspace snapshot from " << snapshotDir.toStdString();
+			JASPExporter::setGlobalWorkspaceSnapshot(snapshotDir.toStdString());
+		} else {
+			Log::log() << "AsyncLoader: No workspace snapshot path provided. Falling back to live files.";
+			JASPExporter::setGlobalWorkspaceSnapshot("");
+		}
 
 		Exporter *exporter = event->exporter();
 		if (exporter)	exporter->saveDataSet(fq(tempPath), boost::bind(&AsyncLoader::progressHandler, this, _1));
@@ -142,14 +130,13 @@ void AsyncLoader::saveTask(FileEvent *event)
 			  !		(renameSucceeded = Utils::renameOverwrite(fq(tempPath), fq(path))) 
 			  &&	--attempts > 0)
 		{
-			Utils::sleep(sleepTime); //Yes Bruno, I can hear you laugh. But it seems webengine is not releasing the pdf.tmp file quickly enough on Windows... See: https://github.com/jasp-stats/jasp-test-release/issues/957
+			Utils::sleep(sleepTime); 
 		}
 		
 		if(!renameSucceeded)
 			throw LoaderException("File '" + fq(path) + "' or '" + fq(tempPath) + "' is being used by another application.");
-
 		
-		if (event->isOnlineNode())	// Not really sure why we would need to do the invokeMethod here?
+		if (event->isOnlineNode())
 			QMetaObject::invokeMethod(
 						_odm, "beginUploadFile", Qt::AutoConnection,
 						Q_ARG(QString, event->path()),
@@ -194,7 +181,6 @@ void AsyncLoader::setOnlineDataManager(OnlineDataManager *odm)
 		connect(_odm, QOverload<QString>::of(&OnlineDataManager::downloadFileFinished), this, &AsyncLoader::loadPackage,		Qt::QueuedConnection);
 	}
 }
-
 
 void AsyncLoader::loadPackage(QString id)
 {

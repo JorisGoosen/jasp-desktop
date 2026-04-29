@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 #ifndef EXPORTER_H
 #define EXPORTER_H
 
@@ -24,6 +23,7 @@
 #include <boost/function.hpp>
 #include <boost/assign/list_of.hpp>
 #include <vector>
+#include <mutex>
 
 #include "timers.h"
 #include "common.h"

@@ -2159,6 +2159,66 @@ void MainWindow::saveJaspFileHandler()
 
 	saveEvent->setPath(resultXmlCompare::compareResults::theOne()->filePath());
 
+	// --- START OF SNAPSHOT LOGIC ---
+	// Capture the analysis state before creating the physical snapshot
+	_package->setAnalysesData(_analyses->asJson());
+
+	// Create a unique temporary directory for the session snapshot
+	QString sessionId = QString::number(Utils::currentMillis());
+	QString snapshotPath = QString("%1/jasp_snapshot_%1").arg(Dirs::tempDir(), sessionId);
+	
+	// Perform the fast copy of the session directory
+	std::error_code error;
+	std::filesystem::create_directories(Utils::osPath(snapshotPath), error);
+	
+	// We assume TempFiles::sessionDirName() provides the current working session root
+	QString sessionRoot = QString::fromStdString(TempFiles::sessionDirName());
+	
+	if (!sessionRoot.isEmpty()) {
+		std::filesystem::copy(Utils::osPath(sessionRoot), Utils::osPath(snapshotPath), 
+			std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, error);
+		
+		if (error) {
+			Log::log() << "MainWindow: Failed to create session snapshot: " << error.message() << std::endl;
+			// If copy fails, we might want to fall back or notify user. 
+			// For now, we proceed with the original path but log the error.
+		} else {
+			saveEvent->setWorkspaceSnapshotPath(snapshotPath);
+		}
+	}
+	// --- END OF SNAPSHOT LOGIC ---
+
+	dataSetIORequestHandler(saveEvent);
+}
+
+void MainWindow::saveTmpFileHandler()
+{
+	FileEvent * saveEvent = new FileEvent(this, FileEvent::FileSave);
+	saveEvent->setTmp(true);
+
+	// --- START OF SNAPSHOT LOGIC ---
+	_package->setAnalysesData(_analyses->asJson());
+
+	QString sessionId = QString::number(Utils::currentMillis());
+	QString snapshotPath = QString("%1/jasp_autosave_snapshot_%1").arg(Dirs::tempDir(), sessionId);
+	
+	std::error_code error;
+	std::filesystem::create_directories(Utils::osPath(snapshotPath), error);
+	
+	QString sessionRoot = QString::fromStdString(TempFiles::sessionDirName());
+	
+	if (!sessionRoot.isEmpty()) {
+		std::filesystem::copy(Utils::osPath(sessionRoot), Utils::osPath(snapshotPath), 
+			std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, error);
+		
+		if (error) {
+			Log::log() << "MainWindow: Failed to create autosave snapshot: " << error.message() << std::endl;
+		} else {
+			saveEvent->setWorkspaceSnapshotPath(snapshotPath);
+		}
+	}
+	// --- END OF SNAPSHOT LOGIC ---
+
 	dataSetIORequestHandler(saveEvent);
 }
 
