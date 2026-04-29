@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import JASP.Controls as JC
+import JASP.Widgets  as JW
 
 FocusScope
 {
@@ -107,6 +108,8 @@ FocusScope
 					}
 				}
 			}
+			
+			JW.PrefsLanguage { Layout.fillWidth:			true }
 		}
 	}
 }
