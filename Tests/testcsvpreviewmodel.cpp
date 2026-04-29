@@ -1,5 +1,6 @@
 #include "testcsvpreviewmodel.h"
-#include <CsvPreviewModel>
+#include "utilities/csvpreviewmodel.h"
+
 
 void TestCsvPreviewModel::testCsvParsing()
 {
@@ -26,3 +27,6 @@ void TestCsvPreviewModel::testCsvParsing()
     QCOMPARE(model.data(model.index(2, 1), Qt::DisplayRole).toString(), QString("Val5"));
     QCOMPARE(model.data(model.index(2, 2), Qt::DisplayRole).toString(), QString("Val6"));
 }
+
+
+QTEST_MAIN(TestCsvPreviewModel)
