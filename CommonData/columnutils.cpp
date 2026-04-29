@@ -99,7 +99,7 @@ bool ColumnUtils::getDoubleValue(const string &value, double &doubleValue, bool 
 		doubleValue = boost::lexical_cast<double>((value));
 		return true;
 	}
-	catch (...) // If it failed try to "deEuropeanise it"
+	catch (...)
 	{
 	}
 

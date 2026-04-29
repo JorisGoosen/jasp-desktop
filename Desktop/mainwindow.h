@@ -53,7 +53,6 @@
 #include "utilities/messageforwarder.h"
 #include "utilities/reporter.h"
 #include "utilities/csvpreviewmodel.h"
-#include "utilities/csvpreviewmodel.h"
 #include "utilities/codepageswindows.h"
 #include "widgets/filemenu/filemenu.h"
 #include "data/workspacemodel.h"

@@ -27,22 +27,18 @@ FocusScope
 			Rectangle
 			{
 				Layout.fillWidth:			true
-				Layout.preferredHeight:		40
+				Layout.preferredHeight:		40 * jaspTheme.uiScale
 				color:						jaspTheme.uiBackground
 
 				RowLayout
 				{
 					anchors.fill:			parent
-					anchors.leftMargin:		10
-					anchors.rightMargin:	10
-					spacing:				10
+					anchors.leftMargin:		jaspTheme.generalMenuMargin
+					anchors.rightMargin:	jaspTheme.generalMenuMargin
+					spacing:				jaspTheme.rowSpacing
 					
-					Item
-					{
-						Layout.fillWidth: true	
-					}
 					Label {
-						text:		"Select Delimiter:"
+						text:		qsTr("Select Delimiter:")
 						font.bold:	true
 					}
 					
@@ -57,6 +53,7 @@ FocusScope
 							onClicked:		csvPreviewModel.delimiter =  modelData
 							color:			/*csvPreviewModel.delimiter == modelData ? jaspTheme.itemHighlight :*/ defaultColor
 							enabled:		csvPreviewModel.delimiter != modelData
+							Layout.minimumWidth:	30 * jaspTheme.uiScale
 						}
 					}
 

@@ -578,10 +578,18 @@ string CSV::firstRowsPlease()
 		snippet += line + "\n";
 		rowsRead++;
 	}
-	
-	_utf8BufferStartPos = 0;
+
+	// Reset all state so the caller can read from the beginning normally
+	_filePosition = 0;
+	_eof = false;
+	_stream.clear();
+	_stream.seekg(0, std::ios::beg);
+
 	_rawBufferStartPos = 0;
-	
+	_rawBufferEndPos   = 0;
+	_utf8BufferStartPos = 0;
+	_utf8BufferEndPos   = 0;
+
 	return snippet;
 }
 
