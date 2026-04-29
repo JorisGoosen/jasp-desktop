@@ -88,6 +88,19 @@ FocusScope
 					clip:						true
 					
 					model:						csvPreviewModel
+					reuseItems:					false
+					
+					Connections
+					{
+						target:			csvPreviewModel
+						
+						function onClearTableForResize()
+						{
+							model = null;
+							model = csvPreviewModel;
+						}
+					}
+					
 					delegate:					Rectangle
 					{
 						implicitHeight:			theText.contentHeight + jaspTheme.generalAnchorMargin

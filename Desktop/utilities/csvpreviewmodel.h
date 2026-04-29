@@ -40,6 +40,7 @@ signals:
 	void					rawDataChanged();
 	void					delimiterChanged();
 	void					visibleChanged();
+	void					clearTableForResize();
 	
 private:
 	void					updateInternalStructure();

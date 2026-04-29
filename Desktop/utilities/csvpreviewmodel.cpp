@@ -65,6 +65,8 @@ void CsvPreviewModel::updateInternalStructure()
 	}
 
 	endResetModel();
+	
+	clearTableForResize();
 }
 
 int CsvPreviewModel::rowCount(const QModelIndex &) const
@@ -74,13 +76,15 @@ int CsvPreviewModel::rowCount(const QModelIndex &) const
 
 int CsvPreviewModel::columnCount(const QModelIndex &) const
 {
-	if (_grid.isEmpty()) return 0;
+	if (_grid.isEmpty()) 
+		return 0;
 	
 	// Find the max number of columns across all rows to ensure a rectangular grid
 	int maxCols = 0;
-	for (const auto &row : _grid) {
-		if (row.size() > maxCols) maxCols = row.size();
-	}
+	for (const auto &row : _grid)
+		if (row.size() > maxCols) 
+			maxCols = row.size();
+	
 	return maxCols;
 }
 
@@ -95,7 +99,9 @@ QVariant CsvPreviewModel::data(const QModelIndex &index, int role) const
 	// Check if the row exists and if this row has a column at this index
 	if (r < _grid.size() && c < _grid[r].size()) {
 		QString val = _grid[r][c];
-		if (val.isEmpty()) return QVariant();
+		
+		if (val.isEmpty()) 
+			return QVariant();
 
 		double dblVal;
 		if (QColumnUtils::getDoubleValue(val, dblVal, true)) {
