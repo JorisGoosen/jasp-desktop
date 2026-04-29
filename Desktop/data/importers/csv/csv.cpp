@@ -578,7 +578,10 @@ string CSV::firstRowsPlease()
 		snippet += line + "\n";
 		rowsRead++;
 	}
-
+	
+	_utf8BufferStartPos = 0;
+	_rawBufferStartPos = 0;
+	
 	return snippet;
 }
 
