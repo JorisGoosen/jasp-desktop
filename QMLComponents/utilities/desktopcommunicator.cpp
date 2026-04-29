@@ -2,6 +2,7 @@
 #include <QThread>
 #include <QGuiApplication>
 #include <cassert>
+#include <QMetaMethod>
 
 DesktopCommunicator * DesktopCommunicator::_singleton = nullptr;
 
@@ -67,6 +68,9 @@ char DesktopCommunicator::askCsvDelimiter(char autoDelimiter, const QString &dat
 
 	_csvCondition = false;
 	_csvSubmitted = autoDelimiter;
+	
+	if(!QObject::isSignalConnected(QMetaMethod::fromSignal(&DesktopCommunicator::askCsvDelimiterSignal)))
+		return autoDelimiter;
 	
 	emit askCsvDelimiterSignal(data, autoDelimiter);
 
