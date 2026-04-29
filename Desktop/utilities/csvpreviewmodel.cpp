@@ -1,5 +1,6 @@
 #include "csvpreviewmodel.h"
 #include "utilities/desktopcommunicator.h"
+#include "utilities/qutils.h"
 
 CsvPreviewModel::CsvPreviewModel(QObject *parent) : QAbstractTableModel(parent)
 {
@@ -36,6 +37,11 @@ void CsvPreviewModel::preparePreview(const QString &data, char delimiter)
 void CsvPreviewModel::selectDelimiter(char delimiter)
 {
 	DesktopCommunicator::singleton()->delimiterChosen(delimiter);
+}
+
+void CsvPreviewModel::updateLocale()
+{
+	updateInternalStructure();
 }
 
 void CsvPreviewModel::updateInternalStructure()
@@ -88,7 +94,15 @@ QVariant CsvPreviewModel::data(const QModelIndex &index, int role) const
 
 	// Check if the row exists and if this row has a column at this index
 	if (r < _grid.size() && c < _grid[r].size()) {
-		return _grid[r][c];
+		QString val = _grid[r][c];
+		if (val.isEmpty()) return QVariant();
+
+		double dblVal;
+		if (QColumnUtils::getDoubleValue(val, dblVal, true)) {
+			return QVariant(QColumnUtils::doubleToString(dblVal));
+		} else {
+			return QVariant("\"" + val + "\"");
+		}
 	}
 
 	return QVariant();

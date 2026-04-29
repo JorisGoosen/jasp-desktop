@@ -33,6 +33,9 @@ public:
 	bool					visible() const;
 	void					setVisible(bool newVisible);
 	
+	public slots:
+	void					updateLocale();
+
 signals:
 	void					rawDataChanged();
 	void					delimiterChanged();
