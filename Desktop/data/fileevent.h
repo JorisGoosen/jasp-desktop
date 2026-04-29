@@ -38,7 +38,7 @@ public:
 	virtual ~FileEvent();
 
 	bool				setPath(		const QString & path);
-	const QString & path() const { return !_tmp ? _path : pathTmp();	}
+	QString path() const { return !_tmp ? _path : pathTmp(); }
 	static QString		pathTmp();
 	void				setDataFilePath(const QString & path);
 	const QString &		dataFilePath() const { return _dataFilePath;	}

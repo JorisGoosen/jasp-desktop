@@ -16,6 +16,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #ifndef ASYNCLOADER_H
 #define ASYNCLOADER_H
 
@@ -26,8 +27,10 @@
 #include "datasetloader.h"
 #include "datasetpackage.h"
 #include "data/fileevent.h"
+#include "data/exporters/exporter.h"
 
 #include "osf/onlinedatamanager.h"
+#include "timers.h"
 
 struct LoaderException : public std::runtime_error
 {
@@ -68,13 +71,16 @@ private:
 
 	QString fileChecksum(const QString &fileName, QCryptographicHash::Algorithm hashAlgorithm);
 
+protected:
 	void progressHandler(int progress);
 
+private:
+       FileEvent *     _currentEvent;
+        OnlineDataManager *_odm;
+        DataSetLoader  _loader;
 
-
-	DataSetLoader			_loader;
-	FileEvent			*	_currentEvent	= nullptr;
-	OnlineDataManager	*	_odm			= nullptr;
+protected:
+	static QTemporaryFile *	_savetempFile;
 };
 
 #endif // ASYNCLOADER_H

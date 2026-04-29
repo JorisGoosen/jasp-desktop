@@ -3,18 +3,15 @@
 // This program is free to redistribute and/or modify
 // it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
-// License, or
-// (at your option) any later version.
+// License, or (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
+// GNU General Public License for more details.
 //
-// You should have received a copy of the GNU Affero General Public
-// License along with this program.  If not, see
-// <http://www.gnu.org/licenses/>.
-//
+// If not, see <http://www.gnu.org/licenses/>.
+
 #include "jaspexporter.h"
 
 #include <sys/stat.h>
@@ -33,11 +30,12 @@
 #include "appinfo.h"
 #include "gui/preferencesmodel.h"
 #include "data/asyncloader.h"
+#include "utilities/qutils.h"
 
 #include <utilities/desktopcommunicator.h>
 
 
-const Version JASPExporter::jaspArchiveVersion = Version("5.0.0");
+Version JASPExporter::jaspArchiveVersion = Version("5.0.0");
 time_t JASPExporter::_now;
 std::string JASPExporter::_globalWorkspaceSnapshot = "";
 std::mutex JASPExporter::_snapshotMutex;
@@ -174,8 +172,8 @@ void JASPExporter::saveTempFile(archive *a, const std::string & filePath, const 
 	{
 		Log::log() << "JASP Export: cannot find/open file " << filePath << " in " << sourceDir << std::endl;;
 #ifdef JASP_DEBUG
-        //If we are building jasp ourselves or debugging it might be helpful to know stuff is not getting written.
-        //A normal user should however not be forced to endure a crash for that. Because half a jasp file could be better than nothing
+		//If we are building jasp ourselves or debugging it might be helpful to know stuff is not getting written.
+		//A normal user should however not be forced to endure a crash for that. Because half a jasp file could be better than nothing
 		throw LoaderException("JASP Export: cannot find/open file " + filePath);
 #endif
 	}
@@ -225,3 +223,4 @@ void JASPExporter::saveDatabase(archive * a, const std::string &sourceDir)
 	//saveTempFile(a, DatabaseInterface::singleton()->dbFile(true)+"-shm", sourceDir);
 	//saveTempFile(a, DatabaseInterface::singleton()->dbFile(true)+"-wal", sourceDir);
 }
+

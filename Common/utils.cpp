@@ -269,7 +269,7 @@ std::filesystem::path Utils::osPath(const string &path)
 	return std::filesystem::path(path);
 }
 
-string Utils::osPath(const std::filesystem::path &path)
+std::string Utils::osPath(const std::filesystem::path &path)
 {
 	return path.generic_string();
 }

@@ -156,7 +156,7 @@ void TempFiles::deleteOrphans()
 				if (std::atoi(fileName.c_str()) == 0)
 					continue;
 
-				std::filesystem::path statusFile = Utils::osPath(Utils::osPath(p) + "/status");
+				std::filesystem::path statusFile = Utils::osPath(std::filesystem::path(Utils::osPath(p)) / "status");
 
 				if (std::filesystem::exists(statusFile, error))
 				{

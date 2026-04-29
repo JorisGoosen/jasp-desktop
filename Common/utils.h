@@ -63,7 +63,7 @@ public:
 	static bool						removeFile(				const std::string &path);
 
 	static std::filesystem::path	osPath(const std::string &path);
-	static std::string				osPath(const std::filesystem::path &path);
+	static std::string			osPath(const std::filesystem::path &path);
 
 	static void						remove(stringvec &target, const stringvec &toRemove);
 	static void						sleep(int ms);
