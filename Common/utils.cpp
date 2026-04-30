@@ -139,6 +139,11 @@ int64_t Utils::getFileModificationTime(const std::string &filename)
 #endif
 }
 
+int64_t Utils::getFileModificationTime(const std::filesystem::path &filename)
+{
+	return getFileModificationTime(filename.generic_string());
+}
+
 int64_t Utils::getFileSize(const string &filename)
 {
 	std::error_code ec;
