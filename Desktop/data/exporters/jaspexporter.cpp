@@ -223,6 +223,7 @@ void JASPExporter::saveDataSet(const std::string &path, std::function<void(int)>
 
 void JASPExporter::saveManifest(archive * a)
 {
+
 	Json::Value manifest = Json::objectValue;
 
 	manifest["jaspArchiveVersion"]	= jaspArchiveVersion.asString();
@@ -233,6 +234,7 @@ void JASPExporter::saveManifest(archive * a)
 
 void JASPExporter::saveResults(archive * a)
 {
+
 	DataSetPackage::pkg()->waitForExportResultsReady();
 
 	makeEntry(a, "index.html", fq(DataSetPackage::pkg()->analysesHTML()));
@@ -240,6 +242,7 @@ void JASPExporter::saveResults(archive * a)
 
 void JASPExporter::saveSnapshotFile(archive *a, const std::string & fileName, const std::string &sourceDir)
 {
+
 	std::string fullPath = sourceDir + "/" + fileName;
 	std::ifstream readTempFile(fullPath, std::ios::ate | std::ios::binary);
 	char fileBuff[8192];
@@ -263,7 +266,7 @@ void JASPExporter::saveSnapshotFile(archive *a, const std::string & fileName, co
 		while (!readTempFile.eof())
 		{
 			readTempFile.read(fileBuff, sizeof(fileBuff));
-			archive_write_data_block(a, &fileBuff, readTempFile.gcount(), readTempFile.gcount());
+			archive_write_data(a, fileBuff, readTempFile.gcount());
 		}
 		archive_entry_free(entry);
 	}
@@ -279,6 +282,7 @@ void JASPExporter::saveSnapshotFile(archive *a, const std::string & fileName, co
 
 void JASPExporter::saveAnalyses(archive *a, const std::string &sourceDir)
 {
+
 	const Json::Value analysesJson = DataSetPackage::pkg()->analysesData();
 
 	makeEntry(a, "analyses.json", analysesJson.toStyledString());
