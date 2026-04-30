@@ -39,6 +39,7 @@
 #include "mainwindow.h"
 
 #include "gui/preferencesmodel.h"
+#include "data/exporters/jaspexporter.h"
 #include "utilities/application.h"
 #include "gui/jaspversionchecker.h"
 #include "ALTNavigation/altnavcontrol.h"
@@ -2164,30 +2165,10 @@ void MainWindow::saveJaspFileHandler()
 	_package->setAnalysesData(_analyses->asJson());
 
 	// Create a unique temporary directory for the session snapshot
-	QString sessionId = QString::number(Utils::currentMillis());
-	QString snapshotPath = QString("%1/jasp_snapshot_%1").arg(Dirs::tempDir(), sessionId);
-	
-	// Perform the fast copy of the session directory
-	std::error_code error;
-	std::string snapshotPathStr = snapshotPath.toStdString();
-	std::filesystem::create_directories(snapshotPathStr, error);
-	
-	// We assume TempFiles::sessionDirName() provides the current working session root
-	QString sessionRootQString = QString::fromStdString(TempFiles::sessionDirName());
-	std::string sessionRootStr = sessionRootQString.toStdString();
-	
-	if (!sessionRootQString.isEmpty()) {
-		std::filesystem::copy(sessionRootStr, snapshotPathStr, 
-			std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, error);
-		
-		if (error) {
-			Log::log() << "MainWindow: Failed to create session snapshot: " << error.message() << std::endl;
-			// If copy fails, we might want to fall back or notify user. 
-			// For now, we proceed with the original path but log the error.
-		} else {
-			saveEvent->setWorkspaceSnapshotPath(snapshotPath);
-		}
-	}
+	// Create snapshot using JASPExporter's centralized function
+	JASPExporter::createSnapshot("jasp_snapshot_");
+		QString snapshotPath = QString::fromStdString(JASPExporter::getSnapshotPath());
+	saveEvent->setWorkspaceSnapshotPath(snapshotPath);
 	// --- END OF SNAPSHOT LOGIC ---
 
 	dataSetIORequestHandler(saveEvent);
@@ -2200,27 +2181,11 @@ void MainWindow::saveTmpFileHandler()
 
 	// --- START OF SNAPSHOT LOGIC ---
 	_package->setAnalysesData(_analyses->asJson());
-
-	QString sessionId = QString::number(Utils::currentMillis());
-	QString snapshotPath = QString("%1/jasp_autosave_snapshot_%1").arg(Dirs::tempDir(), sessionId);
 	
-	std::error_code error;
-	std::string snapshotPathStr = snapshotPath.toStdString();
-	std::filesystem::create_directories(snapshotPathStr, error);
-	
-	QString sessionRootQString = QString::fromStdString(TempFiles::sessionDirName());
-	std::string sessionRootStr = sessionRootQString.toStdString();
-	
-	if (!sessionRootQString.isEmpty()) {
-		std::filesystem::copy(sessionRootStr, snapshotPathStr, 
-			std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, error);
-		
-		if (error) {
-			Log::log() << "MainWindow: Failed to create autosave snapshot: " << error.message() << std::endl;
-		} else {
-			saveEvent->setWorkspaceSnapshotPath(snapshotPath);
-		}
-	}
+	// Create autosave snapshot using Exporter's centralized function
+	JASPExporter::createSnapshot("jasp_autosave_snapshot_");
+		QString snapshotPath = QString::fromStdString(JASPExporter::getSnapshotPath());
+	saveEvent->setWorkspaceSnapshotPath(snapshotPath);
 	// --- END OF SNAPSHOT LOGIC ---
 
 	dataSetIORequestHandler(saveEvent);

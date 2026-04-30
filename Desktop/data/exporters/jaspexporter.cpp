@@ -56,10 +56,147 @@ void JASPExporter::setGlobalWorkspaceSnapshot(const std::string &path)
 	_globalWorkspaceSnapshot = path;
 }
 
+// Snapshot management variables
+static std::string _currentSnapshotPath = "";
+
 std::string JASPExporter::getGlobalWorkspaceSnapshot()
 {
 	std::lock_guard<std::mutex> lock(_snapshotMutex);
+	// Return snapshot path if a snapshot was created
+	if (!_currentSnapshotPath.empty()) {
+		return _currentSnapshotPath;
+	}
 	return _globalWorkspaceSnapshot;
+}
+static bool _snapshotCreated = false;
+
+void JASPExporter::createSnapshot(const std::string &snapshotPrefix)
+{
+	std::lock_guard<std::mutex> lock(_snapshotMutex);
+	
+	if (_snapshotCreated) {
+		return;
+	}
+	
+	// Generate unique timestamp
+	struct timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	std::string timestamp = std::to_string(ts.tv_sec) + "_" + std::to_string(ts.tv_nsec);
+	
+	// Get temp directory
+	QString tempDir = QDir::tempPath();
+	std::string tempDirStr = tempDir.toStdString();
+	
+	// Remove trailing slash
+	if (!tempDirStr.empty() && tempDirStr.back() == '/') {
+		tempDirStr.pop_back();
+	}
+	
+	// Create snapshot directory name
+	std::string snapshotDirName = snapshotPrefix + timestamp;
+	std::filesystem::path fullSnapshotPath = tempDirStr + "/" + snapshotDirName;
+	
+	// Ensure parent directory exists
+	std::error_code ec;
+	std::filesystem::create_directories(fullSnapshotPath, ec);
+	
+	if (ec) {
+		Log::log() << "JASP Export: Failed to create snapshot directory: " << ec.message() << std::endl;
+		throw LoaderException("JASP Export: Failed to create snapshot directory.");
+	}
+	
+	// Get session directory
+	std::string sessionDir = TempFiles::sessionDirName();
+	if (!sessionDir.empty()) {
+		// Copy all files from session to snapshot
+		std::filesystem::copy(sessionDir, fullSnapshotPath,
+			std::filesystem::copy_options::recursive | 
+			std::filesystem::copy_options::overwrite_existing,
+			ec);
+		
+		if (ec) {
+			Log::log() << "JASP Export: Failed to copy session to snapshot: " << ec.message() << std::endl;
+			throw LoaderException("JASP Export: Failed to copy session directory to snapshot.");
+		}
+		
+		Log::log() << "JASP Export: Created snapshot at " << fullSnapshotPath << std::endl;
+		// Print the contents of the snapshot directory recursively
+		printSnapshotContents(fullSnapshotPath);
+	} else {
+		// Session directory was empty, but snapshot directory was created
+		Log::log() << "JASP Export: Session directory was empty, snapshot created but empty" << std::endl;
+	}
+	
+	// Store snapshot path
+	_currentSnapshotPath = fullSnapshotPath.string();
+	_snapshotCreated = true;
+	
+	// Always print contents even if session dir was empty
+	printSnapshotContents(fullSnapshotPath);
+}
+
+std::string JASPExporter::getSnapshotPath()
+{
+	return _currentSnapshotPath;
+}
+
+void JASPExporter::cleanupSnapshot()
+{
+	std::lock_guard<std::mutex> lock(_snapshotMutex);
+	
+	if (!_snapshotCreated || _currentSnapshotPath.empty()) {
+		return;
+	}
+	
+	std::error_code ec;
+	std::filesystem::path snapshotPath(_currentSnapshotPath);
+	
+	if (snapshotPath.empty()) {
+		return;
+	}
+	
+	// Remove snapshot directory
+	std::filesystem::remove_all(snapshotPath, ec);
+	
+	if (!ec) {
+		Log::log() << "JASP Export: Cleaned up snapshot at " << _currentSnapshotPath << std::endl;
+	}
+	
+	_currentSnapshotPath = "";
+	_snapshotCreated = false;
+}
+
+void JASPExporter::printSnapshotContents(const std::string &snapshotPath)
+{
+	std::error_code ec;
+	std::filesystem::recursive_directory_iterator iter(snapshotPath, ec);
+	
+	Log::log() << "JASP Export: Snapshot contents:" << std::endl;
+	
+	if (ec) {
+		Log::log() << "  [Error accessing snapshot directory: " << ec.message() << "]" << std::endl;
+		return;
+	}
+	
+	// Print directory entries
+	std::error_code ec2;
+	for (auto entry : std::filesystem::directory_iterator(snapshotPath, ec2)) {
+		std::string name = entry.path().filename().string();
+		std::string relativePath = name;
+		if (entry.path().is_absolute() && entry.path().parent_path() != std::filesystem::path(snapshotPath)) {
+			relativePath = entry.path().relative_path().string();
+		}
+		
+		if (entry.is_regular_file()) {
+			std::error_code sizeEc;
+			auto size = std::filesystem::file_size(entry.path(), sizeEc);
+			if (!sizeEc) {
+				Log::log() << "  File: " << relativePath << " (" << (size / 1024) << " KB)" << std::endl;
+			}
+		} else if (entry.is_directory()) {
+			Log::log() << "  Dir: " << relativePath << "/" << std::endl;
+		}
+	}
 }
 
 void JASPExporter::saveDataSet(const std::string &path, std::function<void(int)> progressCallback)
@@ -69,6 +206,11 @@ void JASPExporter::saveDataSet(const std::string &path, std::function<void(int)>
 	_now = time(nullptr); //Give all files same timestamp
 	
 	std::string sourceDir = getGlobalWorkspaceSnapshot();
+	if (sourceDir.empty()) {
+		// No snapshot was created, create one automatically
+		JASPExporter::createSnapshot("jasp_local_save_snapshot_");
+		sourceDir = getGlobalWorkspaceSnapshot();
+	}
 	
 	std::filesystem::path tmpPath = path;
 	bool encrypt = JaspEncryptionData::getInstance()->encryptionActive();
@@ -122,6 +264,9 @@ void JASPExporter::saveDataSet(const std::string &path, std::function<void(int)>
 
 	//Make sure it is now always considered "loading" in DataSetPackage
 	DataSetPackage::pkg()->setLoaded(true);
+	
+	// Cleanup snapshot after save (whether success or failure)
+	JASPExporter::cleanupSnapshot();
 }
 
 void JASPExporter::saveManifest(archive * a, const std::string &sourceDir)
@@ -199,9 +344,21 @@ void JASPExporter::saveAnalyses(archive *a, const std::string &sourceDir)
 
 void JASPExporter::saveDatabase(archive * a, const std::string &sourceDir)
 {
-	saveTempFile(a, DatabaseInterface::singleton()->dbFile(true), sourceDir);
-	//saveTempFile(a, DatabaseInterface::singleton()->dbFile(true)+"-shm", sourceDir);
-	//saveTempFile(a, DatabaseInterface::singleton()->dbFile(true)+"-wal", sourceDir);
+	// If sourceDir is not empty, the database file is in that directory
+	if (!sourceDir.empty()) {
+		saveTempFile(a, DatabaseInterface::singleton()->dbFile(true), sourceDir);
+	} else {
+		// sourceDir is empty - database file is at dbFile(false) location
+		// but we want to store it with just the filename in the archive
+		std::string dbPath = DatabaseInterface::singleton()->dbFile(false);
+		std::string::size_type lastSlash = dbPath.find_last_of("/\\");
+		if (lastSlash != std::string::npos) {
+			std::string archiveEntryPath = dbPath.substr(lastSlash + 1);
+			saveTempFile(a, archiveEntryPath, sourceDir);
+		} else {
+			saveTempFile(a, dbPath, sourceDir);
+		}
+	}
 }
 
 void JASPExporter::makeEntry(archive * a, const std::string & filename, const std::string & data, const std::string &sourceDir)

@@ -49,7 +49,7 @@ void TempFiles::init(long sessionId)
 
 void TempFiles::createSessionDir()
 {
-	std::cout << "TempFiles::createSessionDir(): ";
+	Log::log() << "DEBUG createSessionDir: Creating session dir at " << _sessionDirName << std::endl;
 	
 	std::error_code error;
 

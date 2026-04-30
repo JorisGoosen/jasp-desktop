@@ -42,6 +42,14 @@ private:
 	static void saveDatabase(		archive * a, const std::string &sourceDir);
 	static void saveTempFile(archive *a, const std::string &filePath, const std::string &sourceDir);
 	static void makeEntry(archive * a, const std::string & filename, const std::string & data, const std::string &sourceDir);
+
+// Snapshot management functions
+public:
+	static void createSnapshot(const std::string &snapshotPrefix = "jasp_snapshot_");
+	static std::string getSnapshotPath();
+	static void cleanupSnapshot();
+	static void printSnapshotContents(const std::string &snapshotPath);
+	
 	static void setGlobalWorkspaceSnapshot(const std::string &path);
 	static std::string getGlobalWorkspaceSnapshot();
 
