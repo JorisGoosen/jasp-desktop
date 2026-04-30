@@ -1322,7 +1322,6 @@ void MainWindow::dataSetIORequestHandler(FileEvent *event)
 		JASPExporter::createSnapshot(event->isTmp() ? "jasp_autosave_snapshot_" : "jasp_snapshot_");
 
 		_loader->io(event);
-		showProgress();
 	}
 	else if (event->operation() == FileEvent::FileExportResults)
 	{
