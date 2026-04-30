@@ -20,6 +20,7 @@
 #include "exporter.h"
 #include <archive.h>
 #include <time.h>
+#include <queue>
 #include <mutex>
 #include "version.h"
 #include "../datasetpackage.h"
@@ -32,30 +33,27 @@ class JASPExporter: public Exporter
 public:
 	JASPExporter();
 	void saveDataSet(const std::string &path, std::function<void (int)> progressCallback) override;
-public:
+
 	static const Version jaspArchiveVersion;
 
-private:
-    static void saveManifest(       archive * a, const std::string &sourceDir);
-	static void saveResults(		archive * a, const std::string &sourceDir);
-	static void saveAnalyses(		archive * a, const std::string &sourceDir);
-	static void saveDatabase(		archive * a, const std::string &sourceDir);
-	static void saveTempFile(archive *a, const std::string &filePath, const std::string &sourceDir);
-	static void makeEntry(archive * a, const std::string & filename, const std::string & data, const std::string &sourceDir);
+	static time_t _now;
 
 // Snapshot management functions
 public:
 	static void createSnapshot(const std::string &snapshotPrefix = "jasp_snapshot_");
-	static std::string getSnapshotPath();
-	static void cleanupSnapshot();
+	static void cleanupSnapshot(const std::string &snapshotPath);
 	static void printSnapshotContents(const std::string &snapshotPath);
-	
-	static void setGlobalWorkspaceSnapshot(const std::string &path);
-	static std::string getGlobalWorkspaceSnapshot();
+	static bool isSaveInProgress();
 
-	static time_t _now;
+private:
+	static void saveManifest(archive * a);
+	static void saveResults(archive * a);
+	static void saveAnalyses(archive * a, const std::string &sourceDir);
+	static void saveDatabase(archive * a, const std::string &sourceDir);
+	static void saveSnapshotFile(archive * a, const std::string &fileName, const std::string &sourceDir);
+	static void makeEntry(archive * a, const std::string & filename, const std::string & data);
 
-	static std::string _globalWorkspaceSnapshot;
+	static std::queue<std::string> _snapshotQueue;
 	static std::mutex _snapshotMutex;
 };
 

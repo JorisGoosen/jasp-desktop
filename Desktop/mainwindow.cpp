@@ -2161,14 +2161,8 @@ void MainWindow::saveJaspFileHandler()
 	saveEvent->setPath(resultXmlCompare::compareResults::theOne()->filePath());
 
 	// --- START OF SNAPSHOT LOGIC ---
-	// Capture the analysis state before creating the physical snapshot
 	_package->setAnalysesData(_analyses->asJson());
-
-	// Create a unique temporary directory for the session snapshot
-	// Create snapshot using JASPExporter's centralized function
 	JASPExporter::createSnapshot("jasp_snapshot_");
-		QString snapshotPath = QString::fromStdString(JASPExporter::getSnapshotPath());
-	saveEvent->setWorkspaceSnapshotPath(snapshotPath);
 	// --- END OF SNAPSHOT LOGIC ---
 
 	dataSetIORequestHandler(saveEvent);
@@ -2176,16 +2170,15 @@ void MainWindow::saveJaspFileHandler()
 
 void MainWindow::saveTmpFileHandler()
 {
+	if (JASPExporter::isSaveInProgress())
+		return;
+
 	FileEvent * saveEvent = new FileEvent(this, FileEvent::FileSave);
 	saveEvent->setTmp(true);
 
 	// --- START OF SNAPSHOT LOGIC ---
 	_package->setAnalysesData(_analyses->asJson());
-	
-	// Create autosave snapshot using Exporter's centralized function
 	JASPExporter::createSnapshot("jasp_autosave_snapshot_");
-		QString snapshotPath = QString::fromStdString(JASPExporter::getSnapshotPath());
-	saveEvent->setWorkspaceSnapshotPath(snapshotPath);
 	// --- END OF SNAPSHOT LOGIC ---
 
 	dataSetIORequestHandler(saveEvent);

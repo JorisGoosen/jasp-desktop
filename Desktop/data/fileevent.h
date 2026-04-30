@@ -44,8 +44,6 @@ public:
 	const QString &		dataFilePath() const { return _dataFilePath;	}
 	void				setOsfPath(const QString & path)		{ _osfPath = path; }
 	const QString &		osfPath() const { return _osfPath;		}
-	void				setWorkspaceSnapshotPath(const QString & path) { _workspaceSnapshotPath = path; }
-	const QString &		workspaceSnapshotPath() const { return _workspaceSnapshotPath; }
 	void				setDatabase(	const Json::Value & dbInfo);
 	void				setFileType(	Utils::FileType	type)			{ _type = type; }
 	void				setTmp(			bool saveTmp)					{ _tmp  = saveTmp; }
@@ -88,7 +86,6 @@ private:
 	QString				_path,
 						_osfPath		= "", //To show the user a friendly path
 						_dataFilePath,
-						_workspaceSnapshotPath,
 						_last_error		= "Unknown error",
 						_message;
 	bool				_completed		= false,

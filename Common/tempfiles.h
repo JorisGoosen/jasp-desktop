@@ -54,7 +54,7 @@ public:
 	static std::string	createTmpFolder();
 
 	static std::string	sessionDirName() { return _sessionDirName; }
-	static stringvec	retrieveList(int id = -1);
+	static stringvec	retrieveList(int id = -1, const std::string &dir = "");
 	static bool			stateFileExists(int id);
 
 	static void			deleteList(const stringvec &files);

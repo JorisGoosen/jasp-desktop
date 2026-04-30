@@ -294,41 +294,41 @@ std::string TempFiles::createTmpFolder()
 	}
 }
 
-vector<string> TempFiles::retrieveList(int id)
+vector<string> TempFiles::retrieveList(int id, const std::string &dir)
 {
 	vector<string> files;
 
 	std::error_code error;
 
-	string dir = _sessionDirName;
+	std::string baseDir = dir.empty() ? _sessionDirName : dir;
 
 	if (id >= 0)
-		dir += "/resources/" + std::to_string(id);
+		baseDir += "/resources/" + std::to_string(id);
 
-	std::filesystem::path path = dir;
+	std::filesystem::path path = baseDir;
 
 	std::filesystem::directory_iterator itr(path, error);
 
 	if (error)
 		return files;
 
-    std::string sessionPath = std::filesystem::path(_sessionDirName).generic_string();
+	std::string sessionPath = std::filesystem::path(dir.empty() ? _sessionDirName : dir).generic_string();
 
-    Log::log() << "TempFiles::retrieveList uses sessionpath " << sessionPath << " and finds: ";
+	Log::log() << "TempFiles::retrieveList uses sessionpath " << sessionPath << " and finds: ";
 
 	for (; itr != std::filesystem::directory_iterator(); itr++)
 		if (std::filesystem::is_regular_file(itr->status()))
 		{
 			std::filesystem::path pad = itr->path();
 			string absPath = pad.generic_string();
-            string relPath = absPath.substr(sessionPath.size()+1);
+			string relPath = absPath.substr(sessionPath.size()+1);
 
-            Log::log(false) << relPath << " from " << absPath << " || ";
+			Log::log(false) << relPath << " from " << absPath << " || ";
 
 			files.push_back(relPath);
 		}
 
-    Log::log(false) << std::endl;
+	Log::log(false) << std::endl;
 
 	return files;
 }
