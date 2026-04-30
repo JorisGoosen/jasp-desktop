@@ -187,7 +187,7 @@ void TestAll::testJaspRoundRobin()
 	DataSet *	dataSet		= _pkg->dataSet();
 	QVERIFY2(dataSet,			"No dataset!");
 	
-Json::Value compareMe	= dataSet->jsonForCompare();
+	Json::Value compareMe	= dataSet->jsonForCompare();
 	std::string jaspFile	= TempFiles::createSpecific("testjasp", "temp.jasp");
 
 	std::cerr << "Storing jasp file temporarily to: " << jaspFile << std::endl;
