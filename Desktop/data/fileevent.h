@@ -1,7 +1,7 @@
 //
-// Copyright (C) 2018 University of Amsterdam
+// Copyright (C) 2013-2026 University of Amsterdam
 //
-// This program is free to redistribute and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 2 of the License, or
 // (at your option) any later version.
@@ -14,11 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 #ifndef FILEEVENT_H
 #define FILEEVENT_H
 
 #include <QObject>
-#include <QString>
+#include <QMetaType>
 #include "json/json.h"
 #include "utilenums.h"
 
@@ -34,18 +35,13 @@ class FileEvent : public QObject
 public:
 	enum FileMode { FileSave, FileNew, FileOpen, FileExportResults, FileExportData, FileGenerateData, FileSyncData, FileClose };
 
-	FileEvent(QObject *parent = nullptr, FileMode fileMode = FileEvent::FileOpen);
-	virtual ~FileEvent();
+					FileEvent(QObject *parent = nullptr, FileMode fileMode = FileEvent::FileOpen);
+	virtual			~FileEvent();
 
 	bool				setPath(		const QString & path);
-	QString path() const { return !_tmp ? _path : pathTmp(); }
-	static QString		pathTmp();
+	const QString & path() const { return !_tmp ? _path : pathTmp();	}
 	void				setDataFilePath(const QString & path);
-	const QString &		dataFilePath() const { return _dataFilePath;	}
-	void				setOsfPath(const QString & path)		{ _osfPath = path; }
-	const QString &		osfPath() const { return _osfPath;		}
-	void				setWorkspaceSnapshotPath(const QString & path) { _workspaceSnapshotPath = path; }
-	const QString &		workspaceSnapshotPath() const { return _workspaceSnapshotPath; }
+	void				setOsfPath(		const QString & path)			{ _osfPath = path; }
 	void				setDatabase(	const Json::Value & dbInfo);
 	void				setFileType(	Utils::FileType	type)			{ _type = type; }
 	void				setTmp(			bool saveTmp)					{ _tmp  = saveTmp; }
@@ -54,8 +50,7 @@ public:
 	void				chain(FileEvent *event);
 
 	bool				isDatabase()	const { return _database != Json::nullValue;	}
-	bool				isOnlineNode()	const { return _isOnlineNode;		}
-	void				setOnlineNode(bool online) { _isOnlineNode = online; }
+	bool				isOnlineNode()	const { return _path.startsWith("http");		}
 	bool				isExample()		const;
 	bool				isReadOnly()	const { return isExample() || isDatabase();		}
 	bool				isCompleted()	const { return _completed;						}
@@ -69,12 +64,18 @@ public:
 	FileMode			operation()		const { return _operation;		}
 	Utils::FileType		type()			const { return _type;			}
 
+	QString				path()			const { return !_tmp ? _path : pathTmp();	}
+	static QString		pathTmp();
 	const std::string	databaseStr()	const;
 	const Json::Value &	database()		const { return _database;		}
+	const QString &		osfPath()		const { return _osfPath;		}
+	const QString &		dataFilePath()	const { return _dataFilePath;	}
 	const QString &		message()		const { return _message;		}
 	const QString &		getLastError()	const { return _last_error;		}
+
 	QString				getProgressMsg() const;
-	void				setSilent(bool newSilent);
+
+	void setSilent(bool newSilent);
 
 signals:
 	void completed(FileEvent *event);
@@ -88,19 +89,17 @@ private:
 	QString				_path,
 						_osfPath		= "", //To show the user a friendly path
 						_dataFilePath,
-						_workspaceSnapshotPath,
 						_last_error		= "Unknown error",
 						_message;
 	bool				_completed		= false,
 						_success		= false,
 						_cancelled		= false,
-						_tmp			= false,
-						_isOnlineNode		= false;
+						_tmp			= false;
 	FileEvent		*	_chainedTo		= nullptr;
 	Exporter		*	_exporter		= nullptr;
 	Json::Value			_database		= Json::nullValue;
 };
 
+Q_DECLARE_METATYPE(FileEvent *)
+Q_DECLARE_METATYPE(FileEvent::FileMode)
 #endif // FILEEVENT_H
-
-

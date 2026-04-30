@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2013-2018 University of Amsterdam
+// Copyright (C) 2013-2026 University of Amsterdam
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -269,7 +269,7 @@ std::filesystem::path Utils::osPath(const string &path)
 	return std::filesystem::path(path);
 }
 
-std::string Utils::osPath(const std::filesystem::path &path)
+std::std::filesystem::path Utils::osPath(const std::filesystem::path &path)
 {
 	return path.generic_string();
 }

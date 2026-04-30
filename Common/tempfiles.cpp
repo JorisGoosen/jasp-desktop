@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2013-2018 University of Amsterdam
+// Copyright (C) 2013-2026 University of Amsterdam
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -156,7 +156,7 @@ void TempFiles::deleteOrphans()
 				if (std::atoi(fileName.c_str()) == 0)
 					continue;
 
-				std::filesystem::path statusFile = Utils::osPath(std::filesystem::path(Utils::osPath(p)) / "status");
+				std::filesystem::path statusFile = Utils::osPath(Utils::osPath(p) + "/status");
 
 				if (std::filesystem::exists(statusFile, error))
 				{

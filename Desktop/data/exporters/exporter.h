@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2018 University of Amsterdam
+// Copyright (C) 2018-2026 University of Amsterdam
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,12 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 #ifndef EXPORTER_H
 #define EXPORTER_H
 
-#include <QObject>
-#include <string>
-#include "../datasetpackage.h"
+#include <QScopedPointer>
+#include <memory>
+#include <functional>
 #include <boost/function.hpp>
 #include <boost/assign/list_of.hpp>
 #include <vector>

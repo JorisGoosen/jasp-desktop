@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2013-2018 University of Amsterdam
+// Copyright (C) 2013-2026 University of Amsterdam
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -2155,10 +2155,6 @@ void MainWindow::finishSavingComparedResults()
 
 void MainWindow::saveJaspFileHandler()
 {
-	FileEvent * saveEvent = new FileEvent(this, FileEvent::FileSave);
-
-	saveEvent->setPath(resultXmlCompare::compareResults::theOne()->filePath());
-
 	// --- START OF SNAPSHOT LOGIC ---
 	// Capture the analysis state before creating the physical snapshot
 	_package->setAnalysesData(_analyses->asJson());
@@ -2180,7 +2176,7 @@ void MainWindow::saveJaspFileHandler()
 		std::filesystem::copy(Utils::osPath(sessionRootStr), Utils::osPath(snapshotPathStr), 
 			std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, error);
 		
-	if (error) {
+		if (error) {
 			Log::log() << "MainWindow: Failed to create session snapshot: " << error.message() << std::endl;
 			// If copy fails, we might want to fall back or notify user. 
 			// For now, we proceed with the original path but log the error.
@@ -2190,38 +2186,42 @@ void MainWindow::saveJaspFileHandler()
 	}
 	// --- END OF SNAPSHOT LOGIC ---
 
+	FileEvent * saveEvent = new FileEvent(this, FileEvent::FileSave);
+
+	saveEvent->setPath(resultXmlCompare::compareResults::theOne()->filePath());
+
 	dataSetIORequestHandler(saveEvent);
 }
 
 void MainWindow::saveTmpFileHandler()
 {
-	FileEvent * saveEvent = new FileEvent(this, FileEvent::FileSave);
-	saveEvent->setTmp(true);
-
 	// --- START OF SNAPSHOT LOGIC ---
 	_package->setAnalysesData(_analyses->asJson());
 
 	QString sessionId = QString::number(Utils::currentMillis());
-	QString snapshotPathQString = QString("%1/jasp_autosave_snapshot_%1").arg(Dirs::tempDir(), sessionId);
-	std::string snapshotPath = snapshotPathQString.toStdString();
+	QString snapshotPath = QString("%1/jasp_autosave_snapshot_%1").arg(Dirs::tempDir(), sessionId);
 	
 	std::error_code error;
-	std::filesystem::create_directories(Utils::osPath(snapshotPath), error);
+	std::string snapshotPathStr = snapshotPath.toStdString();
+	std::filesystem::create_directories(Utils::osPath(snapshotPathStr), error);
 	
 	QString sessionRootQString = QString::fromStdString(TempFiles::sessionDirName());
 	std::string sessionRootStr = sessionRootQString.toStdString();
 	
 	if (!sessionRootQString.isEmpty()) {
-		std::filesystem::copy(Utils::osPath(sessionRootStr), Utils::osPath(snapshotPath), 
+		std::filesystem::copy(Utils::osPath(sessionRootStr), Utils::osPath(snapshotPathStr), 
 			std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, error);
 		
 		if (error) {
 			Log::log() << "MainWindow: Failed to create autosave snapshot: " << error.message() << std::endl;
 		} else {
-			saveEvent->setWorkspaceSnapshotPath(QString::fromStdString(snapshotPath));
+			saveEvent->setWorkspaceSnapshotPath(snapshotPath);
 		}
 	}
 	// --- END OF SNAPSHOT LOGIC ---
+
+	FileEvent * saveEvent = new FileEvent(this, FileEvent::FileSave);
+	saveEvent->setTmp(true);
 
 	dataSetIORequestHandler(saveEvent);
 }

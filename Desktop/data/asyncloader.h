@@ -1,19 +1,18 @@
 //
-// Copyright (C) 2013-2018 University of Amsterdam
+// Copyright (C) 2013-2026 University of Amsterdam
 //
 // This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
+// GNU General Public License for more details.
 //
-// You should have received a copy of the GNU Affero General Public
-// License along with this program.  If not, see
-// <http://www.gnu.org/licenses/>.
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
@@ -67,20 +66,15 @@ private slots:
 	void uploadFileFinished(QString id);
 	//void errorFlagged(QString msg, QString id);
 
-private:
-
-	QString fileChecksum(const QString &fileName, QCryptographicHash::Algorithm hashAlgorithm);
-
 protected:
 	void progressHandler(int progress);
 
 private:
-       FileEvent *     _currentEvent;
-        OnlineDataManager *_odm;
-        DataSetLoader  _loader;
+	QString fileChecksum(const QString &fileName, QCryptographicHash::Algorithm hashAlgorithm);
 
-protected:
-	static QTemporaryFile *	_savetempFile;
+	DataSetLoader			_loader;
+	FileEvent			*	_currentEvent	= nullptr;
+	OnlineDataManager	*	_odm			= nullptr;
 };
 
 #endif // ASYNCLOADER_H

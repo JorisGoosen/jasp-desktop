@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2013-2018 University of Amsterdam
+// Copyright (C) 2013-2026 University of Amsterdam
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -63,7 +63,7 @@ public:
 	static bool						removeFile(				const std::string &path);
 
 	static std::filesystem::path	osPath(const std::string &path);
-	static std::string			osPath(const std::filesystem::path &path);
+	static std::filesystem::path	osPath(const std::filesystem::path &path);
 
 	static void						remove(stringvec &target, const stringvec &toRemove);
 	static void						sleep(int ms);
