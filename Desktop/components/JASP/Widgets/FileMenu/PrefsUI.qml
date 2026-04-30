@@ -167,7 +167,8 @@ PrefsScrollView
 
 	PrefsLanguage
 	{
-		id:		languageGroup
+		id:				languageGroup
+		nextTabItem:	altnavcheckbox
 	}
 
 	PrefsGroupRect

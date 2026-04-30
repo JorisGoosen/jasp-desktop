@@ -291,19 +291,9 @@ Window
 
 	ProgressBarHolder
 	{
-		visible:			mainWindow.progressBarVisible
+		visible:			mainWindow.progressBarVisible && !csvPreviewModel.visible
 		z:					10
 		anchors.fill:		parent
-	}
-
-	CsvPreview
-	{
-		id:					csvPreview
-		z:					12
-		anchors.centerIn:	parent
-		visible:			csvPreviewModel.visible
-		width:				Math.max(300 * jaspTheme.uiScale, parent.width  * 0.5)
-		height:				Math.max(300 * jaspTheme.uiScale, parent.height * 0.5)
 	}
 	
 	Rectangle

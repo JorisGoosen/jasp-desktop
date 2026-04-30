@@ -8,6 +8,9 @@ PrefsGroupRect
 {
 	id:		languageGroup
 	title:	qsTr("Preferred language")
+
+	property bool showHelpLink: true
+	property var nextTabItem
 	
 
 
@@ -74,7 +77,7 @@ PrefsGroupRect
 				value:						languageModel.currentAltTerritory
 				onValueChanged:				if(value != "") languageModel.currentAltTerritory = value
 				addEmptyValue:				false
-				KeyNavigation.tab:			altnavcheckbox
+				KeyNavigation.tab:			nextTabItem ? nextTabItem : undefined
 				control.width:				Math.max(alternativeLocaleLanguage.control.implicitWidth, alternativeLocaleTerritory.control.implicitWidth)
 			}
 
@@ -116,6 +119,7 @@ PrefsGroupRect
 		font.pixelSize:		Math.round(12 * preferencesModel.uiScale)
 		font.family:		preferencesModel.interfaceFont
 		font.underline:		true
+		visible:			showHelpLink
 
 		MouseArea
 		{

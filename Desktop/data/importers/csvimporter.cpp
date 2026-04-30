@@ -40,13 +40,21 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
 
 	// Try to detect delimiter first
 	char delimiter = csv.delimiter();
-	try {
-		// Call askCsvDelimiter which will internally emit the signal
-		// Using firstRowsPlease() to only pass a snippet of the file for preview
-		delimiter = DesktopCommunicator::singleton()->askCsvDelimiter(delimiter, QString::fromStdString(csv.firstRowsPlease()));
-	} catch (...) {
-		delimiter = ',';
+
+	if (!_synching)
+	{
+		try {
+			// Call askCsvDelimiter which will internally emit the signal
+			// Using firstRowsPlease() to only pass a snippet of the file for preview
+			delimiter = DesktopCommunicator::singleton()->askCsvDelimiter(delimiter, QString::fromStdString(csv.firstRowsPlease()));
+		} catch (...) {
+			delimiter = ',';
+		}
+
+		if (!delimiter)
+			return nullptr;
 	}
+
 
 	csv.setDelimiter(delimiter);
 	csv.readLine(colNames);
