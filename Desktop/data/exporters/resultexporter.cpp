@@ -21,6 +21,7 @@
 #include <QTextDocument>
 #include <fstream>
 #include "utilenums.h"
+#include "../datasetpackage.h"
 #include "results/resultsjsinterface.h"
 #include <QThread>
 #include "log.h"

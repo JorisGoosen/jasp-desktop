@@ -41,7 +41,7 @@ void _moduleLibraryFixer(const std::string & moduleLibraryPath, bool engineCall,
 	printStuff = true; // If debugging please always print stuff
 #endif
 
-	std::filesystem::path	modLibpath	= Utils::osPath(moduleLibraryPath);
+	std::filesystem::path	modLibpath	= moduleLibraryPath;
 
 	std::cout << "modLibpath: " << modLibpath << std::endl;
 

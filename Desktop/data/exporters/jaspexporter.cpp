@@ -21,6 +21,7 @@
 #include <ios>
 #include <archive.h>
 #include <archive_entry.h>
+#include <archive_entry.h>
 #include <json/json.h>
 #include <fstream>
 #include "data/jaspencryptiondata.h"
@@ -38,8 +39,8 @@
 #include <utilities/desktopcommunicator.h>
 
 
-const Version JASPExporter::jaspArchiveVersion = Version("5.0.0");
 time_t JASPExporter::_now;
+const Version JASPExporter::jaspArchiveVersion = Version("5.0.0");
 std::string JASPExporter::_globalWorkspaceSnapshot = "";
 std::mutex JASPExporter::_snapshotMutex;
 
@@ -166,7 +167,7 @@ void JASPExporter::saveTempFile(archive *a, const std::string & filePath, const 
 		while (!readTempFile.eof())
 		{
 			readTempFile.read(fileBuff, sizeof(fileBuff));
-			archive_write_block(a, &fileBuff, readTempFile.gcount());
+			archive_write_data_block(a, &fileBuff, readTempFile.gcount(), readTempFile.gcount());
 		}
 		archive_entry_free(entry);
 	}
@@ -225,43 +226,3 @@ void JASPExporter::makeEntry(archive * a, const std::string & filename, const st
 	archive_entry_free(entry);
 }
 
-void JASPExporter::saveTempFile(archive *a, const std::string & filePath, const std::string &sourceDir)
-{
-	// std::ios::ate seeks to the end of stream immediately after open
-	std::ifstream   readTempFile(TempFiles::sessionDirName() + "/" + filePath, std::ios::ate | std::ios::binary);
-	char            fileBuff[8192];
-
-	if (readTempFile.is_open())
-	{
-		archive_entry * entry       = archive_entry_new();
-
-		archive_entry_set_pathname( entry,  filePath.c_str());
-		archive_entry_set_size(		entry,	readTempFile.tellg()); // get size from curpos after ios::ate seek
-		archive_entry_set_filetype(	entry,	AE_IFREG);
-		archive_entry_set_birthtime(entry,  _now, 0);
-		archive_entry_set_ctime(    entry,  _now, 0);
-		archive_entry_set_mtime(    entry,  _now, 0);
-		archive_entry_set_atime(    entry,  _now, 0);
-		archive_entry_set_perm(		entry,	0644); //set some read write permissions
-
-		archive_write_header(		a,		entry);
-
-		readTempFile.seekg(0, std::ios::beg);	// move back to begin
-		while (!readTempFile.eof())
-		{
-			readTempFile.read(fileBuff, sizeof(fileBuff));
-			archive_write_block(a, &fileBuff, readTempFile.gcount());
-		}
-		archive_entry_free(entry);
-	}
-	else
-	{
-		Log::log() << "JASP Export: cannot find/open file " << filePath << " in " << sourceDir << std::endl;;
-#ifdef JASP_DEBUG
-		//If we are building jasp ourselves or debugging it might be helpful to know stuff is not getting written.
-		//A normal user should however not be forced to endure a crash for that. Because half a jasp file could be better than nothing
-		throw LoaderException("JASP Export: cannot find/open file " + filePath);
-#endif
-	}
-	readTempFile.close();
-}

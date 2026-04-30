@@ -233,8 +233,8 @@ void Utils::touch(const string &filename)
 
 bool Utils::renameOverwrite(const string &oldName, const string &newName)
 {
-	std::filesystem::path o = osPath(oldName);
-	std::filesystem::path n = osPath(newName);
+	std::filesystem::path o = oldName;
+	std::filesystem::path n = newName;
 	std::error_code ec;
 
 #ifdef _WIN32
@@ -256,7 +256,7 @@ bool Utils::renameOverwrite(const string &oldName, const string &newName)
 
 bool Utils::removeFile(const string &path)
 {
-	std::filesystem::path p = osPath(path);
+	std::filesystem::path p = path;
 	std::error_code ec;
 
 	std::filesystem::remove(p, ec);

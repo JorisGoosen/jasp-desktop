@@ -1,4 +1,4 @@
-﻿#include "databaseinterface.h"
+#include "databaseinterface.h"
 #include "columnutils.h"
 #include "columntype.h"
 #include "tempfiles.h"
@@ -1916,7 +1916,7 @@ std::string DatabaseInterface::dbFile(bool onlyName) const
 	if (_inMemory)
 		return memoryName;
 
-	return onlyName ? fileName : Utils::osPath(TempFiles::sessionDirName() + "/" + fileName).string();
+	return onlyName ? fileName : std::filesystem::path(TempFiles::sessionDirName() + "/" + fileName).generic_string();
 }
 
 DatabaseInterface *DatabaseInterface::singleton() 

@@ -20,6 +20,7 @@
 #include <fstream>
 #include "stringutils.h"
 #include "utilenums.h"
+#include "../datasetpackage.h"
 
 using namespace std;
 

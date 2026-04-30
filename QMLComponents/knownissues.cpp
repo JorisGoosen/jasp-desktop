@@ -125,7 +125,7 @@ bool KnownIssues::knownJsonExpired() const
 	if(!std::filesystem::exists(knownJson))
 		return true;
 
-	int64_t	modTime	= Utils::getFileModificationTime(Utils::osPath(knownJson));
+	int64_t	modTime	= Utils::getFileModificationTime(knownJson.generic_string());
 	int64_t now		= Utils::currentSeconds();
 
 	return now - modTime > EXPIRATION_TIME_SEC;

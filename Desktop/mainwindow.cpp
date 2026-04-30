@@ -2155,6 +2155,10 @@ void MainWindow::finishSavingComparedResults()
 
 void MainWindow::saveJaspFileHandler()
 {
+	FileEvent * saveEvent = new FileEvent(this, FileEvent::FileSave);
+
+	saveEvent->setPath(resultXmlCompare::compareResults::theOne()->filePath());
+
 	// --- START OF SNAPSHOT LOGIC ---
 	// Capture the analysis state before creating the physical snapshot
 	_package->setAnalysesData(_analyses->asJson());
@@ -2166,14 +2170,14 @@ void MainWindow::saveJaspFileHandler()
 	// Perform the fast copy of the session directory
 	std::error_code error;
 	std::string snapshotPathStr = snapshotPath.toStdString();
-	std::filesystem::create_directories(Utils::osPath(snapshotPathStr), error);
+	std::filesystem::create_directories(snapshotPathStr, error);
 	
 	// We assume TempFiles::sessionDirName() provides the current working session root
 	QString sessionRootQString = QString::fromStdString(TempFiles::sessionDirName());
 	std::string sessionRootStr = sessionRootQString.toStdString();
 	
 	if (!sessionRootQString.isEmpty()) {
-		std::filesystem::copy(Utils::osPath(sessionRootStr), Utils::osPath(snapshotPathStr), 
+		std::filesystem::copy(sessionRootStr, snapshotPathStr, 
 			std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, error);
 		
 		if (error) {
@@ -2186,15 +2190,14 @@ void MainWindow::saveJaspFileHandler()
 	}
 	// --- END OF SNAPSHOT LOGIC ---
 
-	FileEvent * saveEvent = new FileEvent(this, FileEvent::FileSave);
-
-	saveEvent->setPath(resultXmlCompare::compareResults::theOne()->filePath());
-
 	dataSetIORequestHandler(saveEvent);
 }
 
 void MainWindow::saveTmpFileHandler()
 {
+	FileEvent * saveEvent = new FileEvent(this, FileEvent::FileSave);
+	saveEvent->setTmp(true);
+
 	// --- START OF SNAPSHOT LOGIC ---
 	_package->setAnalysesData(_analyses->asJson());
 
@@ -2203,13 +2206,13 @@ void MainWindow::saveTmpFileHandler()
 	
 	std::error_code error;
 	std::string snapshotPathStr = snapshotPath.toStdString();
-	std::filesystem::create_directories(Utils::osPath(snapshotPathStr), error);
+	std::filesystem::create_directories(snapshotPathStr, error);
 	
 	QString sessionRootQString = QString::fromStdString(TempFiles::sessionDirName());
 	std::string sessionRootStr = sessionRootQString.toStdString();
 	
 	if (!sessionRootQString.isEmpty()) {
-		std::filesystem::copy(Utils::osPath(sessionRootStr), Utils::osPath(snapshotPathStr), 
+		std::filesystem::copy(sessionRootStr, snapshotPathStr, 
 			std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, error);
 		
 		if (error) {
@@ -2219,9 +2222,6 @@ void MainWindow::saveTmpFileHandler()
 		}
 	}
 	// --- END OF SNAPSHOT LOGIC ---
-
-	FileEvent * saveEvent = new FileEvent(this, FileEvent::FileSave);
-	saveEvent->setTmp(true);
 
 	dataSetIORequestHandler(saveEvent);
 }

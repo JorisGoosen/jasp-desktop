@@ -21,6 +21,8 @@
 #include <archive.h>
 #include <time.h>
 #include <mutex>
+#include "version.h"
+#include "../datasetpackage.h"
 
 ///
 /// To export to *.JASP files
@@ -30,6 +32,8 @@ class JASPExporter: public Exporter
 public:
 	JASPExporter();
 	void saveDataSet(const std::string &path, std::function<void (int)> progressCallback) override;
+public:
+	static const Version jaspArchiveVersion;
 
 private:
     static void saveManifest(       archive * a, const std::string &sourceDir);
@@ -41,7 +45,6 @@ private:
 	static void setGlobalWorkspaceSnapshot(const std::string &path);
 	static std::string getGlobalWorkspaceSnapshot();
 
-	static const Version jaspArchiveVersion;
 	static time_t _now;
 
 	static std::string _globalWorkspaceSnapshot;
