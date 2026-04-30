@@ -20,8 +20,6 @@
 
 #include <string>
 #include <vector>
-#include <limits>
-#include <filesystem>
 #include <set>
 #include <map>
 
@@ -62,9 +60,6 @@ public:
 	static bool						renameOverwrite(		const std::string &oldName, const std::string &newName);
 	static bool						removeFile(				const std::string &path);
 
-	static std::filesystem::path	osPath(const std::string &path);
-	static std::filesystem::path	osPath(const std::filesystem::path &path);
-
 	static void						remove(stringvec &target, const stringvec &toRemove);
 	static void						sleep(int ms);
 
@@ -72,7 +67,6 @@ public:
 	static bool						isEqual(const double a, const double b);
 
 #ifdef _WIN32
-	static std::wstring	getShortPathWin(const std::wstring & path);
 	static std::string  wstringToString(const std::wstring & wstr);
 	static std::wstring stringToWString(const std::string & str);
 #endif
