@@ -2160,10 +2160,8 @@ void MainWindow::saveJaspFileHandler()
 
 	saveEvent->setPath(resultXmlCompare::compareResults::theOne()->filePath());
 
-	// --- START OF SNAPSHOT LOGIC ---
 	_package->setAnalysesData(_analyses->asJson());
 	JASPExporter::createSnapshot("jasp_snapshot_");
-	// --- END OF SNAPSHOT LOGIC ---
 
 	dataSetIORequestHandler(saveEvent);
 }
@@ -2176,10 +2174,8 @@ void MainWindow::saveTmpFileHandler()
 	FileEvent * saveEvent = new FileEvent(this, FileEvent::FileSave);
 	saveEvent->setTmp(true);
 
-	// --- START OF SNAPSHOT LOGIC ---
 	_package->setAnalysesData(_analyses->asJson());
 	JASPExporter::createSnapshot("jasp_autosave_snapshot_");
-	// --- END OF SNAPSHOT LOGIC ---
 
 	dataSetIORequestHandler(saveEvent);
 }
