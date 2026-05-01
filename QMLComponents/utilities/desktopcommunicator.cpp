@@ -62,6 +62,9 @@ bool DesktopCommunicator::queryEncryptionSettings(bool readingMode)
 char DesktopCommunicator::askCsvDelimiter(char autoDelimiter, const QString &data)
 {
 #ifdef BUILDING_JASP
+	if (_knownCsvDelimiter != '\0')
+		return _knownCsvDelimiter;
+
 	if(QThread::currentThread() == qApp->thread()) {
 		int x = 1;
 	}

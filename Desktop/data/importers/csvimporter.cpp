@@ -44,8 +44,6 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
 	if (!_synching)
 	{
 		try {
-			// Call askCsvDelimiter which will internally emit the signal
-			// Using firstRowsPlease() to only pass a snippet of the file for preview
 			delimiter = DesktopCommunicator::singleton()->askCsvDelimiter(delimiter, QString::fromStdString(csv.firstRowsPlease()));
 		} catch (...) {
 			delimiter = ',';
@@ -53,6 +51,14 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
 
 		if (!delimiter)
 			return nullptr;
+
+		DesktopCommunicator::singleton()->setKnownCsvDelimiter(delimiter);
+	}
+	else
+	{
+		char known = DesktopCommunicator::singleton()->knownCsvDelimiter();
+		if (known != '\0')
+			delimiter = known;
 	}
 
 

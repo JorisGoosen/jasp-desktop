@@ -20,6 +20,8 @@ public:
 	bool engineSandbox();
 	char askCsvDelimiter(char autoDelimiter, const QString &data);
 	bool queryEncryptionSettings(bool readingMode = false);
+	char knownCsvDelimiter() const	{ return _knownCsvDelimiter; }
+	void setKnownCsvDelimiter(char d)	{ _knownCsvDelimiter = d; }
 	
 signals:
 	void queryEncryptionSettingsSignal(bool readingMode);
@@ -41,6 +43,7 @@ private:
 	bool _querySubmitted = false;
 	bool _csvCondition = false;
 	char _csvSubmitted = '\0';
+	char _knownCsvDelimiter = '\0';
 
 	std::mutex _queryLock;
 	std::mutex _csvLock;
