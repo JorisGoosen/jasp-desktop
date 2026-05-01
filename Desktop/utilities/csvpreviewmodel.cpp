@@ -99,9 +99,12 @@ QVariant CsvPreviewModel::data(const QModelIndex &index, int role) const
 	// Check if the row exists and if this row has a column at this index
 	if (r < _grid.size() && c < _grid[r].size()) {
 		QString val = _grid[r][c];
-		
-		if (val.isEmpty()) 
+
+		if (val.isEmpty()) {
+			if (r == 0)
+				return QVariant(QString("V") + QString::number(c + 1));
 			return QVariant();
+		}
 
 		double dblVal;
 		if (QColumnUtils::getDoubleValue(val, dblVal, true)) {

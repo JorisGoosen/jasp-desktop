@@ -579,7 +579,9 @@ string CSV::firstRowsPlease()
 		rowsRead++;
 	}
 
-	// Reset all state so the caller can read from the beginning normally
+	// Reset all state so the caller can read from the beginning normally.
+	// Must mirror determineNumRows() so that BOM bytes are skipped and encoding
+	// is properly accounted for before the next readLine() call.
 	_filePosition = 0;
 	_eof = false;
 	_stream.clear();
@@ -589,6 +591,13 @@ string CSV::firstRowsPlease()
 	_rawBufferEndPos   = 0;
 	_utf8BufferStartPos = 0;
 	_utf8BufferEndPos   = 0;
+
+	if (readRaw())
+	{
+		determineEncoding();
+		readUtf8();
+		determineDelimiters();
+	}
 
 	return snippet;
 }
