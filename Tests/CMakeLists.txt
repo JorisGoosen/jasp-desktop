@@ -37,11 +37,71 @@ qt_add_executable(
   $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
 )
 
+qt_add_executable(
+  JASPTestJsonUtilities
+  ${SYSTEM_TYPE}
+  testjsonutilities.h
+  testjsonutilities.cpp
+  $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
+  $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
+)
+
+qt_add_executable(
+  JASPTestTempFiles
+  ${SYSTEM_TYPE}
+  testtempfiles.h
+  testtempfiles.cpp
+  $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
+  $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
+)
+
+qt_add_executable(
+  JASPTestColumnEncoder
+  ${SYSTEM_TYPE}
+  testcolumnencoder.h
+  testcolumnencoder.cpp
+  $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
+  $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
+)
+
+qt_add_executable(
+  JASPTestUtils
+  ${SYSTEM_TYPE}
+  testutils.h
+  testutils.cpp
+  $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
+  $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
+)
+
+qt_add_executable(
+  JASPTestColumnUtils
+  ${SYSTEM_TYPE}
+  testcolumnutils.h
+  testcolumnutils.cpp
+  $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
+  $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
+)
+
+qt_add_executable(
+  JASPTestDirs
+  ${SYSTEM_TYPE}
+  testdirs.h
+  testdirs.cpp
+  $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
+  $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
+)
+
 
 add_dependencies(JASPTest           JASPDesktopLib)
 add_dependencies(JASPTestDebugData  JASPDesktopLib)
 add_dependencies(JASPTestEngine     JASPDesktopLib)
 add_dependencies(JASPQuickTest      JASPDesktopLib)
+add_dependencies(JASPTestJsonUtilities JASPDesktopLib)
+add_dependencies(JASPTestTempFiles JASPDesktopLib)
+add_dependencies(JASPTestColumnEncoder JASPDesktopLib)
+add_dependencies(JASPTestUtils JASPDesktopLib)
+add_dependencies(JASPTestColumnUtils JASPDesktopLib)
+add_dependencies(JASPTestDirs JASPDesktopLib)
 
 target_include_directories(
   JASPTest
@@ -112,6 +172,119 @@ target_link_libraries(
   Qt::Test
 )
 
+target_link_libraries(
+  JASPTestJsonUtilities
+  PUBLIC
+  JASPDesktopLib
+  Qt::Test
+
+  PRIVATE
+  Qt6::Core
+)
+
+target_include_directories(
+  JASPTestJsonUtilities
+  PUBLIC
+  JASPDesktopLib
+
+  PRIVATE
+  Qt6::Core
+)
+
+target_link_libraries(
+  JASPTestTempFiles
+  PUBLIC
+  JASPDesktopLib
+  Qt::Test
+
+  PRIVATE
+  Qt6::Core
+)
+
+target_include_directories(
+  JASPTestTempFiles
+  PUBLIC
+  JASPDesktopLib
+
+  PRIVATE
+  Qt6::Core
+)
+
+target_link_libraries(
+  JASPTestColumnEncoder
+  PUBLIC
+  JASPDesktopLib
+  Qt::Test
+
+  PRIVATE
+  Qt6::Core
+)
+
+target_include_directories(
+  JASPTestColumnEncoder
+  PUBLIC
+  JASPDesktopLib
+
+  PRIVATE
+  Qt6::Core
+)
+
+target_link_libraries(
+  JASPTestUtils
+  PUBLIC
+  JASPDesktopLib
+  Qt::Test
+
+  PRIVATE
+  Qt6::Core
+)
+
+target_include_directories(
+  JASPTestUtils
+  PUBLIC
+  JASPDesktopLib
+
+  PRIVATE
+  Qt6::Core
+)
+
+target_link_libraries(
+  JASPTestColumnUtils
+  PUBLIC
+  JASPDesktopLib
+  Qt::Test
+
+  PRIVATE
+  Qt6::Core
+)
+
+target_include_directories(
+  JASPTestColumnUtils
+  PUBLIC
+  JASPDesktopLib
+
+  PRIVATE
+  Qt6::Core
+)
+
+target_link_libraries(
+  JASPTestDirs
+  PUBLIC
+  JASPDesktopLib
+  Qt::Test
+
+  PRIVATE
+  Qt6::Core
+)
+
+target_include_directories(
+  JASPTestDirs
+  PUBLIC
+  JASPDesktopLib
+
+  PRIVATE
+  Qt6::Core
+)
 
 target_compile_definitions(
   JASPTest
@@ -137,9 +310,15 @@ target_compile_definitions(
 
 enable_testing(true)
 
-add_test(NAME testDataImport  COMMAND JASPTest)
-add_test(NAME testDebugData   COMMAND JASPTestDebugData)
-add_test(NAME testEngine      COMMAND JASPTestEngine)
-add_test(NAME testQuick       COMMAND JASPQuickTest)
+add_test(NAME testDataImport      COMMAND JASPTest)
+add_test(NAME testDebugData       COMMAND JASPTestDebugData)
+add_test(NAME testEngine          COMMAND JASPTestEngine)
+add_test(NAME testQuick           COMMAND JASPQuickTest)
+add_test(NAME testJsonUtilities   COMMAND JASPTestJsonUtilities)
+add_test(NAME testTempFiles       COMMAND JASPTestTempFiles)
+add_test(NAME testColumnEncoder   COMMAND JASPTestColumnEncoder)
+add_test(NAME testUtils           COMMAND JASPTestUtils)
+add_test(NAME testColumnUtils     COMMAND JASPTestColumnUtils)
+add_test(NAME testDirs            COMMAND JASPTestDirs)
 
 endif()
