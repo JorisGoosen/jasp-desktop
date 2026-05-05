@@ -19,8 +19,6 @@
 #include "csv/csv.h"
 #include "timers.h"
 #include "utilities/desktopcommunicator.h"
-#include <fstream>
-#include <sstream>
 
 using namespace std;
 
@@ -39,14 +37,15 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
     csv.open();
 
 	// Try to detect delimiter first
-	char delimiter = csv.delimiter();
+	char detectedDelimiter = csv.delimiter();
+	char delimiter = detectedDelimiter;
 
 	if (!_synching)
 	{
 		try {
 			delimiter = DesktopCommunicator::singleton()->askCsvDelimiter(delimiter, QString::fromStdString(csv.firstRowsPlease()));
 		} catch (...) {
-			delimiter = ',';
+			delimiter = detectedDelimiter;
 		}
 
 		if (!delimiter)
@@ -56,9 +55,9 @@ ImportDataSet* CSVImporter::loadFile(const string &locator, std::function<void(i
 	}
 	else
 	{
-		char known = DesktopCommunicator::singleton()->knownCsvDelimiter();
-		if (known != '\0')
-			delimiter = known;
+		char knownDelimiter = DesktopCommunicator::singleton()->knownCsvDelimiter();
+		if (knownDelimiter != '\0')
+			delimiter = knownDelimiter;
 	}
 
 

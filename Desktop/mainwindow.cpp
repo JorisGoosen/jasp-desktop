@@ -710,7 +710,7 @@ void MainWindow::loadQML()
 	Log::log() << "Loading ContactWindow"				<< std::endl; _qml->load(QUrl("qrc:///components/JASP/Widgets/ContactWindow.qml"));
 	Log::log() << "Loading CommunityWindow"				<< std::endl; _qml->load(QUrl("qrc:///components/JASP/Widgets/CommunityWindow.qml"));
 	Log::log() << "Loading EncryptionSettingsWindow"	<< std::endl; _qml->load(QUrl("qrc:///components/JASP/Widgets/EncryptionSettingsWindow.qml"));
-	Log::log() << "Loading CSV Previeww"				<< std::endl; _qml->load(QUrl("qrc:///components/JASP/Widgets/CsvPreview.qml"));
+	Log::log() << "Loading CSV Preview"				<< std::endl; _qml->load(QUrl("qrc:///components/JASP/Widgets/CsvPreview.qml"));
 	Log::log() << "Loading MainWindow"					<< std::endl; _qml->load(QUrl("qrc:///components/JASP/Widgets/MainWindow.qml"));
 
 	if(!DataSetView::mainDataViewer())

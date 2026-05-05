@@ -1,5 +1,5 @@
-#ifndef CsvPreviewModel_H
-#define CsvPreviewModel_H
+#ifndef CSVPREVIEWMODEL_H
+#define CSVPREVIEWMODEL_H
 
 #include <QAbstractTableModel>
 #include <QStringList>
@@ -28,12 +28,11 @@ public:
 	void					setDelimiter(QChar delim);
 	void					setDelimiterFromChar(char delim);
 	void					preparePreview(const QString &data, char delimiter);
-	void					selectDelimiter(char delimiter);
 
 	bool					visible() const;
 	void					setVisible(bool newVisible);
 	
-	public slots:
+public slots:
 	void					updateLocale();
 
 signals:
@@ -51,4 +50,4 @@ private:
 	bool					_visible = false;
 };
 
-#endif // CsvPreviewModel_H
+#endif // CSVPREVIEWMODEL_H

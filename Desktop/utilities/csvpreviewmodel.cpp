@@ -34,11 +34,6 @@ void CsvPreviewModel::preparePreview(const QString &data, char delimiter)
 	setVisible(true);
 }
 
-void CsvPreviewModel::selectDelimiter(char delimiter)
-{
-	DesktopCommunicator::singleton()->delimiterChosen(delimiter);
-}
-
 void CsvPreviewModel::updateLocale()
 {
 	updateInternalStructure();
@@ -106,12 +101,15 @@ QVariant CsvPreviewModel::data(const QModelIndex &index, int role) const
 			return QVariant();
 		}
 
+		if (r == 0) // Do not change the column names
+			return val;
+
 		double dblVal;
-		if (QColumnUtils::getDoubleValue(val, dblVal, true)) {
+		if (QColumnUtils::getDoubleValue(val, dblVal, true))
 			return QVariant(QColumnUtils::doubleToString(dblVal));
-		} else {
-			return QVariant("\"" + val + "\"");
-		}
+
+		// Add quotes to signify that this will be considered as a string
+		return QVariant("\"" + val + "\"");
 	}
 
 	return QVariant();
