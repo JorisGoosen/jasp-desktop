@@ -365,22 +365,22 @@ void TestDebugData::testShadowDisplay()
 		std::string shadBinom0MsgStr = shadBinom0Msg.toStdString();
 		QVERIFY2(!shadBinom0.empty(), shadBinom0MsgStr.c_str());
 	
-	Column * debString = _data->column("debString");
+	Column * contGamma = _data->column("contGamma");
 	
-	QVERIFY2(debString->type() == columnType::scale,			"debString should be scale type");
+	QVERIFY2(contGamma->type() == columnType::scale,			"contGamma should be scale type");
 	
-	debString->labelsToNoLabels();
+	contGamma->labelsToNoLabels();
 	
-	QVERIFY2(!debString->hasLabels(),							"debString should not have labels");
+	QVERIFY2(!contGamma->hasLabels(),							"contGamma should not have labels");
 	
-	std::string valDebString = debString->getValue(0, false, true);
-	std::string dispDebString = debString->getDisplay(0, false, false);
-	std::string shadDebString = debString->getShadow(0, false, false);
+	std::string valContGamma = contGamma->getValue(0, false, true);
+	std::string dispContGamma = contGamma->getDisplay(0, false, false);
+	std::string shadContGamma = contGamma->getShadow(0, false, false);
 	
-QString shadDebStringMsg = QString("debString row 0 shadow should not be empty (val='%1', disp='%2', shad='%3')")
-				.arg(valDebString.c_str()).arg(dispDebString.c_str()).arg(shadDebString.c_str());
-		std::string shadDebStringMsgStr = shadDebStringMsg.toStdString();
-		QVERIFY2(!shadDebString.empty(), shadDebStringMsgStr.c_str());
+QString shadContGammaMsg = QString("contGamma row 0 shadow should not be empty (val='%1', disp='%2', shad='%3')")
+				.arg(valContGamma.c_str()).arg(dispContGamma.c_str()).arg(shadContGamma.c_str());
+		std::string shadContGammaMsgStr = shadContGammaMsg.toStdString();
+		QVERIFY2(!shadContGamma.empty(), shadContGammaMsgStr.c_str());
 	}
 
 
