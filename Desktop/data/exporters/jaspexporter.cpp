@@ -38,6 +38,7 @@
 #include "data/asyncloader.h"
 
 #include <utilities/desktopcommunicator.h>
+#include <chrono>
 
 
 time_t JASPExporter::_now;
@@ -53,18 +54,12 @@ JASPExporter::JASPExporter()
 
 void JASPExporter::createSnapshot(const std::string &snapshotPrefix)
 {
-	struct timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
-	std::string timestamp = std::to_string(ts.tv_sec) + "_" + std::to_string(ts.tv_nsec);
+	auto now = std::chrono::system_clock::now().time_since_epoch();
+	auto sec = std::chrono::duration_cast<std::chrono::seconds>(now).count();
+	auto ns  = std::chrono::duration_cast<std::chrono::nanoseconds>(now).count() % 1'000'000'000;
+	std::string timestamp = std::to_string(sec) + "_" + std::to_string(ns);
 
-	QString tempDir = QDir::tempPath();
-	std::string tempDirStr = tempDir.toStdString();
-
-	if (!tempDirStr.empty() && tempDirStr.back() == '/')
-		tempDirStr.pop_back();
-
-	std::string snapshotDirName = snapshotPrefix + timestamp;
-	std::filesystem::path fullSnapshotPath = tempDirStr + "/" + snapshotDirName;
+	std::filesystem::path fullSnapshotPath = std::filesystem::path(QDir::tempPath().toStdString()) / (snapshotPrefix + timestamp);
 
 	std::error_code ec;
 	std::filesystem::create_directories(fullSnapshotPath, ec);
