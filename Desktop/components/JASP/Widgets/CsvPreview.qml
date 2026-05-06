@@ -171,8 +171,7 @@ Window
 			anchors.left:				parent.left
 			anchors.right:				vertiScroller.left
 			anchors.bottom:				horiScroller.top
-			anchors.leftMargin:			1 // border line
-			anchors.topMargin:			1
+			anchors.margins:			1
 
 			clip:						true
 
