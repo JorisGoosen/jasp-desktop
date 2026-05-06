@@ -88,17 +88,19 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 			runStatements("ALTER TABLE DataSets  ADD COLUMN showRSyntax	INT;");
 	}
 	
-	if(originalVersion < "0.96.1")
+	if(originalVersion < "0.97.0")
 	{
 		if(!tableHasColumn("Columns", "hasLabels"))
 			runStatements(
 				"ALTER TABLE Columns  ADD COLUMN hasLabels		INT DEFAULT 0;\n"
 				"UPDATE Columns SET hasLabels=1;" //Make sure old columns all "hasLabels" enabled
 			);
+		
+		
+		if(!tableHasColumn("DataSets", "csvDelimiter"))
+			runStatements("ALTER TABLE DataSets ADD COLUMN csvDelimiter INT DEFAULT 0;");
 	}
 
-	if(!tableHasColumn("DataSets", "csvDelimiter"))
-		runStatements("ALTER TABLE DataSets ADD COLUMN csvDelimiter INT DEFAULT 0;");
 
 	transactionWriteEnd();
 }
