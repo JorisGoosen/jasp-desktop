@@ -145,7 +145,7 @@ void TempFiles::deleteOrphans()
 			if (p.compare(sessionPath) == 0)
 				continue;
 
-			string fileName		= p.filename();
+			string fileName		= p.filename().generic_string();
 			bool is_directory	= std::filesystem::is_directory(p, error);
 
 			if (error)
@@ -364,7 +364,7 @@ void TempFiles::deleteStrayRootFiles(const stringvec& validIDs, long outOfDateDe
 
 		Log::log() << "looking at file " << p.string() << std::endl;
 
-		string fileName		= p.filename();
+		string fileName		= p.filename().generic_string();
 		bool is_directory	= std::filesystem::is_directory(p, error);
 
 		if (error)
