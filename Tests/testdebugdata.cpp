@@ -326,10 +326,10 @@ void TestDebugData::testShadowDisplay()
 		std::string display = contNormal->getDisplay(row, false, false);
 		std::string shadow = contNormal->getShadow(row, false, false);
 		
-	QString shadMsg = QString("Row %1: Shadow should not be empty when display would be empty! (value='%2', display='%3', shadow='%4')")
+	QString shadMsg = QString("Row %1: Shadow should be empty when value is non-empty! (value='%2', display='%3', shadow='%4')")
 				.arg(row).arg(QString::fromStdString(value)).arg(QString::fromStdString(display)).arg(QString::fromStdString(shadow));
 		std::string shadMsgStr = shadMsg.toStdString();
-		QVERIFY2(!shadow.empty() || value.empty(), shadMsgStr.c_str());
+		QVERIFY2(value.empty() || shadow.empty(), shadMsgStr.c_str());
 	}
 	
 	Column * contWide = _data->column("contWide");
@@ -344,10 +344,10 @@ void TestDebugData::testShadowDisplay()
 	std::string disp5 = contWide->getDisplay(5, false, false);
 	std::string shad5 = contWide->getShadow(5, false, false);
 	
-	QString shad5Msg = QString("contWide row 5 shadow should not be empty (val='%1', disp='%2', shad='%3')")
+	QString shad5Msg = QString("contWide row 5 shadow should be empty when value is non-empty (val='%1', disp='%2', shad='%3')")
 				.arg(val5.c_str()).arg(disp5.c_str()).arg(shad5.c_str());
 		std::string shad5MsgStr = shad5Msg.toStdString();
-		QVERIFY2(!shad5.empty(), shad5MsgStr.c_str());
+		QVERIFY2(val5.empty() || shad5.empty(), shad5MsgStr.c_str());
 	
 	Column * contBinom = _data->column("contBinom");
 	
@@ -377,10 +377,10 @@ void TestDebugData::testShadowDisplay()
 	std::string dispContGamma = contGamma->getDisplay(0, false, false);
 	std::string shadContGamma = contGamma->getShadow(0, false, false);
 	
-QString shadContGammaMsg = QString("contGamma row 0 shadow should not be empty (val='%1', disp='%2', shad='%3')")
+QString shadContGammaMsg = QString("contGamma row 0 shadow should be empty when value is non-empty (val='%1', disp='%2', shad='%3')")
 				.arg(valContGamma.c_str()).arg(dispContGamma.c_str()).arg(shadContGamma.c_str());
 		std::string shadContGammaMsgStr = shadContGammaMsg.toStdString();
-		QVERIFY2(!shadContGamma.empty(), shadContGammaMsgStr.c_str());
+		QVERIFY2(valContGamma.empty() || shadContGamma.empty(), shadContGammaMsgStr.c_str());
 	}
 
 

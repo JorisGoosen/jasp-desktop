@@ -1391,12 +1391,17 @@ std::string Column::getLabel(size_t row, bool fancyEmptyValue, bool ignoreEmptyV
 {
 	if(!_hasLabels)
 	{
-		const double		& _dbl = _dbls[row];
-		const std::string	& _str = _strs[row];
+		if (row < rowCount())
+		{
+			const double		& _dbl = _dbls[row];
+			const std::string	& _str = _strs[row];
 
-		return _str != ""
-				? (ignoreEmptyValue || !isEmptyValue(_str) ? _str : "")
-				: doubleToDisplayString(_dbl, fancyEmptyValue, ignoreEmptyValue, sepas);
+			return _str != ""
+					? (ignoreEmptyValue || !isEmptyValue(_str) ? _str : "")
+					: doubleToDisplayString(_dbl, fancyEmptyValue, ignoreEmptyValue, sepas);
+		}
+
+		return fancyEmptyValue ? EmptyValues::displayString() : "";
 	}
 	
 	if (row < rowCount() && _ints[row] != Label::NO_LABEL)
@@ -2849,6 +2854,9 @@ void Column::setHasLabels(bool haveLabels)
 
 void Column::labelsToNoLabels()
 {
+	if (!_hasLabels)
+		return;
+
 	const auto size = _ints.size();
 	
 	db().transactionWriteBegin();
