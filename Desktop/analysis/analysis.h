@@ -109,6 +109,8 @@ public:
 	const	std::string		&	rfile()				const				{ return _rfile;							}
 	const	std::string			module()			const	override	{ return _moduleData && _moduleData->dynamicModule() ? _moduleData->dynamicModule()->name() : "???";	}
 			size_t				id()				const				{ return _id;								}
+			int					dataSetId()			const				{ return _dataSetId;						}
+			void				setDataSetId(int id)					{ _dataSetId = id;							}
 			Status				status()			const				{ return _status;							}
 			QString				statusQ()			const				{ return tq(statusToString(_status));		}
 			int					revision()			const				{ return _revision;							}
@@ -244,6 +246,7 @@ protected:
 private:
 	size_t						_id,
 								_counter						= 0;
+	int							_dataSetId						= -1;
 	std::string					_name,
 								_qml,
 								_titleDefault,

@@ -1227,7 +1227,6 @@ std::string DatabaseInterface::columnBaseName(int columnId,	const std::string & 
 
 std::string DatabaseInterface::dataSetName(int dataSetId) const
 {
-	assert(dataSetId == 1); //yeah I know...
 	return "DataSet_"  + std::to_string(dataSetId);
 }
 

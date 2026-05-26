@@ -1482,6 +1482,24 @@ void DataSetPackage::createDataSet()
 	_dataSet->setModifiedCallback([&](){ setModified(true); }); //DataSet and co dont use Qt so instead we just use a callback
 }
 
+void DataSetPackage::setDataSet(DataSet * dataSet)
+{
+	if(!dataSet || _dataSet == dataSet)
+		return;
+
+	beginResetModel();
+	_dataSet = dataSet;
+	_dataSubModel->selectNode(_dataSet->dataNode());
+	_filterSubModel->selectNode(_dataSet->filtersNode());
+	_labelsSubModel->selectNode(nullptr);
+	_dataSet->setModifiedCallback([&](){ setModified(true); });
+	setDefaultWorkspaceValues();
+	endResetModel();
+
+	emit dataSetChanged({}, {}, {}, false, false);
+	emit loadedChanged(true);
+}
+
 void DataSetPackage::loadDataSet(std::function<void(float)> progressCallback)
 {
 	if(_dataSet)

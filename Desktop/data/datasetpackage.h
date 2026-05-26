@@ -67,6 +67,7 @@ public:
 							~DataSetPackage();
 		static Filter	*	filter();
 		DataSet			*	dataSet() { return _dataSet; }
+		void				setDataSet(DataSet * dataSet);
 		void				setEngineSync(EngineSync * engineSync);
 		void				reset(bool newDataSet = true);
 		void				setDataSetSize(size_t columnCount, size_t rowCount);

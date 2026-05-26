@@ -60,6 +60,7 @@
 #include "utilities/settings.h"
 #include "utilities/qmlutils.h"
 #include "utilities/reporter.h"
+#include "workspace.h"
 
 #include "widgets/filemenu/filemenu.h"
 #include "rsyntax/formulabase.h"
@@ -1306,20 +1307,21 @@ void MainWindow::dataSetIORequestHandler(FileEvent *event)
 	}
 	else if (event->operation() == FileEvent::FileOpen)
 	{
-		if (_package->isLoaded())
+		if (_package->isLoaded() && event->type() == Utils::FileType::jasp)
 		{
-			// If this instance has a valid OSF connection save this setting for a new instance
 			_odm->savePasswordFromAuthData(OnlineDataManager::OSF);
-
-			// begin new instance
-			
-			if(event->isDatabase())		MainWindow::startDetached(QCoreApplication::applicationFilePath(), QStringList(tq(event->databaseStr())));
-			else						MainWindow::startDetached(QCoreApplication::applicationFilePath(), QStringList(event->path()));
+			MainWindow::startDetached(QCoreApplication::applicationFilePath(), QStringList(event->path()));
 		}
 		else
 		{
-			connectFileEventCompleted(event);
+			if (_package->isLoaded() && event->type() != Utils::FileType::jasp)
+			{
+				DataSet * newSet = Workspace::singleton()->createDataSet();
+				_package->setDataSet(newSet);
+				Workspace::singleton()->setShownDataSet(newSet);
+			}
 
+			connectFileEventCompleted(event);
 			_loader->io(event);
 			showProgress();
 		}
