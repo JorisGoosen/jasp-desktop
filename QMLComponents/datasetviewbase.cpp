@@ -27,6 +27,12 @@ DataSetViewBase::DataSetViewBase(QQuickItem *parent)
 	_delayViewportChangedTimer = new QTimer(this);
 	_delayViewportChangedTimer->setInterval(0);
 	_delayViewportChangedTimer->setSingleShot(true);
+	
+	_resetLessTimer = new QTimer(this);
+	_resetLessTimer->setInterval(100);
+	_resetLessTimer->setSingleShot(true);
+	
+	
 
 	connect(this,						&DataSetViewBase::parentChanged,					this, &DataSetViewBase::myParentChanged);
 	
@@ -34,7 +40,8 @@ DataSetViewBase::DataSetViewBase(QQuickItem *parent)
 	connect(this,						&DataSetViewBase::viewportYChanged,					this, &DataSetViewBase::viewportChangedDelayed);
 	connect(this,						&DataSetViewBase::viewportWChanged,					this, &DataSetViewBase::viewportChangedDelayed);
 	connect(this,						&DataSetViewBase::viewportHChanged,					this, &DataSetViewBase::viewportChangedDelayed);
-	connect(_delayViewportChangedTimer, &QTimer::timeout,								this, &DataSetViewBase::viewportChanged);
+	connect(_delayViewportChangedTimer, &QTimer::timeout,									this, &DataSetViewBase::viewportChanged);
+	connect(_resetLessTimer,			&QTimer::timeout,									this, &DataSetViewBase::modelWasReset);
 
 	connect(this,						&DataSetViewBase::itemDelegateChanged,				this, &DataSetViewBase::reloadTextItems);
 	connect(this,						&DataSetViewBase::rowNumberDelegateChanged,			this, &DataSetViewBase::reloadRowNumbers);
@@ -607,17 +614,17 @@ void DataSetViewBase::buildNewLinesAndCreateNewItems()
 	JASPTIMER_STOP(DataSetViewBase::buildNewLinesAndCreateNewItems_GRID);
 
 #ifdef ADD_LINES_PLEASE
-	addLine(_viewportX + 0.5f,					_viewportY,							_viewportX + 0.5f,					_viewportY + _viewportH);
+	addLine(_viewportX ,					_viewportY,							_viewportX ,					_viewportY + _viewportH);
 	addLine(_viewportX + _rowNumberMaxWidth,	_viewportY,							_viewportX + _rowNumberMaxWidth,	_viewportY + _viewportH);
 
-	addLine(_viewportX,							_viewportY + 0.5f,					_viewportX + _viewportW,			_viewportY+ 0.5f);
+	addLine(_viewportX,							_viewportY ,					_viewportX + _viewportW,			_viewportY);
 	addLine(_viewportX,							_viewportY + _dataRowsMaxHeight,	_viewportX + _viewportW,			_viewportY + _dataRowsMaxHeight);
 
 	//if(_extraColumnItem != nullptr && !expandDataSet())
 	//{
 	//	addLine(_viewportX + _viewportW - extraColumnWidth(),	_viewportY,		_viewportX + _viewportW - extraColumnWidth(),	_viewportY + _dataRowsMaxHeight);
 	//	addLine(_viewportX + _viewportW,						_viewportY,		_viewportX + _viewportW,						_viewportY + _dataRowsMaxHeight);
-	//}
+	//}z
 #endif
 
 	for(int row=_currentViewportRowMin; row<_currentViewportRowMax; row++)
@@ -658,6 +665,13 @@ void DataSetViewBase::buildNewLinesAndCreateNewItems()
 
 		if(col == _model->columnCount() - 1 && pos1x  > _rowNumberMaxWidth + _viewportX && pos1x <= maxXForVerticalLine)
 			addLine(pos1x, pos0y, pos1x, pos1y);
+		
+		if(pos0x  > _rowNumberMaxWidth + _viewportX && pos1x > pos0x && pos1x <= maxXForVerticalLine)
+		{
+			addLine(pos0x, pos0y, pos1x, pos0y);
+			addLine(pos0x, pos1y, pos1x, pos1y);
+		}
+		
 #endif
 	}
 
@@ -674,6 +688,14 @@ void DataSetViewBase::buildNewLinesAndCreateNewItems()
 		destroyEditItem();
 
 	JASPTIMER_STOP(DataSetViewBase::buildNewLinesAndCreateNewItems);
+}
+
+void DataSetViewBase::iAmParent(QQuickItem * item)
+{
+	if(item->thread() != QThread::currentThread())
+		item->moveToThread(QThread::currentThread());
+	item->setParent(this);
+	item->setParentItem(this);
 }
 
 QQuickItem * DataSetViewBase::createTextItem(int row, int col)
@@ -727,9 +749,8 @@ QQuickItem * DataSetViewBase::createTextItem(int row, int col)
 
 			textItem = qobject_cast<QQuickItem*>(localIncubator.object());
 			itemCon->item = textItem;
-
-			textItem->setParent(this);
-			textItem->setParentItem(this);
+			
+			iAmParent(textItem);
 
 			JASPTIMER_STOP(DataSetViewBase::createTextItem textItemStorage has NOTHING);
 		}
@@ -761,7 +782,7 @@ void DataSetViewBase::setTextItemInfo(int row, int col, QQuickItem * textItem)
 	textItem->setX(desiredX							+ _itemHorizontalPadding);
 	textItem->setY(((row + 1) * _dataRowsMaxHeight)	+ _itemVerticalPadding);
 
-	textItem->setZ(-4);
+	textItem->setZ(-4.5);
 	textItem->setVisible(true);
 }
 
@@ -847,14 +868,13 @@ QQuickItem * DataSetViewBase::createRowNumber(int row)
 			rowNumber = qobject_cast<QQuickItem*>(localIncubator.object());
 			itemCon->item = rowNumber;
 
-			rowNumber->setParent(this);
-			rowNumber->setParentItem(this);
+			iAmParent(rowNumber);
 		}
 
 		//rowNumber->setProperty("text", QString::fromStdString(std::to_string(row + 1))); //Nobody wants zero-based rows...
 
-		rowNumber->setHeight(_dataRowsMaxHeight		- 1);
-		rowNumber->setWidth(_rowNumberMaxWidth		- 1);
+		rowNumber->setHeight(_dataRowsMaxHeight	- 2);
+		rowNumber->setWidth(_rowNumberMaxWidth	- 2);
 
 		rowNumber->setVisible(true);
 
@@ -863,9 +883,9 @@ QQuickItem * DataSetViewBase::createRowNumber(int row)
 	else
 		rowNumber = _rowNumberItems[row]->item;
 
-	rowNumber->setX(0.5 + _viewportX);
-	rowNumber->setY(0.5 + _dataRowsMaxHeight * (1 + row));
-	rowNumber->setZ(-3);
+	rowNumber->setX(1 + _viewportX);
+	rowNumber->setY(1 + _dataRowsMaxHeight * (1 + row));
+	rowNumber->setZ(-4);
 
 	return _rowNumberItems[row]->item;
 }
@@ -951,13 +971,12 @@ QQuickItem * DataSetViewBase::createColumnHeader(int col)
 			columnHeader = qobject_cast<QQuickItem*>(localIncubator.object());
 			itemCon->item = columnHeader;
 
-			columnHeader->setParent(this);
-			columnHeader->setParentItem(this);
+			iAmParent(columnHeader);
 		}
 
 
-		columnHeader->setHeight(_dataRowsMaxHeight    - 1);
-		columnHeader->setWidth(_dataColsMaxWidth[col] - 1);
+		columnHeader->setHeight(_dataRowsMaxHeight		);
+		columnHeader->setWidth(_dataColsMaxWidth[col]	);
 
 		columnHeader->setVisible(true);
 
@@ -966,9 +985,9 @@ QQuickItem * DataSetViewBase::createColumnHeader(int col)
 	else
 		columnHeader = _columnHeaderItems[col]->item;
 
-	columnHeader->setX(0.5 + _colXPositions[col]);
-	columnHeader->setY(0.5 + _viewportY);
-	columnHeader->setZ(-3);
+	columnHeader->setX(_colXPositions[col]);
+	columnHeader->setY(_viewportY);
+	columnHeader->setZ(-4);
 
 	return columnHeader;
 }
@@ -1008,19 +1027,17 @@ QQuickItem * DataSetViewBase::createleftTopCorner()
 		_leftTopCornerDelegate->create(localIncubator);
 		_leftTopItem = qobject_cast<QQuickItem*>(localIncubator.object());
 
-		_leftTopItem->setParent(this);
-		_leftTopItem->setParentItem(this);
-
+		iAmParent(_leftTopItem);
 
 
 		_leftTopItem->setVisible(true);
 	}
 
-	_leftTopItem->setHeight(_dataRowsMaxHeight - 1);
-	_leftTopItem->setWidth(_rowNumberMaxWidth  - 1);
-	_leftTopItem->setX(_viewportX + 0.5);
-	_leftTopItem->setY(_viewportY + 0.5);
-	_leftTopItem->setZ(-1);
+	_leftTopItem->setHeight(_dataRowsMaxHeight - 2);
+	_leftTopItem->setWidth(_rowNumberMaxWidth  - 2);
+	_leftTopItem->setX(_viewportX + 1);
+	_leftTopItem->setY(_viewportY + 1);
+	_leftTopItem->setZ(-3);
 
 	return _leftTopItem;
 }
@@ -1124,8 +1141,7 @@ void DataSetViewBase::positionEditItem(int row, int col)
 			throw std::runtime_error("Something went wrong incubating an edit item delegate for tableview!");
 
 		_editItemContextual->item = qobject_cast<QQuickItem*>(localIncubator.object());
-		_editItemContextual->item->setParent(this);
-		_editItemContextual->item->setParentItem(this);
+		iAmParent(_editItemContextual->item);
 	}
 	else
 	{
@@ -1377,26 +1393,22 @@ void DataSetViewBase::rowsAboutToBeRemoved(const QModelIndex & parent, int first
 
 void DataSetViewBase::columnsInserted(const QModelIndex & parent, int first, int last)
 {
-	//temp:
-	modelWasReset();
+	_resetLessTimer->start();
 }
 
 void DataSetViewBase::columnsRemoved(const QModelIndex & parent, int first, int last)
 {
-	//temp:
-	modelWasReset();
+	_resetLessTimer->start();
 }
 
 void DataSetViewBase::rowsInserted(const QModelIndex & parent, int first, int last)
 {
-	//temp:
-	modelWasReset();
+	_resetLessTimer->start();
 }
 
 void DataSetViewBase::rowsRemoved(const QModelIndex & parent, int first, int last)
 {
-	//temp:
-	modelWasReset();
+	_resetLessTimer->start();
 }
 
 void DataSetViewBase::setEditDelegate(QQmlComponent *editDelegate)
@@ -1612,10 +1624,7 @@ void DataSetViewBase::setLeftTopCornerItem(QQuickItem * newItem)
 
 		if(_leftTopItem != nullptr)
 		{
-
-			_leftTopItem->setParent(this);
-			_leftTopItem->setParentItem(this);
-
+			iAmParent(_leftTopItem);
 
 			_leftTopItem->setProperty("text", "?");
 
@@ -1647,9 +1656,7 @@ void DataSetViewBase::setExtraColumnItem(QQuickItem * newItem)
 
 		if(_extraColumnItem != nullptr)
 		{
-
-			_extraColumnItem->setParent(this);
-			_extraColumnItem->setParentItem(this);
+			iAmParent(_extraColumnItem);
 
 			_extraColumnItem->setZ(-1);
 

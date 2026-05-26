@@ -1,5 +1,5 @@
 #include "preferencesmodel.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "utilities/settings.h"
 #include "utilities/messageforwarder.h"
 #include "jasptheme.h"

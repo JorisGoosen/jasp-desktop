@@ -112,13 +112,13 @@ public:
 signals:
 			void termsChanged();		// Used to signal all kinds of changes in the model. Do not call it directly
 			void variableNamesChanged(QMap<QString, QString> map);
-			void variableTypeChanged(Term term);
 			void labelsChanged(QString columnName, QMap<QString, QString> = {});
 			void labelsReordered(QString columnName);
 			void filterChanged();
 			void variablesChanged(QStringList columns);
 			void selectedItemsChanged();
 			void keyTermChanged(const QString& oldName, const QString& newName);
+			void variableTypeChanged(Term term);
 
 public slots:	
 	virtual void sourceTermsReset();

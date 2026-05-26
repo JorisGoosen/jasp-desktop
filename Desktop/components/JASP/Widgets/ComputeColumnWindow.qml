@@ -10,22 +10,35 @@ FocusScope
 {
 	id:				computedColumnContainer
 
-	property bool	changed:					computedColumnsInterface.computeColumnUsesRCode ? computeColumnEdit.changed : computedColumnConstructor.somethingChanged
+	property bool	changed:					columnModel.column.codeType == computedColumnTypeRCode ? computeColumnEdit.changed : computedColumnConstructor.somethingChanged
 	property int	minimumHeightTextBoxes:		50 * preferencesModel.uiScale
-	property real	desiredMinimumHeight:		computeColumnButtons.height + computeColumnErrorScroll.height + (computedColumnsInterface.computeColumnUsesRCode ? computeColumnEditRectangle.desiredMinimumHeight : computedColumnConstructor.desiredMinimumHeight)
+	property real	desiredMinimumHeight:		computeColumnButtons.height + computeColumnErrorScroll.height + (columnModel.column.codeType == computedColumnTypeRCode ? computeColumnEditRectangle.desiredMinimumHeight : computedColumnConstructor.desiredMinimumHeight)
 
 	Connections
 	{
-		target: computedColumnsInterface
+		target: columnModel.column
 
-		function onComputeColumnJsonChanged()
+		function onConstructorJsonChanged()
 		{
-			computedColumnConstructor.initializeFromJSON(computedColumnsInterface.computeColumnUsesRCode ? "{\"formulas\":[]}" : computedColumnsInterface.computeColumnJson);
+			computedColumnConstructor.initializeFromJSON(/*columnModel.column.codeType == computedColumnTypeRCode ? "{\"formulas\":[]}" :*/ columnModel.column.constructorJson);
 		}
 
-		function onComputeColumnRCodeChanged()
+		function onRCodeChanged()
 		{
-			computeColumnEdit.text = computedColumnsInterface.computeColumnRCode;
+			computeColumnEdit.text = columnModel.column.rCode;
+		}
+	}
+	
+	Connections
+	{
+		target: columnModel
+
+		function onColumnChanged()
+		{
+			if(columnModel.column.codeType == computedColumnTypeRCode)
+				computeColumnEdit.text = columnModel.column.rCode;
+			else
+				computedColumnConstructor.initializeFromJSON(columnModel.column.constructorJson);
 		}
 	}
 
@@ -41,13 +54,15 @@ FocusScope
 
 	function applyComputedColumn()
 	{
-		if(computedColumnsInterface.computeColumnUsesRCode)
-			computedColumnsInterface.sendCode(computeColumnEdit.text)
+		if(columnModel.column.codeType == computedColumnTypeRCode)
+			columnModel.column.rCode = computeColumnEdit.text
 		else
 		{
 			computedColumnConstructor.forceActiveFocus();
 			computedColumnConstructor.checkAndApplyFilter()
-			computedColumnsInterface.sendCode(computedColumnConstructor.rCode, computedColumnConstructor.jsonConstructed)
+			
+			columnModel.column.constructorJson	= computedColumnConstructor.jsonConstructed
+			columnModel.column.rCode			= computedColumnConstructor.rCode
 		}
 	}
 
@@ -97,7 +112,7 @@ FocusScope
 
 				property real desiredMinimumHeight: computedColumnContainer.minimumHeightTextBoxes
 
-				visible: computedColumnsInterface.computeColumnUsesRCode
+				visible: columnModel.column.codeType == computedColumnTypeRCode
 
 				anchors.fill: parent
 
@@ -123,7 +138,7 @@ FocusScope
 					color:					jaspTheme.textEnabled
 
 					property bool changedSinceLastApply:	text !== computedColumnContainer.lastAppliedcomputeColumn
-					property bool changed:					text !== computedColumnsInterface.computeColumnRCode
+					property bool changed:					text !== columnModel.column.rCode
 					
 					KeyNavigation.tab:		applyComputedColumnButton
 
@@ -161,7 +176,7 @@ FocusScope
 				id:						computedColumnConstructor
 				anchors.fill:			parent
                 anchors.leftMargin:     1
-				visible:				!computedColumnsInterface.computeColumnUsesRCode
+				visible:				!columnModel.column.codeType == computedColumnTypeRCode
 				
 				showGeneratedRCode:		false
 				KeyNavigation.tab:		applyComputedColumnButton
@@ -266,7 +281,7 @@ FocusScope
 				id:						computeColumnError
 				color:					jaspTheme.red
 				readOnly:				true
-				text:					computedColumnsInterface.computeColumnError
+				text:					columnModel.column.compute
 
 				selectByMouse:			true
 				onActiveFocusChanged:	if(!activeFocus) deselect()
@@ -325,8 +340,8 @@ FocusScope
 				startValue:			""
 				currentValue:		columnModel.computeFilter
 				onValueChanged:		{
-					columnModel.computeFilter = currentValue
 					computedColumnContainer.applyComputedColumn()
+					columnModel.computeFilter = currentValue
 					
 				}
 				anchors.right:		helpButton.left

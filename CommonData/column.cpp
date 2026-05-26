@@ -1,8 +1,11 @@
 ﻿#include "log.h"
 #include <cassert>
+#include "qutils.h"
 #include "column.h"
 #include "timers.h"
 #include "dataset.h"
+#include "workspace.h"
+#include "dataenums.h"
 #include "columnutils.h"
 #include "databaseinterface.h"
 
@@ -19,19 +22,39 @@ void Column::setAutoSortByValuesByDefault(bool autoSort)
 }
 
 Column::Column(DataSet * data, int id)
-:	DataSetBaseNode(dataSetBaseNodeType::column, data->dataNode()),
+:	DataSetBaseNode(dataSetBaseNodeType::column, data),
 	_data(				data),
 	_id(				id),
-	_emptyValues(		new EmptyValues(data->emptyValues())),	
+	_emptyValues(		new EmptyValues(data->emptyValues())),
 	_autoSortByValue(	_autoSortByValuesByDefault)
 {
 	if(_id != -1)
 		db().columnSetAutoSort(_id, _autoSortByValue); //Store autosort in db
+	
+	connect(this, &Column::manualEditMade,			data, &DataSet::manualEditMade				);
+	connect(this, &Column::dataSetShouldRefresh,	data, &DataSet::refresh						);
+	connect(this, &Column::columnChanged,			data, &DataSet::handleColumnChanged			);
+	connect(this, &Column::labelsReordered,			data, &DataSet::handleLabelsReordered		);
+	connect(this, &Column::labelFilterChanged,		data, &DataSet::labelFilterChanged			);
+	connect(this, &Column::showWarning,				data, &DataSet::showWarning					);
+	connect(this, &Column::labelChanged,			data, &DataSet::labelChanged				);
+	
 }
 
 Column::~Column()
 {
+	for(Label * label : _labels)
+		unregisterNode(label);
+	_labels.clear();
+	
 	delete _emptyValues;
+	
+	try
+	{
+		if(data() && data()->shownColumn() == this)
+			data()->setShownColumn(nullptr);
+	}
+	catch(...){}
 }
 
 void Column::dbCreate(int index)
@@ -61,6 +84,9 @@ void Column::dbLoad(int id, bool getValues)
 	db().columnGetBasicInfo(	_id, _name, _title, _description, _type, _revision, emptyVals, _autoSortByValue, dropLevelsTypeInt, _hasLabels);
 	db().columnGetComputedInfo(	_id, _analysisId, _invalidated, _codeType, _rCode, _error, _constructorJson, _computeFilter);
 	
+	if(oldError != _error)
+		emit errorChanged();
+	
 	try { _dropLevels = dropLevelsType(dropLevelsTypeInt); } catch(...){}
 	
 	_emptyValues->fromJson(emptyVals);
@@ -73,9 +99,7 @@ void Column::dbLoad(int id, bool getValues)
 			db().columnGetValues(_id, _ints);
 		}
 		else
-		{
 			db().columnGetValues(_id, _dbls, _strs);
-		}
 	}
 
 	_resetLabelValueMap();
@@ -173,6 +197,8 @@ void Column::dbLoadIndex(int index, bool getValues)
 	JASPTIMER_SCOPE(Column::dbLoadIndex);
 
 	_id = db().columnIdForIndex(_data->id(), index);
+	
+	assert(_id != -1);
 
 	dbLoad(_id, getValues);
 }
@@ -211,6 +237,20 @@ void Column::invalidateDependents()
 			col->invalidate();
 }
 
+
+void Column::setNameManually(const QString & name)
+{
+	QString oldName = nameQ();
+	
+	if(setNameQ(name))
+	{
+		emit data()->manualEditMade();
+		emit data()->datasetChanged(data()->id(), {}, {}, QMap<QString, QString>({{oldName, name}}), false, false);
+		data()->refresh();
+		emit data()->enginesReceiveNewData();
+	}
+}
+
 bool Column::setName(const std::string &name)
 {
 	JASPTIMER_SCOPE(Column::setName);
@@ -229,8 +269,15 @@ bool Column::setName(const std::string &name)
 
 	db().columnSetName(_id, _name);
 	incRevision();
+	
+	emit nameChanged();
 
 	return true;
+}
+
+bool Column::setNameQ(const QString &name)
+{
+	return setName(fq(name));
 }
 
 void Column::setTitle(const std::string &title)
@@ -243,6 +290,16 @@ void Column::setTitle(const std::string &title)
 	_title = _name != title ? title : "";
 	db().columnSetTitle(_id, _title);
 	incRevision();
+	
+	emit titleChanged();
+	
+	refresh();
+	data()->refresh(false);
+}
+
+void Column::setTitleQ(const QString &title)
+{
+	setTitle(fq(title));
 }
 
 void Column::setDescription(const std::string &description)
@@ -255,6 +312,17 @@ void Column::setDescription(const std::string &description)
 	_description = description;
 	db().columnSetDescription(_id, _description);
 	incRevision();
+	
+	emit descriptionChanged();
+
+	refresh();
+	data()->refresh(false);	
+}
+
+
+void Column::setDescriptionQ(const QString &description)
+{
+	setDescription(fq(description));
 }
 
 void Column::setComputeFilter(const std::string &filter)
@@ -268,18 +336,36 @@ void Column::setComputeFilter(const std::string &filter)
 	invalidate();
 	db().columnSetComputeFilter(_id, _computeFilter);
 	incRevision();
+	
+	refresh();
+	data()->refresh(false);
 }
 
 void Column::setType(columnType colType)
 {
 	JASPTIMER_SCOPE(Column::setType);
 
+	bool wasUnknown = _type == columnType::unknown;
+	
 	if(_type == colType)
 		return;
 	
 	_type = colType;
 	db().columnSetType(_id, _type);
 	incRevision();
+	
+	if(!wasUnknown)
+	{
+		emit columnTypeChanged();
+		emit data()->columnTypeChanged(nameQ());
+		
+		throw std::runtime_error("You should call ColumnEncoder::updateColumnTypesOnlyStatic(getColumnTypesMap());} somehow, or do the equivalent. probably columnencoder also shiould be per dataset");
+		
+		invalidate();
+	}
+	
+	refresh();
+	data()->refresh(false);
 }
 
 bool Column::hasCustomEmptyValues() const
@@ -300,6 +386,9 @@ void Column::setHasCustomEmptyValues(bool hasCustom)
 	nonFilteredCountersReset();
 	
 	incRevision();
+	
+	refresh();
+	data()->refresh(false);
 }
 
 bool Column::setCustomEmptyValues(const stringset& customEmptyValues)
@@ -316,13 +405,21 @@ bool Column::setCustomEmptyValues(const stringset& customEmptyValues)
 	
 	incRevision();
 	
+	refresh();
+	data()->refresh(false);
+	
 	return true;
 }
 
 void Column::dbUpdateComputedColumnStuff()
 {
+	std::string oldError = _error;
+	
 	db().columnSetComputedInfo(_id, _analysisId, _invalidated, _codeType, _rCode, _error, constructorJsonStr(), _computeFilter);
 	incRevision();
+	
+	if(oldError != _error)
+		emit errorChanged();
 }
 
 void Column::setInvalidated(bool invalidated)
@@ -357,6 +454,11 @@ void Column::setCodeType(computedColumnType codeType)
 	_codeType	= codeType;
 	
 	dbUpdateComputedColumnStuff();
+	
+	emit codeTypeChanged();
+	
+	refresh();
+	data()->refresh(false);
 }
 
 bool Column::setConstructorJson(const std::string & constructorJson)
@@ -365,6 +467,11 @@ bool Column::setConstructorJson(const std::string & constructorJson)
 	Json::Reader().parse(constructorJson, parsed);
 	
 	return setConstructorJson(parsed);
+}
+
+bool Column::setConstructorJsonQ(const QString &constructorJson)
+{
+	return setConstructorJson(fq(constructorJson));
 }
 
 void Column::setAutoSortByValue(bool sort)
@@ -396,6 +503,8 @@ bool Column::setConstructorJson(const Json::Value &constructorJson)
 
 	dbUpdateComputedColumnStuff();
 	
+	emit constructorJsonChanged();
+	
 	return true;
 }
 
@@ -413,7 +522,14 @@ bool Column::setRCode(const std::string & rCode)
 	
 	dbUpdateComputedColumnStuff();
 	
+	emit rCodeChanged();
+	
 	return true;
+}
+
+bool Column::setRCodeQ(const QString &rCode)
+{
+	return setRCode(fq(rCode));
 }
 
 bool Column::setError(const std::string & error)
@@ -427,7 +543,14 @@ bool Column::setError(const std::string & error)
 	
 	dbUpdateComputedColumnStuff();
 	
+	emit errorChanged();
+	
 	return true;
+}
+
+bool Column::setErrorQ(const QString error)
+{
+	return setError(fq(error));
 }
 
 void Column::setAnalysisId(int analysisId)
@@ -515,8 +638,7 @@ columnTypeChangeResult Column::changeType(columnType colType)
 	}
 }
 
-
-void Column::setDefaultValues(enum columnType columnType)
+void Column::setDefaultValues(enum columnType columnType, bool emitSignals)
 {
 	JASPTIMER_SCOPE(Column::setDefaultValues);
 
@@ -530,6 +652,9 @@ void Column::setDefaultValues(enum columnType columnType)
 	labelsClear();
 	
 	dbUpdateValues();
+	
+	if(emitSignals)
+		data()->emitColumnChanged(nameQ());
 }
 
 void Column::setDropLevels(dropLevelsType dropEm)
@@ -544,6 +669,15 @@ void Column::setDropLevels(dropLevelsType dropEm)
 	db().columnSetDropLevels(_id, static_cast<int>(_dropLevels));
 	
 	incRevision();
+	
+	refresh();
+	data()->refresh(false);
+	
+	for(Filter * f : data()->filters())
+	{
+		emit data()->refreshAllAnalyses(f);
+		emit data()->refreshAllCompCols(f);
+	}
 }
 
 void Column::dbUpdateValues()
@@ -584,7 +718,6 @@ stringset Column::mergeOldMissingDataMap(const Json::Value &missingData)
 																					? nullptr									// Numbers dont need a label
 																					: labelByIntsId(labelsAdd(displayValue));	// And here we do, because where else are we going to store that string?
 									_ints[r]		= label ? label->intsId() : -1;
-									_dbls[r]		= dbl;
 		}
 	}
 	
@@ -812,19 +945,16 @@ bool Column::overwriteDataAndType(stringvec colData, columnType colType, bool co
 {
 	JASPTIMER_SCOPE(Column::overwriteDataAndType);
 	
-	if(computeFilter() != "")
-	{
-		Filter theFilter(data(), computeFilter(), false);
-		
-		const boolvec & filtered = theFilter.filtered();
-		stringvec		newData;
-						newData	 . reserve(filtered.size());
-		
-		for(size_t iFilter=0, iData=0; iFilter < filtered.size() && iData < colData.size(); iFilter++)
-			newData.push_back(filtered[iFilter] ? colData[iData++] : "");
-			
-		colData = newData;
-	}
+	assert(data()->shownFilter()->name() == computeFilter());
+	
+	const boolvec & filtered = data()->shownFilter()->filtered();
+	stringvec		newData;
+					newData	 . reserve(filtered.size());
+					
+	for(size_t iFilter=0, iData=0; iFilter < filtered.size() && iData < colData.size(); iFilter++)
+		newData.push_back(filtered[iFilter] ? colData[iData++] : "");
+					
+	colData = newData;
 	
 	Log::log() << "Column " << _name << " overwriteDataAndType(" << colData.size() << " rows of data, "<<columnTypeToString(colType)<<", bool computed=" << (computed ? "true" : "false") << ")" << std::endl;
 	
@@ -942,8 +1072,6 @@ void Column::_resetLabelValueMap()
 	_hasShadows		= false;
 	
 	_highestIntsId = 0;
-	
-	
 	
 	for(Label * label : _labels)
 		_labelMapIt(label);
@@ -1081,10 +1209,12 @@ int Column::labelsAdd(int value, const std::string & display, bool filterAllows,
 	if(_labelByValDis.count(valDisplay))
 		return _labelByValDis.at(valDisplay)->intsId();
 
-
 	Label * label = new Label(this, display, value, filterAllows, description, originalValue, order, id);
 	_labels.push_back(label);
 
+	if(hasLabelFilter())
+		emit labelFilterChanged();
+	
 	return _labelMapIt(label);
 }
 
@@ -1205,11 +1335,11 @@ int Column::nonFilteredNumericsCount()
 			{
 				Label * l = labelByIntsId(_ints[r]);
 				
-				if(_data->filter()->filtered()[r] && l && !l->isEmptyValue())
+				if(_data->shownFilter()->filtered()[r] && l && !l->isEmptyValue())
 					numerics.insert(l->originalValueAsDouble());
 			}
 			else
-				if(_data->filter()->filtered()[r] && !isEmptyValue(_dbls[r]))
+				if(_data->shownFilter()->filtered()[r] && !isEmptyValue(_dbls[r]))
 					numerics.insert(_dbls[r]);
 		}
 
@@ -1224,7 +1354,6 @@ int Column::nonFilteredNumericsCount()
 	return _nonFilteredNumericsCount;
 }
 
-
 int Column::nonFilteredNumericsCount() const
 {
 #ifdef JASP_DEBUG
@@ -1235,7 +1364,11 @@ int Column::nonFilteredNumericsCount() const
 	return _nonFilteredNumericsCount;
 }
 
-
+const stringvec & Column::nonFilteredLevels() const
+{
+	return _nonFilteredLevels;
+}
+ 
 const stringvec & Column::nonFilteredLevels() 
 {
 	if (_nonFilteredLevels.empty())
@@ -1247,7 +1380,7 @@ const stringvec & Column::nonFilteredLevels()
 			intset		collected;
 	
 			for(size_t r=0; r<data()->rowCount(); r++)
-				if(data()->filter()->filtered()[r])
+				if(data()->shownFilter()->filtered()[r])
 					if(_ints[r] != Label::NO_LABEL)
 					{
 						if(!collected.count(_ints[r]))
@@ -1272,15 +1405,10 @@ const stringvec & Column::nonFilteredLevels()
 		else
 		{
 			intvec intVals;
-			_nonFilteredLevels = dataAsRLevels(intVals, data()->filter()->filtered());
+			_nonFilteredLevels = dataAsRLevels(intVals, data()->shownFilter()->filtered());
 		}
 	}
 
-	return _nonFilteredLevels;
-}
-
-const stringvec & Column::nonFilteredLevels() const
-{
 	return _nonFilteredLevels;
 }
  
@@ -1411,6 +1539,38 @@ std::string Column::getLabel(size_t row, bool fancyEmptyValue, bool ignoreEmptyV
 }
 
 
+std::string Column::getDisplayIndexNonEmpty(size_t row, bool fancyEmptyValue, bool sepas) const
+{
+	Label * label = labelByIndexNonEmpty(row);
+	
+	return label	? label->getDisplay(fancyEmptyValue, sepas) 
+					: fancyEmptyValue ? EmptyValues::displayString() : "";
+}
+
+std::string Column::getShadowIndexNonEmpty(size_t row, bool fancyEmptyValue, bool sepas) const
+{
+	Label * label = labelByIndexNonEmpty(row);
+	
+	return label	? label->getShadow(fancyEmptyValue, sepas) 
+					: fancyEmptyValue ? EmptyValues::displayString() : "";
+}
+
+std::string Column::getValueIndexNonEmpty(size_t row, bool fancyEmptyValue, bool ignoreEmptyValue, bool sepas, columnType asType) const
+{
+	Label * label = labelByIndexNonEmpty(row);
+	
+	return label	? label->getValue(fancyEmptyValue, ignoreEmptyValue, sepas, asType)
+					: fancyEmptyValue ? EmptyValues::displayString() : "";
+}
+
+std::string Column::getLabelIndexNonEmpty(size_t row, bool fancyEmptyValue, bool ignoreEmptyValue) const
+{
+	Label * label = labelByIndexNonEmpty(row);
+	
+	return label	? label->getLabel(ignoreEmptyValue)
+					: fancyEmptyValue ? EmptyValues::displayString() : "";
+}
+
 std::string Column::doubleToDisplayString(double dbl, bool fancyEmptyValue, bool ignoreEmptyValue, bool sepas) const
 {
 	ignoreEmptyValue = ignoreEmptyValue && !std::isnan(dbl);
@@ -1429,7 +1589,8 @@ stringvec Column::valuesAsStrings() const
 	JASPTIMER_SCOPE(Column::valuesAsStrings);
 	
 	stringvec returnMe;
-	returnMe.resize(_dbls.size());
+	
+	returnMe.resize(rowCount());
 	
 	for(size_t i=0; i<returnMe.size(); i++)
 		returnMe[i] = getValue(i);
@@ -1442,7 +1603,7 @@ stringvec Column::labelsAsStrings() const
 	JASPTIMER_SCOPE(Column::labelsAsStrings);
 	
 	stringvec returnMe;
-	returnMe.resize(_dbls.size());
+	returnMe.resize(rowCount());
 	
 	for(size_t i=0; i<returnMe.size(); i++)
 		returnMe[i] = getLabel(i);
@@ -1470,7 +1631,7 @@ stringvec Column::displaysAsStrings() const
 	JASPTIMER_SCOPE(Column::displaysAsStrings);
 	
 	stringvec returnMe;
-	returnMe.resize(_dbls.size());
+	returnMe.resize(rowCount());
 	
 	for(size_t i=0; i<returnMe.size(); i++)
 		returnMe[i] = getDisplay(i);
@@ -1651,7 +1812,6 @@ void Column::labelValueChanged(Label *label, const Json::Value & previousOrigina
 	dbUpdateValues();
 }
 
-
 void Column::_handleWidthChangeWithoutLabels()
 {
 	_hasShadows		= false;
@@ -1814,14 +1974,6 @@ void Column::labelValDisplayChanged(Label *label, const std::string &previousDis
 	//And that its new location is free:
 	assert(_labelByValDis.count(label->origValDisplay()) == 0 || _labelByValDis.at(label->origValDisplay()) == label);
 
-	double newOrigValDbl = label->originalValue().isDouble() ? label->originalValue().asDouble() : EmptyValues::missingValueDouble;
-	
-	//Lets assume that all occurences of a label in _dbls are the same.
-	//So when we encounter one that is the same as what is passed here we can return immediately
-	for(size_t r=0; r<_dbls.size(); r++)
-		if(_ints[r] == label->intsId())
-			_dbls[r] = newOrigValDbl;
-	
 	_labelMapUpdates(label, previousDisplay, label->originalValueAsString());
 
 	if(merged)
@@ -2114,8 +2266,7 @@ bool Column::labelsRemoveOrphans()
 }
 
 
-
-std::set<size_t> Column::labelsMoveRows(std::vector<size_t> rows, bool up)
+std::set<qsizetype> Column::labelsMoveRows(std::vector<qsizetype> rows, bool up)
 {
 	JASPTIMER_SCOPE(Column::labelsMoveRows);
 	
@@ -2137,13 +2288,13 @@ std::set<size_t> Column::labelsMoveRows(std::vector<size_t> rows, bool up)
             new_labels.push_back(label);
     }
 
-	for (size_t row : rows)
+	for (qsizetype row : rows)
 		if(int(row) + mod < 0 || int(row) + mod >= int(labelsNonEmptyCount()))
 			return {}; //Because we can't move *out* of our _labels for obvious reasons
 
-	std::set<size_t> rowsChanged;
+	std::set<qsizetype> rowsChanged;
 
-	for (size_t row : rows)
+	for (qsizetype row : rows)
 	{
 		std::iter_swap(new_labels.begin() + row, new_labels.begin() + (row + mod));
 		rowsChanged.insert(row);
@@ -2153,7 +2304,9 @@ std::set<size_t> Column::labelsMoveRows(std::vector<size_t> rows, bool up)
 	_labels = new_labels;
 
 	_dbUpdateLabelOrder();
-
+	
+	refresh();
+	
 	return rowsChanged;
 }
 
@@ -2163,6 +2316,7 @@ void Column::labelsReverse()
 	
 	std::reverse(_labels.begin(), _labels.end());
 	_dbUpdateLabelOrder();
+	refresh();
 }
 
 void Column::labelsOrderByValue(bool doDbUpdateEtc)
@@ -2196,6 +2350,8 @@ void Column::labelsOrderByValue(bool doDbUpdateEtc)
 	
 	if(doDbUpdateEtc)
 		_dbUpdateLabelOrder(false);
+	
+	refresh();
 }
 
 doublevec Column::valuesNumericOrdered()
@@ -2298,7 +2454,7 @@ bool Column::allLabelsPassFilter() const
 	return true;
 }
 
-bool Column::hasFilter() const
+bool Column::hasLabelFilter() const
 {
 	return !allLabelsPassFilter();
 }
@@ -2336,15 +2492,15 @@ bool Column::checkForUpdates()
 		return false;
 
 	dbLoad();
+	refresh();
 	return true;
 }
 
-
-void Column::addLabelManually(std::string value, std::string label)
+void Column::addLabelManually(QString value, QString label)
 {
 	assert(_hasLabels);
 	
-	int labelIntsId = labelsAdd(label, value);
+	int labelIntsId = labelsAdd(fq(label), fq(value));
 	
 	labelByIntsId(labelIntsId)->setUserAdded(true);
 	
@@ -2353,6 +2509,11 @@ void Column::addLabelManually(std::string value, std::string label)
 	
 	labelsHandleAutoSort();
 	incRevision();
+	
+	refresh();
+	
+	data()->emitColumnChanged(nameQ());
+	data()->workspace()->setDataMode(true);
 }
 
 void Column::deleteLabelManually(int labelIndex)
@@ -2361,8 +2522,12 @@ void Column::deleteLabelManually(int labelIndex)
 	
 	labelsRemove(labelIndex);
 	incRevision();
+	
+	refresh();
+	
+	data()->emitColumnChanged(nameQ());
+	data()->workspace()->setDataMode(true);
 }
-
 
 bool Column::isColumnDifferentFromStringLookUps(const std::string & title, size_t rows,	const std::function<std::string(size_t)> valueLookup, const std::function<std::string(size_t)> labelLookup, const stringset & strEmptyVals) const 
 {
@@ -2386,7 +2551,54 @@ bool Column::isColumnDifferentFromStringLookUps(const std::string & title, size_
 	
 	return false;
 }
-	
+
+const QString Column::nameQ() const
+{
+	return tq(name());
+}
+
+const QString Column::titleQ() const
+{
+	return tq(title());
+}
+
+const QString Column::rCodeQ() const
+{
+	return tq(rCode());
+}
+
+const QString Column::descriptionQ() const
+{
+	return tq(description());
+}
+
+const QString Column::errorQ() const	
+{ 
+	return tq(_error);			
+}
+
+QString Column::constructorJsonQ() const	
+{ 
+	return tq(constructorJsonStr()); 
+}
+
+bool Column::areLoopDependenciesOk(const std::string & code)
+{
+	try
+	{
+		checkForLoopInDependencies(!code.empty() ? code : analysisId() != -1 ? "" : rCodeStripped());
+	}
+	catch(std::logic_error & e)
+	{
+		validate();
+		setError(e.what());
+
+		return false;
+	}
+
+	return true;
+}
+
 void Column::checkForLoopInDependencies(std::string code)
 {
 	stringset dependencies	= _data->findUsedColumnNames(code);
@@ -2445,6 +2657,29 @@ const stringset & Column::dependsOnColumns(bool refresh)
 	return _dependsOnColumns;
 }
 
+
+void Column::checkForDependentColumnsToBeSent(bool refreshMe)
+{
+	for(Column * col : data()->computedColumns())
+		if(	col->codeType() != computedColumnType::analysis				&&
+			col->codeType() != computedColumnType::analysisNotComputed	&&
+			(
+					col->dependsOn(name()) ||
+					(refreshMe && col == this)
+			) )
+			col->invalidate();
+
+	for(Column * col : data()->computedColumns())
+		if(	col->codeType() != computedColumnType::analysis				&&
+			col->codeType() != computedColumnType::analysisNotComputed	&&
+			col->iShouldBeSentAgain() )
+			tryAndRunComputedColumn();
+
+	emit data()->workspace()->checkForDependentAnalyses(this);
+}
+
+
+
 Json::Value Column::serialize() const
 {
 	Json::Value json(Json::objectValue);
@@ -2462,14 +2697,14 @@ Json::Value Column::serialize() const
 	json["error"]			= _error;
 	json["type"]			= int(_type);
 
-	Json::Value jsonDbls(Json::arrayValue);
-	for (double dbl : _dbls)
-		jsonDbls.append(dbl);
-
 	Json::Value jsonInts(Json::arrayValue);
 	for (int i : _ints)
 		jsonInts.append(i);
-	
+
+	Json::Value jsonDbls(Json::arrayValue);
+	for (double dbl : _dbls)
+		jsonDbls.append(dbl);
+		
 	Json::Value jsonStrs(Json::arrayValue);
 	for (const std::string & str : _strs)
 		jsonStrs.append(str);
@@ -2558,6 +2793,7 @@ void Column::deserializeLabelsForRevert(const Json::Value & labels)
 {
  	nonFilteredCountersReset();
 	
+	emit beginResetModel();
 	beginBatchedLabelsDB();
 	
 	//intset	updatedLbls;
@@ -2602,20 +2838,6 @@ void Column::deserializeLabelsForRevert(const Json::Value & labels)
 	
 	endBatchedLabelsDB();
 	
-	/* The following is already implied by endBatchedLabelsDB because it deletes all labels first anyway (There are some issues when an operation changed _labels though, in that case it might be better to deserialize the column!)
-	for(int id : missingLbls)
-	{
-		Label * deleteMe = 	_labelByIntsIdMap[id];
-		
-		for(size_t i=0;i<_labels.size(); i++)
-			if(_labels[i] == deleteMe)
-				_labels.erase(_labels.begin() + i);
-		
-		_labelByIntsIdMap.erase(id);
-		deleteMe->dbDelete();
-		delete deleteMe;	
-	}*/
-	
 	incRevision();
 }
 
@@ -2627,43 +2849,35 @@ void Column::deserialize(const Json::Value &json)
 	std::string name	= json["name"].asString(),
 				title	= json["title"].asString();
 
-	_name				= getUniqueName(name);
-	db().columnSetName(_id, _name);
+	setName(getUniqueName(name));
 
 	// If title was equal to name, then they should still stay the same if the name is changed to be unique.
-	_title				= name == title ? _name : title;
-	db().columnSetTitle(_id, _title);
+	setTitle(								name == title ? _name : title);
+	setDescription(							json["description"]		.asString()	);
+	setType(			columnType(			json["type"]			.asInt())	);
+	setInvalidated(							json["invalidated"]		.asBool()	);
+	setCodeType(		computedColumnType(	json["codeType"]		.asInt())	);
+	setRCode(								json["rCode"]			.asString()	);
+	setError(								json["error"]			.asString()	);
+	setAnalysisId(							json["analysisId"]		.asInt()	);
+	setConstructorJson(						json["constructorJson"]				);
+	setAutoSortByValue(						json["autoSortByValue"]	.asBool()	);
+	setHasLabels(							json["hasLabels"]		.asBool()	);
 
-	_description		= json["description"].asString();
-	db().columnSetDescription(_id, _description);
-
-	_type				= columnType(json["type"].asInt());
-	db().columnSetType(_id, _type);
-
-	_invalidated		= json["invalidated"].asBool();
-	_codeType			= computedColumnType(json["codeType"].asInt());
-	_rCode				= json["rCode"].asString();
-	_error				= json["error"].asString();
-	_hasLabels			= json["hasLabels"].asBool();
-	_analysisId			= json["analysisId"].asInt();
-	_constructorJson	= json["constructorJson"];
-	_autoSortByValue	= json["autoSortByValue"].asBool();
-
-	db().columnSetComputedInfo(_id, _analysisId, _invalidated, _codeType, _rCode, _error, constructorJsonStr(), _computeFilter);
-	
 	deserializeLabelsForCopy(json["labels"]);
 
 	_emptyValues->fromJson(json["customEmptyValues"]);
-	
+
+	emit beginResetModel();
 	size_t i=0;
-	_dbls.resize(json["dbls"].size());
-	for (const Json::Value& dblJson : json["dbls"])
-		_dbls[i++] = dblJson.asDouble();
-	
-	i=0;
 	_ints.resize(json["ints"].size());
 	for (const Json::Value& intJson : json["ints"])
 		_ints[i++] = intJson.asInt();
+
+	i=0;
+	_dbls.resize(json["dbls"].size());
+	for (const Json::Value& dblJson : json["dbls"])
+		_dbls[i++] = dblJson.asDouble();
 	
 	i=0;
 	_strs.resize(json["strs"].size());
@@ -2671,8 +2885,12 @@ void Column::deserialize(const Json::Value &json)
 		_strs[i++] = strJson.asString();
 	
 	assert(_strs.size() == _dbls.size());
+	emit endResetModel();
 	
 	dbUpdateValues();
+	
+	refresh();
+	data()->refresh(false);
 }
 
 std::string Column::getUniqueName(const std::string &name) const
@@ -2763,7 +2981,7 @@ stringvec Column::previewTransform(columnType transformType)
 		std::stringstream someValues;
 		
 		
-		for(int count = 0; count < _ints.size() && count < showThisMany; count++)
+		for(int count = 0; count < rowCount() && count < showThisMany; count++)
 			someValues << (count > 0 ? ", " : "") << (transformType == columnType::scale ? getValue(count, true, false, true, transformType) : '"' + getLabel(count, true) + '"');
 		
 		if(_ints.size() > showThisMany)
@@ -2841,6 +3059,349 @@ bool Column::initFromLookups(const std::string & newName, size_t rows, const std
 }
 
 
+int Column::rowCount(const QModelIndex &parent) const
+{
+	return parent.isValid() ? 0 : _hasLabels ? _ints.size() : _dbls.size();
+}
+
+int Column::columnCount(const QModelIndex &parent) const
+{
+	return parent.isValid() ? 0 : 3;
+}
+
+QVariant Column::headerData(int section, Qt::Orientation orientation, int role) const
+{
+
+	if (section < 0 || section >= (orientation == Qt::Horizontal ? columnCount() : rowCount()))
+		return QVariant();
+	
+	JASPTIMER_SCOPE(Column::headerData);
+	
+	if(orientation == Qt::Vertical)
+		switch(role)
+		{
+		default:
+			return QVariant();
+	
+		case int(dataPkgRoles::maxRowHeaderString):
+			return QString::number(rowCount()) + "XXX";
+	
+		case Qt::DisplayRole:
+			return QVariant(section + 1);
+		}
+	else
+	{
+		switch(section)
+		{
+		case 0:		return tr("Filter");
+		case 1:		return tr("Value");
+		case 2:		return tr("Label");
+		}
+	}
+	
+	return QVariant();
+}
+
+QVariant Column::data(const QModelIndex &index, int role) const
+{
+	JASPTIMER_SCOPE(Column::data);
+	
+	if(index.row() >= rowCount() || index.row() < 0 || index.column() >= columnCount() || index.column() < 0)
+		return QVariant();
+	
+	if(role == Qt::DisplayRole) //You can specifically ask for the role you want, but the default one will show something according with headerData
+		role = [](int c){ return int(c == 0 ? dataPkgRoles::filter : c == 1 ? dataPkgRoles::value : dataPkgRoles::label); }(index.column());
+	
+	Label * label = labelByIndexNonEmpty(index.row());
+	
+	if(!label)
+		return QVariant();
+	
+	switch(role)
+	{
+	case int(dataPkgRoles::nonFilteredNumericValuesCount):	return nonFilteredNumericsCount();
+	case int(dataPkgRoles::nonFilteredLevels):				return tq(nonFilteredLevels());
+	case int(dataPkgRoles::valuesDblList):					return getColumnValuesAsDoubleList();
+	case int(dataPkgRoles::description):					return tq(label->description());
+	case int(dataPkgRoles::filter):							return label->filterAllows();
+	case int(dataPkgRoles::value):							return tq(label->originalValueAsString());
+	case int(dataPkgRoles::lines):							return data()->getDataSetViewLines(index.row() == 0, index.column() == 0, true, true);
+	case int(dataPkgRoles::label):							[[fallthrough]];
+	case Qt::DisplayRole:									[[fallthrough]];
+	case int(dataPkgRoles::noSepaDisplay):					return tq(label->label());
+	default:												return QVariant();
+	}
+}
+
+bool Column::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+	JASPTIMER_SCOPE(Column::setData);
+	
+	if(index.column() >= columnCount() || index.row() >= rowCount() || index.column() < 0 || index.row() < 0)
+		return false;
+
+
+	switch(role)
+	{
+	case int(dataPkgRoles::filter):
+		if(value.typeId() != QMetaType::Bool) 
+			return false;
+
+		return setLabelAllowFilter(index.row(), value.toBool());
+
+	case int(dataPkgRoles::description):
+		return setLabelDescription(index.row(), value.toString());
+
+	case int(dataPkgRoles::value):
+		return setLabelValue(index.row(),  value.toString());
+
+	case int(dataPkgRoles::label):
+		return setLabelDisplay(index.row(), value.toString());
+		
+	default:
+		return false;
+	}
+	  
+}
+
+void Column::refresh(bool doDataChanged)	
+{ 
+	beginResetModel();
+	
+	
+	if(doDataChanged)
+		data()->columnRefreshed(this);
+	
+	emit nameChanged();
+	emit titleChanged();
+	emit rCodeChanged();
+	emit columnTypeChanged();
+	emit codeTypeChanged();
+	emit hasLabelsChanged();
+	
+	endResetModel(); 
+}
+
+
+bool Column::setLabelDescription(int labelRow, const QString & newDescription)
+{
+	JASPTIMER_SCOPE(Column::setLabelDescription);
+
+	Label		*	label	= labelByIndexNonEmpty(labelRow);
+	label->setDescription(newDescription.toStdString());
+
+	emit dataChanged(index(labelRow, 0),	index(labelRow, columnCount()), {int(dataPkgRoles::description), Qt::DisplayRole});
+
+	return true;
+}
+
+bool Column::setLabelDisplay(int labelRow, const QString &newLabel)
+{
+	JASPTIMER_SCOPE(Column::setLabelDisplay);
+
+	Label			*	label		= labelByIndexNonEmpty(labelRow);
+	bool				aChange		= false,
+						setManual	= false;
+
+	if(label->setLabel(fq(newLabel)))
+	{
+		aChange = true;
+
+		if(data()->dataFileCanHaveLabels())
+			setManual = true;
+	}
+
+	if(aChange)
+	{
+		emit columnChanged(this);
+		emit dataSetShouldRefresh();
+
+		if(setManual)
+			emit manualEditMade();
+
+		emit dataChanged(index(labelRow, 0),	index(labelRow, columnCount()), {int(dataPkgRoles::label), Qt::DisplayRole});
+	}
+
+	return aChange;
+}
+
+bool Column::setLabelValue(int labelRow, const QString &newLabelValue)
+{
+	JASPTIMER_SCOPE(Column::setLabelValue);
+
+	Label			*	label		= labelByIndexNonEmpty(labelRow);
+	bool				aChange		= false,
+						aNumber		= false;
+
+	Json::Value originalValue = newLabelValue.toStdString();
+
+	int		anInteger;
+	double	aDouble;
+
+	if(	(aNumber =	ColumnUtils::getDoubleValue(newLabelValue.toStdString(), aDouble))	)	originalValue = aDouble;
+	if(				ColumnUtils::getIntValue(	newLabelValue.toStdString(), anInteger)	)	originalValue = anInteger;
+
+	{
+		// Here we will overwrite the original value with the new origval.
+		// but if the label is the same as the original value we want to make the users life easier and replace it as well.
+		// this makes sense if the user is changing a string or number. But if the user is recoding, so turning values from str => dbl
+		// then we dont want to do this, because then the label should be different afterwards.
+
+		//summarized:
+		// if orgval == label then:
+		// if (oldorigval == dbl && newOrigVal == dbl) || (olorigval != dbl && newOrigVal != dbl)  then replace both
+		// if neworigval == dbl and oldorigval != dbl then replace only value
+
+		// But only if we are allowed to change both because of https://github.com/jasp-stats/INTERNAL-jasp/issues/2680 (allow editing of only value/label and disable the other one for computed columns
+		// which means that if this column is a computed column of scale type we are only allowed to change the label and only the value for the other types.
+		// so in this case this means that if it is a computed column, and of type !scale we do *not* also update the label when updating the value. Because otherwise it would override the data from the computed column...
+
+		bool dontSetLabel = label->originalValueAsString(false) != label->labelDisplay() || (originalValue.isDouble() && !label->originalValue().isDouble());
+
+		if(!dontSetLabel && isComputed() && type() != columnType::scale)
+			dontSetLabel = true;
+
+		if(dontSetLabel)	aChange = label->setOriginalValue(originalValue)	||	aChange;
+		else				aChange = label->setOrigValLabel(originalValue)		||	aChange;
+	}
+
+	labelsHandleAutoSort();
+
+	if(aChange)
+	{
+		emit columnChanged(this);
+		emit manualEditMade();
+	}
+
+	return aChange;
+}
+
+bool Column::setLabelAllowFilter(int labelRow, bool newAllowValue)
+{
+	JASPTIMER_SCOPE(Column::setLabelAllowFilter);
+
+	Label			*	label = labelByIndexNonEmpty(labelRow);
+	bool	atLeastOneRemains = newAllowValue;
+
+	if(!atLeastOneRemains) //Do not let the user uncheck every single one because that is useless, the user wants to uncheck row so lets see if there is another one left after that.
+		for(size_t i=0; i< labels().size(); i++)
+		{
+			if(i != labelRow && labels()[i]->filterAllows())
+			{
+				atLeastOneRemains = true;
+				break;
+			}
+			else if(i == labelRow && labels()[i]->filterAllows() == newAllowValue) //Did not change!
+				return true;
+		}
+
+	atLeastOneRemains = atLeastOneRemains || labelsNonEmptyCount() > labels().size();
+
+	if(atLeastOneRemains)
+	{
+		bool before = hasLabelFilter();
+		Label * label = labelByIndexNonEmpty(labelRow);
+		label->setFilterAllows(newAllowValue);
+
+		if(before != hasLabelFilter())
+			emit dataSetShouldRefresh();
+
+		emit labelFilterChanged();
+		emit dataChanged(index(labelRow, 0), index(labelRow, columnCount()), { int(dataPkgRoles::filter), Qt::DisplayRole });
+
+		return true;
+	}
+	else
+		return false;
+}
+
+QList<QVariant> Column::getColumnValuesAsDoubleList()	const
+{
+	QList<QVariant> list;
+
+	for (int id : _ints)
+	{
+		Label * l = labelByIntsId(id);
+		list.append(l ? l->originalValueAsDouble() : EmptyValues::missingValueDouble);
+	}
+	
+	return list;
+}
+
+std::string	Column::generateLabelFilter() const
+{
+	JASPTIMER_SCOPE(Column::generateLabelFilter);
+
+	boolvec				filterAllows	= getFilterAllows();
+	stringvec			labels			= nonEmptyLevelsStrings();
+	int					pos				= std::count_if(filterAllows.begin(), filterAllows.end(), [](bool f){ return f; }),
+						cnt				= 0;
+	bool				bePositive		= pos <= filterAllows.size() - pos;
+	std::stringstream	out;
+
+	for(size_t row=0; row<filterAllows.size(); row++)
+		if(filterAllows[row] == bePositive)
+			out << (cnt++ > 0 ? (bePositive ? " | " : " & ") : "")
+				<< name()
+				<< ".nominal"	//Also make sure we use .nominal because otherwise we might be comparing to the value instead...
+				<< (bePositive ? " == \"" : " != \"")
+				<< labels[row] << "\"";
+
+	return "(" + out.str() + ")";
+}
+
+boolvec Column::getFilterAllows() const
+{
+	boolvec list;
+	list.reserve(labelsNonEmptyCount());
+
+	for (const Label * label : labels())
+		list.push_back(label->filterAllows());
+
+	while(list.size() < labelsNonEmptyCount())
+		list.push_back(true);
+
+	return list;
+}
+
+void Column::resetFilterAllows()
+{
+	resetFilter();
+	nonFilteredCountersReset();
+
+	emit columnChanged(this);
+}
+
+int Column::filteredOut() const
+{
+
+	int			filteredOut = 0;
+
+	for(const Label * label : _labels)
+		if(!label->filterAllows() && !label->isEmptyValue())
+			filteredOut++;
+
+	return filteredOut;
+}
+
+void Column::tryAndRunComputedColumn()
+{
+	const std::string code = rCodeStripped();
+	
+	if(code.empty())
+		return;
+
+	if(areLoopDependenciesOk(code))
+		data()->runComputedColumn(nameQ(), tq(code), type());
+}
+
+void Column::showAnalysisForm()
+{
+	if(_analysisId != -1)
+		emit data()->workspace()->showAnalysis(_analysisId);
+}
+
+
 
 void Column::setHasLabels(bool haveLabels)
 {
@@ -2892,17 +3453,19 @@ void Column::labelsToNoLabels()
 	
 	_ints.clear();
 	
-	
+	db().columnSetValues(_id, _dbls, _strs);
+	db().columnSetHasLabels(_id, _hasLabels);
 
 	_hasLabels		= false;
 	_hasShadows		= false;
-	
-	db().columnSetValues(_id, _dbls, _strs);
-	db().columnSetHasLabels(_id, _hasLabels);
+
 	db().transactionWriteEnd();
 	
+	emit hasLabelsChanged();
+	emit labelFilterChanged();
 	incRevision();
 	
+	refresh();
 }
 
 void Column::noLabelsToLabels()
@@ -2932,5 +3495,23 @@ void Column::noLabelsToLabels()
 	
 	db().transactionWriteEnd();
 	
+	emit hasLabelsChanged();
+	emit labelFilterChanged();
 	incRevision();
+	
+	refresh();
+}
+
+QString Column::columnTypeFriendlyName(computedColumnType compColT)
+{
+	switch(compColT)
+	{
+	case computedColumnType::notComputed:			return QObject::tr("Not computed");					break;
+	case computedColumnType::rCode:					return QObject::tr("Computed with R code");			break;
+	case computedColumnType::constructorCode:		return QObject::tr("Computed with drag-and-drop");	break;
+	case computedColumnType::analysis:				return QObject::tr("Column generated by analysis");	break;
+	case computedColumnType::analysisNotComputed:	return QObject::tr("Column added by analysis");		break;
+	};
+	
+	return "";
 }

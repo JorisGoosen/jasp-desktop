@@ -1,6 +1,8 @@
+#include "log.h"
+#include "filter.h"
+#include "workspace.h"
 #include "analysisbase.h"
 #include "analysisform.h"
-#include "log.h"
 #include "utilities/qmlutils.h"
 
 const std::string AnalysisBase::emptyString;
@@ -272,4 +274,38 @@ const Json::Value &AnalysisBase::boundValue(const std::string &name, const QVect
 
 	if (found && !parentBoundValue.isNull() && parentBoundValue.isObject())	return parentBoundValue[name];
 	else																	return Json::Value::null;
+}
+
+
+Filter *AnalysisBase::filter() const
+{
+	return _filter;
+}
+
+QString AnalysisBase::filterName() const
+{
+	return _filter ? _filter->nameQ() : "";
+}
+
+int AnalysisBase::filterId() const
+{
+	return _filter ? _filter->id() : -1;
+}
+
+void AnalysisBase::setFilterId(int filterId)
+{
+	if(!Workspace::singleton())
+		return;
+	
+	Filter * f = Workspace::singleton()->filterById(filterId);
+		
+	if(f == _filter)
+		return;
+	
+	_filter			= f;
+	_filterDataSet	= _filter->data();
+	
+	emit filterChanged(_filter);
+	
+	refresh();
 }
