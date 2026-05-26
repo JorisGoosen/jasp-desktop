@@ -72,6 +72,8 @@ public:
 public slots:
 			void					refresh();
 			DataSet				*	createDataSet();
+			DataSet				*	createComputedDataSet(const std::string & name, const std::string & computeCode, const std::string & dependsOn = "");
+			void					refreshComputedDataSets(int sourceDataSetId);
 			Column				*	createComputedColumn(const std::string & name, int dataSetId, int analysisId = -1, columnType type = columnType::unknown, computedColumnType desiredType = computedColumnType::analysis);
 			void					setShownDataSet(QString	  name);
 			void					setShownDataSet(DataSet * dataSet);

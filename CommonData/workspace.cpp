@@ -331,6 +331,16 @@ DataSet * Workspace::createDataSet()
 	return newSet;
 }
 
+DataSet * Workspace::createComputedDataSet(const std::string & name, const std::string & computeCode, const std::string & dependsOn)
+{
+	DataSet * newSet = createDataSet();
+	newSet->setIsComputed(true);
+	newSet->setComputeCode(computeCode);
+	newSet->setDependsOn(dependsOn);
+	newSet->setDescription(name);
+	return newSet;
+}
+
 Column *Workspace::createComputedColumn(const std::string &name, int dataSetId, int analysisId, columnType type, computedColumnType desiredType)
 {
 	if(_dataSets.count(dataSetId))
@@ -379,6 +389,31 @@ void Workspace::updateComputedColumnDependenciesForAnalysis(int analysisId, cons
 		for(Column * col : dataSet->columns())
 			if(col->isComputedByAnalysis(analysisId))
 				col->setDependsOn(usedVariables);
+}
+
+void Workspace::refreshComputedDataSets(int sourceDataSetId)
+{
+	std::string sourceIdStr = std::to_string(sourceDataSetId);
+
+	for(auto & idDataSet : _dataSets)
+	{
+		DataSet * ds = idDataSet.second;
+		if(!ds->isComputed())
+			continue;
+
+		std::string deps = ds->dependsOn();
+		if(deps.empty())
+			continue;
+
+		if(deps.find(sourceIdStr) != std::string::npos)
+		{
+			Log::log() << "Computed dataset " << ds->id() << " (" << ds->description() << ") depends on dataset "
+					   << sourceDataSetId << ", marking for refresh" << std::endl;
+
+			emit dataSetSynchingStart(ds);
+			emit dataSetSynchingDone(ds);
+		}
+	}
 }
 
 DataSetSyncer * Workspace::syncerForDataSet(int dataSetId) const

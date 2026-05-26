@@ -54,9 +54,12 @@ public:
 			int				rowCount()				const ;
 			bool			dataFileSynch()			const { return _dataFileSynch;			}
 			bool			showRSyntax()			const { return _showRSyntax;			}
+			bool			isComputed()			const { return _isComputed;			}
 	const	std::string &	dataFilePath()			const { return _dataFilePath;			}
 			int				dataFileTimestamp()		const { return _dataFileTimestamp;		}
 	const	std::string &	databaseJson()			const { return _databaseJson;			}
+	const	std::string &	computeCode()			const { return _computeCode;			}
+	const	std::string &	dependsOn()				const { return _dependsOn;				}
 			bool			writeBatchedToDB()		const { return _writeBatchedToDBDepth;		}
 			void			batchColumnHadChange(Column *col);
 
@@ -100,6 +103,9 @@ public:
 			void			setDatabaseJson(	const std::string & databaseJson)	{ _databaseJson		= databaseJson;			dbUpdate(); }
 			void			setDataFileSynch(	bool synchronizing)					{ _dataFileSynch	= synchronizing;		dbUpdate(); }
 			void			setShowRSyntax(		bool showRSyntax)					{ _showRSyntax		= showRSyntax;			dbUpdate(); }
+			void			setIsComputed(		bool isComputed)					{ _isComputed		= isComputed;			dbUpdate(); }
+			void			setComputeCode(		const std::string & code)			{ _computeCode		= code;				dbUpdate(); }
+			void			setDependsOn(		const std::string & deps)			{ _dependsOn		= deps;				dbUpdate(); }
 			char			csvDelimiter()		const								{ return _csvDelimiter; }
 			void			setCsvDelimiter(	char delimiter)						{ _csvDelimiter		= delimiter;			dbUpdate(); }
 
