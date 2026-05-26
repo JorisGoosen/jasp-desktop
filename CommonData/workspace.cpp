@@ -60,8 +60,8 @@ QVariant Workspace::data(const QModelIndex &index, int role) const
 	case Qt::DisplayRole:									
 	case int(dataPkgRoles::label):							 
 	case int(dataPkgRoles::value):							return cur->descriptionQ();
-	case int(dataPkgRoles::name):							return cur->name();//tq(cur->db().dataSetName(cur->id()));
-	case int(dataPkgRoles::title):							return cur->title();
+	case int(dataPkgRoles::name):							return tq(cur->name());
+	case int(dataPkgRoles::title):							return tq(cur->title());
 	case int(dataPkgRoles::description):					return cur->descriptionQ();
 	}
 	
@@ -88,7 +88,7 @@ void Workspace::setShowRSyntax(bool showRSyntax)
 
 void Workspace::dbLoad(std::function<void(float)> progressCallback, Version doUpgradeFrom)
 {
-	intset	dataSets = db().dataSetIds();
+	intset	dataSets = db().dataSetGetIds();
 	
 	int		numLoaded = 0;
 	
@@ -102,7 +102,7 @@ for(int id : dataSets)
 			progressCallback((numLoaded * i) + (p * i));	
 		};
 		
-		_dataSets[id] = new DataSet(this, 0);
+		_dataSets[id] = new DataSet(0);
 		_dataSets[id]->dbLoad(id, progressCallbackPerData, doUpgradeFrom);
 		startSyncForDataSet(id);
 		numLoaded++;
@@ -134,7 +134,7 @@ void Workspace::dbDelete()
 //Should be merged with dbLoad() probably?
 bool Workspace::checkForUpdates()
 {
-	intset	dataSets = db().dataSetIds(),
+	intset	dataSets = db().dataSetGetIds(),
 			missing;
 	
 	bool aChange = false;
@@ -147,7 +147,7 @@ bool Workspace::checkForUpdates()
 		}
 		else
 		{
-			_dataSets[id] = new DataSet(this, id);
+			_dataSets[id] = new DataSet(id);
 			startSyncForDataSet(id);
 			aChange = true;
 			
@@ -318,7 +318,7 @@ void Workspace::setShownFilter(Filter *newShownFilter)
 
 DataSet * Workspace::createDataSet()
 {
-	DataSet * newSet = new DataSet(this);
+	DataSet * newSet = new DataSet();
 
 	if(!_shownDataSet)
 		setShownDataSet(newSet);

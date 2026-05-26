@@ -104,6 +104,7 @@ public:
 
 	//DataSets
 	int			dataSetGetId();
+	intset		dataSetGetIds();
 	bool		dataSetExists(			int dataSetId);
 	void		dataSetDelete(			int dataSetId);
 	int			dataSetInsert(							const std::string & dataFilePath = "", long dataFileTimestamp = 0, const std::string & description = "", const std::string & databaseJson = "", const std::string & emptyValuesJson = "", bool dataSynch = false, bool showRSyntax = false, char csvDelimiter = '\0', bool isComputed = false, const std::string & computeCode = "", const std::string & dependsOn = "");		///< Inserts a new DataSet row into DataSets and creates an empty DataSet_#id. returns id
@@ -115,7 +116,10 @@ public:
 	std::string dataSetName(			int dataSetId) const;
 	int			dataSetIncRevision(		int dataSetId);
 	int			dataSetGetRevision(		int dataSetId);
+	int			dataSetGetDefaultFilter(int dataSetId);
 	intset		dataSetGetFilters(		int dataSetId);
+	void		workspaceLoad(			bool & showRSyntax);
+	void		workspaceUpdate(		bool showRSyntax);
 	void		dataSetInsertEmptyRow(	int dataSetId, size_t row);
 	void		dataSetCreateTable(		DataSet * dataSet); ///< Assumes you are importing fresh data and havent created any DataSet_? table yet
 
@@ -131,7 +135,7 @@ public:
 	void		filterWrite(			int filterIndex,	const	boolvec & values);																	///< Overwrites the current filter values, no checks are done on the size. If too few the rest is TRUE nd superfluous bools are ignored.
 	int			filterInsert(			int dataSetId,		const std::string & rFilter = "", const std::string & generatedFilter = "", const std::string & constructorJson = "", const std::string & constructorR = "", const std::string & name = "");		///< Inserts a new Filter row into Filters and creates an empty FilterValues_#id. It returns id
 	void		filterUpdate(			int filterIndex,	const std::string & rFilter = "", const std::string & generatedFilter = "", const std::string & constructorJson = "", const std::string & constructorR = "", const std::string & name = "");		///< Updates an existing Filter row in Filters
-	void		filterLoad(				int filterIndex,		  std::string & rFilter,			std::string & generatedFilter,			  std::string & constructorJson,			std::string & constructorR, int & revision, std::string & name);			///< Loads an existing Filter row into arguments
+	void		filterLoad(				int filterIndex,		  std::string & rFilter,			std::string & generatedFilter,			  std::string & constructorJson,			std::string & constructorR, int & revision, std::string & name, bool & invalidated);			///< Loads an existing Filter row into arguments
 	void		filterClear(			int filterIndex);																					///< Clears all values in Filter
 	void		filterDelete(			int filterIndex);
 	int			filterGetDataSetId(		int filterIndex);

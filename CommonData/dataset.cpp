@@ -19,6 +19,7 @@
 #include <cassert>
 #include "timers.h"
 #include "dataset.h"
+#include "workspace.h"
 #include "columnencoder.h"
 #include "jsonutilities.h"
 #include "databaseinterface.h"
@@ -245,8 +246,8 @@ Column * DataSet::newColumn(const std::string &name)
 Column * DataSet::createComputedColumn(const std::string & name, columnType type, computedColumnType desiredType, int analysisId)
 {
 	Column * col = newColumn(name);
-	col->setColumnType(type);
-	col->setComputedColumnType(desiredType);
+	col->setType(type);
+	col->setCodeType(desiredType);
 
 	return col;
 }

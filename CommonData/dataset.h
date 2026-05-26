@@ -23,6 +23,7 @@
 #include "filter.h"
 #include "emptyvalues.h"
 #include "version.h"
+#include "qutils.h"
 
 class DataSet;
 class Workspace;
@@ -39,12 +40,27 @@ public:
 							~DataSet();
 	
 			Filter		*	filter()						{ return	_filter;	}
+			Filter		*	filter(int filterId)				{ return _filter && _filter->id() == filterId ? _filter : nullptr; }
+			Filter		*	defaultFilter()							{ return _filter; }
+			Filter		*	shownFilter()							{ return _filter; }
+			void			showFilter(Filter * f)					{ _filter = f; }
+			void			showFilter(const std::string &)			{}
+			std::vector<Filter*> filters()							{ return _filter ? std::vector<Filter*>{_filter} : std::vector<Filter*>{}; }
+			Column		*	shownColumn()							{ return _shownColumn; }
+			void			setShownColumn(Column * col)			{ _shownColumn = col; }
+			void			emitColumnChanged(const QString &)		{}
+			void			sendFilterByName(int, const QString &, const QString &) {}
+			void			registerFilter(Filter *)				{}
+			void			pasteSpreadsheet(size_t, size_t, const std::vector<std::vector<QString>> &, const std::vector<std::vector<QString>> &, const std::vector<int> &, const QStringList &, const std::vector<std::vector<bool>> &) {}
+			QString			insertColumnSpecial(int, const QMap<QString, QVariant>&, bool = true) { return QString(); }
+			void			invalidateAllComputedColumns()			{ for(Column * c : _columns) c->invalidate(); }
 			Columns		&	columns()			const		{ return	const_cast<Columns&>(_columns);	}
     const	EmptyValues *	emptyValues()       const		{ return	_emptyValues; }
 			EmptyValues *	emptyValues()					{ return	_emptyValues; }
 
 			Column		*	column(		const std::string & name);
 			Column		*	column(		size_t				columnIndex);
+			Column		*	column(		const QString	&	name) { return column(name.toStdString()); }
 
 			Column		*	operator[](	size_t				columnIndex)	{ return column(columnIndex); }
 			Column		*	operator[](	const std::string &	columnName)		{ return column(columnName); }
@@ -134,12 +150,36 @@ public:
 	const	stringset			&	workspaceEmptyValues()															const	{ return _emptyValues->emptyStrings();								}
 			void					setWorkspaceEmptyValues(	const stringset& values);
 	const	std::string			&	description()																	const	{ return _description; }
+			QString					descriptionQ()																	const	{ return tq(_description); }
+			const	std::string		&	name()																		const	{ return _dataFilePath.empty() ? _description : _dataFilePath; }
+			QString					nameQ()																			const	{ return tq(name()); }
+			const	std::string		&	title()																	const	{ return _description; }
+			QString					titleQ()																		const	{ return tq(_description); }
 			void					setDescription(				const std::string& desc);
 			Json::Value				jsonForCompare() const;
+			void					showWarning(QString, QString) {}
 			
 private:
 			void					upgradeEmptyValsFrom018To019(const Json::Value & emptyVals);
 			void					setEmptyValuesJsonOldStuff(	const Json::Value & emptyValues);
+
+signals:
+			void		manualEditMade();
+			void		datasetChanged(int, QStringList, QStringList, QMap<QString,QString>, bool, bool);
+			void		columnsLabelFilteredCountChanged();
+			void		labelChanged(const Column *, QString, QString);
+			void		labelsReordered(QString);
+			void		columnTypeChanged(QString);
+			void		shownFilterChanged();
+			void		shownColumnChanged();
+			void		labelFilterChanged();
+			void		allFiltersReset();
+			void		refreshAllAnalyses(Filter *);
+			void		refreshAllCompCols(Filter *);
+			void		emptyValuesChanged();
+			void		enginesReceiveNewData();
+			void		handleColumnChanged();
+			void		handleLabelsReordered();
 			
 			
 private:
@@ -147,6 +187,7 @@ private:
 							*	_filtersNode			= nullptr;
 	Columns						_columns;
 	Filter					*	_filter					= nullptr;
+	Column		*	_shownColumn			= nullptr;
 	EmptyValues				*	_emptyValues			= nullptr;
 	int							_dataSetID				= -1,
 								_rowCount				= -1,

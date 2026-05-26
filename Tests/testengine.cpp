@@ -11,6 +11,8 @@
 #include "data/datasetpackage.h"
 #include "data/importers/csvimporter.h"
 #include "engine/enginerepresentation.h"
+#include "workspace.h"
+#include "datasetsyncer.h"
 
 void TestEngine::initTestCase()
 {
@@ -187,6 +189,64 @@ void TestEngine::testFilters()
 	QVERIFY2(!_data->defaultFilter()->filtered()[0],								"Expected first filtered to be FALSE");
 	QVERIFY2(_data->defaultFilter()->filtered()[1],									"Expected second filtered to be TRUE");
 
+}
+
+void TestEngine::testComputedDataSets()
+{
+	QVERIFY2(_data,		"No dataset!");
+	
+	Workspace * ws = Workspace::singleton();
+	QVERIFY2(ws,		"No workspace!");
+
+	// 1. Create a computed dataset depending on the source dataset
+	int sourceId = _data->id();
+	DataSet * compDs = ws->createComputedDataSet(
+		"Computed Test",
+		"data$V1 + 1",
+		std::to_string(sourceId)
+	);
+	QVERIFY2(compDs,												"Computed dataset not created!");
+	QVERIFY2(compDs->id() > 0,										"Computed dataset has invalid ID!");
+	QVERIFY2(compDs->isComputed(),									"isComputed not set!");
+	QVERIFY2(compDs->computeCode() == "data$V1 + 1",				"computeCode not stored correctly!");
+	QVERIFY2(compDs->dependsOn() == std::to_string(sourceId),		"dependsOn not stored correctly!");
+
+	// 2. Verify it appears in workspace
+	DataSet * found = ws->dataSetById(compDs->id());
+	QVERIFY2(found == compDs,										"Computed dataset not found in workspace!");
+
+	// 3. Verify it coexists with the source dataset
+	DataSet * source = ws->dataSetById(sourceId);
+	QVERIFY2(source == _data,										"Source dataset missing from workspace!");
+	QVERIFY2(!source->isComputed(),									"Source dataset should not be computed!");
+
+	// 4. Test dependency-based refresh triggers for matching source
+	QSignalSpy startSpy(ws, &Workspace::synchingStart);
+	ws->refreshComputedDataSets(sourceId);
+	QVERIFY2(startSpy.count() >= 1,									"Refresh not triggered for matching dependency!");
+
+	// 5. Test that unrelated source does NOT trigger refresh
+	QSignalSpy unrelatedSpy(ws, &Workspace::synchingStart);
+	ws->refreshComputedDataSets(99999); // non-existent ID
+	QVERIFY2(unrelatedSpy.count() == 0,								"Unrelated source should not trigger refresh!");
+
+	// 6. Test multiple computed datasets with different dependencies
+	DataSet * compDs2 = ws->createComputedDataSet(
+		"Computed Test 2",
+		"data$V1 * 2",
+		std::to_string(sourceId) + "," + std::to_string(compDs->id())
+	);
+	QVERIFY2(compDs2,												"Second computed dataset not created!");
+	QVERIFY2(compDs2->isComputed(),									"Second computed: isComputed not set!");
+
+	// Refreshing source should trigger both computed datasets
+	QSignalSpy multiSpy(ws, &Workspace::synchingStart);
+	ws->refreshComputedDataSets(sourceId);
+	QVERIFY2(multiSpy.count() >= 2,									"Should trigger both computed datasets!");
+
+	// Cleanup computed datasets
+	ws->stopSyncForDataSet(compDs);
+	ws->stopSyncForDataSet(compDs2);
 }
 
 
