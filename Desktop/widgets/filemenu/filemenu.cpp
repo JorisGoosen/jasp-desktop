@@ -149,31 +149,37 @@ FileEvent *FileMenu::save()
 
 void FileMenu::sync()
 {
-#ifdef NOT_IGNORING_SYNCHING
-	if(DataSetPackage::pkg()->databaseJson() != Json::nullValue)
+	Workspace * ws = Workspace::singleton();
+	if(!ws)
+		return;
+
+	DataSet * shown = ws->shownDataSet();
+	if(!shown)
+		return;
+
+	DataSetSyncer * syncer = ws->syncerForDataSet(shown);
+	if(syncer)
+		syncer->syncNow();
+	else if(!MessageForwarder::showYesNo(tr("No associated data file"),
+				tr("JASP has no associated data file to be synchronized with.\nDo you want to search for such a data file on your computer?")))
+		return;
+
+	QString path = MessageForwarder::browseOpenFile(tr("Find Data File"), "", tr("Data File (*.csv *.txt *.tsv *.sav *.zsav *.ods *.xls *.xlsx *.dta *.por *.sas7bdat *.sas7bcat *.xpt *.rdata *.rds *.mwx *.mpx)"));
+	if(!path.isEmpty())
 	{
-		FileEvent *event = new FileEvent(this, FileEvent::FileSyncData);
-	
-		event->setDatabase(DataSetPackage::pkg()->databaseJson());
-		dataSetIORequestHandler(event);
-	}
-	else
-	{
-		QString path = _currentDataFile->getCurrentFilePath();
-	
-		if (path.isEmpty())
-		{
-			if(!MessageForwarder::showYesNo(tr("No associated data file"),
-						tr("JASP has no associated data file to be synchronized with.\nDo you want to search for such a data file on your computer?\nNB: You can also set this data file via menu File/Sync Data.")))
-				return;
-	
-			path =  MessageForwarder::browseOpenFile(tr("Find Data File"), "", tr("Data File").arg("*.csv *.txt *.tsv *.sav *.zsav *.ods *.xls *.xlsx *.dta *.por *.sas7bdat *.sas7bcat *.xpt *.rdata *.rds *.mwx *.mpx"));
-		}
-	
 		_mainWindow->setCheckAutomaticSync(false);
-		setSyncRequest(path);
-	}	
-#endif
+		DataSetSyncer * newSyncer = ws->syncerForDataSet(shown);
+		if(!newSyncer)
+		{
+			ws->startSyncForDataSet(shown);
+			newSyncer = ws->syncerForDataSet(shown);
+		}
+		if(newSyncer)
+		{
+			newSyncer->startFileSyncing(path);
+			newSyncer->syncNow();
+		}
+	}
 }
 
 void FileMenu::close()
@@ -187,43 +193,12 @@ void FileMenu::close()
 
 void FileMenu::setCurrentDataFile(const QString &path)
 {
-	QString currentPath = _currentDataFile->getCurrentFilePath();
-	
-#ifdef NOT_IGNORING_SYNCHING
-	if (!currentPath.isEmpty())
-		_watcher.removePath(currentPath);
-
-	bool setCurrentPath = true;
-	if (!path.isEmpty())
-	{
-		if (checkSyncFileExists(path))
-		{
-			bool sync = DataSetPackage::pkg()->synchingExternally();
-			if (sync)
-				_watcher.addPath(path);
-		}
-		else
-			setCurrentPath = false;
-	}
-	if (setCurrentPath)
-#endif
-		_currentDataFile->setCurrentFilePath(path);
+	_currentDataFile->setCurrentFilePath(path);
 }
 
 void FileMenu::setDataFileWatcher(bool watch)
 {
-#ifdef NOT_IGNORING_SYNCHING
-	QString path = _currentDataFile->getCurrentFilePath();
-	if (path.isEmpty())
-		return;
-
-	if (!(watch && !_currentDataFile->isOnlineFile(path)))
-		_watcher.removePath(path);
-
-	else if(_watcher.addPath(path))
-		dataFileModifiedHandler(path);
-#endif
-
+	Q_UNUSED(watch)
 }
 
 
@@ -291,15 +266,6 @@ void FileMenu::dataSetIOCompleted(FileEvent *event)
 				if (datafile.isEmpty())
 					datafile = QString::fromStdString(DataSetPackage::pkg()->dataSet()->dataFilePath());
 				setCurrentDataFile(datafile);
-#ifdef NOT_IGNORING_SYNCHING
-				if	(	event->operation() == FileEvent::FileOpen
-					&& !event->isReadOnly()
-					&&	event->type() == FileTypeBase::jasp
-					&& !DataSetPackage::pkg()->isReadOnlyFile()
-					&&	DataSetPackage::pkg()->dataSet()->dataFileSynch()
-				)
-					DataSetPackage::pkg()->setSynchingExternally(true);
-#endif
 			}
 
 			// all this stuff is a hack
@@ -313,14 +279,6 @@ void FileMenu::dataSetIOCompleted(FileEvent *event)
 			_OSF->setProcessing(false);
 		}
 	}
-	#ifdef NOT_IGNORING_SYNCHING
-	else if (event->operation() == FileEvent::FileSyncData)
-	{
-		if (event->isSuccessful())		setCurrentDataFile(event->dataFilePath());
-		else
-			Log::log() << "Sync failed: " << event->getLastError().toStdString() << std::endl;
-	}
-#endif
 	else if (event->operation() == FileEvent::FileClose)
 	{
 		_computer->clearFileName();
@@ -412,9 +370,7 @@ void FileMenu::actionButtonClicked(const ActionButtons::FileOperation action)
 	case ActionButtons::FileOperation::SaveAs:				setMode(FileEvent::FileSave);			break;
 	case ActionButtons::FileOperation::ExportResults:		setMode(FileEvent::FileExportResults);	break;
 	case ActionButtons::FileOperation::ExportData:  		setMode(FileEvent::FileExportData);		break;
-#ifdef NOT_IGNORING_SYNCHING
-	case ActionButtons::FileOperation::SyncData:			setMode(FileEvent::FileSyncData);		break;
-#endif
+case ActionButtons::FileOperation::SyncData:			setMode(FileEvent::FileSyncData);		break;
 	case ActionButtons::FileOperation::Close:				close();								break;
 	case ActionButtons::FileOperation::Save:
 		if (getCurrentFileType() == Utils::FileType::jasp && !DataSetPackage::pkg()->currentJaspFileIsNonSaveable())
@@ -472,19 +428,10 @@ void FileMenu::showContactRequest()
 	emit showContact();
 }
 
-void FileMenu::setSyncRequest(const QString& path, bool waitForExistence)
+void FileMenu::clearSyncData()
 {
-#ifdef NOT_IGNORING_SYNCHING
-	if (path.isEmpty())
-		return;
-
-	if (checkSyncFileExists(path, waitForExistence))
-	{
-		FileEvent *event = new FileEvent(this, FileEvent::FileSyncData);
-		event->setPath(path);
-
-		dataSetIORequestHandler(event);
-	}
+	_currentDataFile->setCurrentFilePath(QString());
+}
 #endif
 }
 

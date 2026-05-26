@@ -20,10 +20,8 @@ public:
 signals:
 	void syncCurrentFile(FileEvent *event);
 
-#ifdef NOT_IGNORING_SYNCHING
 public slots:
-	void openFile(const QString& path) override;
-#endif
+	void openFile(const QString& path);
 	
 	
 private:

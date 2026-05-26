@@ -154,8 +154,8 @@ public:
 				bool				synchingData()						const	{ return _synchingData;								}
 				std::string			dataFilePath()						const	{ return _dataSet ? _dataSet->dataFilePath() : "";  }
 				bool				dataFileCanHaveLabels()				const;
-				bool				isDatabase()						const	{ return _database != Json::nullValue;				}
-		const	Json::Value		&	databaseJson()						const	{ return _database;								}
+				bool				isDatabase()						const	{ return _dataSet && !_dataSet->databaseJson().empty();				}
+		const	Json::Value		&	databaseJson()						const	{ static Json::Value null; return null; }
 		const	QString			&	analysesHTML()						const	{ return _analysesHTML;							}
 		const	Json::Value		&	analysesData()						const	{ return _analysesData;							}
 		const	std::string		&	warningMessage()					const	{ return _warningMessage;						}
@@ -167,7 +167,7 @@ public:
 				bool				currentJaspFileIsNonSaveable()		const;
 				bool				filePathIsNonSaveable(const QString &path) const;
 				long				dataFileTimestamp()					const	{ return _dataSet ? _dataSet->dataFileTimestamp() : 0;	}
-				bool				isDatabaseSynching()				const	{ return _databaseIntervalSyncher.isActive();	}
+				bool				isDatabaseSynching()			const;
 				bool				filterShouldRunInit()				const	{ return _filterShouldRunInit && isLoaded();					}
 
 
@@ -276,8 +276,6 @@ public:
 				void						setDefaultWorkspaceValues();
 				void						setDefaultWorkspaceEmptyValues();
 
-				void						databaseStartSynching(bool syncImmediately);
-				void						databaseStopSynching();
 				bool						synchingExternally() const;
 				void						checkComputedColumnDependenciesForAnalysis(	Analysis * analysis);
 				stringset					columnsCreatedByAnalysis(					Analysis * analysis);
@@ -396,8 +394,7 @@ private:
 								_manualEdits				= false,
 								_waitingForLanguageChange	= false;
 
-	Json::Value					_analysesData,
-								_database					= Json::nullValue;
+	Json::Value					_analysesData;
 	Version						_archiveVersion,
 								_jaspVersion;
 
@@ -408,8 +405,7 @@ private:
 							*	_filterSubModel,
 							*	_labelsSubModel;
 	
-	QTimer						_databaseIntervalSyncher,
-								_delayedRefreshTimer,
+	QTimer						_delayedRefreshTimer,
 								_doWalCheckPointTimer,
 								_autoSaveTimer;
 	UndoStack				*	_undoStack					= nullptr;

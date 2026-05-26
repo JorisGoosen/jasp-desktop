@@ -93,11 +93,7 @@ private:
 	QString						_runQuery();
 	void						loadFromSettings();
 	void						loadFromDataSetPackage();	 
-#ifdef NOT_IGNORING_SYNCHING
-	bool						useDataSetPackage() {			return mode() == FileEvent::FileSyncData;	}
-#else
 	bool						useDataSetPackage() {			return false;								}
-#endif
 
 
 private:

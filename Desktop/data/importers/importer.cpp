@@ -187,7 +187,7 @@ void Importer::loadDataSet(const std::string &locator, DataSet * dataSet, std::f
 	Log::log() << "Loading '" << locator << "' took " << totalS << "s or " << (totalS / 60) << "m" << std::endl;
 }
 
-void Importer::syncDataSet(const std::string &locator, DataSet * dataSet, std::function<void(int)> progress)
+void Importer::syncDataSet(const std::string &locator, DataSet * dataSet, std::function<void(int)> progress, std::function<bool()> askUserCallback)
 {
 					_synching			= true;
 					_progressCallback	= progress;
@@ -200,7 +200,7 @@ void Importer::syncDataSet(const std::string &locator, DataSet * dataSet, std::f
 		if(!c->isComputed())
 			oldColumns.insert(c);
 	
-	if(! emit DataSetPackage::pkg()->checkDoSync())
+	if(askUserCallback && !askUserCallback())
 		return;
 	
 	stringvec       changedColumns,

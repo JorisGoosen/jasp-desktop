@@ -19,7 +19,7 @@ public:
 	Importer();
 	virtual ~Importer();
 	void loadDataSet(const std::string &locator, DataSet * dataSet, std::function<void (int)> progressCallback);
-	void syncDataSet(const std::string &locator, DataSet * dataSet, std::function<void (int)> progressCallback);
+	void syncDataSet(const std::string &locator, DataSet * dataSet, std::function<void (int)> progressCallback, std::function<bool()> askUserCallback = nullptr);
 	
 	virtual bool importerDeliversLabels() const { return true; } //They all do except csv, so for synchronization to work we want labels to be ignored for csv when synching, this to allow people to enter better labels and not lose them on every sync
 	

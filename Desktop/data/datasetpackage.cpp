@@ -28,6 +28,8 @@
 #include "utilities/messageforwarder.h"
 #include "datasetpackagesubnodemodel.h"
 #include "databaseconnectioninfo.h"
+#include "workspace.h"
+#include "datasetsyncer.h"
 #include "utilities/settings.h"
 #include "modules/ribbonmodel.h"
 #include "filtermodel.h"
@@ -68,7 +70,6 @@ DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 	_filterSubModel = new SubNodeModel("filters",	_dataSet->filtersNode());
 	_labelsSubModel = new SubNodeModel("labels");
 	
-	connect(&_databaseIntervalSyncher,	&QTimer::timeout, this, &DataSetPackage::synchingIntervalPassed);
 	connect(&_delayedRefreshTimer,		&QTimer::timeout, this, &DataSetPackage::delayedRefresh);
 	connect(&_doWalCheckPointTimer,		&QTimer::timeout, this, &DataSetPackage::doWalCheckPoint);
 	connect(&_autoSaveTimer,			&QTimer::timeout, this, &DataSetPackage::handleAutoSave);
@@ -86,7 +87,6 @@ DataSetPackage::DataSetPackage(QObject * parent) : QAbstractItemModel(parent)
 
 DataSetPackage::~DataSetPackage() 
 { 
-	_databaseIntervalSyncher.stop();
 	_delayedRefreshTimer.stop();
 	
 	_singleton = nullptr; 
@@ -141,7 +141,6 @@ bool DataSetPackage::dataSetBaseNodeStillExists(DataSetBaseNode *node) const
 void DataSetPackage::reset(bool newDataSet)
 {
 	Log::log() << "DataSetPackage::reset()" << std::endl;
-	_databaseIntervalSyncher.stop();
 	_delayedRefreshTimer.stop();
 	
 	beginLoadingData();
@@ -157,7 +156,6 @@ void DataSetPackage::reset(bool newDataSet)
 	_hasAnalysesWithoutData		= false;
 	_filterShouldRunInit		= false;
 	_analysesHTMLReady			= false;
-	_database					= Json::nullValue;
 	_isJaspFile					= false;
 	_dataMode					= false;
 	_manualEdits				= false;
@@ -2370,54 +2368,18 @@ boolvec DataSetPackage::filterVector()
 	return out;
 }
 
-void DataSetPackage::databaseStopSynching()
-{
-	_databaseIntervalSyncher.stop();	
-}
-
-void DataSetPackage::databaseStartSynching(bool syncImmediately)
-{
-	if(_database == Json::nullValue)
-		throw std::runtime_error("Cannot start synching with a database if we arent connected to a database...");
-	
-	_databaseIntervalSyncher.stop(); //Is this even necessary? Probaly not but lets do it just in case
-
-	DatabaseConnectionInfo dbCI(_database);
-	
-	if(dbCI._interval > 0)
-	{
-		if(dbCI._hadPassword && !dbCI._rememberMe && dbCI._password == "")
-		{
-			bool tryAgain = true, couldConnect;
-
-			while(tryAgain)
-			{
-				dbCI._password	= MessageForwarder::askPassword(tr("Database Password"), dbCI._username != "" ? tr("The databaseconnection needs a password for user '%1'").arg(dbCI._username) : tr("The databaseconnection needs a password"));
-				tryAgain		= dbCI.connect() ? false : MessageForwarder::showYesNo(tr("Connection failed"), tr("Could not connect to database because of '%1', want to try a different password?").arg(dbCI.lastError()));
-			}
-
-			if(!dbCI.connected())
-			{
-				MessageForwarder::showWarning(tr("Could not connect to the database so synchronizing will be disabled."));
-				return;
-			}
-			else
-				_database = dbCI.toJson();
-		}
-	
-		_databaseIntervalSyncher.setInterval(1000 * 60 * dbCI._interval);
-		_databaseIntervalSyncher.start();
-		
-		if(syncImmediately)
-			emit synchingIntervalPassed();
-
-		emit synchingExternallyChanged(synchingExternally());
-	}
-}
-
 bool DataSetPackage::synchingExternally() const
 {
-	return _dataSet && _dataSet->dataFileSynch() && (!_dataSet->dataFilePath().empty() || (_database != Json::nullValue && _databaseIntervalSyncher.isActive()));
+	return _dataSet && _dataSet->dataFileSynch() && !_dataSet->dataFilePath().empty();
+}
+
+bool DataSetPackage::isDatabaseSynching() const
+{
+	Workspace * ws = Workspace::singleton();
+	if(!ws || !_dataSet)
+		return false;
+	DataSetSyncer * syncer = ws->syncerForDataSet(_dataSet);
+	return syncer && syncer->isDatabaseSyncing();
 }
 
 void DataSetPackage::setSynchingExternallyFriendly(bool synchingExternally)
@@ -2576,10 +2538,10 @@ void DataSetPackage::setDataFilePath(std::string filePath, long timestamp)
 
 void DataSetPackage::setDatabaseJson(const Json::Value &dbInfo)		
 {
-	_database						= dbInfo;			
 	Log::log() << "DataSetPackage::setDatabaseJson got:" << dbInfo << std::endl;
 
-	_dataSet->setDatabaseJson(_database.toStyledString());
+	if(_dataSet)
+		_dataSet->setDatabaseJson(dbInfo.toStyledString());
 }
 
 // This function can be called from a different thread then where the underlying value for isReady() is set, but I don't think a mutex or whatever is necessary here. What could go wrong with checking a boolean?

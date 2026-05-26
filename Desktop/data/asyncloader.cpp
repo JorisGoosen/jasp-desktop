@@ -238,19 +238,7 @@ void AsyncLoader::loadPackage(QString id)
 
 			DataSetPackage * pkg = DataSetPackage::pkg();
 
-
-#ifdef NOT_IGNORING_SYNCHING
-			if (_currentEvent->operation() == FileEvent::FileSyncData)
-				_loader.syncPackage(path, extension, boost::bind(&AsyncLoader::progressHandler, this, _1));
-			else
-#endif
-				_loader.loadPackage(path, extension, boost::bind(&AsyncLoader::progressHandler, this, _1));
-
-			
-#ifdef NOT_IGNORING_SYNCHING
-			if(_currentEvent->operation() != FileEvent::FileSyncData && _currentEvent->type() != Utils::FileType::jasp && !_currentEvent->isReadOnly())
-				pkg->setSynchingExternally(true);
-#endif
+			_loader.loadPackage(path, extension, boost::bind(&AsyncLoader::progressHandler, this, _1));
 
 			QString calcMD5 = fileChecksum(tq(path), QCryptographicHash::Md5);
 

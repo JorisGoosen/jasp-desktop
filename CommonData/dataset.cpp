@@ -245,6 +245,15 @@ Column * DataSet::newColumn(const std::string &name)
 	return col;
 }
 
+Column * DataSet::createComputedColumn(const std::string & name, columnType type, computedColumnType desiredType, int analysisId)
+{
+	Column * col = newColumn(name);
+	col->setColumnType(type);
+	col->setComputedColumnType(desiredType);
+
+	return col;
+}
+
 size_t DataSet::getMaximumColumnWidthInCharacters(size_t columnIndex) const
 {
 	if(columnIndex >= columnCount())
@@ -683,6 +692,13 @@ void DataSet::setDescription(const std::string &desc)
 	dbUpdate();
 }
 
+void DataSet::refresh(bool doDataChanged)
+{
+	Q_UNUSED(doDataChanged)
+	beginResetModel();
+	endResetModel();
+}
+
 DatabaseInterface &DataSet::db()	
 { 
 	return *DatabaseInterface::singleton(); 
@@ -691,6 +707,27 @@ DatabaseInterface &DataSet::db()
 const DatabaseInterface &DataSet::db() const
 { 
 	return *DatabaseInterface::singleton(); 
+}
+
+Workspace * DataSet::workspace() const
+{
+	return dynamic_cast<Workspace*>(QObject::parent());
+}
+
+void DataSet::resetFilterCounters()
+{
+	for(Column * col : _columns)
+		if(col) col->resetFilterCounter();
+}
+
+void DataSet::runComputedColumn(const std::string &, const std::string &, columnType)
+{
+}
+
+void DataSet::resetAllFilters()
+{
+	for(Column * col : _columns)
+		col->resetFilterAllows();
 }
 
 stringset DataSet::findUsedColumnNames(std::string searchThis)

@@ -21,7 +21,6 @@
 #define FILEMENU_H
 
 #include <QObject>
-#include <QFileSystemWatcher>
 #include <QVector>
 
 #include "widgets/filemenu/recentfiles.h"
@@ -123,9 +122,7 @@ public slots:
 	void analysisAdded(Analysis *analysis);
 	void workspaceModified();
 	void setSyncFile(FileEvent *event);
-	void dataAutoSynchronizationChanged(bool on) { setDataFileWatcher(on); }
 	void dataSetIOCompleted(FileEvent *event);
-	void dataFileModifiedHandler(QString path);
 	void setFileoperation(const ActionButtons::FileOperation fo);
 	void actionButtonClicked(const ActionButtons::FileOperation action);
 	void setVisible(bool visible);
@@ -144,10 +141,6 @@ private slots:
 			void dataSetIORequestHandler(FileEvent *event);
 
 private:
-			bool checkSyncFileExists(const QString &path, bool waitForExistence = false);
-			void clearSyncData();
-			void setSyncRequest(const QString& path, bool waitForExistence = false);
-
 	static	bool clearOSFFromRecentList(QString path);
 
 private:

@@ -7,7 +7,8 @@ Workspace * Workspace::_singleton = nullptr;
 
 Workspace::Workspace(QObject *parent)
 	: DataSetBaseNode{dataSetBaseNodeType::workspace, parent},
-	  _varInfo(new VariableInfo(nullptr, this))
+	  _varInfo(new VariableInfo(nullptr, this)),
+	  _syncWorker(new SyncWorker(this))
 {
 	assert(!_singleton);
 	_singleton = this;
@@ -19,6 +20,10 @@ Workspace::Workspace(QObject *parent)
 Workspace::~Workspace()
 {
 	assert(_singleton == this);
+	
+	for(auto & idSync : _dataSetSyncers)
+		delete idSync.second;
+	_dataSetSyncers.clear();
 	
 	for(auto & idData : _dataSets)
 		unregisterNode(idData.second);
@@ -87,7 +92,7 @@ void Workspace::dbLoad(std::function<void(float)> progressCallback, Version doUp
 	
 	int		numLoaded = 0;
 	
-	for(int id : dataSets)
+for(int id : dataSets)
 	{
 		auto progressCallbackPerData = [&](float p)
 		{
@@ -97,9 +102,9 @@ void Workspace::dbLoad(std::function<void(float)> progressCallback, Version doUp
 			progressCallback((numLoaded * i) + (p * i));	
 		};
 		
-		
 		_dataSets[id] = new DataSet(this, 0);
 		_dataSets[id]->dbLoad(id, progressCallbackPerData, doUpgradeFrom);
+		startSyncForDataSet(id);
 		numLoaded++;
 		
 		if(!_shownDataSet)
@@ -143,6 +148,7 @@ bool Workspace::checkForUpdates()
 		else
 		{
 			_dataSets[id] = new DataSet(this, id);
+			startSyncForDataSet(id);
 			aChange = true;
 			
 			if(!_shownDataSet)
@@ -205,6 +211,8 @@ void Workspace::deleteShownDataSet()
 {
 	if(!_shownDataSet)
 		return;
+	
+	stopSyncForDataSet(_shownDataSet);
 	
 	_dataSets.erase(_shownDataSet->id());
 	_shownDataSet->dbDelete();
@@ -316,8 +324,9 @@ DataSet * Workspace::createDataSet()
 		setShownDataSet(newSet);
 	
 	_dataSets[newSet->id()] = newSet;
+	startSyncForDataSet(newSet);
 	
-	emit filtersCountChanged(); //Triggers filterDropDownListChanged in filtermodel
+	emit filtersCountChanged();
 	
 	return newSet;
 }
@@ -325,7 +334,12 @@ DataSet * Workspace::createDataSet()
 Column *Workspace::createComputedColumn(const std::string &name, int dataSetId, int analysisId, columnType type, computedColumnType desiredType)
 {
 	if(_dataSets.count(dataSetId))
-		return _dataSets.at(dataSetId)->createComputedColumn(name, type, desiredType, analysisId);
+	{
+		Column * col = _dataSets.at(dataSetId)->newColumn(name);
+		col->setType(type);
+		col->setCodeType(desiredType);
+		return col;
+	}
 	
 	return nullptr;
 }
@@ -365,4 +379,134 @@ void Workspace::updateComputedColumnDependenciesForAnalysis(int analysisId, cons
 		for(Column * col : dataSet->columns())
 			if(col->isComputedByAnalysis(analysisId))
 				col->setDependsOn(usedVariables);
+}
+
+DataSetSyncer * Workspace::syncerForDataSet(int dataSetId) const
+{
+	auto it = _dataSetSyncers.find(dataSetId);
+	return it != _dataSetSyncers.end() ? it->second : nullptr;
+}
+
+DataSetSyncer * Workspace::syncerForDataSet(DataSet * dataSet) const
+{
+	if(!dataSet)
+		return nullptr;
+	return syncerForDataSet(dataSet->id());
+}
+
+void Workspace::startSyncForDataSet(int dataSetId)
+{
+	DataSet * dataSet = dataSetById(dataSetId);
+	if(!dataSet)
+		return;
+	startSyncForDataSet(dataSet);
+}
+
+void Workspace::startSyncForDataSet(DataSet * dataSet)
+{
+	if(!dataSet)
+		return;
+
+	int id = dataSet->id();
+	if(_dataSetSyncers.count(id))
+	{
+		delete _dataSetSyncers[id];
+		_dataSetSyncers.erase(id);
+	}
+
+	DataSetSyncer * syncer = new DataSetSyncer(dataSet, this);
+	_dataSetSyncers[id] = syncer;
+
+	connect(syncer, &DataSetSyncer::syncingStarted,	this, &Workspace::handleSyncingStarted);
+
+	if(dataSet->dataFileSynch() && !dataSet->dataFilePath().empty())
+	{
+		QString path = tq(dataSet->dataFilePath());
+		syncer->startFileSyncing(path);
+	}
+
+	std::string dbJsonStr = dataSet->databaseJson();
+	if(!dbJsonStr.empty())
+	{
+		Json::Value dbJson;
+		Json::Reader reader;
+		if(reader.parse(dbJsonStr, dbJson) && dbJson != Json::nullValue)
+			syncer->startDatabaseSyncing(dbJson, false);
+	}
+}
+
+void Workspace::stopSyncForDataSet(int dataSetId)
+{
+	auto it = _dataSetSyncers.find(dataSetId);
+	if(it != _dataSetSyncers.end())
+	{
+		delete it->second;
+		_dataSetSyncers.erase(it);
+	}
+}
+
+void Workspace::stopSyncForDataSet(DataSet * dataSet)
+{
+	if(!dataSet)
+		return;
+	stopSyncForDataSet(dataSet->id());
+}
+
+void Workspace::syncDataSetNow(int dataSetId)
+{
+	DataSetSyncer * syncer = syncerForDataSet(dataSetId);
+	if(syncer)
+		syncer->syncNow();
+}
+
+void Workspace::syncDataSetNow(DataSet * dataSet)
+{
+	if(!dataSet)
+		return;
+	syncDataSetNow(dataSet->id());
+}
+
+void Workspace::handleSyncingStarted(int dataSetId)
+{
+	DataSet * dataSet = dataSetById(dataSetId);
+	if(!dataSet)
+		return;
+
+	emit dataSetSynchingStart(dataSet);
+
+	SyncRequest request;
+	request.dataSetId = dataSetId;
+
+	DataSetSyncer * syncer = syncerForDataSet(dataSetId);
+	if(!syncer)
+	{
+		emit dataSetSynchingDone(dataSet);
+		return;
+	}
+
+	if(syncer->isDatabaseSyncing())
+	{
+		request.locator = dataSet->databaseJson();
+		request.extension = "DATABASE";
+	}
+	else if(!dataSet->dataFilePath().empty())
+	{
+		request.locator = dataSet->dataFilePath();
+		QFileInfo fi(tq(request.locator));
+		request.extension = fq(fi.suffix());
+
+		if(request.extension == "jasp")
+		{
+			emit dataSetSynchingDone(dataSet);
+			return;
+		}
+	}
+	else
+	{
+		emit dataSetSynchingDone(dataSet);
+		return;
+	}
+
+	emit syncRequested(request);
+	emit dataSetSynchingDone(dataSet);
 }

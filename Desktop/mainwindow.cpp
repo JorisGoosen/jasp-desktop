@@ -1347,17 +1347,6 @@ void MainWindow::dataSetIORequestHandler(FileEvent *event)
 		_loader->io(event);
 		showProgress();
 	}
-#ifdef NOT_IGNORING_SYNCHING
-	else if (event->operation() == FileEvent::FileSyncData)
-	{
-		if (!_package->hasDataSet())
-			return;
-
-		connectFileEventCompleted(event);
-		_loader->io(event);
-		showProgress();
-	}
-#endif
 	else if (event->operation() == FileEvent::FileClose)
 	{
 		connectFileEventCompleted(event);
@@ -1465,12 +1454,7 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 						_package->dataSet()->setDataFile("");
 					}
 				}
-				
-				//if(_package->dataSet()->databaseJson() != Json::nullValue)
-				//	_package->databaseStartSynching(true);
-			}
-			//else if(event->isDatabase()) //Not a jasp file, but a direct load from a database, make sure it starts synching if the user wants it to:
-			//	_package->databaseStartSynching(false);
+				}
 
 			if (resultXmlCompare::compareResults::theOne()->testMode())
 			{				

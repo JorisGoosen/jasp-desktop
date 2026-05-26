@@ -317,14 +317,42 @@ int DatabaseInterface::filterGetId(	int dataSetId)
 int DatabaseInterface::filterGetId(const std::string &name)
 {
 	JASPTIMER_SCOPE(DatabaseInterface::filterGetId);
-	int filterId = -1;
+	int result = -1;
 
-	runStatements("SELECT id FROM Filters WHERE name = ?",
-		[&](sqlite3_stmt *stmt)				{ sqlite3_bind_text(stmt, 1, name.c_str(), name.length(), SQLITE_TRANSIENT);	},
-		[&](size_t row, sqlite3_stmt *stmt)	{ filterId = sqlite3_column_int(stmt, 0);										}
-		);
+	std::function<void(sqlite3_stmt *stmt)> prepare = [&](sqlite3_stmt *stmt)
+	{
+		sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_TRANSIENT);
+	};
 
-	return filterId;
+	std::function<void(size_t row, sqlite3_stmt *stmt)> processRow = [&](size_t row, sqlite3_stmt *stmt)
+	{
+		result = sqlite3_column_int(stmt, 0);
+	};
+
+	runStatements("SELECT id FROM Filters WHERE name = ?;", prepare, processRow);
+
+	return result;
+}
+
+int DatabaseInterface::filterGetId(int dataSetId, const std::string & name)
+{
+	JASPTIMER_SCOPE(DatabaseInterface::filterGetId);
+	int result = -1;
+
+	std::function<void(sqlite3_stmt *stmt)> prepare = [&](sqlite3_stmt *stmt)
+	{
+		sqlite3_bind_int(stmt, 1, dataSetId);
+		sqlite3_bind_text(stmt, 2, name.c_str(), -1, SQLITE_TRANSIENT);
+	};
+
+	std::function<void(size_t row, sqlite3_stmt *stmt)> processRow = [&](size_t row, sqlite3_stmt *stmt)
+	{
+		result = sqlite3_column_int(stmt, 0);
+	};
+
+	runStatements("SELECT id FROM Filters WHERE dataSet = ? AND name = ?;", prepare, processRow);
+
+	return result;
 }
 
 int DatabaseInterface::filterGetDataSetId(int filterIndex)

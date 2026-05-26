@@ -3392,7 +3392,7 @@ void Column::tryAndRunComputedColumn()
 		return;
 
 	if(areLoopDependenciesOk(code))
-		data()->runComputedColumn(nameQ(), tq(code), type());
+		data()->runComputedColumn(fq(nameQ()), fq(tq(code)), type());
 }
 
 void Column::showAnalysisForm()

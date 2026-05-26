@@ -39,6 +39,6 @@ DECLARE_ENUM(
 	previewNominal
 );
 
-DECLARE_ENUM(dataSetBaseNodeType,	unknown, dataSet, filter, column, label, workspace);
+DECLARE_ENUM(dataSetBaseNodeType,	unknown, dataSet, filter, column, label, workspace, data, filters);
 
 #endif // DATASETPACKAGEENUMS_H

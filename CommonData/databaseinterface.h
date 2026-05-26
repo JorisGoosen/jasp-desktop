@@ -126,6 +126,7 @@ public:
 	std::string filterTableName(		int filterIndex) const;
 	int			filterGetId(			int dataSetId);
 	int			filterGetId(			const std::string & name);
+	int			filterGetId(			int dataSetId, const std::string & name);
 	bool		filterSelect(			int filterIndex,			boolvec & bools);																	///< Loads result and errorMsg and returns whether there was a change in either of those.
 	void		filterWrite(			int filterIndex,	const	boolvec & values);																	///< Overwrites the current filter values, no checks are done on the size. If too few the rest is TRUE nd superfluous bools are ignored.
 	int			filterInsert(			int dataSetId,		const std::string & rFilter = "", const std::string & generatedFilter = "", const std::string & constructorJson = "", const std::string & constructorR = "", const std::string & name = "");		///< Inserts a new Filter row into Filters and creates an empty FilterValues_#id. It returns id

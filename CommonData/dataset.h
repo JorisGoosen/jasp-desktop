@@ -24,8 +24,14 @@
 #include "emptyvalues.h"
 #include "version.h"
 
+class DataSet;
+class Workspace;
+
+	using DataSets = std::vector<DataSet*>;
+
 class DataSet : public DataSetBaseNode
 {
+	Q_OBJECT
 public:
 	typedef 	std::map<std::string,columnType> colTypeMap;
 	
@@ -68,7 +74,19 @@ public:
 			void			removeColumnById(		size_t			id		);
 			void			insertColumn(			size_t			index,	bool alterDataSetTable = true);
 			Column		*	newColumn(		const	std::string &	name);
+			Column		*	createComputedColumn(const std::string & name, columnType type, computedColumnType desiredType, int analysisId = -1);
 			int				getColumnIndex(	const	std::string &	name	) const;
+			void			resetFilterCounters();
+			void			runComputedColumn(const std::string & name, const std::string & code, columnType type);
+			void			resetAllFilters();
+			bool			synchingData() const { return false; }
+			bool			dataFileCanHaveLabels() const { return false; }
+			int				columnsLabelFilteredCount() const { return 0; }
+			void			columnRefreshed(Column *) {}
+			static QVariant	getDataSetViewLines(bool, bool, bool, bool) { return QVariant(); }
+			bool			isColumnNameFree(const std::string &) { return true; }
+
+			const Columns	&	columnsRef() const { return _columns; }
 			int				columnIndex(	const	Column		*	col		) const;
 			void			columnsReorder(			stringvec		order	); ///< Expects a sane order vector, with or without computed columns
 
@@ -91,13 +109,16 @@ public:
 			void			incRevision() override;
 			bool			checkForUpdates(stringvec * colsChanged = nullptr, stringvec * colsRemoved = nullptr, bool * newColumns = nullptr, bool * rowCountChanged = nullptr);
 
-			const Columns &	computedColumns() const;
+	const	Columns			&	computedColumns() const;
+			
+			void			refresh(bool doDataChanged = true);
 			
 			void			loadOldComputedColumnsJson(const Json::Value & json); ///< Should act the same as the old ComputedColumns::fromJson() to allow loading "older jaspfiles"
 			stringset		findUsedColumnNames(std::string searchThis);
 
 			DatabaseInterface	 &	db();
 	const	DatabaseInterface	 &	db() const;
+			Workspace			 *	workspace() const;
 	
 			DataSetBaseNode		 *	dataNode()		const { return _dataNode; }
 			DataSetBaseNode		 *	filtersNode()	const { return _filtersNode; }

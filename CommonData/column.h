@@ -75,6 +75,7 @@ public:
 			void					dbUpdateComputedColumnStuff();
 			void					dbUpdateValues();
 			void					dbDelete(bool cleanUpRest = true);
+			void					resetFilterCounter();
 			
 			int						rowCount(		const QModelIndex &parent = QModelIndex())										const	override;
 			int						columnCount(	const QModelIndex &parent = QModelIndex())										const	override;

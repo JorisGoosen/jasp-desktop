@@ -13,6 +13,16 @@ qt_add_executable(
 )
 
 qt_add_executable(
+  JASPTestSync
+  ${SYSTEM_TYPE}
+  testsync.h
+  testsync.cpp
+  $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
+  $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
+  testinfo.h
+)
+
+qt_add_executable(
   JASPTestDebugData
   ${SYSTEM_TYPE}
   $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
@@ -52,6 +62,7 @@ add_dependencies(JASPTestDebugData  JASPDesktopLib)
 add_dependencies(JASPTestEngine     JASPDesktopLib)
 add_dependencies(JASPQuickTest      JASPDesktopLib)
 add_dependencies(JASPTestCsvPrev    JASPDesktopLib)
+add_dependencies(JASPTestSync       JASPDesktopLib)
 
 target_include_directories(
   JASPTest
@@ -82,6 +93,12 @@ target_include_directories(
 
 target_include_directories(
   JASPTestCsvPrev
+  PUBLIC
+  JASPDesktopLib
+)
+
+target_include_directories(
+  JASPTestSync
   PUBLIC
   JASPDesktopLib
 )
@@ -135,6 +152,16 @@ target_link_libraries(
   Qt::Test
 )
 
+target_link_libraries(
+  JASPTestSync
+  PUBLIC
+  JASPDesktopLib
+  Qt::Test
+
+  PRIVATE
+  Qt6::Core
+)
+
 target_compile_definitions(
   JASPTest
   PUBLIC TESTLIBRARY_DIR=${CMAKE_SOURCE_DIR}/Tests/TestLibrary
@@ -171,6 +198,7 @@ add_test(NAME testCsvPreview  COMMAND JASPTestCsvPrev)
 add_test(NAME testDebugData   COMMAND JASPTestDebugData)
 add_test(NAME testEngine      COMMAND JASPTestEngine)
 add_test(NAME testQuick       COMMAND JASPQuickTest)
+add_test(NAME testSync        COMMAND JASPTestSync)
 
 
 

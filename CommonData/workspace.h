@@ -5,6 +5,8 @@
 #include "dataset.h"
 #include "datasetbasenode.h"
 #include "databaseinterface.h"
+#include "datasetsyncer.h"
+#include "syncworker.h"
 
 class Workspace : public DataSetBaseNode
 {
@@ -57,6 +59,15 @@ public:
 			void					initializeComputedColumns();
 	static	Workspace			*	singleton() { return _singleton; }
 	
+			DataSetSyncer		*	syncerForDataSet(int dataSetId) const;
+			DataSetSyncer		*	syncerForDataSet(DataSet * dataSet) const;
+			void					startSyncForDataSet(int dataSetId);
+			void					startSyncForDataSet(DataSet * dataSet);
+			void					stopSyncForDataSet(int dataSetId);
+			void					stopSyncForDataSet(DataSet * dataSet);
+			void					syncDataSetNow(int dataSetId);
+			void					syncDataSetNow(DataSet * dataSet);
+	
 	
 public slots:
 			void					refresh();
@@ -72,57 +83,63 @@ public slots:
 			void					updateComputedColumnDependenciesForAnalysis(int analysisId, const stringset & usedVariables);
 			
 signals:
-			void					filterByNameDone(int dataSetID, const QString & name, const QString & error);
-			void					dataModeChanged(bool dataMode);
-			void					showRSyntaxChanged(bool showIt);
-			void					shownDataSetChanged(DataSet * dataSet);
-			void					shownFilterChanged();
-			void					manualEditMade(); 
-			void					datasetChanged(				int						dataSetId,
+			void				filterByNameDone(int dataSetID, const QString & name, const QString & error);
+			void				dataModeChanged(bool dataMode);
+			void				showRSyntaxChanged(bool showIt);
+			void				shownDataSetChanged(DataSet * dataSet);
+			void				shownFilterChanged();
+			void				manualEditMade(); 
+			void				datasetChanged(				int						dataSetId,
 																QStringList				changedColumns,
 																QStringList				missingColumns,
 																QMap<QString, QString>	changeNameColumns,
 																bool					rowCountChanged,
 																bool					hasNewColumns); 
-			void					labelsReordered(			QString columnName);
-			void					labelFilterChanged();
-			QString					askPassword(	QString title, QString message);
-			bool					showYesNo(		QString title, QString message);
-			void					allFiltersReset();
-			void					showWarning(						QString title, QString msg);
-			void					descriptionChanged();
-			void					dataFileChanged();
-			void					databaseJsonChanged();
-			void					dataFileSynchChanged();
-			void					dataTimestampChanged();
-			void					columnsLabelFilteredCountChanged();
-			void					refreshAllAnalyses(Filter * f);
-			void					runComputedColumn(int dataSetid, QString columnName, QString code, enum columnType columnType);
-			void					sendFilter(			int dataSetID, const QString & generatedFilter, const QString & filter);
-			void					sendFilterByName(	int dataSetID, const QString & name, const QString & module = "*");
-			void					filtersCountChanged();
-			void					enginesPrepareForData();
-			void					enginesReceiveNewData();
-			void					enableModified();
-			void					dataSetSynchingStart(DataSet *);
-			void					dataSetSynchingDone(DataSet * );
-			void					synchingStart();
-			void					synchingDone();
-			void					shownColumnChanged();
-			void					checkForDependentAnalyses(Column * column);
-			void					showAnalysis(			int			analysisId);
-			void					emptyValuesChanged();
+			void				labelsReordered(			QString columnName);
+			void				labelFilterChanged();
+			QString				askPassword(	QString title, QString message);
+			bool				showYesNo(		QString title, QString message);
+			void				allFiltersReset();
+			void				showWarning(						QString title, QString msg);
+			void				descriptionChanged();
+			void				dataFileChanged();
+			void				databaseJsonChanged();
+			void				dataFileSynchChanged();
+			void				dataTimestampChanged();
+			void				columnsLabelFilteredCountChanged();
+			void				refreshAllAnalyses(Filter * f);
+			void				runComputedColumn(int dataSetid, QString columnName, QString code, enum columnType columnType);
+			void				sendFilter(			int dataSetID, const QString & generatedFilter, const QString & filter);
+			void				sendFilterByName(	int dataSetID, const QString & name, const QString & module = "*");
+			void				filtersCountChanged();
+			void				enginesPrepareForData();
+			void				enginesReceiveNewData();
+			void				enableModified();
+			void				dataSetSynchingStart(DataSet *);
+			void				dataSetSynchingDone(DataSet * );
+			void				synchingStart();
+			void				synchingDone();
+			void				shownColumnChanged();
+			void				checkForDependentAnalyses(Column * column);
+			void				showAnalysis(			int			analysisId);
+			void				emptyValuesChanged();
+			void				syncRequested(const SyncRequest & request);
 			
 	
 			
 private:
 	std::map<int,DataSet*>			_dataSets;
+	std::map<int,DataSetSyncer*>	_dataSetSyncers;
 	DataSet						*	_shownDataSet			= nullptr;
 	VariableInfo				*	_varInfo				= nullptr;
 	bool							_showRSyntax			= false,
 									_dataMode				= false;
 	QTimer							_syncher;
+	SyncWorker					*	_syncWorker				= nullptr;
 	static Workspace			*	_singleton;
+
+private slots:
+	void							handleSyncingStarted(int dataSetId);
 	
 };
 
