@@ -61,7 +61,7 @@ public:
 	static Analysis::Status analysisResultsStatusToAnalysisStatus(analysisResultStatus result);
 
 						Analysis(size_t id, Analysis * duplicateMe);
-						Analysis(size_t id, Modules::AnalysisEntry * analysisEntry, const std::string & title, const Version & optionsVersion, const Json::Value & options);
+						Analysis(size_t id, Modules::AnalysisEntry * analysisEntry, const std::string & title, const Version & optionsVersion, const Json::Value & options, int dataSetId = -1);
 
 	virtual				~Analysis();
 

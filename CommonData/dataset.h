@@ -151,7 +151,10 @@ private:
 								_databaseJson;
 	
 	bool						_dataFileSynch			= false,
-								_showRSyntax			= false;
+								_showRSyntax			= false,
+								_isComputed				= false;
+	std::string					_computeCode,
+								_dependsOn;
 	char						_csvDelimiter			= '\0';
 	static stringset			_defaultEmptyvalues;	// Default empty values if workspace do not have its own empty values (used for backward compatibility)
 	std::string					_description;

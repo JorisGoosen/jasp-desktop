@@ -40,9 +40,10 @@
 #include <QAccessible>
 #include <QScopeGuard>
 
-Analysis::Analysis(size_t id, Modules::AnalysisEntry * analysisEntry, const std::string & title, const Version & optionsVersion, const Json::Value & options) 
+Analysis::Analysis(size_t id, Modules::AnalysisEntry * analysisEntry, const std::string & title, const Version & optionsVersion, const Json::Value & options, int dataSetId) 
 	: AnalysisBase(		Analyses::analyses())
 	, _id(				id)
+	, _dataSetId(		dataSetId >= 0 ? dataSetId : (DataSetPackage::pkg()->dataSet() ? DataSetPackage::pkg()->dataSet()->id() : -1))
 	, _name(				analysisEntry->function())
 	, _qml(				analysisEntry->qml().empty() ? _name : analysisEntry->qml())
 	, _titleDefault(		analysisEntry->title())
@@ -74,6 +75,7 @@ Analysis::Analysis(size_t id, Analysis * duplicateMe)
 	, _imgOptions(						duplicateMe->_imgOptions						)
 	, _progress(						duplicateMe->_progress							)
 	, _id(								id												)
+	, _dataSetId(						duplicateMe->_dataSetId							)
 	, _name(							duplicateMe->_name								)
 	, _qml(								duplicateMe->_qml								)
 	, _titleDefault(					duplicateMe->_titleDefault						)
@@ -505,6 +507,7 @@ Json::Value Analysis::asJSON(bool withRSource) const
 	analysisAsJson["title"]			= _title;
 	analysisAsJson["titleDef"]		= _titleDefault;
 	analysisAsJson["filter"]		= fq(filterName());
+	analysisAsJson["dataSetId"]		= _dataSetId;
 	analysisAsJson["rfile"]			= _rfile;
 	analysisAsJson["hasReport"]		= _hasReport;
 	analysisAsJson["progress"]		= _progress;
@@ -699,6 +702,7 @@ Json::Value Analysis::createAnalysisRequestJson()
 		json["name"]			= name();
 		json["title"]			= title();
 		json["filter"]			= fq(filterName());
+		json["dataSetId"]		= dataSetId();
 		json["dataSetId"]		= _filter ? _filter->data()->id() : -1;
 
 		if (perform == performType::saveImg || perform == performType::editImg)	

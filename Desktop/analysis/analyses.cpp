@@ -104,7 +104,8 @@ Analysis* Analyses::create(Modules::AnalysisEntry * analysisEntry, const Json::V
 
 Analysis* Analyses::create(const Json::Value & analysisData, Modules::AnalysisEntry * analysisEntry, size_t id, Analysis::Status status, bool notifyAll, const std::string & title, const Version & optionsVersion, const Json::Value & options, std::string filterName)
 {
-	Analysis *analysis = new Analysis(id, analysisEntry, title, optionsVersion, options);
+	int dataSetId = analysisData.isObject() && analysisData.isMember("dataSetId") ? analysisData["dataSetId"].asInt() : -1;
+	Analysis *analysis = new Analysis(id, analysisEntry, title, optionsVersion, options, dataSetId);
 
 	analysis->checkDefaultTitleFromJASPFile(analysisData);
 	

@@ -118,6 +118,18 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 			runStatements("ALTER TABLE DataSets ADD COLUMN csvDelimiter INT DEFAULT 0;");
 	}
 
+	if(originalVersion < "0.99.0")
+	{
+		if(!tableHasColumn("DataSets", "isComputed"))
+			runStatements("ALTER TABLE DataSets ADD COLUMN isComputed INT DEFAULT 0;");
+
+		if(!tableHasColumn("DataSets", "computeCode"))
+			runStatements("ALTER TABLE DataSets ADD COLUMN computeCode TEXT;");
+
+		if(!tableHasColumn("DataSets", "dependsOn"))
+			runStatements("ALTER TABLE DataSets ADD COLUMN dependsOn TEXT;");
+	}
+
 
 	transactionWriteEnd();
 }
