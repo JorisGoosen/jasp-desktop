@@ -257,7 +257,7 @@ TextInputBase
 		property bool showEyeInside: false
 
 		QTC.ToolTip.text		: control.text
-		QTC.ToolTip.visible		: tooLongText && (hovered || control.activeFocus) && control.echoMode != QTC.TextInput.Password
+		QTC.ToolTip.visible		: tooLongText && (hovered || control.activeFocus) && control.echoMode != TextInput.Password
 
 		//QTC.ToolTip.text		: control.text
 		//QTC.ToolTip.visible		: contentWidth > width - leftPadding - rightPadding && (hovered || control.activeFocus)

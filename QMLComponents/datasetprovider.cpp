@@ -89,6 +89,8 @@ QVariant DataSetProvider::data(const QModelIndex & index, int role) const
 
 void DataSetProvider::loadDataSet(const std::map<std::string, stringvec > & dataSetStrings, int threshold, bool orderLabelsByValue)
 {
+	if (!dataSet())
+		_workspace->createDataSet();
 
 	dataSet()->beginBatchedToDB();
 
