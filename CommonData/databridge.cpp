@@ -21,6 +21,7 @@
 #include "columnencoder.h"
 #include "rbridge.h"
 #include "timers.h"
+#include "workspace.h"
 
 DataBridge::DataBridge(unsigned long sessionID, bool useMemory)
 {
@@ -106,6 +107,32 @@ DataSet * DataBridge::provideAndUpdateDataSet()
 		_datasetProvidedCallback();
 
 	JASPTIMER_STOP(DataBridge::provideAndUpdateDataSet());
+
+	return _dataSet;
+}
+
+DataSet * DataBridge::provideAndUpdateDataSet(int dataSetId)
+{
+	if(_dataSet && _dataSet->id() != dataSetId)
+	{
+		delete _dataSet;
+		_dataSet = nullptr;
+	}
+
+	if(!_dataSet && dataSetId > 0)
+	{
+		Workspace * ws = Workspace::singleton();
+		if(ws)
+			_dataSet = ws->dataSetById(dataSetId);
+		if(!_dataSet)
+			_dataSet = new DataSet(dataSetId);
+	}
+
+	if(_dataSet)
+		_dataSet->checkForUpdates();
+
+	if(_dataSet && _datasetProvidedCallback)
+		_datasetProvidedCallback();
 
 	return _dataSet;
 }

@@ -31,6 +31,7 @@
 #include "data/jaspencrypt.h"
 #include "utilities/desktopcommunicator.h"
 #include "data/asyncloader.h"
+#include "workspace.h"
 
 const Version JASPImporter::minJaspVersion = Version("0.18.0");
 
@@ -135,7 +136,7 @@ void JASPImporter::loadDataArchive(const std::string &path, std::function<void(i
 	//ArchiveReader(path, DatabaseInterface::singleton()->dbFile(true)+"-shm").writeEntryToTempFiles([&](float p){ progressCallback(2.333 * p); });
     ArchiveReader(path, DatabaseInterface::singleton()->dbFile(true)).writeEntryToTempFiles([&](float p){ progressCallback(33.333 * p); });
 	
-	DataSetPackage::pkg()->loadWorkspace([&](float p){ progressCallback(33.333 + 33.333 * p); });
+	Workspace::singleton()->dbLoad([&](float p){ progressCallback(33.333 + 33.333 * p); });
 
 	if(resultXmlCompare::compareResults::theOne()->testMode())
 	{

@@ -1,0 +1,73 @@
+module JASP.Controls
+linktarget QMLComponentsplugin
+optional plugin QMLComponentsplugin
+classname JASP_ControlsPlugin
+typeinfo QMLComponents.qmltypes
+depends QtQuick
+prefer :/jasp-stats.org/imports/JASP/Controls/
+ALTNavTag 254.0 components/JASP/Controls/ALTNavTag.qml
+AddColumnField 254.0 components/JASP/Controls/AddColumnField.qml
+AllowedTypeIcons 254.0 components/JASP/Controls/AllowedTypeIcons.qml
+AssignButton 254.0 components/JASP/Controls/AssignButton.qml
+AssignedPairsVariablesList 254.0 components/JASP/Controls/AssignedPairsVariablesList.qml
+AssignedRepeatedMeasuresCells 254.0 components/JASP/Controls/AssignedRepeatedMeasuresCells.qml
+AssignedVariablesList 254.0 components/JASP/Controls/AssignedVariablesList.qml
+AvailableVariablesList 254.0 components/JASP/Controls/AvailableVariablesList.qml
+BasicThreeButtonTableView 254.0 components/JASP/Controls/BasicThreeButtonTableView.qml
+BayesFactorType 254.0 components/JASP/Controls/BayesFactorType.qml
+Button 254.0 components/JASP/Controls/Button.qml
+CIField 254.0 components/JASP/Controls/CIField.qml
+CheckBox 254.0 components/JASP/Controls/CheckBox.qml
+CheckColumnIsFreeOrMineField 254.0 components/JASP/Controls/CheckColumnIsFreeOrMineField.qml
+Chi2TestTableView 254.0 components/JASP/Controls/Chi2TestTableView.qml
+ColorPalette 254.0 components/JASP/Controls/ColorPalette.qml
+ColorPicker 254.0 components/JASP/Controls/ColorPicker.qml
+ColumnLayout 254.0 components/JASP/Controls/ColumnLayout.qml
+ComponentsList 254.0 components/JASP/Controls/ComponentsList.qml
+ComputedColumnField 254.0 components/JASP/Controls/ComputedColumnField.qml
+ContrastsList 254.0 components/JASP/Controls/ContrastsList.qml
+ControlErrorMessage 254.0 components/JASP/Controls/ControlErrorMessage.qml
+CrossButton 254.0 components/JASP/Controls/CrossButton.qml
+CustomContrastsTableView 254.0 components/JASP/Controls/CustomContrastsTableView.qml
+Divider 254.0 components/JASP/Controls/Divider.qml
+DoubleField 254.0 components/JASP/Controls/DoubleField.qml
+DropDown 254.0 components/JASP/Controls/DropDown.qml
+FactorLevelList 254.0 components/JASP/Controls/FactorLevelList.qml
+FactorsForm 254.0 components/JASP/Controls/FactorsForm.qml
+FactorsList 254.0 components/JASP/Controls/FactorsList.qml
+FileSelector 254.0 components/JASP/Controls/FileSelector.qml
+Form 254.0 components/JASP/Controls/Form.qml
+FormulaField 254.0 components/JASP/Controls/FormulaField.qml
+GridLayout 254.0 components/JASP/Controls/GridLayout.qml
+Group 254.0 components/JASP/Controls/Group.qml
+HelpButton 254.0 components/JASP/Controls/HelpButton.qml
+InputListView 254.0 components/JASP/Controls/InputListView.qml
+IntegerField 254.0 components/JASP/Controls/IntegerField.qml
+JAGSTextArea 254.0 components/JASP/Controls/JAGSTextArea.qml
+JASPScrollBar 254.0 components/JASP/Controls/JASPScrollBar.qml
+JagsTableView 254.0 components/JASP/Controls/JagsTableView.qml
+Label 254.0 components/JASP/Controls/Label.qml
+MenuButton 254.0 components/JASP/Controls/MenuButton.qml
+ModelTermsList 254.0 components/JASP/Controls/ModelTermsList.qml
+PercentField 254.0 components/JASP/Controls/PercentField.qml
+RadioButton 254.0 components/JASP/Controls/RadioButton.qml
+RadioButtonGroup 254.0 components/JASP/Controls/RadioButtonGroup.qml
+RectangularButton 254.0 components/JASP/Controls/RectangularButton.qml
+RoundedButton 254.0 components/JASP/Controls/RoundedButton.qml
+RowLayout 254.0 components/JASP/Controls/RowLayout.qml
+ScrollMoreIndicator 254.0 components/JASP/Controls/ScrollMoreIndicator.qml
+Section 254.0 components/JASP/Controls/Section.qml
+SetSeed 254.0 components/JASP/Controls/SetSeed.qml
+SimpleTableView 254.0 components/JASP/Controls/SimpleTableView.qml
+Slider 254.0 components/JASP/Controls/Slider.qml
+SortMenuButton 254.0 components/JASP/Controls/SortMenuButton.qml
+SubjectivePriors 254.0 components/JASP/Controls/SubjectivePriors.qml
+Switch 254.0 components/JASP/Controls/Switch.qml
+TabView 254.0 components/JASP/Controls/TabView.qml
+TableView 254.0 components/JASP/Controls/TableView.qml
+Text 254.0 components/JASP/Controls/Text.qml
+TextArea 254.0 components/JASP/Controls/TextArea.qml
+TextField 254.0 components/JASP/Controls/TextField.qml
+VariablesForm 254.0 components/JASP/Controls/VariablesForm.qml
+VariablesList 254.0 components/JASP/Controls/VariablesList.qml
+

@@ -1,0 +1,2 @@
+/usr/bin/ar qc JASP/Controls/libQMLComponentsplugin.a CMakeFiles/QMLComponentsplugin.dir/QMLComponentsplugin_autogen/mocs_compilation.cpp.o CMakeFiles/QMLComponentsplugin.dir/QMLComponentsplugin_JASP_ControlsPlugin.cpp.o
+/usr/bin/ranlib JASP/Controls/libQMLComponentsplugin.a

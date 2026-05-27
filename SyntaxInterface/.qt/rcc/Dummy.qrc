@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="Dummy.qml">/home/virtuoos/Broncode/jasp-desktop/SyntaxInterface/Dummy.qml</file>
+  </qresource>
+</RCC>
+

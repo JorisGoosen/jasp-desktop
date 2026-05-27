@@ -17,7 +17,7 @@
 
 #include "datasetpackage.h"
 #include "log.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include <QThread>
 #include "engine/enginesync.h"
 #include "columnencoder.h"
@@ -183,7 +183,7 @@ void DataSetPackage::generateEmptyData()
 	createDataSet();
 	
 	setDataSetSize(1, 1);
-	_dataSet->column(0)->initFromLookups(freeNewColumnName(0), 1, [](size_t){return "";}, [](size_t){return "";}, "", columnType::scale, {}, PreferencesModel::prefs()->thresholdScale(), PreferencesModel::prefs()->orderByValueByDefault());
+	_dataSet->column(size_t(0))->initFromLookups(freeNewColumnName(0), 1, [](size_t){return "";}, [](size_t){return "";}, "", columnType::scale, {}, PreferencesModel::prefs()->thresholdScale(), PreferencesModel::prefs()->orderByValueByDefault());
 
 	endLoadingData();
 	
@@ -626,7 +626,7 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 		case int(specialRoles::maxColString):
 		{
 			//calculate some kind of maximum string to give views an expectation of the width needed for a column
-			bool		hasFilter	= col && (col->hasFilter() || isColumnUsedInEasyFilter(col->name()));
+			bool		hasFilter	= col && (col->hasLabelFilter() || isColumnUsedInEasyFilter(col->name()));
 			QString		dummyText	= headerData(section, orientation, int(specialRoles::maxColumnHeaderString)).toString() + (isColumnComputed(section) ? "XXX" : "") + (hasFilter ? "XXX" : ""); //Bit of padding for hamburger, filtersymbol and columnIcon
 			qsizetype	colWidth	= getMaximumColumnWidthInCharacters(section);
 
@@ -638,10 +638,10 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 		case int(specialRoles::maxColumnHeaderString):			return headerData(section, orientation, Qt::DisplayRole).toString() + "XXX";
 		case int(specialRoles::maxRowHeaderString):				return QString::number(_dataSet ? _dataSet->rowCount() : 0 )		+ "XXX";
 		case Qt::TextAlignmentRole:								return QVariant(Qt::AlignCenter);
-		case int(specialRoles::filter):							return		!col ? false							: col->hasFilter() || isColumnUsedInEasyFilter(col->name());
+		case int(specialRoles::filter):							return		!col ? false							: col->hasLabelFilter() || isColumnUsedInEasyFilter(col->name());
 		case int(specialRoles::name):							[[fallthrough]];
 		case Qt::DisplayRole:									return tq(	!col ? "?"								: col->name());
-		case int(specialRoles::labelsHasFilter):				return		!col ? false							: col->hasFilter();
+		case int(specialRoles::labelsHasFilter):				return		!col ? false							: col->hasLabelFilter();
 		case int(specialRoles::columnIsComputed):				return		!col ? false							: col->isComputed() && col->codeType() != computedColumnType::analysisNotComputed;
 		case int(specialRoles::computedColumnError):			return tq(	!col ? "?"								: col->error());
 		case int(specialRoles::computedColumnIsInvalidated):	return		!col ? false							: col->invalidated();
@@ -674,7 +674,7 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 					?	tr("There are %1 total levels, of which %2 have a numeric value.\nAs a '%3' it looks like: %4\n%5")
 						.arg(levelsTotal)
 						.arg(levelsNums)
-						.arg(VariableInfo::getTypeFriendly(colTypeWanted))
+						.arg(QColumnUtils::getTypeFriendly(colTypeWanted))
 						.arg(vals)
 						.arg(
 							empties == "" 
@@ -684,7 +684,7 @@ QVariant DataSetPackage::headerData(int section, Qt::Orientation orientation, in
 						
 					:	tr("There are %1 total levels.\nAs a '%2' it looks like: %3")
 					.arg(levelsTotal)
-					.arg(VariableInfo::getTypeFriendly(colTypeWanted))
+					.arg(QColumnUtils::getTypeFriendly(colTypeWanted))
 					.arg(vals));
 		}
 		}
@@ -756,7 +756,7 @@ bool DataSetPackage::setData(const QModelIndex &index, const QVariant &value, in
 						emit datasetChanged(tq(changedCols), {}, {}, false, false);
 						emit labelsReordered(tq(column->name()));
 						
-						if(column->hasFilter())
+						if(column->hasLabelFilter())
 						{
 							emit labelFilterChanged();
 							emit runFilter();
@@ -1013,7 +1013,7 @@ bool DataSetPackage::setLabelAllowFilter(const QModelIndex & index, bool newAllo
 	{
 		int col = column->data()->columnIndex(column);
 
-		bool before = column->hasFilter();
+		bool before = column->hasLabelFilter();
 		label->setFilterAllows(newAllowValue);
 		
 		notifyColumnFilterStatusChanged(col); //basically resetModel now
@@ -1246,7 +1246,7 @@ int DataSetPackage::columnsFilteredCount()
 	int colsFiltered = 0;
 
 	for(Column * col : _dataSet->columns())
-		if(col->hasFilter())
+		if(col->hasLabelFilter())
 			colsFiltered++;
 
 	return colsFiltered;
@@ -1477,9 +1477,8 @@ void DataSetPackage::createDataSet()
 	_dataSubModel->selectNode(_dataSet->dataNode());
 	_filterSubModel->selectNode(_dataSet->filtersNode());
 	
-	_dataSet->filter()->setRFilter(FilterModel::defaultRFilter());
+	_dataSet->filter()->setRFilter(fq(Filter::defaultRFilter()));
 	
-	_dataSet->setModifiedCallback([&](){ setModified(true); }); //DataSet and co dont use Qt so instead we just use a callback
 }
 
 void DataSetPackage::setDataSet(DataSet * dataSet)
@@ -1492,12 +1491,12 @@ void DataSetPackage::setDataSet(DataSet * dataSet)
 	_dataSubModel->selectNode(_dataSet->dataNode());
 	_filterSubModel->selectNode(_dataSet->filtersNode());
 	_labelsSubModel->selectNode(nullptr);
-	_dataSet->setModifiedCallback([&](){ setModified(true); });
+	//_dataSet->setModifiedCallback([&](){ setModified(true); });
 	setDefaultWorkspaceValues();
 	endResetModel();
 
-	emit dataSetChanged({}, {}, {}, false, false);
-	emit loadedChanged(true);
+	emit datasetChanged({}, {}, {}, false, false);
+	emit loadedChanged();
 }
 
 void DataSetPackage::loadDataSet(std::function<void(float)> progressCallback)
@@ -1950,14 +1949,14 @@ bool DataSetPackage::labelNeedsFilter(size_t columnIndex) const
 	if(columnIndex < 0 || columnIndex >= dataColumnCount()) 
 		return false;
 			
-	return _dataSet->columns()[columnIndex]->hasFilter();
+	return _dataSet->columns()[columnIndex]->hasLabelFilter();
 }
 
 
 void DataSetPackage::labelMoveRows(size_t colIdx, std::vector<size_t> rows, bool up)
 {
 	Column	*	column		= _dataSet->columns()[colIdx];
-	sizetset	rowsChanged = column->labelsMoveRows(rows, up);
+	auto	rowsChanged = column->labelsMoveRows(std::vector<qsizetype>(rows.begin(), rows.end()), up);
 	
 	if(rowsChanged.size())
 	{

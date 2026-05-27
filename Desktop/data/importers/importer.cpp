@@ -284,7 +284,7 @@ void Importer::syncDataSet(const std::string &locator, DataSet * dataSet, std::f
 	{
 		Log::log() << "New column " << newColumn->name() << std::endl;
 		
-		Column			* dataSetColumn	= oldColQ.size() > 0 ? oldColQ.front() : dataSet->createColumn(newColumn->name());
+		Column			* dataSetColumn	= oldColQ.size() > 0 ? oldColQ.front() : dataSet->newColumn(newColumn->name());
 		InitColumnTask	* task			= new InitColumnTask(newColumn, dataSetColumn, totalCellsCallback);
 		
 		connect(newColumn, &ImportColumn::finished, this, &Importer::importColumnFinished, Qt::DirectConnection);

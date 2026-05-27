@@ -22,6 +22,7 @@
 #include "modules/ribbonmodel.h"
 #include "analysisform.h"
 #include "knownissues.h"
+#include "workspace.h"
 #include <QTimer>
 #include <QFile>
 #include "log.h"
@@ -886,7 +887,7 @@ void Analyses::checkForDependentAnalyses(Column * column)
 		{
 			bool allColsValidated = true;
 
-			for(DataSet * dataSet : column->data()->workspace()->dataSets())
+			for(DataSet * dataSet : Workspace::singleton()->dataSets())
 				for(Column * col : dataSet->computedColumns())
 					if(usedCols.count(col->name()) > 0 && col->invalidated())
 						allColsValidated = false;

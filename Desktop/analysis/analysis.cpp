@@ -18,6 +18,7 @@
 #include "log.h"
 #include "utils.h"
 #include "analysis.h"
+#include "workspace.h"
 #include "tempfiles.h"
 #include "appinfo.h"
 #include "filter.h"
@@ -112,7 +113,7 @@ void Analysis::initAnalysis()
 	{
 		//Make sure we have some sort of filter if the one the analysis is using is deleted
 		_filterDataSet = _filter->data();
-		connect(_filter->data(), &DataSet::filterRemoved, this, &Analysis::filterRemoved);
+		connect(_filter->data(), &DataSet::allFiltersReset, this, [this]() { filterRemoved(_filter); });
 	}
 }
 
@@ -134,7 +135,7 @@ Analysis::~Analysis()
 
 	if(DataSetPackage::pkg() && DataSetPackage::pkg()->hasDataSet())
 	{
-		for(DataSet * data : DataSetPackage::pkg()->workspace()->dataSets())
+		for(DataSet * data : Workspace::singleton()->dataSets())
 			for(Column * col : data->columns())
 				if(col->analysisId() == id())
 				{
@@ -1199,7 +1200,7 @@ void Analysis::setRSyntaxTextInResult(bool show)
 
 void Analysis::onUsedVariablesChanged()
 {
-	DataSetPackage::pkg()->workspace()->updateComputedColumnDependenciesForAnalysis(id(), usedVariables());
+	Workspace::singleton()->updateComputedColumnDependenciesForAnalysis(id(), usedVariables());
 }
 
 void Analysis::checkForRSources()

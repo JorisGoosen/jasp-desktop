@@ -1,6 +1,7 @@
 #include <QMap>
 #include "filtermodel.h"
 #include "datasetpackage.h"
+#include "workspace.h"
 #include "filter.h"
 #include "qutils.h"
 
@@ -8,10 +9,10 @@ FilterModel::FilterModel(QObject * parent)
 	: QObject(parent)
 {
 
-	connect(DataSetPackage::pkg(), &DataSetPackage::shownDataSetChanged,	this, &FilterModel::filterChanged);
-	connect(DataSetPackage::pkg(), &DataSetPackage::filtersCountChanged,	this, &FilterModel::filterDropDownListChanged,	Qt::QueuedConnection);
-	connect(DataSetPackage::pkg(), &DataSetPackage::shownFilterChanged,		this, &FilterModel::filterChanged									);
-	connect(DataSetPackage::pkg(), &DataSetPackage::shownFilterChanged,		this, &FilterModel::filterDropDownListChanged,	Qt::QueuedConnection);
+	connect(Workspace::singleton(), &Workspace::shownDataSetChanged,	this, &FilterModel::filterChanged);
+	connect(Workspace::singleton(), &Workspace::filtersCountChanged,	this, &FilterModel::filterDropDownListChanged,	Qt::QueuedConnection);
+	connect(Workspace::singleton(), &Workspace::shownFilterChanged,		this, &FilterModel::filterChanged									);
+	connect(Workspace::singleton(), &Workspace::shownFilterChanged,		this, &FilterModel::filterDropDownListChanged,	Qt::QueuedConnection);
 }
 
 Filter *FilterModel::filter() const
@@ -55,7 +56,13 @@ void FilterModel::processFilterResult(QString name)
 		return;
 	}
 	
-	Filter * f = DataSetPackage::pkg()->dataSet()->filter(fq(name));
+	Filter * f = nullptr;
+	for(Filter * fltr : DataSetPackage::pkg()->dataSet()->filters())
+		if (fltr->name() == fq(name))
+		{
+			f = fltr;
+			break;
+		}
 	
 	if(!f)
 		f = DataSetPackage::pkg()->dataSet()->createFilter(fq(name), false);
@@ -96,30 +103,35 @@ void FilterModel::computeColumnSucceeded(QString columnName, QString, bool dataC
 
 QVariantList FilterModel::_filterDropDownList(bool forCustomMenu) const
 {
-	typedef QMap<QString, QVariant> localMap;
+	auto makeMap = [](const QString & value, const QString & label) {
+		QVariantMap m;
+		m["value"] = value;
+		m["label"] = label;
+		return QVariant::fromValue(m);
+	};
 	
 	QVariantList out;
 	
-	if(DataSetPackage::pkg()->workspace())
+	if(Workspace::singleton())
 	{
 		if(forCustomMenu)
-			out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", "---")});
+			out.append(makeMap(tq("---"), QString("---")));
 		
-		for(DataSet * dataSet : DataSetPackage::pkg()->workspace()->dataSets())
+		for(DataSet * dataSet : Workspace::singleton()->dataSets())
 		{
-			out.append(localMap{std::make_pair("value", tq(dataSet == DataSetPackage::pkg()->dataSet() ? "*" : "-")), std::make_pair("label", dataSet->title() + ":")});
+			out.append(makeMap(tq(dataSet == DataSetPackage::pkg()->dataSet() ? "*" : "-"), dataSet->titleQ() + ":"));
 			
 			if(dataSet->defaultFilter())
-				out.append(localMap{std::make_pair("value", tq(std::to_string(dataSet->defaultFilter()->id()))), std::make_pair("label", dataSet->defaultFilter()->title())});
+				out.append(makeMap(tq(std::to_string(dataSet->defaultFilter()->id())), dataSet->defaultFilter()->title()));
 			
 			for(const Filter * f : dataSet->filters())
 				if(f != dataSet->defaultFilter())
-					out.append(localMap{std::make_pair("value", tq(std::to_string(f->id()))), std::make_pair("label", f->title())});
+					out.append(makeMap(tq(std::to_string(f->id())), f->title()));
 			
 			if(forCustomMenu)
-				out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", "---")});
+				out.append(makeMap(tq("---"), QString("---")));
 			else
-				out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", tq(std::to_string(dataSet->id())))});
+				out.append(makeMap(tq("---"), tq(std::to_string(dataSet->id()))));
 		}
 	}
 	
@@ -176,12 +188,12 @@ QString FilterModel::currentFilterTitle() const
 
 void FilterModel::setCurrentFilterId(int id)
 {
-	DataSetPackage::pkg()->workspace()->showFilter(id);
+	Workspace::singleton()->showFilter(id);
 	
 	emit filterChanged();
 	emit filterDropDownListChanged();
 	
-	DataSetPackage::pkg()->workspace()->refresh();
+	Workspace::singleton()->refresh();
 	
 }
 
@@ -194,7 +206,8 @@ void FilterModel::renameCurrentFilter(const QString &newName)
 
 void FilterModel::deleteCurrentFilter()
 {
-	DataSetPackage::pkg()->dataSet()->deleteShownFilter();
+	if(DataSetPackage::pkg()->dataSet()->shownFilter())
+		DataSetPackage::pkg()->dataSet()->shownFilter()->dbDelete();
 	emit filterChanged();
 	emit filterDropDownListChanged();
 }
@@ -203,10 +216,10 @@ void FilterModel::addFilter(int dataSetId)
 {
 	DataSet * dataSet = dataSetId == -1 
 			? DataSetPackage::pkg()->dataSet() 
-			: DataSetPackage::pkg()->workspace() 
-			  ? DataSetPackage::pkg()->workspace()->dataSetById(dataSetId) 
+			: Workspace::singleton() 
+			  ? Workspace::singleton()->dataSetById(dataSetId) 
 			  : nullptr;
 	
 	if(dataSet)
-		dataSet->addFilter();
+		new Filter(dataSet);
 }

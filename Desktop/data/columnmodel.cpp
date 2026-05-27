@@ -14,7 +14,7 @@ ColumnModel::ColumnModel() : QIdentityProxyModel(DataSetPackage::pkg())
 
 	connect(DataSetPackage::pkg(),	&DataSetPackage::allFiltersReset,				this, &ColumnModel::allFiltersReset				);
 	
-	connect(DataSetPackage::pkg(),	&DataSetPackage::datasetChanged,				this, &ColumnModel::checkCurrentColumn			);
+	connect(DataSetPackage::pkg(),	&DataSetPackage::datasetChanged,				this, [this](QStringList changedColumns, QStringList missingColumns, QMap<QString, QString> changeNameColumns, bool rowCountChanged, bool hasNewColumns) { checkCurrentColumn(0, changedColumns, missingColumns, changeNameColumns, rowCountChanged, hasNewColumns); });
 	connect(DataSetPackage::pkg(),	&DataSetPackage::workspaceEmptyValuesChanged,	this, &ColumnModel::emptyValuesChanged			);
 	connect(DataSetPackage::pkg(),	&DataSetPackage::chooseColumn,					this, &ColumnModel::setChosenColumn				);
 }
@@ -234,7 +234,7 @@ void ColumnModel::removeEmptyValue(const QString & value)
 void ColumnModel::resetEmptyValues()
 {
 	if(column())
-		setCustomEmptyValues(tql(column()->data()->emptyValuesAsStrings()));
+		setCustomEmptyValues(tql(column()->data()->emptyValues()->emptyStrings()));
 }
 
 UndoStack *ColumnModel::undoStack()
@@ -249,17 +249,32 @@ QVariantList ColumnModel::tabs() const
 	Column* col = column();
 	
 	if(_compactMode)
-		tabs.push_back(QMap<QString, QVariant>({  std::make_pair("name", "basicInfo"), std::make_pair("title", tr("Column definition"))}));
+	{
+		QVariantMap tabsMap;
+		tabsMap["name"] = "basicInfo";
+		tabsMap["title"] = tr("Column definition");
+		tabs.push_back(tabsMap);
+	}
 	
 	if(col)
 	{
 		if (col->isComputed() && (col->codeType() == computedColumnType::rCode || col->codeType() == computedColumnType::constructorCode))
-			tabs.push_back(QMap<QString, QVariant>({  std::make_pair("name", "computed"), std::make_pair("title", tr("Computed column definition"))}));
+		{
+			QVariantMap computedMap;
+			computedMap["name"] = "computed";
+			computedMap["title"] = tr("Computed column definition");
+			tabs.push_back(computedMap);
+		}
 
-		tabs.push_back(QMap<QString, QVariant>({  std::make_pair("name", "label"), std::make_pair("title", tr("Label editor"))}));
+		QVariantMap labelMap;
+		labelMap["name"] = "label";
+		labelMap["title"] = tr("Label editor");
+		tabs.push_back(labelMap);
 	}
 
-	QMap<QString, QVariant> misingValues =	{  std::make_pair("name", "missingValues"), std::make_pair("title", tr("Missing values"))};
+	QVariantMap misingValues;
+	misingValues["name"] = "missingValues";
+	misingValues["title"] = tr("Missing values");
 	tabs.push_back(misingValues);
 
 	return tabs;

@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="fonts/FiraCode-Retina.ttf">/home/virtuoos/Broncode/jasp-desktop/Desktop/resources/fonts/FiraCode-Retina.ttf</file>
+    <file alias="fonts/FreeSans.ttf">/home/virtuoos/Broncode/jasp-desktop/Desktop/resources/fonts/FreeSans.ttf</file>
+  </qresource>
+</RCC>
+

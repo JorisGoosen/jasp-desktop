@@ -3364,6 +3364,10 @@ boolvec Column::getFilterAllows() const
 	return list;
 }
 
+void Column::resetFilterCounter()
+{
+}
+
 void Column::resetFilterAllows()
 {
 	resetFilter();

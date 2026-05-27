@@ -260,11 +260,11 @@ void AsyncLoader::loadPackage(QString id)
 				QFileInfo fileInfo(_currentEvent->path());
 				long timestamp = fileInfo.isFile() ? fileInfo.lastModified().toSecsSinceEpoch() : 0;
 
-				pkg->dataSet()->setDataFileAndTimeStamp(_currentEvent->path().toStdString(), timestamp);
-				pkg->dataSet()->setDatabaseJson(_currentEvent->database());
+				pkg->dataSet()->setDataFile(_currentEvent->path().toStdString(), timestamp);
+				pkg->dataSet()->setDatabaseJson(_currentEvent->database().toStyledString());
 			}
 
-			pkg->setFileReadOnly(_currentEvent->isReadOnly());
+			pkg->setDataFileReadOnly(_currentEvent->isReadOnly());
 			_currentEvent->setDataFilePath(QString::fromStdString(pkg->dataSet()->dataFilePath()));
 			_currentEvent->setComplete();
 
@@ -275,7 +275,7 @@ void AsyncLoader::loadPackage(QString id)
 		{
 			Log::log() << "Loader Exception in loadPackage: " << e.what() << std::endl;
 
-			DataSetPackage::pkg()->deleteWorkspace(false); //Make sure we dont keep failed stuff in memory
+			DataSetPackage::pkg()->reset(false); //Make sure we dont keep failed stuff in memory
 
 			if (dataNode != nullptr)
 				_odm->deleteActionDataNode(id);
@@ -285,7 +285,7 @@ void AsyncLoader::loadPackage(QString id)
 		{
 			Log::log() << "Exception in loadPackage: " << e.what() << std::endl;
 
-			DataSetPackage::pkg()->deleteWorkspace(true); //Make sure we dont keep failed stuff in memory
+			DataSetPackage::pkg()->reset(true); //Make sure we dont keep failed stuff in memory
 
 			if (dataNode != nullptr)
 				_odm->deleteActionDataNode(id);

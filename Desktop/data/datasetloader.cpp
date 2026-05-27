@@ -75,7 +75,7 @@ void DataSetLoader::loadPackage(const string &locator, const string &extension, 
 
 	if (importer)
 	{
-		importer->loadDataSet(locator, progress);
+		importer->loadDataSet(locator, DataSetPackage::pkg()->dataSet(), progress);
 		char chosenDelimiter = DesktopCommunicator::singleton()->knownCsvDelimiter();
 		if (chosenDelimiter != '\0' && DataSetPackage::pkg()->dataSet())
 			DataSetPackage::pkg()->dataSet()->setCsvDelimiter(chosenDelimiter);
@@ -99,7 +99,7 @@ void DataSetLoader::syncPackage(const string &locator, const string &extension, 
 	{
 		if (DataSetPackage::pkg()->dataSet())
 			DesktopCommunicator::singleton()->setKnownCsvDelimiter(DataSetPackage::pkg()->dataSet()->csvDelimiter());
-		importer->syncDataSet(locator, progress);
+		importer->syncDataSet(locator, DataSetPackage::pkg()->dataSet(), progress);
 		DesktopCommunicator::singleton()->setKnownCsvDelimiter('\0');
 		delete importer;
 	}

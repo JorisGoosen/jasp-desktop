@@ -725,6 +725,12 @@ void DataSet::resetAllFilters()
 		col->resetFilterAllows();
 }
 
+Filter * DataSet::createFilter(const std::string & name, bool createIfMissing)
+{
+	Filter * f = new Filter(this, name, createIfMissing);
+	return f;
+}
+
 stringset DataSet::findUsedColumnNames(std::string searchThis)
 {
 	stringset columnsFound, columnsWithTypeFound;

@@ -1,0 +1,15 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/virtuoos/Broncode/jasp-desktop/cmake_install.cmake",
+		"/home/virtuoos/Broncode/jasp-desktop/Common/cmake_install.cmake",
+		"/home/virtuoos/Broncode/jasp-desktop/CommonData/cmake_install.cmake",
+		"/home/virtuoos/Broncode/jasp-desktop/QMLComponents/cmake_install.cmake",
+		"/home/virtuoos/Broncode/jasp-desktop/SyntaxInterface/cmake_install.cmake",
+		"/home/virtuoos/Broncode/jasp-desktop/R-Interface/cmake_install.cmake",
+		"/home/virtuoos/Broncode/jasp-desktop/Engine/cmake_install.cmake",
+		"/home/virtuoos/Broncode/jasp-desktop/Desktop/cmake_install.cmake",
+		"/home/virtuoos/Broncode/jasp-desktop/Tests/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

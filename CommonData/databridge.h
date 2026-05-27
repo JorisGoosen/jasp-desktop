@@ -38,6 +38,7 @@ public:
 	int						getColumnAnalysisId(		const std::string & columnName);
 	int						getColumnOriginalIndex(		const std::string & columnName);
 	DataSet				*	provideAndUpdateDataSet();
+	DataSet				*	provideAndUpdateDataSet(int dataSetId);
 	void					provideJaspResultsFileName(										std::string & root,	std::string & relativePath);
 	void					provideStateFileName(											std::string & root,	std::string & relativePath);
 	void					provideTempFileName(		const std::string & extension,		std::string & root,	std::string & relativePath);

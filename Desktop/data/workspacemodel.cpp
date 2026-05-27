@@ -1,5 +1,6 @@
 #include "workspacemodel.h"
 #include "datasetpackage.h"
+#include "workspace.h"
 #include "qutils.h"
 #include "gui/preferencesmodel.h"
 
@@ -13,7 +14,7 @@ WorkspaceModel::WorkspaceModel(QObject *parent)
 	_singleton = this;
 
 	connect(DataSetPackage::pkg(),	&DataSetPackage::loadedChanged,					this,	&WorkspaceModel::refresh				);
-	connect(DataSetPackage::pkg(),	&DataSetPackage::shownDataSetChanged,			this,	&WorkspaceModel::refresh				);
+	connect(Workspace::singleton(),	&Workspace::shownDataSetChanged,			this,	&WorkspaceModel::refresh				);
 	connect(DataSetPackage::pkg(),	&DataSetPackage::nameChanged,					this,	&WorkspaceModel::nameChanged			);
 	connect(DataSetPackage::pkg(),	&DataSetPackage::descriptionChanged,			this,	&WorkspaceModel::descriptionChanged		);
 	connect(DataSetPackage::pkg(),	&DataSetPackage::workspaceEmptyValuesChanged,	this,	&WorkspaceModel::emptyValuesChanged		);
@@ -28,7 +29,7 @@ void WorkspaceModel::refresh()
 
 QStringList WorkspaceModel::emptyValues() const
 {
-	return tql(DataSetPackage::pkg()->dataSet()->emptyValuesAsStrings());
+	return tql(DataSetPackage::pkg()->dataSet()->emptyValues()->emptyStrings());
 }
 
 QString WorkspaceModel::name() const
@@ -50,7 +51,7 @@ void WorkspaceModel::setDescription(const QString &desc)
 
 void WorkspaceModel::removeEmptyValue(const QString &value)
 {
-	QStringList values = tql(DataSetPackage::pkg()->dataSet()->emptyValuesAsStrings());
+	QStringList values = tql(DataSetPackage::pkg()->dataSet()->emptyValues()->emptyStrings());
 
 	if (values.removeAll(value) > 0)
 		UndoStack::singleton()->pushCommand(new SetWorkspaceEmptyValuesCommand(DataSetPackage::pkg()->dataSet(), values));
@@ -58,7 +59,7 @@ void WorkspaceModel::removeEmptyValue(const QString &value)
 
 void WorkspaceModel::addEmptyValue(const QString &value)
 {
-	QStringList values = tql(DataSetPackage::pkg()->dataSet()->emptyValuesAsStrings());
+	QStringList values = tql(DataSetPackage::pkg()->dataSet()->emptyValues()->emptyStrings());
 
 	if (!values.contains(value))
 	{

@@ -1,0 +1,9 @@
+-rootPath
+/home/virtuoos/Broncode/jasp-desktop/Desktop
+-cmake-output
+-output-file
+/home/virtuoos/Broncode/jasp-desktop/Desktop/.qt/qml_imports/JASP_conf.cmake
+-importPath
+/home/virtuoos/Broncode/jasp-desktop/Desktop
+-importPath
+/usr/lib/qt6/qml

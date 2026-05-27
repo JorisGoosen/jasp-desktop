@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="/translations">
+    <file alias="images/flag_en.png">/home/virtuoos/Broncode/jasp-desktop/Desktop/translations/images/flag_en.png</file>
+    <file alias="images/flag_fr.png">/home/virtuoos/Broncode/jasp-desktop/Desktop/translations/images/flag_fr.png</file>
+    <file alias="images/flag_ge.png">/home/virtuoos/Broncode/jasp-desktop/Desktop/translations/images/flag_ge.png</file>
+    <file alias="images/flag_nl.png">/home/virtuoos/Broncode/jasp-desktop/Desktop/translations/images/flag_nl.png</file>
+  </qresource>
+</RCC>
+

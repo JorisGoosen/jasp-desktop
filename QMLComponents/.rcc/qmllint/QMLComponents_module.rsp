@@ -1,0 +1,16 @@
+-I
+/home/virtuoos/Broncode/jasp-desktop/QMLComponents
+-I
+/home/virtuoos/Broncode/jasp-desktop/QMLComponents/JASP/Controls
+-I
+/home/virtuoos/Broncode/jasp-desktop/QMLComponents
+-I
+/usr/lib/qt6/qml
+--resource
+/home/virtuoos/Broncode/jasp-desktop/QMLComponents/.qt/rcc/qmake_JASP_Controls.qrc
+--resource
+/home/virtuoos/Broncode/jasp-desktop/QMLComponents/.qt/rcc/QMLComponents_raw_qml_0.qrc
+--resource
+/home/virtuoos/Broncode/jasp-desktop/QMLComponents/.qt/rcc/QMLComponents_raw_res_0.qrc
+--module
+JASP.Controls

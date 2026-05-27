@@ -1,0 +1,11 @@
+-rootPath
+/home/virtuoos/Broncode/jasp-desktop/SyntaxInterface
+-cmake-output
+-output-file
+/home/virtuoos/Broncode/jasp-desktop/SyntaxInterface/.qt/qml_imports/SyntaxInterface_conf.cmake
+-importPath
+/home/virtuoos/Broncode/jasp-desktop/SyntaxInterface
+-importPath
+/usr/lib/qt6/qml
+-qrcFiles
+/home/virtuoos/Broncode/jasp-desktop/SyntaxInterface/.qt/rcc/Dummy.qrc

@@ -25,3 +25,7 @@ void CurrentFileListModel::setCurrentFilePath(const QString &newcurrent)
 	
 	endResetModel();	
 }
+
+void CurrentFileListModel::openFile(const QString &path)
+{
+}

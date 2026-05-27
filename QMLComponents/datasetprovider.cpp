@@ -17,7 +17,7 @@
 //
 
 #include "datasetprovider.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "columnencoder.h"
 
 #include <memory>
@@ -42,7 +42,7 @@ DataSetProvider* DataSetProvider::getProvider(bool inMemory, bool reset, QObject
 DataSetProvider::~DataSetProvider()
 {
 	assert(_singleton == this);
-	delete VariableInfo::info();
+	delete _varInfo;
 	delete _dataSet;
 	delete _db;
 	_singleton = nullptr;
@@ -53,7 +53,7 @@ DataSetProvider::DataSetProvider(bool inMemory, QObject *parent) : QAbstractTabl
 	_db	= new DatabaseInterface(true, inMemory);
 	_dataSet = new DataSet();
 
-	new VariableInfo(this);
+	_varInfo = new VariableInfo(this);
 	_singleton = this;
 }
 
@@ -193,7 +193,7 @@ QStringList DataSetProvider::_getColumnNames() const
 }
 
 
-QVariant DataSetProvider::provideInfo(VariableInfo::InfoType info, const QString& colName, int row) const
+QVariant DataSetProvider::provideInfo(varInfoType info, const QString& colName, int row) const
 {
 	try
 	{
@@ -201,23 +201,23 @@ QVariant DataSetProvider::provideInfo(VariableInfo::InfoType info, const QString
 
 		switch(info)
 		{
-		case VariableInfo::VariableType:				return	int(!column ? columnType::unknown : column->type());
-		case VariableInfo::DoubleValues:				return	_getDoubleList(column);
-		case VariableInfo::TotalNumericValues:			return	!column ? 0 : column->nonFilteredNumericsCount();
-		case VariableInfo::TotalLevels:					return	!column ? 0 : (int)column->nonFilteredLevels().size();
-		case VariableInfo::Labels:						return	!column ? QStringList() : tq(column->nonFilteredLevels());
-		case VariableInfo::NameRole:					return	Qt::DisplayRole;
-		case VariableInfo::DataSetRowCount:				return  _dataSet->rowCount();
-		case VariableInfo::DataSetValue:				return	!column ? "" : tq(column->getValue(row));
-		case VariableInfo::DataSetValues:				return	_getStringList(column);
-		case VariableInfo::MaxWidth:					return	100;
-		case VariableInfo::SignalsBlocked:				return	false;
-		case VariableInfo::VariableNames:				return	_getColumnNames();
-		case VariableInfo::DataAvailable:				return	_dataSet->columnCount() > 0;
-		case VariableInfo::PreviewScale:				return	"";
-		case VariableInfo::PreviewOrdinal:				return	"";
-		case VariableInfo::PreviewNominal:				return	"";
-		case VariableInfo::DataSetPointer:				return	QVariant::fromValue<void*>(_dataSet);
+		case varInfoType::VariableType:			return	int(!column ? columnType::unknown : column->type());
+		case varInfoType::DoubleValues:				return	_getDoubleList(column);
+		case varInfoType::TotalNumericValues:		return	!column ? 0 : column->nonFilteredNumericsCount();
+		case varInfoType::TotalLevels:				return	!column ? 0 : (int)column->nonFilteredLevels().size();
+		case varInfoType::Labels:					return	!column ? QStringList() : tq(column->nonFilteredLevels());
+		case varInfoType::NameRole:				return	Qt::DisplayRole;
+		case varInfoType::DataSetRowCount:			return  _dataSet->rowCount();
+		case varInfoType::DataSetValue:			return	!column ? "" : tq(column->getValue(row));
+		case varInfoType::DataSetValues:			return	_getStringList(column);
+		case varInfoType::MaxWidth:				return	100;
+		case varInfoType::SignalsBlocked:			return	false;
+		case varInfoType::VariableNames:			return	_getColumnNames();
+		case varInfoType::DataAvailable:			return	_dataSet->columnCount() > 0;
+		case varInfoType::PreviewScale:			return	"";
+		case varInfoType::PreviewOrdinal:			return	"";
+		case varInfoType::PreviewNominal:			return	"";
+		case varInfoType::DataSetPointer:			return	QVariant::fromValue<void*>(_dataSet);
 
 
 		default: break;
@@ -230,7 +230,7 @@ QVariant DataSetProvider::provideInfo(VariableInfo::InfoType info, const QString
 	return QVariant("");
 }
 
-bool DataSetProvider::absorbInfo(VariableInfo::InfoType info, const QString &colName, int row, QVariant value)
+bool DataSetProvider::absorbInfo(varInfoType info, const QString &colName, int row, QVariant value)
 {
 	try
 	{
@@ -241,8 +241,8 @@ bool DataSetProvider::absorbInfo(VariableInfo::InfoType info, const QString &col
 		switch(info)
 		{
 		default:								return false;
-		case VariableInfo::DataSetValue:		return column->setStringValue(row, fq(value.toString()));
-		case VariableInfo::DataSetValues:
+		case varInfoType::DataSetValue:		return column->setStringValue(row, fq(value.toString()));
+		case varInfoType::DataSetValues:
 		{
 			int r=0;
 			if(_dataSet->rowCount() < value.toList().size())

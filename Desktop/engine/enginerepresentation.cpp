@@ -2,6 +2,7 @@
 #include "enginerepresentation.h"
 #include "gui/preferencesmodel.h"
 #include "data/datasetpackage.h"
+#include "workspace.h"
 #include "qutils.h"
 #include "utils.h"
 #include "log.h"

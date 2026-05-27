@@ -1,0 +1,33 @@
+# Generated from install-renv.R.in
+#
+
+RENV_LIBRARY <- "/home/virtuoos/Broncode/jasp-desktop/_cache/R/renv_library"
+
+mkdir <- function(paths) {
+  for (path in paths)
+    if (!dir.exists(path))
+      dir.create(path, recursive = TRUE)
+}
+mkdir(c(RENV_LIBRARY))
+
+repos <-  "https://packagemanager.posit.co/cran/latest"
+# alternative to 'http://cloud.r-project.org'
+if (!dir.exists(file.path(RENV_LIBRARY, "renv"))) {
+  if (FALSE) {
+    cat("Installing renv from cellar\n")
+    install.packages(
+      pkgs         = file.path("", "renv.tar.gz"),
+      lib          = RENV_LIBRARY,
+      INSTALL_opts ='--no-multiarch --no-docs --no-test-load') # --no-test-load is dubious here
+  } else {
+    cat(paste0(c("Installing renv from '", paste(repos), "'\n")))
+    install.packages(
+      pkgs         = "renv",
+      lib          = RENV_LIBRARY,
+      repos        = repos,
+      INSTALL_opts ='--no-multiarch --no-docs --no-test-load') # --no-test-load is dubious here
+  }
+} else {
+  cat("renv already installed, not reinstalling\n")
+}
+

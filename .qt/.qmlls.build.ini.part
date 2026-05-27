@@ -1,0 +1,3 @@
+[<SLASH>home<SLASH>virtuoos<SLASH>Broncode<SLASH>jasp-desktop<SLASH>QMLComponents]
+importPaths="/home/virtuoos/Broncode/jasp-desktop/QMLComponents:/home/virtuoos/Broncode/jasp-desktop/QMLComponents/JASP/Controls:/home/virtuoos/Broncode/jasp-desktop:/usr/lib/qt6/qml"
+resourceFiles="/home/virtuoos/Broncode/jasp-desktop/QMLComponents/.qt/rcc/qmake_JASP_Controls.qrc:/home/virtuoos/Broncode/jasp-desktop/QMLComponents/.qt/rcc/QMLComponents_raw_qml_0.qrc:/home/virtuoos/Broncode/jasp-desktop/QMLComponents/.qt/rcc/QMLComponents_raw_res_0.qrc"

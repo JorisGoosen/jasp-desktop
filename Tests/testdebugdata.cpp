@@ -22,7 +22,8 @@ void TestDebugData::init()
 	_pkg		= new DataSetPackage(this);
 	_importer	= new CSVImporter();
 	
-	_importer->loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), _pkg->createDataSet(), [](int i){});
+	_pkg->createDataSet();
+	_importer->loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), _pkg->dataSet(), [](int i){});
 
 	_data = _pkg->dataSet();
 	
@@ -118,7 +119,7 @@ void TestDebugData::testReverseNumericals()
 	
 	QVERIFY2(hardcoded == labelsAfter1,		"Reversing values is not right!");
 		
-	DataSet loadMe(_data->workspace(), _data->id());
+	DataSet loadMe(_data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 	
 }
@@ -193,7 +194,7 @@ void TestDebugData::testReverseLabels()
 	if(hardcoded != labelsAfter1)
 		std::cerr << labelsAfter1 << std::endl;
 	
-	DataSet loadMe(nullptr, _data->id());
+	DataSet loadMe(_data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -246,7 +247,7 @@ void TestDebugData::testColumnStuff()
 	QVERIFY2(V1->title() == "Variable 1", "Rename failed to also change the title");
 
 	
-	DataSet loadMe(nullptr, _data->id());
+	DataSet loadMe(_data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 	
 	
@@ -280,7 +281,7 @@ void TestDebugData::testEmptyValues()
 	contBinom->setHasCustomEmptyValues(false);
 	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 2,	"Not right amount of non-empty labels after disabling custom empty values!");
 	
-	_data->setEmptyValuesFromStrings({"1"});
+	_data->emptyValues()->setEmptyValues({"1"});
 	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 1,	"Not right amount of non-empty labels after adding one empty value to workspace!");
 	QVERIFY2(contBinom->nonEmptyLevelsStrings()[0] == "0",		"Not right non-empty label left after adding one empty value to workspace!");
 	

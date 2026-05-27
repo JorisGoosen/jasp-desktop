@@ -1,0 +1,6 @@
+#ifndef DATASETPACKAGEENUMS_H
+#define DATASETPACKAGEENUMS_H
+
+#include "dataenums.h"
+
+#endif // DATASETPACKAGEENUMS_H

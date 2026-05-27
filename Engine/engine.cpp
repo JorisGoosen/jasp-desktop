@@ -25,6 +25,7 @@
 #include "qutils.h"
 #include "databaseinterface.h"
 #include "r_functionwhitelist.h"
+#include "workspace.h"
 
 void SendFunctionForJaspresults(const char * msg) 
 {
@@ -77,6 +78,7 @@ Engine::Engine(int slaveNo, unsigned long parentPID)
 	_EngineInstance = this;
 
 	_extraEncodings = new ColumnEncoder("JaspExtraOptions_");
+	_workspace = Workspace::singleton();
 }
 
 void Engine::initialize()

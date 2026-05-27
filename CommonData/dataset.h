@@ -44,7 +44,7 @@ public:
 			Filter		*	defaultFilter()							{ return _filter; }
 			Filter		*	shownFilter()							{ return _filter; }
 			void			showFilter(Filter * f)					{ _filter = f; }
-			void			showFilter(const std::string &)			{}
+			bool			showFilter(const std::string & filterName)			{ return _filter != nullptr; }
 			std::vector<Filter*> filters()							{ return _filter ? std::vector<Filter*>{_filter} : std::vector<Filter*>{}; }
 			Column		*	shownColumn()							{ return _shownColumn; }
 			void			setShownColumn(Column * col)			{ _shownColumn = col; }
@@ -60,6 +60,7 @@ public:
 
 			Column		*	column(		const std::string & name);
 			Column		*	column(		size_t				columnIndex);
+			Column		*	column(		const char		*	name) { return column(std::string(name)); }
 			Column		*	column(		const QString	&	name) { return column(name.toStdString()); }
 
 			Column		*	operator[](	size_t				columnIndex)	{ return column(columnIndex); }
@@ -98,6 +99,7 @@ public:
 			void			resetFilterCounters();
 			void			runComputedColumn(const std::string & name, const std::string & code, columnType type);
 			void			resetAllFilters();
+			Filter		*	createFilter(const std::string & name, bool createIfMissing = true);
 			bool			synchingData() const { return false; }
 			bool			dataFileCanHaveLabels() const { return false; }
 			int				columnsLabelFilteredCount() const { return 0; }

@@ -32,7 +32,8 @@ void TestEngine::init()
 
 	_engines	->	start();
 	_engineRep	=	_engines->createNewEngine(true, 0);
-	_importer	->	loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), _pkg->createDataSet(), [](int i){});
+	_pkg->createDataSet();
+	_importer	->	loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), _pkg->dataSet(), [](int i){});
 	_data		=	_pkg->dataSet();
 }
 
@@ -70,10 +71,10 @@ void TestEngine::testComputedColumns()
 	
 	QVERIFY2(spy.isValid(),	"Spy is broken!");
 	
-	if(!_data->column("V1")->hasLabels())
-		_data->column("V1")->noLabelsToLabels();	
+	if(!_data->column(std::string("V1"))->hasLabels())
+		_data->column(std::string("V1"))->noLabelsToLabels();	
 		
-	Column * col = _data->column("contBinom");
+	Column * col = _data->column(std::string("contBinom"));
 	col->setCodeType(computedColumnType::rCode);
 	col->setRCode("V1");
 	
@@ -94,7 +95,7 @@ void TestEngine::testComputedColumns()
 	
 
 	Json::Value		jsonContBinom	= col->jsonForCompare(),
-					jsonV1			= _data->column("V1")->jsonForCompare();
+					jsonV1			= _data->column(std::string("V1"))->jsonForCompare();
 
 	std::cout << jsonContBinom.toStyledString() << "\n" << jsonV1.toStyledString() << std::endl;
 	
@@ -121,14 +122,14 @@ void TestEngine::testComputedColumns()
 
 	col->checkForUpdates();
 
-	jsonContBinom	= _data->column("contBinom")->jsonForCompare();
-	jsonV1			= _data->column("V1")->jsonForCompare();
+	jsonContBinom	= _data->column(std::string("contBinom"))->jsonForCompare();
+	jsonV1			= _data->column(std::string("V1"))->jsonForCompare();
 	
 	std::cerr << jsonContBinom["labels"].toStyledString() << "\n" << jsonV1["labels"].toStyledString() << std::endl;
 
 	QVERIFY2(jsonContBinom["data"]   != jsonV1["data"],   "Data is the same, but they shouldnt be");
 
-	Column * col2 = _data->column("contcor1");
+	Column * col2 = _data->column(std::string("contcor1"));
 	col2->setCodeType(computedColumnType::rCode);
 	col2->setRCode("contBinom-1"); //Should make it the same as V1 again
 	

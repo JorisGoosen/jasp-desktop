@@ -29,12 +29,11 @@
 #include "data/asyncloader.h"
 #include "data/asyncloaderthread.h"
 #include "data/columnsmodel.h"
-#include "data/computedcolumnmodel.h"
-#include "data/datasettablemodel.h"
+#include "datasettablemodel.h"
 #include "data/fileevent.h"
 #include "data/filtermodel.h"
 #include "data/columnmodel.h"
-#include "data/labelfiltergenerator.h"
+#include "labelfiltergenerator.h"
 #include "engine/enginesync.h"
 #include "gui/aboutmodel.h"
 #include "gui/encryptionsettingsmodel.h"
@@ -236,6 +235,9 @@ private:
 	void connectFileEventCompleted(FileEvent * event);
 	void refreshPlotsHandler(bool askUserForRefresh = true);
 	void checkEmptyWorkspace();
+	void onWorkspaceChanged();
+	void updateShownFilterInQmlContext();
+	void addNewDataSet();
 
 signals:
 	void saveJaspFile();
@@ -318,9 +320,8 @@ private:
 	DataSetPackage				*	_package				= nullptr;
 	DataSetTableModel			*	_datasetTableModel		= nullptr,
 								*	_dataSetModelVarInfo	= nullptr;
-	labelFilterGenerator		*	_labelFilterGenerator	= nullptr;
+	LabelFilterGenerator			*	_labelFilterGenerator	= nullptr;
 	ColumnsModel				*	_columnsModel			= nullptr;
-	ComputedColumnModel			*	_computedColumnsModel	= nullptr;
 	FilterModel					*	_filterModel			= nullptr;
 	OnlineDataManager			*	_odm					= nullptr;
 	DynamicModules				*	_dynamicModules			= nullptr;

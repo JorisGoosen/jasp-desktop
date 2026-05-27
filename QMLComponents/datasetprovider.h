@@ -44,8 +44,8 @@ public:
 	void						closeDatabase();
 	void						loadDatabase(const Version & jaspVersion);
 
-	QVariant					provideInfo(VariableInfo::InfoType info, const QString& colName = "", int row = 0)		const	override;
-	bool						absorbInfo(	VariableInfo::InfoType info, const QString& name, int row, QVariant value)			override;
+	QVariant					provideInfo(varInfoType info, const QString& colName = "", int row = 0)		const	override;
+	bool						absorbInfo(	varInfoType info, const QString& name, int row, QVariant value)			override;
 	QAbstractItemModel		*	providerModel()																					override	{ return this;	}
 
 
@@ -60,6 +60,7 @@ private:
 
 	DatabaseInterface		*	_db					= nullptr;
 	DataSet					*	_dataSet			= nullptr;
+	VariableInfo			*	_varInfo			= nullptr;
 	bool						_inMemory			= true;
 
 };

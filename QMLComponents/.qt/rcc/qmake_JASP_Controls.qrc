@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/jasp-stats.org/imports/JASP/Controls">
+    <file alias="qmldir">/home/virtuoos/Broncode/jasp-desktop/QMLComponents/JASP/Controls/qmldir</file>
+  </qresource>
+</RCC>
+

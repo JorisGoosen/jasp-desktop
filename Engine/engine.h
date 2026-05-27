@@ -24,6 +24,8 @@
 #include <json/json.h>
 #include "columnencoder.h"
 
+class Workspace;
+
 /// The Engine handles communication between Desktop and R
 /// It can be in a variety of states _currentEngineState and can run analyses, filters, compute columns and Rcode.
 /// It also contains some utility functions for use by rbridge and by extension R
@@ -112,6 +114,7 @@ private: // Data:
 									_normalizedNotation		= true,
 									_useThousandSeps		= false,
 									_analysisPreloadData;
+	Workspace					*	_workspace				= nullptr;
 	std::string						_analysisName,
 									_analysisTitle,
 									_analysisFilter,

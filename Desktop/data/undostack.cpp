@@ -6,6 +6,7 @@
 //#include "datasettablemodel.h"
 #include "dataenums.h"
 #include "workspace.h"
+#include "datasetpackage.h"
 
 UndoStack* UndoStack::_undoStack = nullptr;
 
@@ -165,7 +166,7 @@ RemoveRowsCommand::RemoveRowsCommand(DataSet * data, int start, int count)
 void RemoveRowsCommand::undo()
 {
 	dataSet()->insertRows(_start, _count);
-	dataSet()->pasteSpreadsheet(_start, 0, _values, _labels, _colTypes);
+	dataSet()->pasteSpreadsheet(_start, 0, _values, _labels, _colTypes, QStringList(), std::vector<std::vector<bool>>());
 }
 
 void RemoveRowsCommand::redo()
@@ -238,7 +239,13 @@ SetColumnTypeCommand::SetColumnTypeCommand(DataSet * data, stringset cols, int c
 
 void SetColumnTypeCommand::redo()
 {
-	dataSet()->setColumnTypes(_cols, columnType(_newColType));
+	intset colIndices;
+	for(const std::string & col : _cols)
+	{
+		int idx = dataSet()->getColumnIndex(col);
+		if(idx >= 0) colIndices.insert(idx);
+	}
+	DataSetPackage::pkg()->setColumnTypes(colIndices, columnType(_newColType));
 }
 
 
@@ -253,7 +260,15 @@ void ColumnReverseValuesCommand::redo()
 	if(!dataSetStillExists())
 		Log::log() << "Dataset of id " << _dataSetID << " is gone!\nSo skipping redo " << text() << std::endl;
 	else
-		dataSet()->columnsReverseValues(_cols);
+	{
+		intset colIndices;
+		for(const std::string & col : _cols)
+		{
+			int idx = dataSet()->getColumnIndex(col);
+			if(idx >= 0) colIndices.insert(idx);
+		}
+		DataSetPackage::pkg()->columnsReverseValues(colIndices);
+	}
 }
 
 ColumnToggleAutoSortByValuesCommand::ColumnToggleAutoSortByValuesCommand(DataSet * data, stringset cols)
@@ -272,7 +287,15 @@ void ColumnToggleAutoSortByValuesCommand::redo()
 	if(!dataSetStillExists())
 		Log::log() << "Dataset of id " << _dataSetID << " is gone!\nSo skipping redo " << text() << std::endl;
 	else
-		dataSet()->columnsSetAutoSortForColumns(_colsNewAutoSort);
+	{
+		std::map<int,bool> colAutoSort;
+		for(const auto & pair : _colsNewAutoSort)
+		{
+			int idx = dataSet()->getColumnIndex(pair.first);
+			if(idx >= 0) colAutoSort[idx] = pair.second;
+		}
+		DataSetPackage::pkg()->columnsSetAutoSortForColumns(colAutoSort);
+	}
 }
 
 UndoModelCommandMultipleColumns::UndoModelCommandMultipleColumns(DataSet * data, stringset cols, bool serialize)
@@ -443,13 +466,13 @@ SetWorkspacePropertyCommand::SetWorkspacePropertyCommand(DataSet * data, QVarian
 void SetWorkspacePropertyCommand::undo()
 {
 	if (_prop == WorkspaceProperty::Description)
-		dataSet()->setDescriptionQ(_oldValue.toString());
+		dataSet()->setDescription(_oldValue.toString().toStdString());
 }
 
 void SetWorkspacePropertyCommand::redo()
 {
 	if (_prop == WorkspaceProperty::Description)
-		dataSet()->setDescriptionQ(_newValue.toString());
+		dataSet()->setDescription(_newValue.toString().toStdString());
 }
 
 SetLabelCommand::SetLabelCommand(Column * column, int labelIndex, QString newLabel)
@@ -762,7 +785,7 @@ void SetCustomEmptyValuesCommand::redo()
 SetWorkspaceEmptyValuesCommand::SetWorkspaceEmptyValuesCommand(DataSet * data, const QStringList& emptyValues)
 	: UndoModelCommand(data)
 {
-	_oldEmptyValues = data->emptyValuesAsStrings();
+	_oldEmptyValues = data->emptyValues()->emptyStrings();
 	_newEmptyValues = fql(emptyValues);
 	
 	setText(QObject::tr("Set workspace empty values"));
@@ -770,12 +793,12 @@ SetWorkspaceEmptyValuesCommand::SetWorkspaceEmptyValuesCommand(DataSet * data, c
 
 void SetWorkspaceEmptyValuesCommand::undo()
 {
-	dataSet()->setEmptyValuesFromStrings(_oldEmptyValues);
+	dataSet()->emptyValues()->setEmptyValues(_oldEmptyValues);
 }
 
 void SetWorkspaceEmptyValuesCommand::redo()
 {
-	dataSet()->setEmptyValuesFromStrings(_newEmptyValues);
+	dataSet()->emptyValues()->setEmptyValues(_newEmptyValues);
 }
 
 

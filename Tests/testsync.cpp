@@ -7,7 +7,7 @@
 #include "tempfiles.h"
 #include "processinfo.h"
 #include "utilities/settings.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 
 #include <QFile>
 #include <QDir>

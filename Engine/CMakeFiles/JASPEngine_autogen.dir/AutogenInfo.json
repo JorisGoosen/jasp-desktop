@@ -1,0 +1,139 @@
+{
+	"BUILD_DIR" : "/home/virtuoos/Broncode/jasp-desktop/Engine/JASPEngine_autogen",
+	"CMAKE_BINARY_DIR" : "/home/virtuoos/Broncode/jasp-desktop",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/virtuoos/Broncode/jasp-desktop/Engine",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/virtuoos/Broncode/jasp-desktop/Engine",
+	"CMAKE_EXECUTABLE" : "/usr/bin/cmake",
+	"CMAKE_LIST_FILES" : [ "/home/virtuoos/Broncode/jasp-desktop/Engine/CMakeLists.txt" ],
+	"CMAKE_SOURCE_DIR" : "/home/virtuoos/Broncode/jasp-desktop",
+	"CROSS_CONFIG" : false,
+	"DEP_FILE" : "/home/virtuoos/Broncode/jasp-desktop/Engine/JASPEngine_autogen/deps",
+	"DEP_FILE_RULE_NAME" : "JASPEngine_autogen/timestamp",
+	"HEADERS" : 
+	[
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Engine/engine.h",
+			"MU",
+			"EWIEGA46WW/moc_engine.cpp",
+			null
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/home/virtuoos/Broncode/jasp-desktop/Engine/JASPEngine_autogen/include",
+	"MOC_COMPILATION_FILE" : "/home/virtuoos/Broncode/jasp-desktop/Engine/JASPEngine_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : 
+	[
+		"BUILDING_JASP",
+		"BUILDING_JASP_ENGINE",
+		"ENABLE_LEGACY_NONAPI",
+		"JASP_DEBUG",
+		"JASP_USES_QT_HERE",
+		"JSONCPP_NO_LOCALE_SUPPORT",
+		"LINUX_LOCAL_BUILD",
+		"PRINT_ENGINE_MESSAGES",
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_NETWORK_LIB",
+		"QT_OPENGL_LIB",
+		"QT_QMLINTEGRATION_LIB",
+		"QT_QMLMODELS_LIB",
+		"QT_QML_LIB",
+		"QT_QUICKCONTROLS2IMPL_LIB",
+		"QT_QUICKCONTROLS2_LIB",
+		"QT_QUICKLAYOUTS_LIB",
+		"QT_QUICKTEMPLATES2_LIB",
+		"QT_QUICKWIDGETS_LIB",
+		"QT_QUICK_LIB",
+		"QT_SQL_LIB",
+		"QT_WIDGETS_LIB",
+		"RCPP_NO_SUGAR",
+		"R_HOME=/usr/lib/R"
+	],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/home/virtuoos/Broncode/jasp-desktop/Engine",
+		"/home/virtuoos/Broncode/jasp-desktop/QMLComponents",
+		"/home/virtuoos/Broncode/jasp-desktop/R-Interface",
+		"/home/virtuoos/Broncode/jasp-desktop/CommonData",
+		"/home/virtuoos/Broncode/jasp-desktop/Common",
+		"/home/virtuoos/Broncode/jasp-desktop/QMLComponents/controls",
+		"/home/virtuoos/Broncode/jasp-desktop/QMLComponents/rsyntax",
+		"/home/virtuoos/Broncode/jasp-desktop/QMLComponents/ALTNavigation",
+		"/usr/include/R",
+		"/usr/lib/R/include",
+		"/home/virtuoos/Broncode/jasp-desktop/Modules/Tools/R_cpp_includes_library/Rcpp/include",
+		"/home/virtuoos/Broncode/jasp-desktop/Modules/Tools/R_cpp_includes_library/RInside/include",
+		"/usr/include/qt6/QtCore",
+		"/usr/include/qt6",
+		"/usr/lib/qt6/mkspecs/linux-g++",
+		"/usr/include/qt6/QtGui",
+		"/usr/include/qt6/QtQml",
+		"/usr/include/qt6/QtQmlIntegration",
+		"/usr/include/qt6/QtNetwork",
+		"/usr/include/qt6/QtSql",
+		"/usr/include/qt6/QtQuick",
+		"/usr/include/qt6/QtOpenGL",
+		"/usr/include/qt6/QtWidgets",
+		"/usr/include/qt6/QtQuickLayouts",
+		"/usr/include/qt6/QtQuickControls2",
+		"/usr/include/qt6/QtQuickControls2Impl",
+		"/usr/include/qt6/QtQuickWidgets",
+		"/usr/include/qt6/QtQuickTemplates2",
+		"/usr/include/qt6/QtQmlModels",
+		"/usr/include",
+		"/usr/include/c++/16.1.1",
+		"/usr/include/c++/16.1.1/x86_64-pc-linux-gnu",
+		"/usr/include/c++/16.1.1/backward",
+		"/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include",
+		"/usr/local/include"
+	],
+	"MOC_MACRO_NAMES" : 
+	[
+		"Q_OBJECT",
+		"Q_GADGET",
+		"Q_NAMESPACE",
+		"Q_NAMESPACE_EXPORT",
+		"Q_GADGET_EXPORT",
+		"Q_ENUM_NS"
+	],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/c++",
+		"-std=gnu++20",
+		"-w",
+		"-dM",
+		"-E",
+		"/usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/home/virtuoos/Broncode/jasp-desktop/Engine/JASPEngine_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : [],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 4,
+	"PARSE_CACHE_FILE" : "/home/virtuoos/Broncode/jasp-desktop/Engine/CMakeFiles/JASPEngine_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/usr/lib/qt6/moc",
+	"QT_UIC_EXECUTABLE" : "/usr/lib/qt6/uic",
+	"QT_VERSION_MAJOR" : 6,
+	"QT_VERSION_MINOR" : 11,
+	"SETTINGS_FILE" : "/home/virtuoos/Broncode/jasp-desktop/Engine/CMakeFiles/JASPEngine_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[ "/home/virtuoos/Broncode/jasp-desktop/Engine/engine.cpp", "MU", null ],
+		[ "/home/virtuoos/Broncode/jasp-desktop/Engine/main.cpp", "MU", null ]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
+	"USE_BETTER_GRAPH" : true,
+	"VERBOSITY" : 0
+}

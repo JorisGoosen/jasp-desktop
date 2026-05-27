@@ -1,0 +1,312 @@
+{
+	"BUILD_DIR" : "/home/virtuoos/Broncode/jasp-desktop/Common/Common_autogen",
+	"CMAKE_BINARY_DIR" : "/home/virtuoos/Broncode/jasp-desktop",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/virtuoos/Broncode/jasp-desktop/Common",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/virtuoos/Broncode/jasp-desktop/Common",
+	"CMAKE_EXECUTABLE" : "/usr/bin/cmake",
+	"CMAKE_LIST_FILES" : 
+	[
+		"/home/virtuoos/Broncode/jasp-desktop/Common/CMakeLists.txt",
+		"/home/virtuoos/Broncode/jasp-desktop/Common/appinfo.cpp.in"
+	],
+	"CMAKE_SOURCE_DIR" : "/home/virtuoos/Broncode/jasp-desktop",
+	"CROSS_CONFIG" : false,
+	"DEP_FILE" : "/home/virtuoos/Broncode/jasp-desktop/Common/Common_autogen/deps",
+	"DEP_FILE_RULE_NAME" : "Common_autogen/timestamp",
+	"HEADERS" : 
+	[
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/appinfo.h",
+			"MU",
+			"EWIEGA46WW/moc_appinfo.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/columnencoder.h",
+			"MU",
+			"EWIEGA46WW/moc_columnencoder.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/columntype.h",
+			"MU",
+			"EWIEGA46WW/moc_columntype.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/common.h",
+			"MU",
+			"EWIEGA46WW/moc_common.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/dirs.h",
+			"MU",
+			"EWIEGA46WW/moc_dirs.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/enginedefinitions.h",
+			"MU",
+			"EWIEGA46WW/moc_enginedefinitions.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/enumutilities.h",
+			"MU",
+			"EWIEGA46WW/moc_enumutilities.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/allocator.h",
+			"MU",
+			"ICHL3IZI6V/moc_allocator.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/assertions.h",
+			"MU",
+			"ICHL3IZI6V/moc_assertions.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/config.h",
+			"MU",
+			"ICHL3IZI6V/moc_config.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/forwards.h",
+			"MU",
+			"ICHL3IZI6V/moc_forwards.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/json.h",
+			"MU",
+			"ICHL3IZI6V/moc_json.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/json_features.h",
+			"MU",
+			"ICHL3IZI6V/moc_json_features.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/json_tool.h",
+			"MU",
+			"ICHL3IZI6V/moc_json_tool.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/reader.h",
+			"MU",
+			"ICHL3IZI6V/moc_reader.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/value.h",
+			"MU",
+			"ICHL3IZI6V/moc_value.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/version.h",
+			"MU",
+			"ICHL3IZI6V/moc_version.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/writer.h",
+			"MU",
+			"ICHL3IZI6V/moc_writer.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/log.h",
+			"MU",
+			"EWIEGA46WW/moc_log.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/otoolstuff.h",
+			"MU",
+			"EWIEGA46WW/moc_otoolstuff.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/processinfo.h",
+			"MU",
+			"EWIEGA46WW/moc_processinfo.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/r_functionwhitelist.h",
+			"MU",
+			"EWIEGA46WW/moc_r_functionwhitelist.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/stringutils.h",
+			"MU",
+			"EWIEGA46WW/moc_stringutils.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/tempfiles.h",
+			"MU",
+			"EWIEGA46WW/moc_tempfiles.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/timers.h",
+			"MU",
+			"EWIEGA46WW/moc_timers.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/utilenums.h",
+			"MU",
+			"EWIEGA46WW/moc_utilenums.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/utils.h",
+			"MU",
+			"EWIEGA46WW/moc_utils.cpp",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/version.h",
+			"MU",
+			"EWIEGA46WW/moc_version.cpp",
+			null
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/home/virtuoos/Broncode/jasp-desktop/Common/Common_autogen/include",
+	"MOC_COMPILATION_FILE" : "/home/virtuoos/Broncode/jasp-desktop/Common/Common_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : [ "BUILDING_JASP", "JASP_DEBUG", "JSONCPP_NO_LOCALE_SUPPORT" ],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/home/virtuoos/Broncode/jasp-desktop/Common",
+		"/usr/include/R",
+		"/usr/lib/R/include",
+		"/home/virtuoos/Broncode/jasp-desktop/Modules/Tools/R_cpp_includes_library/Rcpp/include",
+		"/usr/include",
+		"/usr/include/c++/16.1.1",
+		"/usr/include/c++/16.1.1/x86_64-pc-linux-gnu",
+		"/usr/include/c++/16.1.1/backward",
+		"/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include",
+		"/usr/local/include"
+	],
+	"MOC_MACRO_NAMES" : 
+	[
+		"Q_OBJECT",
+		"Q_GADGET",
+		"Q_NAMESPACE",
+		"Q_NAMESPACE_EXPORT",
+		"Q_GADGET_EXPORT",
+		"Q_ENUM_NS"
+	],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/c++",
+		"-std=gnu++20",
+		"-w",
+		"-dM",
+		"-E",
+		"/usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/home/virtuoos/Broncode/jasp-desktop/Common/Common_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : [],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 4,
+	"PARSE_CACHE_FILE" : "/home/virtuoos/Broncode/jasp-desktop/Common/CMakeFiles/Common_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/usr/lib/qt6/moc",
+	"QT_UIC_EXECUTABLE" : "/usr/lib/qt6/uic",
+	"QT_VERSION_MAJOR" : 6,
+	"QT_VERSION_MINOR" : 11,
+	"SETTINGS_FILE" : "/home/virtuoos/Broncode/jasp-desktop/Common/CMakeFiles/Common_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[ "/home/virtuoos/Broncode/jasp-desktop/Common/appinfo.cpp", "MU", null ],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/columnencoder.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/columntype.cpp",
+			"MU",
+			null
+		],
+		[ "/home/virtuoos/Broncode/jasp-desktop/Common/dirs.cpp", "MU", null ],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/enginedefinitions.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/json_reader.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/json_value.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/json/json_writer.cpp",
+			"MU",
+			null
+		],
+		[ "/home/virtuoos/Broncode/jasp-desktop/Common/log.cpp", "MU", null ],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/otoolstuff.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/processinfo.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/r_functionwhitelist.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/tempfiles.cpp",
+			"MU",
+			null
+		],
+		[ "/home/virtuoos/Broncode/jasp-desktop/Common/timers.cpp", "MU", null ],
+		[
+			"/home/virtuoos/Broncode/jasp-desktop/Common/utilenums.cpp",
+			"MU",
+			null
+		],
+		[ "/home/virtuoos/Broncode/jasp-desktop/Common/utils.cpp", "MU", null ],
+		[ "/home/virtuoos/Broncode/jasp-desktop/Common/version.cpp", "MU", null ]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
+	"USE_BETTER_GRAPH" : true,
+	"VERBOSITY" : 0
+}

@@ -29,6 +29,7 @@
 #include <json/json.h>
 #include "processinfo.h"
 #include "qutils.h"
+#include "workspace.h"
 #include "utilities/appdirs.h"
 #include "analysis/analyses.h"
 #include "gui/preferencesmodel.h"
@@ -270,7 +271,7 @@ EngineRepresentation * EngineSync::createNewEngine(bool addToEngines, int overri
 			connect(Analyses::analyses(),	&Analyses::analysisRemoved,								engine,					&EngineRepresentation::analysisRemoved									);
 		}
 		
-		connect(engine,						&EngineRepresentation::filterByNameDone,				DataSetPackage::pkg(),	&DataSetPackage::filterByNameDone,					Qt::QueuedConnection	);
+connect(engine,						&EngineRepresentation::filterByNameDone,			Workspace::singleton(),	&Workspace::filterByNameDone,				Qt::QueuedConnection	);
 		connect(engine,						&EngineRepresentation::engineTerminated,				this,					&EngineSync::engineTerminated												);
 		connect(engine,						&EngineRepresentation::filterDone,						this,					&EngineSync::filterDone														);
 		connect(engine,						&EngineRepresentation::moduleInstallationFailed,		this,					&EngineSync::moduleInstallationFailed										);

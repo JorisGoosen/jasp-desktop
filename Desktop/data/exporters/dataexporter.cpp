@@ -21,6 +21,7 @@
 #include "stringutils.h"
 #include "utilenums.h"
 #include "../datasetpackage.h"
+#include "workspace.h"
 
 using namespace std;
 
@@ -39,9 +40,9 @@ void DataExporter::saveDataSet(const std::string &path, std::function<void(int)>
 
 	std::ofstream outfile(path.c_str(), ios::out);
 
-	for(DataSet * dataSet : DataSetPackage::pkg()->workspace()->dataSets())
+	for(DataSet * dataSet : Workspace::singleton()->dataSets())
 	{
-		dataSet->writeToOStream(outfile, _includeComputeColumns);
+		DataSetPackage::pkg()->writeDataSetToOStream(outfile, _includeComputeColumns);
 		outfile << std::endl;
 	}
 

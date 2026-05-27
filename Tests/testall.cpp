@@ -19,7 +19,7 @@
 #include "testinfo.h"
 #include "tempfiles.h"
 #include "processinfo.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "databaseinterface.h"
 #include "utilities/settings.h"
 #include "data/datasetpackage.h"
@@ -109,7 +109,8 @@ void TestAll::testDataImport()
 	QVERIFY2(_importer, "Getting importer failed...");
 
 	std::cerr << "Testing " << dataFileAbsolutePath << std::endl;
-	_importer->loadDataSet(fq(dataFileAbsolutePath), [](int i){});
+	_pkg->createDataSet();
+	_importer->loadDataSet(fq(dataFileAbsolutePath), _pkg->dataSet(), [](int i){});
 
 	DataSet * dataSet = _pkg->dataSet();
 	QVERIFY2(dataSet,						"No dataset!");
@@ -305,9 +306,10 @@ void TestAll::testSavLabels()
 
 	_pkg		= new DataSetPackage(this);
 	_importer	= new ReadStatImporter();
+	_pkg->createDataSet();
 
 	const QString savPath = _testLibrary().absoluteFilePath("readstat/Labelled_data.sav");
-	_importer->loadDataSet(fq(savPath), [](int){});
+	_importer->loadDataSet(fq(savPath), _pkg->dataSet(), [](int){});
 
 	DataSet * dataSet = _pkg->dataSet();
 	QVERIFY2(dataSet, "No dataset!");

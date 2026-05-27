@@ -1,0 +1,9 @@
+-rootPath
+/home/virtuoos/Broncode/jasp-desktop/Tests
+-cmake-output
+-output-file
+/home/virtuoos/Broncode/jasp-desktop/Tests/.qt/qml_imports/JASPTest_build.cmake
+-importPath
+/home/virtuoos/Broncode/jasp-desktop/Tests
+-importPath
+/usr/lib/qt6/qml

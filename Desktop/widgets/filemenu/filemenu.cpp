@@ -23,6 +23,7 @@
 #include "utilities/messageforwarder.h"
 #include "log.h"
 #include "data/datasetpackage.h"
+#include "workspace.h"
 #include "mainwindow.h"
 #include "utilities/appdirs.h"
 #include "data/jaspencryptiondata.h"
@@ -285,7 +286,6 @@ void FileMenu::dataSetIOCompleted(FileEvent *event)
 		_currentFilePath		= "";
 		_currentFileType		= Utils::FileType::unknown;
         JaspEncryptionData::getInstance()->reset();
-		clearSyncData();
 	}
 
 	_resourceButtons->setButtonEnabled(ResourceButtons::CurrentFile, !_currentDataFile->getCurrentFilePath().isEmpty());
@@ -319,12 +319,6 @@ void FileMenu::refresh()
 	_resourceButtons->refresh();
 	_actionButtons->refresh();
 	_dataLibrary->refres();
-}
-
-void FileMenu::dataFileModifiedHandler(QString path)
-{
-	_mainWindow->setCheckAutomaticSync(false);
-	//syncDataFile(path, true);
 }
 
 void FileMenu::dataSetIORequestHandler(FileEvent *event)
@@ -370,8 +364,7 @@ void FileMenu::actionButtonClicked(const ActionButtons::FileOperation action)
 	case ActionButtons::FileOperation::SaveAs:				setMode(FileEvent::FileSave);			break;
 	case ActionButtons::FileOperation::ExportResults:		setMode(FileEvent::FileExportResults);	break;
 	case ActionButtons::FileOperation::ExportData:  		setMode(FileEvent::FileExportData);		break;
-case ActionButtons::FileOperation::SyncData:			setMode(FileEvent::FileSyncData);		break;
-	case ActionButtons::FileOperation::Close:				close();								break;
+case ActionButtons::FileOperation::Close:				close();								break;
 	case ActionButtons::FileOperation::Save:
 		if (getCurrentFileType() == Utils::FileType::jasp && !DataSetPackage::pkg()->currentJaspFileIsNonSaveable())
 			save();
@@ -426,56 +419,6 @@ void FileMenu::showAboutRequest()
 void FileMenu::showContactRequest()
 {
 	emit showContact();
-}
-
-void FileMenu::clearSyncData()
-{
-	_currentDataFile->setCurrentFilePath(QString());
-}
-#endif
-}
-
-bool FileMenu::checkSyncFileExists(const QString &path, bool waitForExistence)
-{
-	if (path.startsWith("http"))
-		return true;
-
-	auto checkExists = [](const QString& path) { return QFileInfo::exists(path); };
-	auto checkNotEmpty = [](const QString& path) { return Utils::getFileSize(path.toStdString()) > 0; };
-
-	auto checkFn = [&](std::function<bool(const QString&)> fn)
-	{
-		if (!waitForExistence) return fn(path);
-
-		for (int i = 0; i < 10; i++)
-		{
-			if (fn(path))	return true;
-			Utils::sleep(100);
-		}
-		return false;
-	};
-
-	bool result = checkFn(checkExists) && checkFn(checkNotEmpty);
-
-	if (!result)
-	{
-		Log::log() << "Could not find a valid Sync file in " << path << std::endl;
-		clearSyncData();
-	}
-
-	return result;
-}
-
-
-void FileMenu::clearSyncData()
-{
-	setDataFileWatcher(false); // must be done before setting the current to empty.
-	_currentDataFile->setCurrentFilePath(QString());
-}
-
-bool FileMenu::clearOSFFromRecentList(QString path)
-{
-	return OnlineDataManager::determineProvider(path) != OnlineDataManager::OSF;
 }
 
 void FileMenu::setVisible(bool visible)

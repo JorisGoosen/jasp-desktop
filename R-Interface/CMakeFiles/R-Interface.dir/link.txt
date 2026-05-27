@@ -1,0 +1,2 @@
+/usr/bin/ar qc libR-Interface.a "CMakeFiles/R-Interface.dir/R-Interface_autogen/mocs_compilation.cpp.o" "CMakeFiles/R-Interface.dir/__/Common/json/json_reader.cpp.o" "CMakeFiles/R-Interface.dir/__/Common/json/json_value.cpp.o" "CMakeFiles/R-Interface.dir/__/Common/json/json_writer.cpp.o" "CMakeFiles/R-Interface.dir/jasprcpp.cpp.o"
+/usr/bin/ranlib libR-Interface.a
