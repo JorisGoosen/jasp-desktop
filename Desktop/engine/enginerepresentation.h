@@ -153,6 +153,7 @@ signals:
 	void			filterByNameDone(				int dataSetID, QString name, QString error);
 	void			filterDone(																int requestID);
 	void			processFilterErrorMsg(			const QString & error,					int requestId = -1);
+	void			computeColumnSucceeded(			QString columnName, QString warning, bool dataChanged);
 	
 	void			rCodeReturned(					const QString & result, int requestId, bool hasError	);
 	void			rCodeReturnedLog(				const QString & log, bool hasError						);

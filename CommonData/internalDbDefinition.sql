@@ -10,7 +10,10 @@ CREATE TABLE DataSets (
 	revision		INT DEFAULT 0, 
 	dataFileSynch	INT,
 	showRSyntax		INT DEFAULT 0,
-	csvDelimiter	INT DEFAULT 0
+	csvDelimiter	INT DEFAULT 0,
+	isComputed		INT DEFAULT 0,
+	computeCode		TEXT,
+	dependsOn		TEXT
 );
 
 CREATE TABLE Filters ( 

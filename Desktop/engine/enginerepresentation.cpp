@@ -500,6 +500,12 @@ void EngineRepresentation::processComputeColumnReply(Json::Value & json)
 
 	setState(engineState::idle);
 
+	QString columnName	= tq(json.get("columnName",		"").asString());
+	QString warning		= tq(json.get("warning",		"").asString());
+	bool dataChanged	= json.get("dataChanged",		false).asBool();
+
+	emit computeColumnSucceeded(columnName, warning, dataChanged);
+
 	checkDataSetForUpdates();
 }
 

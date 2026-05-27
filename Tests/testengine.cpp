@@ -12,7 +12,6 @@
 #include "data/importers/csvimporter.h"
 #include "engine/enginerepresentation.h"
 #include "workspace.h"
-#include "datasetsyncer.h"
 
 void TestEngine::initTestCase()
 {
@@ -27,6 +26,8 @@ void TestEngine::init()
 	Settings	::	informSettingsThatThisIsATest();
 	
 	_pkg		=	new DataSetPackage(this);
+	_pkg->createWorkspace();
+	_workspace	=	_pkg->workspace();
 	_importer	=	new CSVImporter();
 	_engines	=	new EngineSync(this);
 

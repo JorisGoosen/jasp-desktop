@@ -1466,6 +1466,21 @@ void DataSetPackage::dbDelete()
 		_dataSet->dbDelete();
 }
 
+void DataSetPackage::createWorkspace()
+{
+	assert(!_workspace);
+
+	_workspace = new Workspace(this);
+	setDefaultWorkspaceValues();
+
+	emit workspaceChanged();
+}
+
+Workspace * DataSetPackage::workspace()
+{
+	return Workspace::singleton();
+}
+
 void DataSetPackage::createDataSet()
 {
 	JASPTIMER_SCOPE(DataSetPackage::createDataSet);

@@ -9,6 +9,7 @@ class DataSetPackage;
 class EngineSync;
 class Importer;
 class DataSet;
+class Workspace;
 
 class TestEngine: public QObject
 {
@@ -27,6 +28,7 @@ private:
 	DataSetPackage			*	_pkg		= nullptr;
 	DataSet					*	_data		= nullptr;
 	Importer				*	_importer	= nullptr;
+	Workspace				*	_workspace	= nullptr;
 	const char				*	_debugCsv	= "";
 };
 

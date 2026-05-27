@@ -75,6 +75,8 @@ public:
 		void				increaseDataSetColCount(size_t rowCount)			{ setDataSetSize(dataColumnCount() + 1,	rowCount); }
 
 		void				createDataSet();	///< Creates *OR* recreates a dataset in database
+		void				createWorkspace();	///< Creates workspace singleton
+		Workspace		*	workspace();		///< Returns Workspace::singleton()
         void                loadDataSet(std::function<void(float)> progressCallback = [](float){});      ///< Assumes internal.sqlite has just been loaded from a JASPFile and will init DataSet etc with it.
 		void				deleteDataSet();	///< Deletes dataset from memory but not from database
 		bool				hasDataSet() { return _dataSet; }
@@ -295,6 +297,7 @@ signals:
 													QMap<QString, QString>	changeNameColumns,
 													bool					rowCountChanged,
 													bool					hasNewColumns);
+				void				workspaceChanged();
 				void				columnsFilteredCountChanged();
 				void				runFilter();
 				void				badDataEntered(const QModelIndex index);
@@ -375,6 +378,7 @@ private:
 	DatabaseInterface		*	_db							= nullptr;
 	DataSet					*	_dataSet					= nullptr;
 	EngineSync				*	_engineSync					= nullptr;
+	Workspace				*	_workspace					= nullptr;
 
 	QString						_currentFile,
 								_folder,
