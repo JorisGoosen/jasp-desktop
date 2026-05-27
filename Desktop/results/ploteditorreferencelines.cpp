@@ -2,6 +2,7 @@
 #include "ploteditorreferencelines.h"
 #include "dataenums.h"
 #include "qutils.h"
+#include "utilities/utiltypes.h"
 #include "ploteditormodel.h"
 
 namespace PlotEditor

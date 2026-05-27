@@ -18,9 +18,10 @@ private slots:
 	void	testEmptyValues();
 	void	testChangeLabel();
 	void    testReverseLabels();
-    void    testReverseNumericals();
+	void    testReverseNumericals();
 	void	testShadowDisplay();
 	
+
 private:
 	DataSetPackage		*	_pkg		= nullptr;
 	DataSet				*	_data		= nullptr;

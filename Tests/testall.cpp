@@ -1,27 +1,9 @@
-//
-// Copyright (C) 2013-2026 University of Amsterdam
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public
-// License along with this program.  If not, see
-// <http://www.gnu.org/licenses/>.
-//
 #include "testall.h"
 #include "testinfo.h"
 #include "tempfiles.h"
 #include "processinfo.h"
 #include "qutils.h"
 #include "databaseinterface.h"
-#include "utilities/settings.h"
 #include "data/datasetpackage.h"
 #include "data/importers/csvimporter.h"
 #include "data/importers/odsimporter.h"
@@ -29,8 +11,9 @@
 #include "data/exporters/jaspexporter.h"
 #include "data/importers/excelimporter.h"
 #include "data/importers/rdataimporter.h"
-
 #include "data/importers/readstatimporter.h"
+#include "utilities/settings.h"
+
 
 void TestAll::initTestCase()
 {
@@ -45,7 +28,7 @@ void TestAll::init()
 
 void TestAll::cleanup()
 {
-
+	
 	delete _importer;
 	_importer = nullptr;
 
@@ -92,7 +75,7 @@ void TestAll::testDataImport()
 		if(folder == "rdata")		return new RDataImporter();
 		if(folder == "excel")		return new ExcelImporter();
 		if(folder == "ods")			return new ods::ODSImporter();
-		if(folder == "csv")			return new CSVImporter(false);
+		if(folder == "csv")			return new CSVImporter();
 
 		return nullptr;
 	};
@@ -148,15 +131,12 @@ void TestAll::testDataImport()
 	bool hardcodedIsSame = hardcoded == compareMe;
 
 	if(!hardcodedIsSame)
-	{
 		std::cerr << stringUtils::replaceBy(compareMe.toStyledString(), "\n", " ") << std::endl;
-		std::cerr << fq(dataFileAbsolutePath) + " Test fails" << std::endl;
-	}
 
-	QVERIFY2(hardcodedIsSame, "Hardcoded json is different!" );
+	QVERIFY2(hardcodedIsSame,			"Hardcoded json is different!");
 
-
-DataSet loadMe(nullptr, dataSet->id());
+	
+	DataSet loadMe(nullptr, dataSet->id());
 	QVERIFY2(dataSet->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -200,26 +180,24 @@ void TestAll::testJaspRoundRobin()
 		delete _importer;
 
 	_pkg = new DataSetPackage(this);
-
+	
 	std::cerr << "Testing " << dataFileAbsolutePath << std::endl;
 	JASPImporter::loadDataSet(fq(dataFileAbsolutePath),		[](int){});
-
+	
 	DataSet *	dataSet		= _pkg->dataSet();
 	QVERIFY2(dataSet,			"No dataset!");
-
+	
 	Json::Value compareMe	= dataSet->jsonForCompare();
 	std::string jaspFile	= TempFiles::createSpecific("testjasp", "temp.jasp");
 
 	std::cerr << "Storing jasp file temporarily to: " << jaspFile << std::endl;
-	// Create snapshot before exporting
-	JASPExporter::createSnapshot("testjasp_snapshot_");
 	JASPExporter().saveDataSet(jaspFile, [](int){});
-
+	
 	_pkg->reset();
 	QVERIFY2(_pkg->dataSet()->jsonForCompare() != compareMe, "DataSet should be different after resetting DataSetPackage!");
-
+	
 	JASPImporter::loadDataSet(jaspFile, [](int){});
-
+	
 	dataSet = _pkg->dataSet();
 	QVERIFY2(dataSet,									"No dataset!");
 	QVERIFY2(dataSet->jsonForCompare() == compareMe,	"DataSet should be the same after reloading!");
@@ -241,11 +219,11 @@ void TestAll::testJaspDataImport()
 		delete _importer;
 
 	_pkg = new DataSetPackage(this);
-
+	
 	std::cerr << "Testing " << dataFileAbsolutePath << std::endl;
 
 	JASPImporter::loadDataSet(fq(dataFileAbsolutePath),		[](int){});
-
+	
 	DataSet * dataSet = _pkg->dataSet();
 	QVERIFY2(dataSet,						"No dataset!");
 
@@ -271,8 +249,8 @@ void TestAll::testJaspDataImport()
 	QVERIFY(jsonFileIn.exists());
 
 	QFile jsonFile(jsonFilePath);
-
-
+	
+	
 	jsonFile.open(QFile::OpenModeFlag::ReadOnly);
 
 	std::string jsonTxt  = fq(jsonFile.readAll());
@@ -289,7 +267,8 @@ void TestAll::testJaspDataImport()
 
 	QVERIFY2(hardcodedIsSame,			"Hardcoded json is different!");
 
-DataSet loadMe(nullptr, dataSet->id());
+	
+	DataSet loadMe(nullptr, dataSet->id());
 	QVERIFY2(dataSet->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -306,7 +285,7 @@ void TestAll::testSavLabels()
 	_importer	= new ReadStatImporter();
 
 	const QString savPath = _testLibrary().absoluteFilePath("readstat/Labelled_data.sav");
-	_importer->loadDataSet(fq(savPath), [](int){});
+	_importer->loadDataSet(fq(savPath), _pkg->createDataSet(), [](int){});
 
 	DataSet * dataSet = _pkg->dataSet();
 	QVERIFY2(dataSet, "No dataset!");
@@ -378,21 +357,20 @@ void TestAll::testFilterLabels()
 	QVERIFY2(treatLabel->filterAllows(),				qPrintable("'Treat'label is filtered"));
 
 	// Do as if the user clicked on Filter for the Control label in the Label window
-	_pkg->setData(_pkg->indexForSubNode(controlLabel), false, int(DataSetPackage::specialRoles::filter));
+	col->setLabelAllowFilter(0, false);
 	QVERIFY2(!controlLabel->filterAllows(),				qPrintable("'Control' label is not filtered"));
 	QVERIFY2(treatLabel->filterAllows(),				qPrintable("'Treat'label is filtered"));
 
 	// Not all labels can be unset: nothing should change
-	_pkg->setData(_pkg->indexForSubNode(treatLabel), false, int(DataSetPackage::specialRoles::filter));
+	col->setLabelAllowFilter(1, false);
 	QVERIFY2(!controlLabel->filterAllows(),				qPrintable("'Control' label is not filtered"));
 	QVERIFY2(treatLabel->filterAllows(),				qPrintable("'Treat'label is filtered"));
 
-	// Set first the Control label, and unset the Treat lable: this time it should work
-	_pkg->setData(_pkg->indexForSubNode(controlLabel), true, int(DataSetPackage::specialRoles::filter));
-	_pkg->setData(_pkg->indexForSubNode(treatLabel), false, int(DataSetPackage::specialRoles::filter));
+	// Set first the Control label, and unset the Treat label: this time it should work
+	col->setLabelAllowFilter(0, true);
+	col->setLabelAllowFilter(1, false);
 	QVERIFY2(controlLabel->filterAllows(),				qPrintable("'Control' label is filtered"));
 	QVERIFY2(!treatLabel->filterAllows(),				qPrintable("'Treat'label is not filtered"));
-
 }
 
 

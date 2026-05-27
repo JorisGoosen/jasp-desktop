@@ -242,12 +242,6 @@ static void clearQmlFormCache()
 	}
 }
 
-static void refreshQmlDataSetInfoContext()
-{
-	if (gl_qmlEngine)
-		gl_qmlEngine->rootContext()->setContextProperty("dataSetInfo", VariableInfo::info());
-}
-
 static DataSetProvider* resetDataProvider(bool dbInMemory, bool resetDataSet)
 {
 	bool providerWillBeRecreated = gl_initialized && gl_initializedDbInMemory != dbInMemory;
@@ -256,7 +250,6 @@ static DataSetProvider* resetDataProvider(bool dbInMemory, bool resetDataSet)
 
 	DataSetProvider * provider = DataSetProvider::getProvider(dbInMemory, resetDataSet, gl_application);
 	gl_initializedDbInMemory = dbInMemory;
-	refreshQmlDataSetInfoContext();
 	return provider;
 }
 
@@ -629,34 +622,6 @@ const char* STDCALL syntaxBridgeParseDescription(const char* modulePath)
 
 	static std::string result;
 	result = jsonDescription.toStyledString();
-
-	return result.c_str();
-}
-
-const char* STDCALL syntaxBridgeAnalysisOptionsFromJaspFile(const char * filePath, int analysisNr)
-{
-	if (!init())
-	{
-		Log::log() << "Error during initialization" << std::endl;
-		return "";
-	}
-
-	static std::string result;
-
-	result = "";
-	Json::Value analysesData;
-
-	if (ArchiveReader::parseJsonEntry(analysesData, filePath, "analyses.json", false))
-	{
-		Json::Value analysesDataList = analysesData.get("analyses",	analysesData);
-		if (analysisNr < analysesDataList.size())
-			result = analysesDataList[analysisNr]["options"].toStyledString();
-		else
-			Log::log() << "Analyis number is higher than the number of analyses (" << analysesDataList.size() << ") in the JASP file" << std::endl;
-	}
-	else
-		Log::log() << "Fail to open or read the JASP file " << filePath << std::endl;
-
 
 	return result.c_str();
 }

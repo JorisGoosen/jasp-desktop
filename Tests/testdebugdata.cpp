@@ -4,7 +4,6 @@
 #include "processinfo.h"
 #include "testdebugdata.h"
 #include "databaseinterface.h"
-#include "utilities/settings.h"
 #include "data/datasetpackage.h"
 #include "data/importers/csvimporter.h"
 
@@ -17,7 +16,6 @@ void TestDebugData::initTestCase()
 void TestDebugData::init()
 {
 	TempFiles::clearSessionDir();
-	Settings::informSettingsThatThisIsATest();
 	
 	_pkg		= new DataSetPackage(this);
 	_importer	= new CSVImporter();
@@ -379,7 +377,10 @@ QString shadContGammaMsg = QString("contGamma row 0 shadow should be empty when 
 				.arg(valContGamma.c_str()).arg(dispContGamma.c_str()).arg(shadContGamma.c_str());
 		std::string shadContGammaMsgStr = shadContGammaMsg.toStdString();
 		QVERIFY2(valContGamma.empty() || shadContGamma.empty(), shadContGammaMsgStr.c_str());
-	}
+	
+	DataSet loadMe(_data->workspace(), _data->id());
+	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
+}
 
 
 QTEST_MAIN(TestDebugData)

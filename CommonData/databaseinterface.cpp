@@ -232,7 +232,7 @@ void DatabaseInterface::dataSetLoad(int dataSetId, std::string & title, std::str
 
 		assert(colCount == 9);
 
-assert(colCount == 10);
+assert(colCount == 9);
 
 		dataFilePath		= _wrap_sqlite3_column_text(stmt, 0);
 		title				= _wrap_sqlite3_column_text(stmt, 1);

@@ -134,7 +134,7 @@ public:
 				void				setLoaded(bool loaded = true);
 				void				setDescription(const QString& description);
 				
-static		int					thresholdScale();
+	static		int					thresholdScale();
 	static		int					orderByValueByDefault();
 				const stringset&	currentDataSetEmptyValues()										const;
 				bool				workspaceShowRSyntax()										const;
