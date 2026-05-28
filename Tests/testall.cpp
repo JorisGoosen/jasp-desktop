@@ -13,6 +13,13 @@
 #include "data/importers/rdataimporter.h"
 #include "data/importers/readstatimporter.h"
 #include "utilities/settings.h"
+#include "datasetsyncer.h"
+#include "dataset.h"
+#include "workspace.h"
+
+#include <QSignalSpy>
+#include <QFile>
+#include <QFileInfo>
 
 
 void TestAll::initTestCase()
@@ -371,6 +378,154 @@ void TestAll::testFilterLabels()
 	col->setLabelAllowFilter(1, false);
 	QVERIFY2(controlLabel->filterAllows(),				qPrintable("'Control' label is filtered"));
 	QVERIFY2(!treatLabel->filterAllows(),				qPrintable("'Treat'label is not filtered"));
+}
+
+// ---------- DataSetSyncer tests ----------
+
+void TestAll::testSyncerStartStopFileSyncing()
+{
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+
+	DataSetSyncer & syncer = ds->syncer();
+	QVERIFY(!syncer.isFileSyncing());
+
+	QTemporaryDir tempDir;
+	QVERIFY(tempDir.isValid());
+	QString testFilePath = tempDir.filePath("test_startstop.csv");
+	QFile f(testFilePath);
+	QVERIFY(f.open(QIODevice::WriteOnly));
+	f.write("a,b,c\n1,2,3\n");
+	f.close();
+
+	syncer.startFileSyncing(testFilePath);
+	QVERIFY(syncer.isFileSyncing());
+	QCOMPARE(QString::fromStdString(ds->dataFilePath()), testFilePath);
+	QVERIFY(ds->dataFileSynch());
+
+	syncer.stopFileSyncing();
+	QVERIFY(!syncer.isFileSyncing());
+	QVERIFY(!ds->dataFileSynch());
+}
+
+void TestAll::testSyncerFileChangeEmitsSignal()
+{
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+
+	DataSetSyncer & syncer = ds->syncer();
+
+	QTemporaryDir tempDir;
+	QVERIFY(tempDir.isValid());
+	QString testFilePath = tempDir.filePath("sync_emit.csv");
+	QFile f(testFilePath);
+	QVERIFY(f.open(QIODevice::WriteOnly));
+	f.write("x,y\n1,2\n");
+	f.close();
+
+	ds->setDataFileAndTimeStamp(testFilePath.toStdString(), 0);
+
+	syncer.startFileSyncing(testFilePath);
+	QVERIFY(syncer.isFileSyncing());
+
+	QTest::qSleep(1200);
+
+	QVERIFY(f.open(QIODevice::WriteOnly));
+	f.write("x,y\n3,4\n");
+	f.close();
+
+	QTRY_COMPARE_WITH_TIMEOUT(syncer.isFileSyncing() ? 1 : 0, 1, 5000);
+
+	// The file watcher signal is async; we check via syncRequired spy
+	QSignalSpy spy(&syncer, &DataSetSyncer::syncRequired);
+	QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 5000);
+
+	QList<QVariant> args = spy.takeFirst();
+	QCOMPARE(args[0].toInt(), ds->id());
+	QCOMPARE(args[1].toString(), testFilePath);
+	QVERIFY(args[3].toString().isEmpty());
+
+	syncer.stopFileSyncing();
+}
+
+void TestAll::testSyncerStartStopDatabaseSyncing()
+{
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+
+	DataSetSyncer & syncer = ds->syncer();
+
+	QVERIFY(!syncer.isDatabaseSyncing());
+	QVERIFY(!ds->isDatabase());
+
+	Json::Value dbJson;
+	dbJson["dbType"] = "NOTCHOSEN";
+	dbJson["interval"] = 1;
+
+	syncer.startDatabaseSyncing(dbJson, false);
+	QVERIFY(syncer.isDatabaseSyncing());
+	QVERIFY(ds->isDatabase());
+	QVERIFY(syncer.databaseJson() != Json::nullValue);
+
+	syncer.stopDatabaseSyncing();
+	QVERIFY(!syncer.isDatabaseSyncing());
+	QVERIFY(!ds->isDatabase());
+}
+
+void TestAll::testSyncerSyncNowWithoutDataSource()
+{
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+
+	DataSetSyncer & syncer = ds->syncer();
+
+	QSignalSpy spy(&syncer, &DataSetSyncer::askUserForRelink);
+
+	syncer.syncNow();
+
+	QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 1000);
+	QCOMPARE(spy.takeFirst()[0].toInt(), ds->id());
+}
+
+void TestAll::testSyncerMultipleStartStop()
+{
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+
+	DataSetSyncer & syncer = ds->syncer();
+
+	QTemporaryDir tempDir;
+	QVERIFY(tempDir.isValid());
+	QString path1 = tempDir.filePath("multi1.csv");
+	QString path2 = tempDir.filePath("multi2.csv");
+
+	auto makeFile = [&](const QString & p)
+	{
+		QFile f(p);
+		QVERIFY(f.open(QIODevice::WriteOnly));
+		f.write("a\n1\n");
+		f.close();
+	};
+
+	makeFile(path1);
+	makeFile(path2);
+
+	syncer.startFileSyncing(path1);
+	QVERIFY(syncer.isFileSyncing());
+	QCOMPARE(QString::fromStdString(ds->dataFilePath()), path1);
+
+	syncer.startFileSyncing(path2);
+	QVERIFY(syncer.isFileSyncing());
+	QCOMPARE(QString::fromStdString(ds->dataFilePath()), path2);
+
+	syncer.stopFileSyncing();
+	QVERIFY(!syncer.isFileSyncing());
+
+	syncer.startFileSyncing(path1);
+	QVERIFY(syncer.isFileSyncing());
+	QCOMPARE(QString::fromStdString(ds->dataFilePath()), path1);
+
+	syncer.stopFileSyncing();
 }
 
 

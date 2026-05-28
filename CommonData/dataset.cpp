@@ -80,6 +80,9 @@ _description = fq(tr("Originally created empty by %1 on %2").arg(tq(AppInfo::get
 DataSet::~DataSet()
 {
 	JASPTIMER_SCOPE(DataSet::~DataSet);
+
+	_syncer.stopFileSyncing();
+	_syncer.stopDatabaseSyncing();
 	
 	for(Column * col : _columns)
 		unregisterNode(col);

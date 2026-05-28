@@ -1,7 +1,10 @@
 #include <QTest>
+#include <QTemporaryDir>
 
 class DataSetPackage;
 class Importer;
+class DataSet;
+class DataSetSyncer;
 
 class TestAll: public QObject
 {
@@ -19,6 +22,13 @@ private slots:
 	void	testJaspRoundRobin();
 	void	testSavLabels();
 	void	testFilterLabels();
+
+	// DataSetSyncer tests
+	void	testSyncerStartStopFileSyncing();
+	void	testSyncerFileChangeEmitsSignal();
+	void	testSyncerStartStopDatabaseSyncing();
+	void	testSyncerSyncNowWithoutDataSource();
+	void	testSyncerMultipleStartStop();
 
 private:
 	DataSetPackage		*	_pkg		= nullptr;
