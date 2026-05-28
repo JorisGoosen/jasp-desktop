@@ -182,6 +182,9 @@ void Workspace::setShownDataSet(DataSet *dataSet)
 	
 	assert(dataSet->workspace() == this);
 	
+	disconnect(_shownDataSet, &DataSet::shownColumnChanged, this, &Workspace::shownColumnChanged);
+	disconnect(_shownDataSet, &DataSet::shownFilterChanged, this, &Workspace::shownFilterChanged);
+	
 	_shownDataSet = dataSet;
 	
 	connect(_shownDataSet, &DataSet::shownColumnChanged, this, &Workspace::shownColumnChanged, Qt::UniqueConnection);

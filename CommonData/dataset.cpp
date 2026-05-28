@@ -55,7 +55,6 @@ DataSet::DataSet(Workspace * workspace, int id)
 	connect(this,			&DataSet::sendFilter,				_workspace, &Workspace::sendFilter					);
 	connect(this,			&DataSet::sendFilterByName,			_workspace, &Workspace::sendFilterByName			);
 	connect(this,			&DataSet::filtersCountChanged,		_workspace, &Workspace::filtersCountChanged			);
-	connect(this,			&DataSet::shownFilterChanged,		_workspace, &Workspace::onShownFilterChanged		);
 	connect(this,			&DataSet::refreshAllAnalyses,		_workspace, &Workspace::refreshAllAnalyses			);
 	connect(this,			&DataSet::refreshAllCompCols,		_workspace, &Workspace::refreshAllCompCols			);
 	connect(this,			&DataSet::enginesPrepareForData,	_workspace, &Workspace::enginesPrepareForData		);
