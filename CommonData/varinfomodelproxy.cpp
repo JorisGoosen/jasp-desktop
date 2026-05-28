@@ -10,7 +10,6 @@ VarInfoModelProxy::VarInfoModelProxy(FilteredData * filteredData)
 {
 	connect(_filteredData,	&FilteredData::modelReset,				this, &VarInfoModelProxy::refresh		);
 	connect(_filteredData,	&FilteredData::dataChanged,				this, &VarInfoModelProxy::refresh		);
-	connect(this,			&QAbstractTableModel::modelReset,		this, &VarInfoModelProxy::refresh		);
 }
 
 
