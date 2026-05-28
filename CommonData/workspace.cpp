@@ -318,7 +318,12 @@ void Workspace::setShownFilter(Filter *newShownFilter)
 DataSet * Workspace::createDataSet()
 {
 	if(_shownDataSet && _shownDataSet->columnCount() == 0)
-		return _shownDataSet;
+	{
+		DataSet * old = _shownDataSet;
+		_shownDataSet = nullptr;
+		_dataSets.erase(old->id());
+		delete old;
+	}
 
 	DataSet * newSet = new DataSet(this);
 
