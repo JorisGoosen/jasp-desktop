@@ -102,8 +102,8 @@ public:
 	Q_INVOKABLE void addEmptyValue(		const QString & value);
 	Q_INVOKABLE void removeEmptyValue(	const QString & value);
 	Q_INVOKABLE void resetEmptyValues();
-	Q_INVOKABLE void undo()				{ undoStack()->undo(); }
-	Q_INVOKABLE void redo()				{ undoStack()->redo(); }
+	Q_INVOKABLE void undo()				{ if (undoStack()) undoStack()->undo(); }
+	Q_INVOKABLE void redo()				{ if (undoStack()) undoStack()->redo(); }
 	
 	UndoStack *	undoStack();
 

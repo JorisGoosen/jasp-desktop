@@ -2,6 +2,7 @@
 #include "datasetpackage.h"
 #include "qutils.h"
 #include "gui/preferencesmodel.h"
+#include "undostack.h"
 
 WorkspaceModel* WorkspaceModel::_singleton = nullptr;
 

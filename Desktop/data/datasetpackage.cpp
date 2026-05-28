@@ -59,8 +59,6 @@ DataSetPackage::DataSetPackage(QObject * parent) : QObject(parent)
 	connect(&_doWalCheckPointTimer,		&QTimer::timeout, this, &DataSetPackage::doWalCheckPoint);
 	connect(&_autoSaveTimer,			&QTimer::timeout, this, &DataSetPackage::handleAutoSave);
 	
-	_undoStack = new UndoStack(this);
-	
 	_doWalCheckPointTimer	.setInterval(5*60*1000);
 	_doWalCheckPointTimer	.setSingleShot(false);
 	_doWalCheckPointTimer	.start();
@@ -146,7 +144,6 @@ void DataSetPackage::deleteWorkspace(bool dbDeletePlease)
 		dbDelete();
 	delete _workspace;
 	_workspace = nullptr;
-	_undoStack->clear();
 	
 	if(dbDeletePlease)
 	{

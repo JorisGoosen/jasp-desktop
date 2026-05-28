@@ -2,11 +2,30 @@
 #include "datasettablemodel.h"
 #include "dataenums.h"
 #include "qutils.h"
+#include "workspace.h"
 
 ExpandDataProxyModel::ExpandDataProxyModel(QObject *parent)
 	: QIdentityProxyModel{parent}
 {
-	connect(undoStack(), &QUndoStack::indexChanged, this, &ExpandDataProxyModel::undoChanged) ;
+	connectUndoStack();
+
+	if (Workspace::singleton())
+		connect(Workspace::singleton(), &Workspace::shownDataSetChanged, this, &ExpandDataProxyModel::onCurrentUndoStackChanged);
+}
+
+void ExpandDataProxyModel::connectUndoStack()
+{
+	if (_undoChangedCon)
+		disconnect(_undoChangedCon);
+
+	if (auto* stack = UndoStack::singleton())
+		_undoChangedCon = connect(stack, &QUndoStack::indexChanged, this, &ExpandDataProxyModel::undoChanged);
+}
+
+void ExpandDataProxyModel::onCurrentUndoStackChanged()
+{
+	connectUndoStack();
+	emit undoChanged();
 }
 
 int ExpandDataProxyModel::rowCount(const QModelIndex &) const
@@ -178,7 +197,7 @@ void ExpandDataProxyModel::removeColumnGroups(std::vector<std::pair<int, int> > 
 	
 	undoStack()->startMacro(tr("Remove %1 columns").arg(cols));
 	for(const auto & startCount : groups)
-		new RemoveColumnsCommand(dataSetSourceModel(), startCount.first, startCount.second);
+		undoStack()->pushCommand(new RemoveColumnsCommand(dataSetSourceModel(), startCount.first, startCount.second));
 	
 	undoStack()->endMacro();
 }

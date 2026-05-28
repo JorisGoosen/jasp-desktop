@@ -26,6 +26,7 @@
 #include "columnencoder.h"
 #include "jsonutilities.h"
 #include "databaseinterface.h"
+#include "undostack.h"
 
 stringset DataSet::_defaultEmptyvalues;
 
@@ -41,6 +42,8 @@ DataSet::DataSet(Workspace * workspace, int id)
 	
 	if(id == -1)			dbCreate();
 	else if(id > 0)			dbLoad(id);
+	
+	_undoStack = new UndoStack(this);
 	
 	connect(this,			&DataSet::datasetChanged,			this,		&DataSet::handleDataSetChanged			);
 	

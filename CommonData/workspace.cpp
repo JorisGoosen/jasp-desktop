@@ -2,6 +2,7 @@
 #include "workspace.h"
 #include "qutils.h"
 #include "log.h"
+#include "undostack.h"
 
 Workspace * Workspace::_singleton = nullptr;
 
@@ -187,6 +188,8 @@ void Workspace::setShownDataSet(DataSet *dataSet)
 	
 	_shownDataSet = dataSet;
 	
+	UndoStack::setCurrent(_shownDataSet->undoStack());
+	
 	connect(_shownDataSet, &DataSet::shownColumnChanged, this, &Workspace::shownColumnChanged, Qt::UniqueConnection);
 	connect(_shownDataSet, &DataSet::shownFilterChanged, this, &Workspace::shownFilterChanged, Qt::UniqueConnection);
 	
@@ -211,6 +214,7 @@ void Workspace::deleteShownDataSet()
 	
 	_dataSets.erase(_shownDataSet->id());
 	_shownDataSet->dbDelete();
+	UndoStack::setCurrent(nullptr);
 	delete _shownDataSet;
 		
 	_shownDataSet = nullptr;

@@ -25,7 +25,6 @@
 #include "version.h"
 #include <QFileInfo>
 #include <json/json.h>
-#include "undostack.h"
 #include "workspace.h"
 #include "databaseinterface.h"
 #include <QSortFilterProxyModel>
@@ -246,7 +245,6 @@ private:
 								_jaspVersion;
 	QTimer						_doWalCheckPointTimer,
 								_autoSaveTimer;
-	UndoStack				*	_undoStack					= nullptr;
 };
 
 #endif // FILEPACKAGE_H

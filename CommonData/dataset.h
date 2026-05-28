@@ -27,6 +27,7 @@
 #include "version.h"
 
 class Workspace;
+class UndoStack;
 
 class DataSet : public DataSetBaseNode
 {
@@ -273,7 +274,8 @@ public:
 	static QVariant			getDataSetViewLines(bool up, bool left, bool down, bool right)									;
 			
 	
-QString					insertColumnSpecial(int columnIndex, const QMap<QString, QVariant> &props);
+	UndoStack			*	undoStack()				const	{ return _undoStack; }
+	QString					insertColumnSpecial(int columnIndex, const QMap<QString, QVariant> &props);
 	void					pasteSpreadsheet(size_t row, size_t col, const std::vector<std::vector<QString>> & values, const std::vector<std::vector<QString>> &  labels, const intvec & coltypes = std::vector<int>(), const QStringList & colNames = {}, const std::vector<boolvec> & selected = {});
 	
 protected:
@@ -304,6 +306,7 @@ private:
 	std::string				_description;
 	QFileSystemWatcher		_dataFilewatcher;
 	DBCIF				*	_dbConInfo				= nullptr;
+	UndoStack			*	_undoStack				= nullptr;
 };
 
 typedef std::vector<DataSet*> DataSets;

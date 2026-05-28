@@ -1095,12 +1095,14 @@ void MainWindow::zoomResetKeyPressed()
 
 void MainWindow::undo()
 {
-	UndoStack::singleton()->undo();
+	if (UndoStack::singleton())
+		UndoStack::singleton()->undo();
 }
 
 void MainWindow::redo()
 {
-	UndoStack::singleton()->redo();
+	if (UndoStack::singleton())
+		UndoStack::singleton()->redo();
 }
 
 void MainWindow::syncKeyPressed()

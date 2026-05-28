@@ -3,6 +3,7 @@
 #include "datasetpackage.h"
 #include "filter.h"
 #include "qutils.h"
+#include "undostack.h"
 
 FilterModel::FilterModel(QObject * parent)
 	: QObject(parent)

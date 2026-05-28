@@ -43,10 +43,10 @@ public:
 	Json::Value					serializedColumn(	int col);
 
 	UndoStack				*	undoStack()			{ return UndoStack::singleton(); }
-	void						undo()				{ undoStack()->undo(); }
-	void						redo()				{ undoStack()->redo(); }
-	QString						undoText()			{ return undoStack()->undoText(); }
-	QString						redoText()			{ return undoStack()->redoText(); }
+	void						undo()				{ if (undoStack()) undoStack()->undo(); }
+	void						redo()				{ if (undoStack()) undoStack()->redo(); }
+	QString						undoText()			{ return undoStack() ? undoStack()->undoText() : ""; }
+	QString						redoText()			{ return undoStack() ? undoStack()->redoText() : ""; }
 	void						resize(int row, int col, bool onlyExpand = true, const QString& undoText = QString());
 	bool						useUndoStack() const;
 
@@ -54,11 +54,18 @@ public:
 signals:
 	void						undoChanged();
 
+public slots:
+	void						onCurrentUndoStackChanged();
+
 protected:
 	bool						_expandDataSet			= false;
 
 	const int	EXTRA_COLS				= 7;
 	const int	EXTRA_ROWS				= 20;
+
+private:
+	void						connectUndoStack();
+	QMetaObject::Connection		_undoChangedCon;
 };
 
 #endif // EXPANDDATAPROXYMODEL_H
