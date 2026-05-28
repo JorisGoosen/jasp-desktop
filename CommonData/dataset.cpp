@@ -446,7 +446,7 @@ QString DataSet::insertColumnSpecial(int columnIndex, const QMap<QString, QVaria
 	
 	emit datasetChanged(_dataSetId, tq(stringvec{col->name()}), {}, {}, false, true);
 
-	ColumnEncoder::setCurrentColumnNames(	getColumnTypesMap());
+	_encoder.setCurrentNames(	getColumnTypesMap());
 	
 	if(col->codeType() == computedColumnType::constructorCode || col->codeType() == computedColumnType::rCode)
 		setShownColumn(col);
@@ -1498,7 +1498,7 @@ bool DataSet::insertColumns(int column, int count, const QModelIndex &)
 
 	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
 
-	ColumnEncoder::setCurrentColumnNames(getColumnNames());
+	_encoder.setCurrentNames(getColumnNames());
 
 	return true;
 }
@@ -1526,7 +1526,7 @@ bool DataSet::removeColumns(int column, int count, const QModelIndex &)
 
 	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), false, true);
 
-	ColumnEncoder::setCurrentColumnNames(getColumnNames());
+	_encoder.setCurrentNames(getColumnNames());
 
 	return true;
 }
@@ -1594,7 +1594,7 @@ void DataSet::handleDataSetChanged( int						dataSetID,
 
 	}
 
-	ColumnEncoder::setCurrentColumnNames(	getColumnTypesMap());
+	_encoder.setCurrentNames(	getColumnTypesMap());
 
 	for(Column * col : computedColumns())
 	{

@@ -29,6 +29,7 @@
 
 
 ColumnEncoder				*	ColumnEncoder::_columnEncoder				= nullptr;
+ColumnEncoder				*	ColumnEncoder::_currentEncoder				= nullptr;
 std::set<ColumnEncoder*>	*	ColumnEncoder::_otherEncoders				= nullptr;
 bool							ColumnEncoder::_encodingMapInvalidated		= true;
 bool							ColumnEncoder::_decodingMapInvalidated		= true;
@@ -40,10 +41,28 @@ bool							ColumnEncoder::_encodedNamesInvalidated		= true;
 
 ColumnEncoder * ColumnEncoder::columnEncoder()
 {
-	if(!_columnEncoder)
-		_columnEncoder = new ColumnEncoder();
+	if(!_currentEncoder)
+	{
+		if(!_columnEncoder)
+			_columnEncoder = new ColumnEncoder();
 
-	return _columnEncoder;
+		_currentEncoder = _columnEncoder;
+	}
+
+	return _currentEncoder;
+}
+
+ColumnEncoder * ColumnEncoder::currentEncoder()
+{
+	return _currentEncoder;
+}
+
+void ColumnEncoder::setCurrentEncoder(ColumnEncoder * encoder)
+{
+	if(_currentEncoder && _currentEncoder != encoder)
+		_currentEncoder->invalidateAll();
+
+	_currentEncoder = encoder;
 }
 
 void ColumnEncoder::invalidateAll()
@@ -94,6 +113,8 @@ ColumnEncoder::~ColumnEncoder()
 	else
 	{
 		_columnEncoder = nullptr;
+		if(_currentEncoder == this)
+			_currentEncoder = nullptr;
 
 		ColumnEncoders others = *_otherEncoders;
 
@@ -230,7 +251,7 @@ const ColumnEncoder::colMap	&	ColumnEncoder::encodingMap()
 
 	if(_encodingMapInvalidated)
 	{
-		map = _columnEncoder->_encodingMap;
+		map = columnEncoder()->_encodingMap;
 
 		if(_otherEncoders)
 			for(const ColumnEncoder * other : *_otherEncoders)
@@ -250,7 +271,7 @@ const ColumnEncoder::colMap	&	ColumnEncoder::decodingMap()
 
 	if(_decodingMapInvalidated)
 	{
-		map = _columnEncoder->_decodingMap;
+		map = columnEncoder()->_decodingMap;
 
 		if(_otherEncoders)
 			for(const ColumnEncoder * other : *_otherEncoders)
@@ -270,7 +291,7 @@ const ColumnEncoder::colTypeMap &ColumnEncoder::decodingTypes()
 
 	if(_decodingTypeInvalidated)
 	{
-		map = _columnEncoder->_decodingTypes;
+		map = columnEncoder()->_decodingTypes;
 
 		if(_otherEncoders)
 			for(const ColumnEncoder * other : *_otherEncoders)
@@ -293,7 +314,7 @@ const ColumnEncoder::colMap	&	ColumnEncoder::decodingMapSafeHtml()
 	{
 		map.clear();
 		
-		for(const auto & keyVal : _columnEncoder->_decodingMap)
+		for(const auto & keyVal : columnEncoder()->_decodingMap)
 			if(map.count(keyVal.first) == 0)
 				map[keyVal.first] = stringUtils::escapeHtmlStuff(keyVal.second, true);
 
@@ -315,7 +336,7 @@ const ColumnEncoder::colVec	&	ColumnEncoder::originalNames()
 
 	if(_originalNamesInvalidated)
 	{
-		vec = _columnEncoder->_originalNames;
+		vec = columnEncoder()->_originalNames;
 
 		if(_otherEncoders)
 			for(const ColumnEncoder * other : *_otherEncoders)
@@ -336,7 +357,7 @@ const ColumnEncoder::colVec	&	ColumnEncoder::encodedNames()
 
 	if(_encodedNamesInvalidated)
 	{
-		vec = _columnEncoder->_encodedNames;
+		vec = columnEncoder()->_encodedNames;
 
 		if(_otherEncoders)
 			for(const ColumnEncoder * other : *_otherEncoders)
@@ -662,12 +683,12 @@ std::string ColumnEncoder::replaceColumnNamesInRScript(const std::string & rCode
 
 ColumnEncoder::colVec ColumnEncoder::columnNames()
 {
-	return _columnEncoder ? _columnEncoder->_originalNames : colVec();
+	return columnEncoder() ? columnEncoder()->_originalNames : colVec();
 }
 
 ColumnEncoder::colVec ColumnEncoder::columnNamesEncoded()
 {
-	return _columnEncoder ? _columnEncoder->_encodedNames : colVec();
+	return columnEncoder() ? columnEncoder()->_encodedNames : colVec();
 }
 
 void ColumnEncoder::_convertPreloadingDataOption(Json::Value & options, const std::string& optionName, colsPlusTypes& colTypes)

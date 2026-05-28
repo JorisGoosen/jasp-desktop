@@ -25,6 +25,7 @@
 #include "column.h"
 #include "filter.h"
 #include "version.h"
+#include "columnencoder.h"
 
 class Workspace;
 class UndoStack;
@@ -122,6 +123,8 @@ public:
 			void			insertColumn(			size_t			index,	bool alterDataSetTable = true);
 			Column		*	createColumn(			const std::string &	name, columnType columnType = columnType::unknown);
 			Column		*	createComputedColumn(	const std::string & name, columnType type		= columnType::unknown, computedColumnType desiredType = computedColumnType::analysis, int analysisId = -1);
+			ColumnEncoder	&	encoder()			{ return _encoder; }
+	const	ColumnEncoder	&	encoder()	const	{ return _encoder; }
 			int				getColumnIndex(	const	std::string &	name	) const;
 			int				columnIndex(	const	Column		*	col		) const;
 			void			columnsReorder(			stringvec		order	); ///< Expects a sane order vector, with or without computed columns
@@ -287,6 +290,7 @@ private:
 	Workspace			*	_workspace				= nullptr;
 	Columns					_columns;
 	Column				*	_shownColumn			= nullptr;
+	ColumnEncoder			_encoder;
 	Filter				*	_defaultFilter			= nullptr,
 						*	_shownFilter			= nullptr;
 	Filters					_filters;

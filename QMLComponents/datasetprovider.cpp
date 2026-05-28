@@ -118,7 +118,9 @@ void DataSetProvider::loadDataSet(const std::map<std::string, stringvec > & data
 
 	dataSet()->endBatchedToDB([](float f) {});
 
-	ColumnEncoder::columnEncoder()->setCurrentNames(dataSet()->getColumnTypesMap());
+	DataSet * ds = dataSet();
+	ColumnEncoder::setCurrentEncoder(&ds->encoder());
+	ds->encoder().setCurrentNames(ds->getColumnTypesMap());
 
 }
 
@@ -142,7 +144,9 @@ void DataSetProvider::loadDatabase(const Version & jaspVersion)
 		_workspace->createDataSet();
 		dataSet()->dbLoad(1, [](float p) {}, jaspVersion);
 
-		ColumnEncoder::columnEncoder()->setCurrentNames(dataSet()->getColumnTypesMap());
+		DataSet * ds = dataSet();
+		ColumnEncoder::setCurrentEncoder(&ds->encoder());
+		ds->encoder().setCurrentNames(ds->getColumnTypesMap());
 	}
 	catch (...)
 	{

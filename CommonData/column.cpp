@@ -360,7 +360,7 @@ void Column::setType(columnType colType)
 		emit columnTypeChanged();
 		emit data()->columnTypeChanged(nameQ());
 
-		ColumnEncoder::updateColumnTypesOnlyStatic(data()->getColumnTypesMap());
+		data()->encoder().updateColumnTypesOnly(data()->getColumnTypesMap());
 
 		invalidate();
 	}

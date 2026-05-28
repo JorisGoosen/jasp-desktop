@@ -33,8 +33,10 @@
 /// It can be used both directly, through columnEncoder()->, in that scenario it only en- and decodes actual columnNames from the dataset.
 /// If you want to en- or decode other names then you instantiate a separate copy and use it's functions.
 /// It will then also use the columnnames if they are set btw.
+class DataSet;
 class ColumnEncoder
 {
+	friend class DataSet;
 public:
 	typedef std::map<std::string, std::string>					colMap;
 	typedef std::map<std::string, columnType>					colTypeMap;	
@@ -48,6 +50,8 @@ public:
 								ColumnEncoder(const std::map<std::string, std::string> & decodeDifferently);
 								~ColumnEncoder();
 	static ColumnEncoder	*	columnEncoder();
+	static ColumnEncoder	*	currentEncoder();
+	static void					setCurrentEncoder(ColumnEncoder * encoder);
 
 	static	bool				isColumnName(const std::string & in)							{ return columnEncoder()->shouldEncode(in); }
 	static	bool				isEncodedColumnName(const std::string & in)						{ return columnEncoder()->shouldDecode(in); }
@@ -127,6 +131,7 @@ private:
 								_encodedNamesInvalidated;
 
 	static ColumnEncoder	*	_columnEncoder;
+	static ColumnEncoder	*	_currentEncoder;
 	static ColumnEncoders	*	_otherEncoders;
 
 	colMap						_encodingMap,
