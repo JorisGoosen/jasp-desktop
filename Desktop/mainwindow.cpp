@@ -469,6 +469,10 @@ void MainWindow::makeConnections()
 	connect(_package,				&DataSetPackage::sendFilterByName,					_engineSync,			&EngineSync::sendFilterByName								);
 	connect(_package,				&DataSetPackage::shownDataSetChanged,				_datasetTableModel,		&DataSetTableModel::handleDataSetChange						);
 	connect(_package,				&DataSetPackage::shownDataSetChanged,				this,					&MainWindow::updateShownFilterInQmlContext					);
+	connect(_package,				&DataSetPackage::shownDataSetChanged,				this, [&](DataSet * ds) {
+		if(ds)
+			connect(ds, &DataSet::syncRequired, _fileMenu, &FileMenu::handleSyncRequired);
+	});
 	connect(_package,				&DataSetPackage::shownFilterChanged,				this,					&MainWindow::updateShownFilterInQmlContext					);
 	connect(_package,				&DataSetPackage::shownFilterChanged,				_filterModel,			&FilterModel::filterChanged,								Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::filtersCountChanged,				_filterModel,			&FilterModel::filterDropDownListChanged						);
@@ -1349,8 +1353,7 @@ void MainWindow::dataSetIORequestHandler(FileEvent *event)
 		_loader->io(event);
 		showProgress();
 	}
-#ifdef NOT_IGNORING_SYNCHING
-	else if (event->operation() == FileEvent::FileSyncData)
+else if (event->operation() == FileEvent::FileSyncData)
 	{
 		if (!_package->hasDataSet())
 			return;
@@ -1359,7 +1362,6 @@ void MainWindow::dataSetIORequestHandler(FileEvent *event)
 		_loader->io(event);
 		showProgress();
 	}
-#endif
 	else if (event->operation() == FileEvent::FileClose)
 	{
 		connectFileEventCompleted(event);
@@ -1459,7 +1461,7 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 						if (currentDataFileTimestamp > _package->dataSet()->dataFileTimestamp())
 						{
 							setCheckAutomaticSync(true);
-							throw std::runtime_error("_fileMenu->syncDataFile(dataFilePath);");
+							_package->dataSet()->syncer().startFileSyncing(dataFilePath);
 						}
 					}
 					else
@@ -1468,11 +1470,11 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 					}
 				}
 				
-				//if(_package->dataSet()->databaseJson() != Json::nullValue)
-				//	_package->databaseStartSynching(true);
+				if(_package->dataSet()->databaseJson() != Json::nullValue)
+					_package->dataSet()->syncer().startDatabaseSyncing(_package->dataSet()->databaseJson(), true);
 			}
-			//else if(event->isDatabase()) //Not a jasp file, but a direct load from a database, make sure it starts synching if the user wants it to:
-			//	_package->databaseStartSynching(false);
+			else if(event->isDatabase())
+				_package->dataSet()->syncer().startDatabaseSyncing(event->database(), false);
 
 			if (resultXmlCompare::compareResults::theOne()->testMode())
 			{				
@@ -1928,8 +1930,8 @@ bool MainWindow::startDataEditorHandler()
 				dataFilePath = MessageForwarder::browseOpenFile(caption, "", filter);
 				if (dataFilePath == "")
 					return false;
-				std::runtime_error("Sorry, synchronizing isnt implemented at the moment");
-				//event = new FileEvent(this, FileEvent::FileSyncData);
+				event = new FileEvent(this, FileEvent::FileSyncData);
+				event->setSyncDataSetId(_package->dataSet()->id());
 			}
 
 			break;

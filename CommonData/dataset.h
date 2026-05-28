@@ -19,13 +19,13 @@
 #define DATASET_H
 
 #include "databaseconnectioninfo.h"
-#include <QFileSystemWatcher>
 #include "datasetbasenode.h"
 #include "emptyvalues.h"
 #include "column.h"
 #include "filter.h"
 #include "version.h"
 #include "columnencoder.h"
+#include "datasetsyncer.h"
 
 class Workspace;
 class UndoStack;
@@ -125,6 +125,8 @@ public:
 			Column		*	createComputedColumn(	const std::string & name, columnType type		= columnType::unknown, computedColumnType desiredType = computedColumnType::analysis, int analysisId = -1);
 			ColumnEncoder	&	encoder()			{ return _encoder; }
 	const	ColumnEncoder	&	encoder()	const	{ return _encoder; }
+	DataSetSyncer	&	syncer()			{ return _syncer; }
+	const	DataSetSyncer	&	syncer()	const	{ return _syncer; }
 			int				getColumnIndex(	const	std::string &	name	) const;
 			int				columnIndex(	const	Column		*	col		) const;
 			void			columnsReorder(			stringvec		order	); ///< Expects a sane order vector, with or without computed columns
@@ -234,6 +236,7 @@ signals:
 			void			filterRemoved(Filter * f);
 			void			synchronizeStart(DataSet *);
 			void			synchronizeDo(DataSet *);
+			void			syncRequired(int dataSetId, QString locator, QString extension, QString databaseJson);
 			void			labelChanged(		const Column * column, QString originalLabel, QString newLabel);
 			QString			askPassword(	QString title, QString message);
 			bool			showYesNo(		QString title, QString message);
@@ -291,6 +294,7 @@ private:
 	Columns					_columns;
 	Column				*	_shownColumn			= nullptr;
 	ColumnEncoder			_encoder;
+	DataSetSyncer			_syncer;
 	Filter				*	_defaultFilter			= nullptr,
 						*	_shownFilter			= nullptr;
 	Filters					_filters;
@@ -308,8 +312,6 @@ private:
 	Json::Value				_database				= Json::nullValue;
 	static stringset		_defaultEmptyvalues;	// Default empty values if workspace do not have its own empty values (used for backward compatibility)
 	std::string				_description;
-	QFileSystemWatcher		_dataFilewatcher;
-	DBCIF				*	_dbConInfo				= nullptr;
 	UndoStack			*	_undoStack				= nullptr;
 };
 

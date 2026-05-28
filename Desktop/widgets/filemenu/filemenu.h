@@ -123,6 +123,7 @@ public slots:
 	void analysisAdded(Analysis *analysis);
 	void workspaceModified();
 	void setSyncFile(FileEvent *event);
+	void handleSyncRequired(int dataSetId, const QString &locator, const QString &extension, const QString &databaseJson);
 	void dataAutoSynchronizationChanged(bool on) { setDataFileWatcher(on); }
 	void dataSetIOCompleted(FileEvent *event);
 	void dataFileModifiedHandler(QString path);

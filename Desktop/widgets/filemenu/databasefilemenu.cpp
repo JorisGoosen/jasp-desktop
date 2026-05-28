@@ -334,17 +334,19 @@ void DatabaseFileMenu::setInterval(int newInterval)
 	
 	_info._interval = newInterval;
 	
-	if(useDataSetPackage())	DataSetPackage::pkg()->dataSet()->setDatabaseJson(_info.toJson());
+	if(useDataSetPackage())
+	{
+		DataSet * ds = DataSetPackage::pkg()->dataSet();
+		if(ds)
+		{
+			ds->setDatabaseJson(_info.toJson());
+			if(_info._interval == 0)	ds->syncer().stopDatabaseSyncing();
+			else						ds->syncer().startDatabaseSyncing(_info.toJson(), previousInterval == 0);
+		}
+	}
 	else					Settings::setValue(Settings::DB_IMPORT_INTERVAL, _info._interval);
 	
 	emit intervalChanged();
-	
-	throw std::runtime_error("database synching should probably be reimplemented");
-	//if(useDataSetPackage())
-	//{
-	//	if(_info._interval == 0)	DataSetPackage::pkg()->dataSet()->databaseStopSynching();
-	//	else						DataSetPackage::pkg()->dataSet()->databaseStartSynching(previousInterval == 0);
-	//}
 }
 
 

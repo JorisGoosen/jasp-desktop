@@ -50,10 +50,8 @@ FileEvent *Computer::browseOpen(const QString &path)
 					+ tr("SAS Files %1").arg("(*.sas7bdat *.sas7bcat *.xpt);;")
 					+ tr("R Data files %1").arg("(*.rdata *.rds);;")
 					+ tr("Minitab Workbook files %1").arg("(*.mwx *.mpx)");
-#ifdef NOT_IGNORING_SYNCHING
-	if (mode() == FileEvent::FileSyncData)
+if (mode() == FileEvent::FileSyncData)
 		filter = "Data Sets (*.csv *.txt *.tsv *.sav *.ods *.xls *.xlsx)";
-#endif
 	Log::log() << "Now calling MessageForwarder::browseOpenFile(\"Open\", \"" << browsePath.toStdString() << "\", \"" << filter.toStdString() << "\")" << std::endl;
 	QString finalPath = MessageForwarder::browseOpenFile("Open", browsePath, filter);
 	Log::log() << "Chosen path: \"" << finalPath.toStdString() << "\"" << std::endl;
@@ -97,13 +95,11 @@ FileEvent *Computer::browseSave(const QString &path, FileEvent::FileMode mode)
 		filter	= tr("CSV Files") += " (*.csv *.txt *.tsv)";
 		browsePath += ".csv";
 		break;
-#ifdef NOT_IGNORING_SYNCHING
-	case FileEvent::FileSyncData:
+case FileEvent::FileSyncData:
 		caption = tr("Sync Data");
 		filter  = tr("Data Files") += " (*.csv *.txt *.tsv *.sav *.ods *.xls *.xlsx)";
 		browsePath += ".csv";
 		break;
-#endif
 	case FileEvent::FileSave:
         caption = tr("Save (encrypted) JASP file");
 		filter  = tr("JASP Files") + " (*.jasp);;" + tr("Encrypted JASP Files") + " (*.jasp)";
@@ -172,15 +168,11 @@ void Computer::browsePath(QString path)
 {
 
 	Log::log() << "void Computer::browsePath(\"" << path.toStdString() << "\") called, now sending out signal to show " << (mode() == FileEvent::FileOpen 
-																														#ifdef NOT_IGNORING_SYNCHING
-																															|| mode() == FileEvent::FileSyncData
-																														#endif
-																															? "Open " : "Save ") << "file dialog." << std::endl;
+			|| mode() == FileEvent::FileSyncData
+			? "Open " : "Save ") << "file dialog." << std::endl;
 
 	if (mode() == FileEvent::FileOpen 
-#ifdef NOT_IGNORING_SYNCHING
-			|| mode() == FileEvent::FileSyncData
-#endif			
+			|| mode() == FileEvent::FileSyncData			
 )
 		emit browseOpenSignal(path);
 	else

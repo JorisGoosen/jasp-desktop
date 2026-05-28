@@ -32,7 +32,8 @@ stringset DataSet::_defaultEmptyvalues;
 
 DataSet::DataSet(Workspace * workspace, int id)
 	: DataSetBaseNode(dataSetBaseNodeType::dataSet, workspace),
-	  _workspace(workspace)
+	  _workspace(workspace),
+	  _syncer(this)
 {
 	Log::log() << "DataSet::DataSet(id=" << id << ")" << std::endl;
 
@@ -67,13 +68,13 @@ DataSet::DataSet(Workspace * workspace, int id)
 	
 	connect(_workspace,		&Workspace::filterByNameDone,		this,		&DataSet::filterByNameDone				);
 
-	_description = fq(tr("Originally created empty by %1 on %2").arg(tq(AppInfo::getShortDesc())).arg(tq(Utils::currentDateTime())));
-	
-	_dbConInfo = new DatabaseConnectionInfo(this);
-	
-	connect(_dbConInfo,		&DatabaseConnectionInfo::showYesNo,			this,		&DataSet::showYesNo				);
-	connect(_dbConInfo,		&DatabaseConnectionInfo::askPassword,		this,		&DataSet::askPassword			);
-	connect(_dbConInfo,		&DatabaseConnectionInfo::showWarning,		this,		&DataSet::showWarning			);
+_description = fq(tr("Originally created empty by %1 on %2").arg(tq(AppInfo::getShortDesc())).arg(tq(Utils::currentDateTime())));
+
+	auto * s = &_syncer;
+	connect(s, &DataSetSyncer::askPassword,  this, [this](int, QString title, QString msg) -> QString { return emit askPassword(title, msg); });
+	connect(s, &DataSetSyncer::askYesNo,     this, [this](int, QString title, QString msg) -> bool   { return emit showYesNo(title, msg); });
+	connect(s, &DataSetSyncer::showWarning,  this, [this](int, QString title, QString msg)          { emit showWarning(title, msg); });
+	connect(s, &DataSetSyncer::syncRequired, this, &DataSet::syncRequired);
 }
 
 DataSet::~DataSet()
@@ -571,11 +572,7 @@ void DataSet::setDataFileSynch(bool synchronizing)
 
 void DataSet::synchronize()
 {
-	if(isDatabase())
-		synchronizeFromDatabase();
-	else
-		synchronizeFromDataFile();
-	
+	_syncer.syncNow();
 }
 
 void DataSet::synchronizeFromDatabase()
@@ -585,6 +582,8 @@ void DataSet::synchronizeFromDatabase()
 		Log::log()	<< "Trying to synch from db but there is no databaseJson" << std::endl;
 		return;
 	}
+
+	_syncer.syncNow();
 }
 
 void DataSet::synchronizeFromDataFile()
@@ -594,16 +593,14 @@ void DataSet::synchronizeFromDataFile()
 		Log::log()	<< "Trying to synch from a file but there is no datafile path" << std::endl;
 		return;
 	}
-	
-	
+
 	if(!QFileInfo::exists(dataFileQ()))
 	{
 		Log::log()	<< "Trying to synch from a file but it does not exist (" << dataFileQ() << ")." << std::endl;
 		return;
 	}
-	
-	setDataFileSynch(true);
-	
+
+	_syncer.syncNow();
 }
 
 void DataSet::dbCreate()

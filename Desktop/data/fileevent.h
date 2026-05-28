@@ -33,7 +33,7 @@ class FileEvent : public QObject
 	Q_OBJECT
 
 public:
-	enum FileMode { FileSave, FileNew, FileOpen, FileExportResults, FileExportData, FileGenerateData, FileClose };
+	enum FileMode { FileSave, FileNew, FileOpen, FileExportResults, FileExportData, FileGenerateData, FileSyncData, FileClose };
 
 	FileEvent(QObject *parent = nullptr, FileMode fileMode = FileEvent::FileOpen);
 	virtual ~FileEvent();
@@ -46,6 +46,8 @@ public:
 	void				setOsfPath(const QString & path)		{ _osfPath = path; }
 	const QString &		osfPath() const { return _osfPath;		}
 	void				setDatabase(	const Json::Value & dbInfo);
+	void				setSyncDataSetId(int id)				{ _syncDataSetId = id; }
+	int					syncDataSetId()							const { return _syncDataSetId; }
 	void				setFileType(	Utils::FileType	type)			{ _type = type; }
 	void				setTmp(			bool saveTmp)					{ _tmp  = saveTmp; }
 
@@ -83,6 +85,7 @@ private slots:
 
 private:
 	FileMode			_operation;
+	int					_syncDataSetId		= -1;
 	Utils::FileType		_type			= Utils::FileType::unknown;
 	QString				_path,
 						_osfPath		= "", //To show the user a friendly path

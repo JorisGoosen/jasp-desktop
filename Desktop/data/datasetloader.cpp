@@ -93,13 +93,12 @@ DataSet * dataSet = DataSetPackage::pkg()->createDataSet();
 
 }
 
-void DataSetLoader::syncPackage(const string &locator, const string &extension, std::function<void(int)> progress)
+void DataSetLoader::syncPackage(const string &locator, const string &extension, DataSet * dataSet, std::function<void(int)> progress)
 {
 	Importer* importer = getImporter(locator, extension);
 
 	if (importer)
 	{
-DataSet * dataSet = DataSetPackage::pkg()->dataSet();
 		if (dataSet)
 			DesktopCommunicator::singleton()->setKnownCsvDelimiter(dataSet->csvDelimiter());
 		importer->syncDataSet(locator, dataSet, progress);
