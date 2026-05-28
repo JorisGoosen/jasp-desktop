@@ -38,6 +38,9 @@ void TestEngine::cleanup()
 {
 	if(_engineRep)
 		_engineRep->shutEngineDown();
+	
+	//Gets cleaned up by EngineSync
+	_engineRep = nullptr;
 
 	delete _engines;
 	_engines = nullptr;
@@ -210,6 +213,9 @@ void TestEngine::testVariableInfoPerFilter()
 
 	int rowCount		 = ds->rowCount();
 	int half			 = rowCount / 2;
+	
+	ds->defaultFilter()->setFilterVector(boolvec(true, rowCount));
+	QCOMPARE(ds->defaultFilter()->filteredRowCount(), rowCount);
 
 	Filter * filterEven = ds->createFilter("filterEven", true);
 	Filter * filterOdd  = ds->createFilter("filterOdd",  true);
