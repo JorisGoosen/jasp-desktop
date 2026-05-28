@@ -8,6 +8,7 @@
 #include "dataenums.h"
 #include "columnutils.h"
 #include "databaseinterface.h"
+#include "columnencoder.h"
 
 bool Column::_autoSortByValuesByDefault = true;
 
@@ -358,9 +359,9 @@ void Column::setType(columnType colType)
 	{
 		emit columnTypeChanged();
 		emit data()->columnTypeChanged(nameQ());
-		
-		throw std::runtime_error("You should call ColumnEncoder::updateColumnTypesOnlyStatic(getColumnTypesMap());} somehow, or do the equivalent. probably columnencoder also shiould be per dataset");
-		
+
+		ColumnEncoder::updateColumnTypesOnlyStatic(data()->getColumnTypesMap());
+
 		invalidate();
 	}
 	
