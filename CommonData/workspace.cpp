@@ -317,15 +317,18 @@ void Workspace::setShownFilter(Filter *newShownFilter)
 
 DataSet * Workspace::createDataSet()
 {
+	if(_shownDataSet && _shownDataSet->columnCount() == 0)
+		return _shownDataSet;
+
 	DataSet * newSet = new DataSet(this);
 
 	if(!_shownDataSet)
 		setShownDataSet(newSet);
-	
+
 	_dataSets[newSet->id()] = newSet;
-	
+
 	emit filtersCountChanged(); //Triggers filterDropDownListChanged in filtermodel
-	
+
 	return newSet;
 }
 
