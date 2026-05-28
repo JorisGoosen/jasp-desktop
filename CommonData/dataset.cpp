@@ -32,11 +32,12 @@ stringset DataSet::_defaultEmptyvalues;
 
 DataSet::DataSet(Workspace * workspace, int id)
 	: DataSetBaseNode(dataSetBaseNodeType::dataSet, workspace),
-	  _workspace(workspace),
-	  _syncer(this)
+	  _workspace(workspace)
 {
 	Log::log() << "DataSet::DataSet(id=" << id << ")" << std::endl;
 
+	_encoder = new ColumnEncoder();
+	_syncer  = new DataSetSyncer(this);
 	_emptyValues	= new EmptyValues(nullptr);
 	connect(_emptyValues,	&EmptyValues::emptyValuesChanged,	this,		&DataSet::emptyValuesChanged			);
 	connect(this,			&DataSet::emptyValuesChanged,		_workspace, &Workspace::emptyValuesChanged			);
@@ -68,20 +69,21 @@ DataSet::DataSet(Workspace * workspace, int id)
 
 	_description = fq(tr("Originally created empty by %1 on %2").arg(tq(AppInfo::getShortDesc())).arg(tq(Utils::currentDateTime())));
 
-	auto * s = &_syncer;
-	connect(s, &DataSetSyncer::askPassword,  this, [this](int, QString title, QString msg) -> QString { return emit askPassword(title, msg); });
-	connect(s, &DataSetSyncer::askYesNo,     this, [this](int, QString title, QString msg) -> bool   { return emit showYesNo(title, msg); });
-	connect(s, &DataSetSyncer::showWarning,  this, [this](int, QString title, QString msg)          { emit showWarning(title, msg); });
-	connect(s, &DataSetSyncer::syncRequired, this, &DataSet::syncRequired);
+	connect(_syncer, &DataSetSyncer::askPassword,  this, [this](int, QString title, QString msg) -> QString { return emit askPassword(title, msg); });
+	connect(_syncer, &DataSetSyncer::askYesNo,     this, [this](int, QString title, QString msg) -> bool   { return emit showYesNo(title, msg); });
+	connect(_syncer, &DataSetSyncer::showWarning,  this, [this](int, QString title, QString msg)          { emit showWarning(title, msg); });
+	connect(_syncer, &DataSetSyncer::syncRequired, this, &DataSet::syncRequired);
 }
 
 DataSet::~DataSet()
 {
 	JASPTIMER_SCOPE(DataSet::~DataSet);
 
-	_syncer.stopFileSyncing();
-	_syncer.stopDatabaseSyncing();
-	
+	delete _syncer;
+	_syncer = nullptr;
+	delete _encoder;
+	_encoder = nullptr;
+
 	for(Column * col : _columns)
 		unregisterNode(col);
 
@@ -448,7 +450,7 @@ QString DataSet::insertColumnSpecial(int columnIndex, const QMap<QString, QVaria
 	
 	emit datasetChanged(_dataSetId, tq(stringvec{col->name()}), {}, {}, false, true);
 
-	_encoder.setCurrentNames(	getColumnTypesMap());
+	_encoder->setCurrentNames(	getColumnTypesMap());
 	
 	if(col->codeType() == computedColumnType::constructorCode || col->codeType() == computedColumnType::rCode)
 		setShownColumn(col);
@@ -573,7 +575,7 @@ void DataSet::setDataFileSynch(bool synchronizing)
 
 void DataSet::synchronize()
 {
-	_syncer.syncNow();
+	_syncer->syncNow();
 }
 
 void DataSet::synchronizeFromDatabase()
@@ -584,7 +586,7 @@ void DataSet::synchronizeFromDatabase()
 		return;
 	}
 
-	_syncer.syncNow();
+	_syncer->syncNow();
 }
 
 void DataSet::synchronizeFromDataFile()
@@ -601,7 +603,7 @@ void DataSet::synchronizeFromDataFile()
 		return;
 	}
 
-	_syncer.syncNow();
+	_syncer->syncNow();
 }
 
 void DataSet::dbCreate()
@@ -1496,7 +1498,7 @@ bool DataSet::insertColumns(int column, int count, const QModelIndex &)
 
 	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
 
-	_encoder.setCurrentNames(getColumnNames());
+	_encoder->setCurrentNames(getColumnNames());
 
 	return true;
 }
@@ -1524,7 +1526,7 @@ bool DataSet::removeColumns(int column, int count, const QModelIndex &)
 
 	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), false, true);
 
-	_encoder.setCurrentNames(getColumnNames());
+	_encoder->setCurrentNames(getColumnNames());
 
 	return true;
 }
@@ -1592,7 +1594,7 @@ void DataSet::handleDataSetChanged( int						dataSetID,
 
 	}
 
-	_encoder.setCurrentNames(	getColumnTypesMap());
+	_encoder->setCurrentNames(	getColumnTypesMap());
 
 	for(Column * col : computedColumns())
 	{

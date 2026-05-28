@@ -123,10 +123,10 @@ public:
 			void			insertColumn(			size_t			index,	bool alterDataSetTable = true);
 			Column		*	createColumn(			const std::string &	name, columnType columnType = columnType::unknown);
 			Column		*	createComputedColumn(	const std::string & name, columnType type		= columnType::unknown, computedColumnType desiredType = computedColumnType::analysis, int analysisId = -1);
-			ColumnEncoder	&	encoder()			{ return _encoder; }
-	const	ColumnEncoder	&	encoder()	const	{ return _encoder; }
-	DataSetSyncer	&	syncer()			{ return _syncer; }
-	const	DataSetSyncer	&	syncer()	const	{ return _syncer; }
+			ColumnEncoder	&	encoder()			{ return *_encoder; }
+	const	ColumnEncoder	&	encoder()	const	{ return *_encoder; }
+	DataSetSyncer	&	syncer()			{ return *_syncer; }
+	const	DataSetSyncer	&	syncer()	const	{ return *_syncer; }
 			int				getColumnIndex(	const	std::string &	name	) const;
 			int				columnIndex(	const	Column		*	col		) const;
 			void			columnsReorder(			stringvec		order	); ///< Expects a sane order vector, with or without computed columns
@@ -293,8 +293,8 @@ private:
 	Workspace			*	_workspace				= nullptr;
 	Columns					_columns;
 	Column				*	_shownColumn			= nullptr;
-	ColumnEncoder			_encoder;
-	DataSetSyncer			_syncer;
+	ColumnEncoder			*	_encoder				= nullptr;
+	DataSetSyncer			*	_syncer					= nullptr;
 	Filter				*	_defaultFilter			= nullptr,
 						*	_shownFilter			= nullptr;
 	Filters					_filters;
