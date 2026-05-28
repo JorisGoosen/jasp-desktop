@@ -17,24 +17,32 @@ DataSetSyncer::~DataSetSyncer()
 
 void DataSetSyncer::startFileSyncing(const QString & filePath)
 {
+	QFileInfo fi(filePath);
+	if(!fi.exists())
+	{
+		Log::log() << "DataSetSyncer::startFileSyncing: File does not exist: " << filePath.toStdString() << std::endl;
+		return;
+	}
+
+	QString absPath = fi.absoluteFilePath();
+
+	if(_fileWatcher && _fileWatcher->files().contains(absPath))
+	{
+		_dataSet->setDataFile(absPath.toStdString(), fi.lastModified().toSecsSinceEpoch());
+		return;
+	}
+
 	if(!_fileWatcher)
 	{
 		_fileWatcher = new QFileSystemWatcher(this);
 		connect(_fileWatcher, &QFileSystemWatcher::fileChanged, this, &DataSetSyncer::fileChanged);
 	}
+	else if(!_fileWatcher->files().isEmpty())
+		_fileWatcher->removePaths(_fileWatcher->files());
 
-	QFileInfo fi(filePath);
-	if(fi.exists())
-	{
-		if(!_fileWatcher->files().isEmpty())
-			_fileWatcher->removePaths(_fileWatcher->files());
-
-		_fileWatcher->addPath(fi.absoluteFilePath());
-		_dataSet->setDataFile(fi.absoluteFilePath().toStdString(), fi.lastModified().toSecsSinceEpoch());
-		_dataSet->setDataFileSynch(true);
-	}
-	else
-		Log::log() << "DataSetSyncer::startFileSyncing: File does not exist: " << filePath.toStdString() << std::endl;
+	_fileWatcher->addPath(absPath);
+	_dataSet->setDataFile(absPath.toStdString(), fi.lastModified().toSecsSinceEpoch());
+	_dataSet->setDataFileSynch(true);
 }
 
 void DataSetSyncer::stopFileSyncing()
@@ -148,4 +156,6 @@ void DataSetSyncer::doSync()
 	}
 
 	emit syncRequired(id, locator, extension, dbJson);
+
+	_isSyncing = false;
 }
