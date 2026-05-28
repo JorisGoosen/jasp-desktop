@@ -7,12 +7,10 @@
 #include "dataenums.h"
 #include "workspace.h"
 
-UndoStack* UndoStack::_undoStack = nullptr;
+UndoStack* UndoStack::_currentUndoStack = nullptr;
 
 UndoStack::UndoStack(QObject* parent) : QUndoStack(parent)
 {
-	_undoStack = this;
-
 	connect(this, &QUndoStack::indexChanged, []() { if(Workspace::singleton()) Workspace::singleton()->somethingModified(); });
 }
 
@@ -782,7 +780,7 @@ void SetWorkspaceEmptyValuesCommand::redo()
 UndoModelCommand::UndoModelCommand(DataSet * data)
 	: QUndoCommand(UndoStack::singleton()->parentCommand())
 {
-	_dataSetID = dataSet() ? dataSet()->id() : -1;
+	_dataSetID = data ? data->id() : -1;
 }
 
 QString UndoModelCommand::columnName(int colIndex) const

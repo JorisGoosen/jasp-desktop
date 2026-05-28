@@ -25,7 +25,6 @@ public:
 	Column		*		column(int index)					const;
 
 protected:
-	DataSet		*		_data		= nullptr;
 	int					_dataSetID	= -1;
 };
 
@@ -461,7 +460,8 @@ class UndoStack : public QUndoStack
 public:
 	UndoStack(QObject* parent = nullptr);
 
-	static UndoStack*	singleton() { return _undoStack; }
+	static UndoStack*	singleton() { return _currentUndoStack; }
+	static void			setCurrent(UndoStack* stack) { _currentUndoStack = stack; }
 
 	void				pushCommand(UndoModelCommand* command);
 	void				startMacro(const QString& text = QString());
@@ -472,7 +472,7 @@ private:
 
 	UndoModelCommand*			_parentCommand			= nullptr;
 
-	static UndoStack*			_undoStack;
+	static UndoStack*			_currentUndoStack;
 
 };
 
