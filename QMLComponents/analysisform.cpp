@@ -676,6 +676,8 @@ void AnalysisForm::setAnalysisUp()
 
 	Log::log() << "AnalysisForm::setAnalysisUp() for " << this << std::endl;
 
+	varInfo()->setProvider(_analysis->filter());
+
 	blockValueChangeSignal(true);
 
 	// When reading from JASP file or when reloading the QML file, the boundValues are set to the analysis.
