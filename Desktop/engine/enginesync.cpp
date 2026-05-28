@@ -1190,28 +1190,35 @@ void EngineSync::enginesPrepareForData()
 
 	Log::log() << "EngineSync::enginesPrepareForData!" << std::endl;
 	
-	//make sure we process any received messages first.
-	for(auto * engine : _engines)
-		engine->processReplies();
-
-	std::set<EngineRepresentation *> pauseOrKillThese;
-
-	for(EngineRepresentation * e : _engines)
-		if(!e->idle())
-		{
-			pauseOrKillThese.insert(e);
-			e->pauseEngine(true);
-		}
-
-	//int64_t tryTill = Utils::currentMillis() + ENGINE_KILLTIME;
-
-	//while(!allEnginesPaused(pauseOrKillThese) && tryTill >= Utils::currentMillis())
-	//	for (auto * engine : pauseOrKillThese)
-	//		engine->processReplies();
-
-	//for (auto * engine : pauseOrKillThese)
-	//	if(!engine->paused())
-	//		engine->killEngine();
+	if(true)
+	{
+		Log::log() << "Does not do anything right now." << std::endl;
+	}
+	else
+	{
+		//make sure we process any received messages first.
+		for(auto * engine : _engines)
+			engine->processReplies();
+	
+		std::set<EngineRepresentation *> pauseOrKillThese;
+	
+		for(EngineRepresentation * e : _engines)
+			if(!e->idle())
+			{
+				pauseOrKillThese.insert(e);
+				e->pauseEngine(true);
+			}
+	
+		//int64_t tryTill = Utils::currentMillis() + ENGINE_KILLTIME;
+	
+		//while(!allEnginesPaused(pauseOrKillThese) && tryTill >= Utils::currentMillis())
+		//	for (auto * engine : pauseOrKillThese)
+		//		engine->processReplies();
+	
+		//for (auto * engine : pauseOrKillThese)
+		//	if(!engine->paused())
+		//		engine->killEngine();
+	}
 }
 
 

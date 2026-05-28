@@ -184,7 +184,7 @@ sqlite3_bind_int(stmt,	6, dataSynch);
 	};
 
 	transactionWriteBegin();
-	int id = runStatementsId("INSERT OR REPLACE INTO DataSets (dataFilePath, dataFileTimestamp, description, databaseJson, emptyValuesJson, dataFileSynch, csvDelimiter) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id;", prepare);
+	int id = runStatementsId("INSERT INTO DataSets (dataFilePath, dataFileTimestamp, description, databaseJson, emptyValuesJson, dataFileSynch, csvDelimiter) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id;", prepare);
 	
 	if(tableExists(dataSetName(id)))
 		throw std::runtime_error("Table '" + dataSetName(id) + "' already exists!");
