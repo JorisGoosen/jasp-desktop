@@ -293,8 +293,8 @@ private:
 	Workspace			*	_workspace				= nullptr;
 	Columns					_columns;
 	Column				*	_shownColumn			= nullptr;
-	ColumnEncoder			*	_encoder				= nullptr;
-	DataSetSyncer			*	_syncer					= nullptr;
+	ColumnEncoder		*	_encoder				= nullptr;
+	DataSetSyncer		*	_syncer					= nullptr;
 	Filter				*	_defaultFilter			= nullptr,
 						*	_shownFilter			= nullptr;
 	Filters					_filters;

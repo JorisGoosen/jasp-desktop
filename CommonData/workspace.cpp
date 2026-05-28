@@ -319,10 +319,7 @@ DataSet * Workspace::createDataSet()
 {
 	if(_shownDataSet && _shownDataSet->columnCount() == 0)
 	{
-		DataSet * old = _shownDataSet;
-		_shownDataSet = nullptr;
-		_dataSets.erase(old->id());
-		delete old;
+		return _shownDataSet;
 	}
 
 	DataSet * newSet = new DataSet(this);

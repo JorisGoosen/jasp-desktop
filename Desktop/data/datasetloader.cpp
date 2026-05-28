@@ -75,7 +75,7 @@ void DataSetLoader::loadPackage(const string &locator, const string &extension, 
 
 	if (importer)
 	{
-DataSet * dataSet = DataSetPackage::pkg()->createDataSet();
+		DataSet * dataSet = DataSetPackage::pkg()->createDataSet();
 		importer->loadDataSet(locator, dataSet, progress);
 		char chosenDelimiter = DesktopCommunicator::singleton()->knownCsvDelimiter();
 		if (chosenDelimiter != '\0' && dataSet)
@@ -83,6 +83,7 @@ DataSet * dataSet = DataSetPackage::pkg()->createDataSet();
 		DesktopCommunicator::singleton()->setKnownCsvDelimiter('\0');
 		delete importer;
 		DataSetPackage::pkg()->workspace()->setShownDataSet(dataSet);
+		DataSetPackage::pkg()->workspace()->refresh();
 	}
 	else if(extension == ".jasp" || extension == "jasp")
 		JASPImporter::loadDataSet(locator, progress);
