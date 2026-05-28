@@ -9,6 +9,8 @@ class DataSetPackage;
 class EngineSync;
 class Importer;
 class DataSet;
+class Filter;
+class VariableInfo;
 
 class TestEngine: public QObject
 {
@@ -19,6 +21,7 @@ private slots:
 	void    testFilters();
 	void    initTestCase();
 	void    testComputedColumns();
+	void    testVariableInfoPerFilter();
 
 private:
 	EngineSync				*	_engines	= nullptr;

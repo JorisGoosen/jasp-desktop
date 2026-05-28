@@ -47,6 +47,7 @@ void JASPListControl::whenFormIsKnown(AnalysisForm * form)
 {
 	if (!form) return;
 	connect(form->varInfo(),	&VariableInfo::dataSetChanged,		this,	&JASPListControl::levelsChanged, Qt::UniqueConnection);
+	if (model())				model()->setVarInfo(form->varInfo());
 }
 
 

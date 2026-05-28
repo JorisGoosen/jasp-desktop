@@ -119,16 +119,18 @@ private:
 class VariableInfoConsumer
 {
 public:
-	VariableInfoConsumer(VariableInfo * info = nullptr) { if(info) _provider = info->provider(); }
+	VariableInfoConsumer(VariableInfo * info = nullptr) : _varInfo(info) {}
 
-	QVariant				requestInfo(varInfoType info, const QString &name = "", int row = 0)			const	{ return _provider ? _provider->provideInfo(info, name, row)		: QVariant();	}
-	bool					sendInfo(varInfoType info, const QString &name, int row, QVariant value)		const	{ return _provider ? _provider->absorbInfo(info, name, row, value)	: false;	}
-	bool					isInfoProviderModel(QObject* model)												const	{ return _provider ? model == _provider->providerModel()			: false;		}
-	QAbstractItemModel*		infoProviderModel()																		{ return _provider ? _provider->providerModel()						: nullptr;		}
-	void					setProvider(VariableInfoProvider * provider) { _provider = provider; }
-	
+	QVariant				requestInfo(varInfoType info, const QString &name = "", int row = 0)			const	{ return _varInfo && _varInfo->provider() ? _varInfo->provider()->provideInfo(info, name, row)		: QVariant();	}
+	bool					sendInfo(varInfoType info, const QString &name, int row, QVariant value)		const	{ return _varInfo && _varInfo->provider() ? _varInfo->provider()->absorbInfo(info, name, row, value)	: false;	}
+	bool					isInfoProviderModel(QObject* model)												const	{ return _varInfo && _varInfo->provider() ? model == _varInfo->provider()->providerModel()			: false;		}
+	QAbstractItemModel*		infoProviderModel()																		{ return _varInfo && _varInfo->provider() ? _varInfo->provider()->providerModel()						: nullptr;		}
+
+	VariableInfo*			varInfo()	const	{ return _varInfo; }
+	void					setVarInfo(VariableInfo * info) { _varInfo = info; }
+
 private:
-	VariableInfoProvider *	_provider = nullptr;
+	VariableInfo *	_varInfo = nullptr;
 };
 
 #endif // VARIABLEINFO_H

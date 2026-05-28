@@ -412,7 +412,10 @@ const DatabaseInterface & Filter::db() const	{ return *DatabaseInterface::single
 FilteredData *Filter::rowFilteredData()
 {
 	if(!_rowFilteredData)
+	{
 		_rowFilteredData = new FilteredData(this);
+		_rowFilteredData->setSourceModel(_data);
+	}
 	
 	return _rowFilteredData;
 }
@@ -459,8 +462,16 @@ QVariant Filter::provideInfo(varInfoType info, const QString& colName, int row) 
 {
 	try
 	{
-		int colIndex = data()->getColumnIndex(fq(colName));
+		switch(info)
+		{
+		case varInfoType::VariableNames:			return	tq(data()->getColumnNames());
+		case varInfoType::DataSetRowCount:			return  rowFilteredData()->rowCount();
+		case varInfoType::DataAvailable:			return	bool(data());
+		case varInfoType::DataSetPointer:			return	QVariant::fromValue<void*>(data());
+		default:									break;
+		}
 
+		int colIndex = data()->getColumnIndex(fq(colName));
 		if (colIndex < 0)
 			return QVariant();
 
@@ -468,31 +479,25 @@ QVariant Filter::provideInfo(varInfoType info, const QString& colName, int row) 
 					tableCIndex	= rowFilteredData()->index(0, colIndex),
 					tableVIndex	= rowFilteredData()->index(row, colIndex);
 
-		//columnType	colTypeHere	= static_cast<columnType>(colTypeInt);
-
 		switch(info)
 		{
 		case varInfoType::VariableType:				return	rowFilteredVarInfo()	->data(qColIndex, VarInfoModelProxy::ColumnTypeRole).toInt();
 		case varInfoType::NameRole:					return	rowFilteredVarInfo()	->data(qColIndex, VarInfoModelProxy::NameRole);
-		
+
 		case varInfoType::DoubleValues:				return	rowFilteredData()		->	data(tableCIndex,						int(dataPkgRoles::valuesDblList));
 		case varInfoType::TotalNumericValues:		return	rowFilteredData()		->	data(tableCIndex,						int(dataPkgRoles::nonFilteredNumericValuesCount));
 		case varInfoType::TotalLevels:				return	rowFilteredData()		->	data(tableCIndex,						int(dataPkgRoles::nonFilteredLevels)).toStringList().length();
 		case varInfoType::Labels:					return	rowFilteredData()		->	data(tableCIndex,						int(dataPkgRoles::nonFilteredLevels));
 		case varInfoType::DataSetValues:			return	rowFilteredData()		->	data(tableCIndex,						int(dataPkgRoles::valuesStrList));
-		case varInfoType::DataSetRowCount:			return  rowFilteredData()		->	rowCount();
 		case varInfoType::DataSetValue:				return	rowFilteredData()		->	data(tableVIndex,						int(dataPkgRoles::value));
-		
-		case varInfoType::VariableNames:			return	tq(data()->getColumnNames());
-		case varInfoType::DataAvailable:			return	bool(data());
-		
+
 		case varInfoType::MaxWidth:					return	rowFilteredData()		->headerData(colIndex, Qt::Horizontal,	int(dataPkgRoles::maxColString)).toInt();
 		case varInfoType::PreviewScale:				return	rowFilteredData()		->headerData(colIndex, Qt::Horizontal,	int(dataPkgRoles::previewScale));
 		case varInfoType::PreviewOrdinal:			return	rowFilteredData()		->headerData(colIndex, Qt::Horizontal,	int(dataPkgRoles::previewOrdinal));
 		case varInfoType::PreviewNominal:			return	rowFilteredData()		->headerData(colIndex, Qt::Horizontal,	int(dataPkgRoles::previewNominal));
 		case varInfoType::ColumnDescription:		return	rowFilteredData()		->headerData(colIndex, Qt::Horizontal,	int(dataPkgRoles::description));
-		case varInfoType::DataSetPointer:			return	QVariant::fromValue<void*>(data());
 		case varInfoType::SignalsBlocked:			throw std::runtime_error("????");
+		default:									break;
 		}
 	}
 	catch(std::exception & e)

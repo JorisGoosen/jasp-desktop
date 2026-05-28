@@ -102,6 +102,9 @@ void SourceItem::_setUp()
 		_sourceNativeModel = new ListModelTermsAvailable(_targetListControl, _values);
 	else if (_isDataSetVariables)
 	{
+		if(_targetListControl->form())
+			setVarInfo(_targetListControl->form()->varInfo());
+
 		_sourceNativeModel	= infoProviderModel();
 		_nativeModelRole	= requestInfo(varInfoType::NameRole).toInt();
 	}
