@@ -63,12 +63,10 @@ DataSet::DataSet(Workspace * workspace, int id)
 	connect(this,			&DataSet::refreshAllCompCols,		_workspace, &Workspace::refreshAllCompCols			);
 	connect(this,			&DataSet::enginesPrepareForData,	_workspace, &Workspace::enginesPrepareForData		);
 	connect(this,			&DataSet::enginesReceiveNewData,	_workspace, &Workspace::enginesReceiveNewData		);
-	connect(this,			&DataSet::descriptionChanged,		_workspace, &Workspace::refresh						); //While description is used as tooltip this makes sense.
-	connect(this,			&DataSet::titleChanged,				_workspace, &Workspace::refresh						); 
 	
 	connect(_workspace,		&Workspace::filterByNameDone,		this,		&DataSet::filterByNameDone				);
 
-_description = fq(tr("Originally created empty by %1 on %2").arg(tq(AppInfo::getShortDesc())).arg(tq(Utils::currentDateTime())));
+	_description = fq(tr("Originally created empty by %1 on %2").arg(tq(AppInfo::getShortDesc())).arg(tq(Utils::currentDateTime())));
 
 	auto * s = &_syncer;
 	connect(s, &DataSetSyncer::askPassword,  this, [this](int, QString title, QString msg) -> QString { return emit askPassword(title, msg); });
