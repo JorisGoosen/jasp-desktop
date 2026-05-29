@@ -9,6 +9,7 @@
 #include "data/importers/odsimporter.h"
 #include "data/importers/jaspimporter.h"
 #include "data/exporters/jaspexporter.h"
+#include "data/exporters/dataexporter.h"
 #include "data/importers/excelimporter.h"
 #include "data/importers/rdataimporter.h"
 #include "data/importers/readstatimporter.h"
@@ -526,6 +527,66 @@ void TestAll::testSyncerMultipleStartStop()
 	QCOMPARE(QString::fromStdString(ds->dataFilePath()), path1);
 
 	syncer.stopFileSyncing();
+}
+
+
+void TestAll::testDataExporterShownDataSetOnly()
+{
+	_pkg = new DataSetPackage(this);
+
+	QTemporaryDir tempDir;
+	QVERIFY(tempDir.isValid());
+	QString csvPath = tempDir.filePath("export.csv");
+
+	// Import debug.csv — this creates the first dataset
+	DataSet * firstDs = nullptr;
+	{
+		CSVImporter importer;
+		importer.loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), _pkg->createDataSet(), [](int){});
+		firstDs = _pkg->dataSet();
+		QVERIFY(firstDs);
+		QVERIFY(firstDs->rowCount() > 0);
+		QVERIFY(firstDs->columnCount() > 0);
+	}
+
+	// Create a second, empty dataset and make it the shown one
+	DataSet * secondDs = _pkg->createDataSet();
+	QVERIFY(secondDs);
+	_pkg->workspace()->setShownDataSet(secondDs);
+	secondDs = _pkg->dataSet();
+	QVERIFY(secondDs);
+	QVERIFY(secondDs != firstDs);
+
+	secondDs->setColumnCount(1);
+	secondDs->setRowCount(1, false);
+	secondDs->column(0)->setName("mycol");
+	secondDs->column(0)->setDefaultValues(columnType::scale, false);
+	QCOMPARE(secondDs->rowCount(), 1);
+	QCOMPARE(secondDs->columnCount(), 1);
+
+	// Set a value manually
+	QModelIndex idx = secondDs->index(0, 0);
+	secondDs->setData(idx, "testval", Qt::DisplayRole);
+
+	// Export using DataExporter — should export the shownDataSet only
+	DataExporter exporter(false);
+	exporter.saveDataSet(fq(csvPath), [](int){});
+
+	// Read back and verify
+	QFile csvFile(csvPath);
+	QVERIFY(csvFile.open(QIODevice::ReadOnly));
+	QString content = QString::fromUtf8(csvFile.readAll());
+	csvFile.close();
+
+	QStringList lines = content.split('\n', Qt::SkipEmptyParts);
+
+	// Only the shown dataset (mycol) should be written
+	QCOMPARE(lines.size(), 2); // header + 1 data row
+	QVERIFY(lines[1].contains("testval"));
+
+	// Verify that debug.csv columns are NOT present
+	QVERIFY(!lines[0].contains("contNormal"));
+	QVERIFY(!lines[0].contains("contGamma"));
 }
 
 

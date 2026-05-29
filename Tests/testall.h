@@ -30,6 +30,9 @@ private slots:
 	void	testSyncerSyncNowWithoutDataSource();
 	void	testSyncerMultipleStartStop();
 
+	// DataExporter tests
+	void	testDataExporterShownDataSetOnly();
+
 private:
 	DataSetPackage		*	_pkg		= nullptr;
 	Importer			*	_importer	= nullptr;
