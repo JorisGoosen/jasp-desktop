@@ -7,6 +7,8 @@ cmake -GNinja -S . -B build -DBUILD_TESTS=ON
 cmake --build build --target CommonData    # library target only
 cmake --build build                        # everything (slow)
 cmake --build build --target JASP          # desktop app only
+
+Add `-DINSTALL_R_MODULES=OFF` to skip building R modules (much faster build, but analyses won't run).
 ```
 
 - Use the existing `build/` directory — it is already configured.
