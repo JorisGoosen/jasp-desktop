@@ -317,10 +317,13 @@ void Workspace::setShownFilter(Filter *newShownFilter)
 
 DataSet * Workspace::createDataSet()
 {
-	if(_shownDataSet && _shownDataSet->columnCount() == 0)
-	{
+	bool shownDataSetExistsAndIsEmpty = 
+			_shownDataSet && 
+			(_shownDataSet->columnCount() == 0 // Simple case
+			|| (_shownDataSet->columnCount() == 1 && _shownDataSet->rowCount() == 1 && _shownDataSet->data(_shownDataSet->index(0, 0)) == QVariant())); //Single empty cell
+	
+	if(shownDataSetExistsAndIsEmpty)
 		return _shownDataSet;
-	}
 
 	DataSet * newSet = new DataSet(this);
 

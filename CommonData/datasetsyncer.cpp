@@ -11,8 +11,9 @@ DataSetSyncer::DataSetSyncer(DataSet * dataSet, QObject * parent)
 
 DataSetSyncer::~DataSetSyncer()
 {
-	stopFileSyncing();
-	stopDatabaseSyncing();
+	stopFileSyncing(true);
+	stopDatabaseSyncing(true);
+	
 }
 
 void DataSetSyncer::startFileSyncing(const QString & filePath)
@@ -45,7 +46,7 @@ void DataSetSyncer::startFileSyncing(const QString & filePath)
 	_dataSet->setDataFileSynch(true);
 }
 
-void DataSetSyncer::stopFileSyncing()
+void DataSetSyncer::stopFileSyncing(bool isExit)
 {
 	if(_fileWatcher)
 	{
@@ -54,7 +55,8 @@ void DataSetSyncer::stopFileSyncing()
 		_fileWatcher = nullptr;
 	}
 
-	_dataSet->setDataFileSynch(false);
+	if(!isExit)
+		_dataSet->setDataFileSynch(false);
 }
 
 void DataSetSyncer::startDatabaseSyncing(const Json::Value & dbJson, bool syncImmediately)
@@ -85,7 +87,7 @@ void DataSetSyncer::startDatabaseSyncing(const Json::Value & dbJson, bool syncIm
 		_dbInfo->startSynching(syncImmediately);
 }
 
-void DataSetSyncer::stopDatabaseSyncing()
+void DataSetSyncer::stopDatabaseSyncing(bool isExit)
 {
 	if(_dbInfo)
 	{
@@ -94,7 +96,8 @@ void DataSetSyncer::stopDatabaseSyncing()
 		_dbInfo = nullptr;
 	}
 
-	_dataSet->setDatabaseJson(Json::nullValue);
+	if(!isExit)
+		_dataSet->setDatabaseJson(Json::nullValue);
 }
 
 void DataSetSyncer::syncNow()

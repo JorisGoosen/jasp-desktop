@@ -17,11 +17,11 @@ public:
 	~DataSetSyncer();
 
 	void					startFileSyncing(const QString & filePath);
-	void					stopFileSyncing();
+	void					stopFileSyncing(bool isExit = false);
 	bool					isFileSyncing()								const { return _fileWatcher && !_fileWatcher->files().isEmpty(); }
 
 	void					startDatabaseSyncing(const Json::Value & dbJson, bool syncImmediately = false);
-	void					stopDatabaseSyncing();
+	void					stopDatabaseSyncing(bool isExit = false);
 	bool					isDatabaseSyncing()							const { return _dbInfo && _dbInfo->synching(); }
 	const Json::Value &		databaseJson()								const { return _databaseJson; }
 
