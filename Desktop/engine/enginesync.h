@@ -85,8 +85,6 @@ public slots:
 	void		killModuleEngine(Modules::DynamicModule * mod);
 	void		killEngine(int channelNumber);
 	void		stopOrKillEngine(int channelNumber);
-	void		enginesPrepareForData();
-	void		enginesReceiveNewData();
 	bool		isModuleInstallRequestActive(const QString & moduleName);
 	void		dataModeChanged(bool dataMode);
 	
@@ -106,7 +104,6 @@ signals:
 	void		refreshAllPlotsExcept(const std::set<Analysis*> & inProgress);
 	void		plotEditorRefresh();
 	void		settingsChanged();
-	void		reloadData();
 	void		checkDataSetForUpdates();
 
 	void		activateUtilEngineChanged();
@@ -121,7 +118,6 @@ private:
 	void		processLogCfgRequests();
 	void		processFilterScript();
 	void		processSettingsChanged();
-	void		processReloadData();
 	
 	void		shutdownBoredEngines();
 	bool		allEnginesStopped(	std::set<EngineRepresentation *> these = {}); ///< If `these` isn't filled all engines are checked

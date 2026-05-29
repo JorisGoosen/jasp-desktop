@@ -60,7 +60,6 @@ private:
 	void					receiveAnalysisMessage(			const Json::Value & jsonRequest);
 	void					receiveComputeColumnMessage(	const Json::Value & jsonRequest);
 	void					receiveModuleRequestMessage(	const Json::Value & jsonRequest);
-	void					receiveReloadData(				const Json::Value & jsonRequest);
 	void					receiveLogCfg(					const Json::Value & jsonRequest);
 	void					receiveSettings(				const Json::Value & jsonRequest);
 	void					absorbSettings(					const Json::Value & json);
@@ -78,6 +77,7 @@ private:
 	void					sendEnginePaused();
 	void					sendEngineResumed(bool justReloadedData = false);
 	void					sendEngineLoadingData();
+	void					sendLoadingDataProgress(float progress);
 	void					sendEngineStopped();
 
 	void					saveImage();

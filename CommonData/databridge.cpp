@@ -92,14 +92,14 @@ int DataBridge::getColumnOriginalIndex(const std::string &columnName)
 	return provideAndUpdateDataSet()->getColumnIndex(columnName);
 }
 
-DataSet * DataBridge::provideAndUpdateDataSet(int dataSetId)
+DataSet * DataBridge::provideAndUpdateDataSet(int dataSetId, std::function<void(float)> progressCallback)
 {
 	JASPTIMER_RESUME(DataBridge::provideAndUpdateDataSet());
 	
 	if(!_workspace)
 		_workspace = new Workspace();
 
-	_workspace->checkForUpdates();
+	_workspace->checkForUpdates(progressCallback);
 	
 	if(dataSetId != -1)
 		_workspace->setShownDataSet(dataSetId);
@@ -111,9 +111,6 @@ DataSet * DataBridge::provideAndUpdateDataSet(int dataSetId)
 		ds->encoder().setCurrentNames(ds->getColumnTypesMap());
 	}
 	
-	if(_workspace->shownDataSet() && _datasetProvidedCallback)
-		_datasetProvidedCallback();
-
 	JASPTIMER_STOP(DataBridge::provideAndUpdateDataSet());
 
 	return _workspace->shownDataSet();

@@ -183,7 +183,7 @@ void			setDataFile( const std::string & dataFilePath, long timestamp)	{ _dataFil
 			void			setRowCount(	size_t rowCount, bool alsoLoadData = true);
 
 			void			incRevision() override;
-			bool			checkForUpdates();
+			bool			checkForUpdates(std::function<void(float)> progressCallback = [](float){});
 			void			runComputedColumn(QString columnName, QString code, enum columnType columnType);
 
 			const Columns &	computedColumns() const;
@@ -231,9 +231,7 @@ signals:
 			void			sendFilterByName(int dataSetID, const QString & name, const QString & module = "*");
 			void			filtersCountChanged();
 			void			shownFilterChanged(DataSet * data);
-			void			enginesPrepareForData();
-			void			enginesReceiveNewData();
-			void			filterRemoved(Filter * f);
+void			filterRemoved(Filter * f);
 			void			synchronizeStart(DataSet *);
 			void			synchronizeDo(DataSet *);
 			void			syncRequired(int dataSetId, QString locator, QString extension, QString databaseJson);

@@ -62,8 +62,6 @@ DataSet::DataSet(Workspace * workspace, int id)
 	connect(this,			&DataSet::filtersCountChanged,		_workspace, &Workspace::filtersCountChanged			);
 	connect(this,			&DataSet::refreshAllAnalyses,		_workspace, &Workspace::refreshAllAnalyses			);
 	connect(this,			&DataSet::refreshAllCompCols,		_workspace, &Workspace::refreshAllCompCols			);
-	connect(this,			&DataSet::enginesPrepareForData,	_workspace, &Workspace::enginesPrepareForData		);
-	connect(this,			&DataSet::enginesReceiveNewData,	_workspace, &Workspace::enginesReceiveNewData		);
 	
 	connect(_workspace,		&Workspace::filterByNameDone,		this,		&DataSet::filterByNameDone				);
 
@@ -431,10 +429,6 @@ void DataSet::insertColumn(size_t index, bool alterDataSetTable)
 
 QString DataSet::insertColumnSpecial(int columnIndex, const QMap<QString, QVariant>& props)
 {
-	//So, we are inserting a column here, but maybe there are engines running, doing whatever (maybe loading a really big datafile)
-	//Instead of waiting for this, and then inserting the column, and then waiting for it again, we can also simply stop those engines.
-	emit enginesPrepareForData();
-	
 	columnIndex = std::min(std::max(0, columnIndex), columnCount());
 
 	insertColumn(columnIndex);
@@ -455,8 +449,6 @@ QString DataSet::insertColumnSpecial(int columnIndex, const QMap<QString, QVaria
 	if(col->codeType() == computedColumnType::constructorCode || col->codeType() == computedColumnType::rCode)
 		setShownColumn(col);
 	
-	emit enginesReceiveNewData();
-	
 	refresh();
 
 	return tq(col->name());
@@ -468,8 +460,6 @@ Column * DataSet::createColumn(const std::string & name, columnType columnType)
 	if(getColumnIndex(name) >= 0)
 		return nullptr;
 
-	emit enginesPrepareForData();
-	
 	beginInsertColumns(QModelIndex(), columnCount(), columnCount());
 	
 	Column * col = new Column(this, db().columnInsert(_dataSetId, -1, name));
@@ -481,8 +471,6 @@ Column * DataSet::createColumn(const std::string & name, columnType columnType)
 	incRevision();
 	
 	refresh();
-	emit enginesReceiveNewData();
-	
 	emit manualEditMade();
 
 	return col;
@@ -856,7 +844,7 @@ void DataSet::incRevision()
 	}
 }
 
-bool DataSet::checkForUpdates()
+bool DataSet::checkForUpdates(std::function<void(float)> progressCallback)
 {
 	JASPTIMER_SCOPE(DataSet::checkForUpdates);
 
@@ -876,7 +864,7 @@ bool DataSet::checkForUpdates()
 		
 	if(_revision < db().dataSetGetRevision(_dataSetId))
 	{
-		dbLoad();
+		dbLoad(-1, progressCallback);
 		
 		newColumns		= prevCols.size() < _columns.size();
 		rowCountChanged = rowCountPrev != rowCount();

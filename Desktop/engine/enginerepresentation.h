@@ -22,6 +22,7 @@ class EngineRepresentation : public QObject
 	Q_PROPERTY(engineState	state				READ state				WRITE setState				NOTIFY stateChanged				)
 	Q_PROPERTY(QString		analysisStatus		READ analysisStatus									NOTIFY analysisStatusChanged	)	//For updates to EngineSync' list capabilities
 	Q_PROPERTY(QString		module				READ moduleQ										NOTIFY moduleChanged			)
+	Q_PROPERTY(float		loadingProgress		READ loadingProgress								NOTIFY loadingProgressChanged	)
 
 
 public:
@@ -47,9 +48,8 @@ public:
 	void			runModuleUnInstallRequestOnProcess(	Json::Value request);
 	void			runModuleLoadRequestOnProcess(		Json::Value request);
 
-	void			sendLogCfg();
-	void			sendSettings();
-	void			sendReloadData();
+void sendLogCfg();
+	void sendSettings();
 
 	///Kills engine outright by killing process
 	void 			killEngine(bool beCareful = true);
@@ -81,7 +81,7 @@ public:
 	bool			idle()					const { return _engineState == engineState::idle;										}
 	bool			installingModule()		const { return _engineState == engineState::moduleInstallRequest;						}
 	bool			unInstallingModule()	const { return _engineState == engineState::moduleUninstallRequest;						}
-	bool			reloadingData()			const { return _engineState == engineState::reloadData;						}
+	bool			loadingData()			const { return _engineState == engineState::loadingData;						}
 	bool			moduleLoading()			const { return _engineState == engineState::moduleLoadRequest;							}
 	bool			idleSoon()				const;
 	bool			shouldSendSettings()	const { return idle() && _settingsChanged;												}
@@ -90,7 +90,6 @@ public:
 	bool			runsRCmd()				const { return _runsRCmd;																}
 	bool			isBored()				const;
 	bool			busyWithData()			const;
-	bool			needsReloadData()		const { return idle() && _reloadData; }
 	bool			moduleLoaded()			const { return _moduleLoaded; }
     bool			isPrivileged()          const { return _isPrivileged; }
     void			setIsPrivileged(bool value) { _isPrivileged = value;}
@@ -117,6 +116,8 @@ public:
 
 	const QString	analysisStatus() const;
 
+	float			loadingProgress() const { return _loadingProgress; }
+
 
 protected:
 	void			processRCodeReply(			Json::Value & json);
@@ -125,7 +126,7 @@ protected:
 	void			processAnalysisReply(		Json::Value & json);
 	void			processComputeColumnReply(	Json::Value & json);
 	void			processModuleRequestReply(	Json::Value & json);
-	void			processReloadDataReply();
+	void			processLoadingDataReply(Json::Value & json);
 	void			processEnginePausedReply();
 	void			processEngineStoppedReply();
 	void			processEngineResumedReply(	Json::Value & json);
@@ -145,7 +146,6 @@ public slots:
 
 
 	void			setDynamicModule(const std::string & dynamicModule);
-	void			reloadData() { _reloadData = true; }
 
 signals:
 	void			engineTerminated();
@@ -182,6 +182,7 @@ signals:
 	void			stateChanged();
 	void			analysisStatusChanged();
 	void			moduleChanged();
+	void			loadingProgressChanged();
 
 	IPCChannel	*	channelSignal(size_t channelNumber);
 
@@ -223,7 +224,7 @@ private:
 					_runsRCmd			= false,	///<is this engine meant for the R prompt?
 					_removeEngine		= false,
 					_pauseUnloadData	= false,
-					_reloadData			= false,	///<when the idle is engine and this true, it should reload the data
+					_loadingProgress	= 0.0,
                     _moduleLoaded		= false,	///<If _dynModName is set but this is false the engine should still load the module.
                     _isPrivileged        = false;
 	std::string		_lastCompColName	= "???",

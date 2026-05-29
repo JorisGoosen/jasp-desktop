@@ -92,16 +92,10 @@ void Engine::initialize()
 
 		Log::log() << "rbridge_init completed" << std::endl;
 		
-		_datasetProvidedCallback = [this]()
-		{
-			if(_engineState == engineState::reloadData)
-			{
-				sendEngineResumed();
-				_engineState = engineState::idle;
-			}
-		};
-	
 		sendEngineLoadingData();
+		provideAndUpdateDataSet();
+		_engineState = engineState::idle;
+		sendEngineResumed(true);
 	}
 	catch(std::exception & e)
 	{
@@ -143,7 +137,6 @@ void Engine::run()
 		case engineState::paused:			/* Do nothing */
 		case engineState::stopped:															break;
 		case engineState::resuming:			throw std::runtime_error("Enginestate " + engineStateToString(_engineState) + " should NOT be set as currentState!");
-		case engineState::reloadData:		provideAndUpdateDataSet();						break;
 		default:
 			Log::log() << "Engine got stuck in engineState " << engineStateToString(_engineState) << " which is not supposed to happen..." << std::endl;
 		}
@@ -166,15 +159,41 @@ void Engine::run()
 void Engine::beIdle(bool newlyIdle)
 {
 	static int64_t idleStartTime = -1;
+	static int64_t lastCheckTime = -1;
 
 	if(newlyIdle)
-		idleStartTime = Utils::currentSeconds();
-	else if(idleStartTime != -1 && idleStartTime + 10 < Utils::currentSeconds())
 	{
-		Log::log() << "Attempting to clean up memory used by engine/R a bit." << std::endl;
-		rbridge_memoryCleaning();
-		Log::log() << "Memory is cleaned up" << std::endl;
-		idleStartTime = -1;
+		idleStartTime = Utils::currentSeconds();
+		lastCheckTime = idleStartTime;
+	}
+	else
+	{
+		if(idleStartTime != -1 && idleStartTime + 10 < Utils::currentSeconds())
+		{
+			Log::log() << "Attempting to clean up memory used by engine/R a bit." << std::endl;
+			rbridge_memoryCleaning();
+			Log::log() << "Memory is cleaned up" << std::endl;
+			idleStartTime = -1;
+		}
+
+		if(lastCheckTime != -1 && lastCheckTime + 15 < Utils::currentSeconds())
+		{
+			_engineState = engineState::loadingData;
+			sendEngineLoadingData();
+			
+			float lastSent = 0.0f;
+			provideAndUpdateDataSet(-1, [&](float p){
+				if(p - lastSent > 0.01f || p >= 1.0f)
+				{
+					sendLoadingDataProgress(p);
+					lastSent = p;
+				}
+			});
+			
+			_engineState = engineState::idle;
+			sendEngineResumed();
+			lastCheckTime = Utils::currentSeconds();
+		}
 	}
 
 	_lastRequest = engineState::idle;
@@ -265,7 +284,6 @@ bool Engine::receiveMessages(int timeout)
 			case engineState::stopRequested:		stopEngine();								break;
 			case engineState::logCfg:				receiveLogCfg(jsonRequest);					break;
 			case engineState::settings:				receiveSettings(jsonRequest);				break;
-			case engineState::reloadData:			receiveReloadData(jsonRequest);						break;
 			default:								throw std::runtime_error("Engine::receiveMessages begs you to add your new engineState " + engineStateToString(_lastRequest) + " to it!");
 			}
 	}
@@ -958,27 +976,6 @@ void Engine::pauseEngine(const Json::Value & json)
 	sendEnginePaused();
 }
 
-void Engine::receiveReloadData(const Json::Value & jsonRequest)
-{
-	Log::log() << "Engine::receiveReloadData()" << std::endl;
-
-	//Im doing the following switch as a copy from Engine::pauseEngine, but probably the engine is always going to be idle anyway.
-	switch(_engineState)
-	{
-	default:							/* everything not mentioned is fine */	break;
-	case engineState::analysis:			_analysisStatus = Status::aborted;		break;
-	case engineState::filter:
-	case engineState::filterByName:
-	case engineState::computeColumn:	throw std::runtime_error("Unexpected data synch during " + engineStateToString(_engineState) + " somehow, you should not expect to see this exception ever.");
-	};
-
-	//First send state, then load data
-	sendEngineLoadingData();
-	provideAndUpdateDataSet(jsonRequest.get("dataSetId", -1).asInt()); //Also triggers loading from DB and calls _datasetProvidedCallback
-	reloadColumnNames();
-	sendEngineResumed();
-}
-
 void Engine::sendEnginePaused()
 {
 	Json::Value rCodeResponse		= Json::objectValue;
@@ -1012,9 +1009,19 @@ void Engine::sendEngineLoadingData()
 {
 	Log::log() << "Engine::sendEngineLoadingData()" << std::endl;
 	
-	_engineState			= engineState::reloadData;
+	_engineState			= engineState::loadingData;
 	Json::Value response	= Json::objectValue;
 	response["typeRequest"]	= engineStateToString(_engineState);
+	response["progress"]	= 0.0;
+
+	sendString(response);
+}
+
+void Engine::sendLoadingDataProgress(float progress)
+{
+	Json::Value response	= Json::objectValue;
+	response["typeRequest"]	= engineStateToString(engineState::loadingData);
+	response["progress"]	= progress;
 
 	sendString(response);
 }

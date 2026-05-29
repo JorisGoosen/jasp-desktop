@@ -248,7 +248,6 @@ void Column::setNameManually(const QString & name)
 		emit data()->manualEditMade();
 		emit data()->datasetChanged(data()->id(), {}, {}, QMap<QString, QString>({{oldName, name}}), false, false);
 		data()->refresh();
-		emit data()->enginesReceiveNewData();
 	}
 }
 

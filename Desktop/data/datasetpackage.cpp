@@ -167,8 +167,6 @@ void DataSetPackage::connectWorkspace()
 	Workspace		::connect(workspace(),	&Workspace::filtersCountChanged,				this,			&DataSetPackage::filtersCountChanged				);
 	Workspace		::connect(workspace(),	&Workspace::shownFilterChanged,					this,			&DataSetPackage::shownFilterChanged					);
 	Workspace		::connect(workspace(),	&Workspace::refreshAllAnalyses,					this,			&DataSetPackage::refreshAllAnalyses					);
-	Workspace		::connect(workspace(),	&Workspace::enginesPrepareForData,				this,			&DataSetPackage::enginesPrepareForDataSignal		);
-	Workspace		::connect(workspace(),	&Workspace::enginesReceiveNewData,				this,			&DataSetPackage::enginesReceiveNewDataSignal		);
 	Workspace		::connect(workspace(),	&Workspace::shownDataSetChanged,				this,			&DataSetPackage::shownDataSetChanged				);	
 	Workspace		::connect(workspace(),	&Workspace::dataSetSynchingStart,				this,			&DataSetPackage::beginLoadingData					);	
 	Workspace		::connect(workspace(),	&Workspace::dataSetSynchingDone,				this,			&DataSetPackage::endLoadingData						);	
@@ -195,35 +193,12 @@ void DataSetPackage::setEngineSync(EngineSync * engineSync)
 {
 	_engineSync = engineSync;
 
-	//These signals should *ONLY* be called from a different thread than _engineSync!
-	connect(this,	&DataSetPackage::enginesPrepareForDataSignal,	_engineSync,	&EngineSync::enginesPrepareForData,	Qt::QueuedConnection);
-	connect(this,	&DataSetPackage::enginesReceiveNewDataSignal,	_engineSync,	&EngineSync::enginesReceiveNewData,	Qt::QueuedConnection);
-
-
 	reset();
 }
 
 bool DataSetPackage::isThisTheSameThreadAsEngineSync()
 {
 	return	_engineSync && QThread::currentThread() == _engineSync->thread();
-}
-
-void DataSetPackage::enginesPrepareForData()
-{
-	if(dataMode())
-		return;
-
-	if(isThisTheSameThreadAsEngineSync())	_engineSync->enginesPrepareForData();
-	else									emit enginesPrepareForDataSignal();
-}
-
-void DataSetPackage::enginesReceiveNewData()
-{
-	if(!dataMode())
-	{
-		if(isThisTheSameThreadAsEngineSync())	_engineSync->enginesReceiveNewData();
-		else									emit enginesReceiveNewDataSignal();
-	}
 }
 
 void DataSetPackage::reset(bool newDataSet)
@@ -412,7 +387,6 @@ void DataSetPackage::beginLoadingData(bool)
 {
 	JASPTIMER_SCOPE(DataSetPackage::beginLoadingData);
 
-	enginesPrepareForData();
 	doWalCheckPoint();
 }
 
@@ -437,7 +411,6 @@ void DataSetPackage::endLoadingData(bool)
 	Log::log() << "DataSetPackage::endLoadingData" << std::endl;
 	
 	doWalCheckPoint();
-	enginesReceiveNewData();
 	
 	refresh();
 }

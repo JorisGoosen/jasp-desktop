@@ -71,8 +71,6 @@ public:
 
 		void				pauseEngines();
 		void				resumeEngines();
-		void				enginesPrepareForData();
-		void				enginesReceiveNewData();
 		bool				enginesInitializing()	{ return emit enginesInitializingSignal();	}
 
 		void				waitForExportResultsReady();
@@ -163,8 +161,6 @@ signals:
 				void				showAnalysis(			int			analysisId);
 				void				isModifiedChanged();
 				void				isModifiedAfterAutoSaveChanged();
-				void				enginesPrepareForDataSignal();
-				void				enginesReceiveNewDataSignal();
 				bool				enginesInitializingSignal();
 				void				filteredOutChanged(int column);
 				bool				checkDoSync();

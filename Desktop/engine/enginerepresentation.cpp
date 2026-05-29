@@ -330,7 +330,7 @@ void EngineRepresentation::processReplies()
 			case engineState::moduleLoadRequest:	processModuleRequestReply(json);	break;
 			case engineState::logCfg:				processLogCfgReply();				break;
 			case engineState::settings:				processSettingsReply();				break;
-			case engineState::reloadData:			processReloadDataReply();			break;
+			case engineState::loadingData:			processLoadingDataReply(json);			break;
 			default:								throw std::logic_error("If you define/send-from-engine new engineStates ("+engineStateToString(typeRequest)+") you should add them to the switch in EngineRepresentation::processReplies()!");
 			}
 	}
@@ -885,9 +885,9 @@ void EngineRepresentation::processEngineResumedReply(Json::Value & json)
 	Log::log() << "EngineRepresentation::processEngineResumedReply() for engine #" << channelNumber() << std::endl;
 	
 	if(json.get("justReloadedData", false))
-		_reloadData = false;
-	
-	if(_engineState != engineState::resuming && _engineState != engineState::initializing && _engineState != engineState::reloadData && _engineState != engineState::idle)
+		_loadingProgress = 0.0;
+
+	if(_engineState != engineState::resuming && _engineState != engineState::initializing && _engineState != engineState::loadingData && _engineState != engineState::idle)
 	{
 	//	throw unexpectedEngineReply("Received an unexpected engine #" + std::to_string(channelNumber()) + " resumed reply (current state is " + engineStateToString(_engineState) +")!");
 		resend();
@@ -911,12 +911,15 @@ void EngineRepresentation::processEngineStoppedReply()
 }
 
 
-void EngineRepresentation::processReloadDataReply()
+void EngineRepresentation::processLoadingDataReply(Json::Value & json)
 {
-	Log::log() << "EngineRepresentation::processReloadDataReply() for engine #" << channelNumber() << std::endl;
-
-	_reloadData = false;
-	setState(engineState::reloadData); //Its probably already in this state
+	float progress = json.get("progress", 0.0).asFloat();
+	if(std::abs(progress - _loadingProgress) > 0.001f)
+	{
+		_loadingProgress = progress;
+		emit loadingProgressChanged();
+	}
+	setState(engineState::loadingData);
 }
 
 
@@ -1114,20 +1117,6 @@ void EngineRepresentation::sendSettings()
 	_settingsChanged = false;
 }
 
-void EngineRepresentation::sendReloadData()
-{
-	Log::log() << "EngineRepresentation::sendReloadData()" << std::endl;
-
-	if(_engineState != engineState::idle)
-		throw std::runtime_error("EngineRepresentation::sendReloadData() expects to be run from an idle engine.");
-
-	setState(engineState::reloadData);
-	Json::Value msg			= Json::objectValue;
-	msg["typeRequest"]		= engineStateToString(_engineState);
-
-	sendString(msg);
-}
-
 void EngineRepresentation::addSettingsToJson(Json::Value & msg)
 {
 	if(!PreferencesModel::prefs()) //During testing only!
@@ -1181,7 +1170,7 @@ bool EngineRepresentation::idleSoon() const
 	case engineState::settings:
 	case engineState::logCfg:
 	case engineState::moduleLoadRequest:
-	case engineState::reloadData:
+	case engineState::loadingData:
 	case engineState::idle:
 		return true;
 	

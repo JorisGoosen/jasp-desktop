@@ -172,6 +172,7 @@ QVariant EngineSync::data(const QModelIndex &index, int role) const
 	case enginesListRoles::idle:			return engine->idle();
 	case enginesListRoles::idleSoon:		return engine->idleSoon();
 	case enginesListRoles::analysisStatus:	return engine->analysisStatus();
+	case enginesListRoles::loadingProgress:	return engine->loadingProgress();
 	case enginesListRoles::runsWhat:		return QString("Runs ") +(engine->runsAnalysis() ? "Analyses " : "") + (engine->runsRCmd() ? "RCmder " : "") + (engine->runsUtility() ? "Utilities " : "") ;
 	}
 
@@ -289,7 +290,6 @@ EngineRepresentation * EngineSync::createNewEngine(bool addToEngines, int overri
 		connect(engine,						&EngineRepresentation::channelSignal,					this,					&EngineSync::channel,								Qt::DirectConnection	);
 		connect(engine,						&EngineRepresentation::stopAndDestroyEngine,			this,					&EngineSync::stopAndDestroyEngine,					Qt::QueuedConnection	);
 		connect(engine,						&EngineRepresentation::stopModuleEngine,				this,					&EngineSync::stopModuleEngine												);
-		connect(this,						&EngineSync::reloadData,								engine,					&EngineRepresentation::reloadData											);
 		connect(this,						&EngineSync::settingsChanged,							engine,					&EngineRepresentation::settingsChanged										);
 		
 		connect(engine,						&EngineRepresentation::stateChanged,					this,					&EngineSync::resetListModel,						Qt::QueuedConnection	);
@@ -443,18 +443,9 @@ void EngineSync::process()
 
 	if(moduleInstallRunning()) return; //First finish any module install running.
 
-	processReloadData();
-
-	//If we are waiting for an engine to load data, this might take a while, so lets not kill it for for instance a filterscript or something
-	bool anEngineIsLoadingData = false;
-	for(const EngineRepresentation * e : _engines)
-		if(e->reloadingData())
-			anEngineIsLoadingData = true;
-
 	processSettingsChanged();
 	
-	if(!anEngineIsLoadingData || !_engines.size())
-		processFilterScript();
+	processFilterScript();
 		
 	processLogCfgRequests();
 
@@ -650,16 +641,6 @@ void EngineSync::processSettingsChanged()
 
 	if(_rCmder && _rCmder->shouldSendSettings())
 		_rCmder->sendSettings();
-}
-
-void EngineSync::processReloadData()
-{
-	for(auto * engine : _engines)
-		if(engine->needsReloadData())
-			engine->sendReloadData();
-
-	if(_rCmder && _rCmder->needsReloadData())
-		_rCmder->sendReloadData();
 }
 
 
@@ -1184,50 +1165,6 @@ void EngineSync::dataModeChanged(bool dataMode)
 	}*/
 }
 
-void EngineSync::enginesPrepareForData()
-{
-	JASPTIMER_SCOPE(EngineSync::enginesPrepareForData);
-
-	Log::log() << "EngineSync::enginesPrepareForData!" << std::endl;
-	
-	if(true)
-	{
-		Log::log() << "Does not do anything right now." << std::endl;
-	}
-	else
-	{
-		//make sure we process any received messages first.
-		for(auto * engine : _engines)
-			engine->processReplies();
-	
-		std::set<EngineRepresentation *> pauseOrKillThese;
-	
-		for(EngineRepresentation * e : _engines)
-			if(!e->idle())
-			{
-				pauseOrKillThese.insert(e);
-				e->pauseEngine(true);
-			}
-	
-		//int64_t tryTill = Utils::currentMillis() + ENGINE_KILLTIME;
-	
-		//while(!allEnginesPaused(pauseOrKillThese) && tryTill >= Utils::currentMillis())
-		//	for (auto * engine : pauseOrKillThese)
-		//		engine->processReplies();
-	
-		//for (auto * engine : pauseOrKillThese)
-		//	if(!engine->paused())
-		//		engine->killEngine();
-	}
-}
-
-
-void EngineSync::enginesReceiveNewData()
-{
-	Log::log() << "EngineSync::enginesReceiveNewData!" << std::endl;
-	
-	emit reloadData();
-}
 
 bool EngineSync::isModuleInstallRequestActive(const QString &moduleName)
 {

@@ -39,7 +39,7 @@ public:
 	int						getColumnType(				const std::string & columnName);
 	int						getColumnAnalysisId(		const std::string & columnName);
 	int						getColumnOriginalIndex(		const std::string & columnName);
-	DataSet				*	provideAndUpdateDataSet(	int dataSetId = -1);
+	DataSet				*	provideAndUpdateDataSet(	int dataSetId = -1, std::function<void(float)> progressCallback = [](float){});
 	void					provideJaspResultsFileName(										std::string & root,	std::string & relativePath);
 	void					provideStateFileName(											std::string & root,	std::string & relativePath);
 	void					provideTempFileName(		const std::string & extension,		std::string & root,	std::string & relativePath);
@@ -56,7 +56,6 @@ protected:
 	Workspace			*	_workspace		= nullptr;
 	DatabaseInterface	*	_db				= nullptr;
 	int						_analysisId		= -1;
-	std::function<void()>	_datasetProvidedCallback;
 };
 
 #endif // DATABRIDGE_H

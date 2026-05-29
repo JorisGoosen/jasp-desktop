@@ -42,7 +42,7 @@ public:
 			void					dbUpdate();
 			void					dbDelete();
 			
-			bool					checkForUpdates();
+			bool					checkForUpdates(std::function<void(float)> progressCallback = [](float){});
 			
 				
 			DataSet				*	shownDataSet()	const;
@@ -101,9 +101,7 @@ signals:
 			void					sendFilter(			int dataSetID, const QString & generatedFilter, const QString & filter);
 			void					sendFilterByName(	int dataSetID, const QString & name, const QString & module = "*");
 			void					filtersCountChanged();
-			void					enginesPrepareForData();
-			void					enginesReceiveNewData();
-			void					enableModified();
+void					enableModified();
 			void					dataSetSynchingStart(DataSet *);
 			void					dataSetSynchingDone(DataSet * );
 			void					synchingStart();

@@ -128,18 +128,22 @@ void Workspace::dbDelete()
 }
 
 //Should be merged with dbLoad() probably?
-bool Workspace::checkForUpdates()
+bool Workspace::checkForUpdates(std::function<void(float)> progressCallback)
 {
 	intset	dataSets = db().dataSetIds(),
 			missing;
-	
+
 	bool aChange = false;
 	
+	int numChecked = 0;
+	float d = std::max(1, (int)dataSets.size());
+
 	for(int id : dataSets)
 		if(_dataSets.count(id))
 		{
-			if(_dataSets.at(id)->checkForUpdates())
+			if(_dataSets.at(id)->checkForUpdates([&](float p){ progressCallback((numChecked + p) / d); }))
 				aChange = true;
+			numChecked++;
 		}
 		else
 		{
@@ -148,6 +152,8 @@ bool Workspace::checkForUpdates()
 			
 			if(!_shownDataSet)
 				_shownDataSet = _dataSets[id];
+			numChecked++;
+			progressCallback(numChecked / d);
 		}
 	
 	for(auto & idDataSet : _dataSets)
