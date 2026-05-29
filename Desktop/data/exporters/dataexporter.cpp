@@ -39,11 +39,9 @@ void DataExporter::saveDataSet(const std::string &path, std::function<void(int)>
 
 	std::ofstream outfile(path.c_str(), ios::out);
 
-	for(DataSet * dataSet : DataSetPackage::pkg()->workspace()->dataSets())
-	{
+	DataSet * dataSet = DataSetPackage::pkg()->workspace()->shownDataSet();
+	if(dataSet)
 		dataSet->writeToOStream(outfile, _includeComputeColumns);
-		outfile << std::endl;
-	}
 
 	outfile.flush();
 	outfile.close();
