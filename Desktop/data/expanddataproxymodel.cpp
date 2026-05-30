@@ -275,7 +275,7 @@ void ExpandDataProxyModel::resize(int row, int col, bool onlyExpand, const QStri
 
 bool ExpandDataProxyModel::useUndoStack() const
 {
-	return dynamic_cast<DataSetTableModel*>(dataSetSourceModel());
+	return dataSetSourceModel() != nullptr;
 }
 
 bool ExpandDataProxyModel::setData(const QModelIndex &index, const QVariant &value, int role)
