@@ -392,6 +392,8 @@ void EngineRepresentation::processFilterReply(Json::Value & json)
 
 	int requestId = json.get("requestId", -1).asInt();
 
+	emit filterDone(requestId);
+
 	if(requestId == _lastRequestId)
 		Workspace::singleton()->checkForUpdates();
 }
@@ -499,7 +501,12 @@ void EngineRepresentation::processComputeColumnReply(Json::Value & json)
 
 	setState(engineState::idle);
 
-	checkDataSetForUpdates();
+	std::string columnName	= json.get("columnName", "").asString();
+	std::string warning		= json.get("error", "").asString();
+	bool		dataChanged	= warning.empty();
+
+	emit computeColumnSucceeded(tq(columnName), tq(warning), dataChanged);
+	emit checkDataSetForUpdates();
 }
 
 void EngineRepresentation::runAnalysisOnProcess(Analysis *analysis)
