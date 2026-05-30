@@ -33,6 +33,10 @@ private slots:
 	// DataExporter tests
 	void	testDataExporterShownDataSetOnly();
 
+	// Sync + export integration tests
+	void	testSyncerExportModifyReimport();
+	void	testSyncerExportModifyReimportChangesDetected();
+
 private:
 	DataSetPackage		*	_pkg		= nullptr;
 	Importer			*	_importer	= nullptr;

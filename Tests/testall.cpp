@@ -590,4 +590,110 @@ void TestAll::testDataExporterShownDataSetOnly()
 }
 
 
+void TestAll::testSyncerExportModifyReimport()
+{
+	_pkg = new DataSetPackage(this);
+
+	QTemporaryDir tempDir;
+	QVERIFY(tempDir.isValid());
+
+	// Create an initial CSV
+	QString srcPath = tempDir.filePath("source.csv");
+	QFile src(srcPath);
+	QVERIFY(src.open(QIODevice::WriteOnly));
+	src.write("a,b,c\n1,2,3\n4,5,6\n");
+	src.close();
+
+	// Import it
+	CSVImporter importer;
+	importer.loadDataSet(fq(srcPath), _pkg->createDataSet(), [](int){});
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+	QCOMPARE(ds->rowCount(), 2);
+	QCOMPARE(ds->columnCount(), 3);
+
+	// Export to a new location
+	QString exportPath = tempDir.filePath("exported.csv");
+	DataExporter exporter(false);
+	exporter.saveDataSet(fq(exportPath), [](int){});
+
+	// Verify the exported file matches the original content
+	QFile exported(exportPath);
+	QVERIFY(exported.open(QIODevice::ReadOnly));
+	QString exportedContent = QString::fromUtf8(exported.readAll());
+	exported.close();
+
+	QVERIFY(exportedContent.contains("a,b,c"));
+	QVERIFY(exportedContent.contains("1,2,3"));
+	QVERIFY(exportedContent.contains("4,5,6"));
+}
+
+void TestAll::testSyncerExportModifyReimportChangesDetected()
+{
+	_pkg = new DataSetPackage(this);
+
+	QTemporaryDir tempDir;
+	QVERIFY(tempDir.isValid());
+
+	// Create an initial CSV
+	QString srcPath = tempDir.filePath("data.csv");
+	QFile src(srcPath);
+	QVERIFY(src.open(QIODevice::WriteOnly));
+	src.write("x,y\n1,2\n3,4\n");
+	src.close();
+
+	// Import it
+	CSVImporter importer;
+	importer.loadDataSet(fq(srcPath), _pkg->createDataSet(), [](int){});
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+	QCOMPARE(ds->rowCount(), 2);
+	QCOMPARE(ds->columnCount(), 2);
+	QCOMPARE(ds->column(0)->name(), "x");
+	QCOMPARE(ds->column(1)->name(), "y");
+
+	// Also export the original and verify
+	QString exportPath = tempDir.filePath("export.csv");
+	DataExporter exporter(false);
+	exporter.saveDataSet(fq(exportPath), [](int){});
+	QFile exp(exportPath);
+	QVERIFY(exp.open(QIODevice::ReadOnly));
+	QVERIFY(QString::fromUtf8(exp.readAll()).contains("x,y"));
+	exp.close();
+
+	// Now overwrite the source file with different content
+	QFile modified(srcPath);
+	QVERIFY(modified.open(QIODevice::WriteOnly));
+	modified.write("x,z\n1,7\n3,8\n5,9\n");
+	modified.close();
+
+	// Reimport into a new dataset to verify fresh import picks up changes
+	DataSet * ds2 = _pkg->createDataSet();
+	QVERIFY(ds2);
+	_pkg->workspace()->setShownDataSet(ds2);
+
+	CSVImporter importer2;
+	importer2.loadDataSet(fq(srcPath), ds2, [](int){});
+	QCOMPARE(ds2->rowCount(), 3);
+	QCOMPARE(ds2->columnCount(), 2);
+
+	DataExporter exporter2(false);
+	QString exportPath2 = tempDir.filePath("export2.csv");
+	exporter2.saveDataSet(fq(exportPath2), [](int){});
+
+	QFile exp2(exportPath2);
+	QVERIFY(exp2.open(QIODevice::ReadOnly));
+	QString content = QString::fromUtf8(exp2.readAll());
+	exp2.close();
+
+	QStringList lines = content.split('\n', Qt::SkipEmptyParts);
+	QCOMPARE(lines.size(), 4); // header + 3 data rows
+	QVERIFY(lines[0].contains("x"));
+	QVERIFY(lines[0].contains("z"));
+	QVERIFY(!lines[0].contains("y"));
+	QVERIFY(lines[1].contains("7"));
+	QVERIFY(lines[3].contains("9"));
+}
+
+
 QTEST_MAIN(TestAll)
