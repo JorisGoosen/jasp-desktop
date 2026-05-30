@@ -1902,9 +1902,17 @@ bool MainWindow::startDataEditorHandler()
 				name = name.replace('#', '_');
 			}
 
-			QFileInfo pkgFile(_package->currentFile()); // dataFilePath might be empty, so take the current file (the file from which the workspace is loaded, that is a jasp or a data file)
-			if (pkgFile.dir().exists() && !pkgFile.absolutePath().startsWith(AppDirs::examples())) //If the file was opened from a directory that exists and is not examples we use that as basis to open a csv
-				name = pkgFile.dir().absoluteFilePath(_package->name().replace('#', '_') + ".csv");
+			// Default to the shown dataset's dataFilePath if known, else use the window name
+			std::string datasetDataFile = _package->dataSet() ? _package->dataSet()->dataFilePath() : "";
+			if(!datasetDataFile.empty())
+			{
+				QFileInfo fi(tq(datasetDataFile));
+				name = fi.dir().absoluteFilePath(fi.completeBaseName() + ".csv");
+			}
+			else
+			{
+				name = QDir::current().absoluteFilePath(_package->name().replace('#', '_') + ".csv");
+			}
 
 			dataFilePath = MessageForwarder::browseSaveFile(caption, name, filter);
 
