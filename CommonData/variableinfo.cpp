@@ -21,6 +21,9 @@ void VariableInfo::setProvider(VariableInfoProvider *provider)
 	
 	_provider = provider;
 	
+	if (!provider)
+		return;
+	
 	connect(_provider->infoSignaller(),	&VarInfoSignaller::refresh,						this,	&VariableInfo::refresh				, Qt::UniqueConnection);
 	connect(_provider->infoSignaller(),	&VarInfoSignaller::filterChanged,				this,	&VariableInfo::filterChanged		, Qt::UniqueConnection);
 	connect(_provider->infoSignaller(),	&VarInfoSignaller::labelsChanged,				this,	&VariableInfo::labelsChanged		, Qt::UniqueConnection);
