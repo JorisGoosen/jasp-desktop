@@ -31,7 +31,7 @@ Test names (use `-functions` on binary to list all):
 - `JASPTest` — data import + syncer tests
 - `JASPTestEngine`, `JASPTestDebugData`, `JASPTestCsvPrev`, `JASPQuickTest`
 
-Run with `QT_QPA_PLATFORM=offscreen` instead of `xvfb-run` if you don't want a virtual display. The test library is at `Tests/TestLibrary/`.
+For most tests, use `xvfb-run` (or combine `QT_QPA_PLATFORM=offscreen` with `xvfb-run`). `JASPQuickTest` requires both: `QT_QPA_PLATFORM=offscreen xvfb-run build/Tests/JASPQuickTest`. The test library is at `Tests/TestLibrary/`.
 
 ## Library architecture (dependency order)
 
