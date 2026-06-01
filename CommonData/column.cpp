@@ -2058,7 +2058,7 @@ bool Column::setValue(size_t row, std::string value, const std::string & label, 
 	//if both are "" we just want to clear the cell
 	//the assumption is that this is not direct user-input, but internal jasp stuff.
 	if(value == "" && label == "")
-		return setValue(row, EmptyValues::missingValueInteger, writeToDB);
+		return _hasLabels ? setValue(row, EmptyValues::missingValueInteger, writeToDB) : setValue(row, EmptyValues::missingValueDouble, "", writeToDB);
 	
 	double	newDoubleToSet	= EmptyValues::missingValueDouble;
 	bool	itsADouble		= ColumnUtils::getDoubleValue(value, newDoubleToSet, useLocale);
