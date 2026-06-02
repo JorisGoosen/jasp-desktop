@@ -152,8 +152,7 @@ TextInputBase
 		control.textEdited.connect(textEdited);
 		control.pressed.connect(pressed);
 		control.released.connect(released);
-		if (control.text)
-			lastValidValue = control.text;
+		lastValidValue = control.text !== "" ? control.text : defaultValue
 	}
 
 	// The value should be checked only when the control is initialized.
@@ -167,6 +166,7 @@ TextInputBase
 
 		if (control.acceptableInput)
 		{
+			lastValidValue = value
 			if (!hasScriptError)
 				clearControlError();
 			return true;

@@ -31,6 +31,7 @@
 #include <QQmlEngine>
 #include <QTimer>
 #include "preferencesmodelbase.h"
+#include "workspace.h"
 
 using namespace std;
 
@@ -676,7 +677,13 @@ void AnalysisForm::setAnalysisUp()
 
 	Log::log() << "AnalysisForm::setAnalysisUp() for " << this << std::endl;
 
-	varInfo()->setProvider(_analysis->filter());
+	{
+		VariableInfoProvider* fallback = Workspace::singleton() ? Workspace::singleton()->shownFilter() : nullptr;
+		if (_analysis->filter())
+			varInfo()->setProvider(_analysis->filter());
+		else if (fallback)
+			varInfo()->setProvider(fallback);
+	}
 
 	blockValueChangeSignal(true);
 
