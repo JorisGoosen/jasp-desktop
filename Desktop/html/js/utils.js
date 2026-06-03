@@ -342,7 +342,7 @@ function formatColumn(column, type, format, alignNumbers, combine, modelFootnote
 					}
 					else if (content == 0)
 					{
-						formatted["content"] = fixDecimals ? formatFixed(content, dp, noZeroLead, thousands) : (isFinite(dp) ? formatFixed(content, dp, noZeroLead, thousands) : formatPrecision(content, sf, false, thousands))
+						formatted["content"] = (fixDecimals || isFinite(dp)) ? formatFixed(content, dp, noZeroLead, thousands) : formatPrecision(content, sf, false, thousands)
 					}
 					else if (Math.abs(content) >= upperLimit || Math.abs(content) < Math.pow(10, -dp) || (!fixDecimals && Math.abs(content) >= Math.pow(10, sf)))
 					{
