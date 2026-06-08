@@ -199,6 +199,9 @@ FocusScope
 		implicitHeight	: column.height + 2 * jaspTheme.contentMargin
 		height			: (menu.y + implicitHeight) > sceneHeight ? (sceneHeight - menu.y) : implicitHeight // The menu should not exceed the scene
 
+		Accessible.role		: Accessible.Menu
+		Accessible.name		: "Analysis menu"
+
 		MouseArea
 		{
 			anchors.fill	: parent
@@ -341,6 +344,9 @@ FocusScope
 
 									property bool itemEnabled	: menu.props.hasOwnProperty("enabled") ? menu.props["enabled"][index] : (model.modelData !== undefined || model.isEnabled)
 
+									Accessible.role		: Accessible.MenuItem
+									Accessible.name		: (model.modelData !== undefined ? model.modelData : displayText)
+
 									Image
 									{
 										id						: menuItemImage
@@ -424,6 +430,9 @@ FocusScope
 
 									property bool itemEnabled :	menu.props.hasOwnProperty("enabled") ? menu.props["enabled"][index] : (model.modelData !== undefined || model.isEnabled)
 
+									Accessible.role		: Accessible.MenuItem
+									Accessible.name		: (model.modelData !== undefined ? model.modelData.substring(3) : displayText)
+
 									Image
 									{
 										id					: menuItemImage
@@ -496,7 +505,12 @@ FocusScope
 							Component
 							{
 								id	: menuSeparator
-								ToolSeparator { orientation	: Qt.Horizontal; width: column.columnWidth }
+								ToolSeparator { 
+									orientation	: Qt.Horizontal; 
+									width: column.columnWidth
+									Accessible.role		: Accessible.Separator
+									Accessible.name		: "Separator"
+								}
 							}
 						}
 					}

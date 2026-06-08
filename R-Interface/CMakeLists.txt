@@ -164,9 +164,9 @@ if(${R_VERSION} VERSION_GREATER_EQUAL "4.5.0")
   target_link_libraries(R-InterfaceNoRInside		PUBLIC ${R_INTERFACE_LIBS})
 
 
-  target_compile_definitions(R-Interface			PUBLIC JASP_R_INTERFACE_LIBRARY NOMINMAX RCPP_NO_SUGAR WIN32_LEAN_AND_MEAN
+  target_compile_definitions(R-Interface			PUBLIC JASP_R_INTERFACE_LIBRARY NOMINMAX RCPP_NO_SUGAR WIN32_LEAN_AND_MEAN ENABLE_LEGACY_NONAPI
 															$<$<BOOL:${PRINT_ENGINE_MESSAGES}>:PRINT_ENGINE_MESSAGES>)
-  target_compile_definitions(R-InterfaceNoRInside	PUBLIC JASP_R_INTERFACE_LIBRARY NOMINMAX RCPP_NO_SUGAR WIN32_LEAN_AND_MEAN
+  target_compile_definitions(R-InterfaceNoRInside	PUBLIC JASP_R_INTERFACE_LIBRARY NOMINMAX RCPP_NO_SUGAR WIN32_LEAN_AND_MEAN ENABLE_LEGACY_NONAPI
 															$<$<BOOL:${PRINT_ENGINE_MESSAGES}>:PRINT_ENGINE_MESSAGES>
 															JASP_NO_RINSIDE)
 
@@ -195,11 +195,11 @@ else()
   target_link_libraries(R-Interface					PUBLIC ${R_INTERFACE_LIBS} ${_LIB_RINSIDE})
   target_link_libraries(R-InterfaceNoRInside		PUBLIC ${R_INTERFACE_LIBS})
 
-  target_compile_definitions(R-Interface			PUBLIC	RCPP_NO_SUGAR
+target_compile_definitions(R-Interface			PUBLIC	RCPP_NO_SUGAR ENABLE_LEGACY_NONAPI
 															$<$<BOOL:${PRINT_ENGINE_MESSAGES}>:PRINT_ENGINE_MESSAGES>)
-  target_compile_definitions(R-InterfaceNoRInside	PUBLIC	RCPP_NO_SUGAR
-															  $<$<BOOL:${PRINT_ENGINE_MESSAGES}>:PRINT_ENGINE_MESSAGES>
-															  JASP_NO_RINSIDE)
+  target_compile_definitions(R-InterfaceNoRInside	PUBLIC	RCPP_NO_SUGAR ENABLE_LEGACY_NONAPI
+ 															  $<$<BOOL:${PRINT_ENGINE_MESSAGES}>:PRINT_ENGINE_MESSAGES>
+ 															  JASP_NO_RINSIDE)
 
   if(IWYU_EXECUTABLE AND RUN_IWYU)
 	set_target_properties(R-Interface			PROPERTIES CXX_INCLUDE_WHAT_YOU_USE ${IWYU_EXECUTABLE})
