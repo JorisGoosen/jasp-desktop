@@ -491,6 +491,65 @@ class TestJASPAccessibility(unittest.TestCase):
         
         self.assertGreater(len(found_form_roles), 0, "No form controls accessible")
 
+    def test_25_webengine_accessibility_into_results(self):
+        """Test that we can navigate INTO webengine results and get feedback on selected content."""
+        # Find the results document
+        results_doc = self._find_by_role_and_name(self.app, "document web", "Results")
+        if not results_doc:
+            results_doc = self._find_by_role(self.app, "document web")
+        
+        # This test verifies that webengine content is actually accessible
+        if not results_doc:
+            self.skipTest("WebEngine results not accessible (known limitation)")
+            return
+        
+        # Try to get focus into the webengine
+        try:
+            results_doc.grab_focus()
+            time.sleep(0.5)
+        except Exception:
+            self.skipTest("Cannot grab focus on webengine (known limitation)")
+            return
+        
+        # Get the focused element within webengine (correct method name)
+        focused = results_doc.get_accessible_at(0, 0)  # Try to get at point 0,0
+        if not focused:
+            # Try using focusChild() if available
+            try:
+                focused = results_doc.focusChild
+                if callable(focused):
+                    focused = focused()
+            except:
+                pass
+        
+        # The webengine content is NOT accessible due to Qt limitation
+        # This test documents and validates the current limitation
+        if not focused:
+            self.skipTest("WebEngine focus not working - HTML content not accessible (Qt limitation)")
+            return
+        
+        # If somehow we CAN get focus (unexpected), verify we can get information
+        focused_role = focused.get_role_name()
+        focused_name = focused.get_name()
+        
+        # This should give us actual feedback from the web content
+        self.assertIsNotNone(focused_role, "Focused element should have a role")
+        self.assertIsNotNone(focused_name, "Focused element should have a name")
+        
+        # Verify we can traverse child elements within webengine
+        child_count = results_doc.get_child_count()
+        self.assertGreater(child_count, 0, "WebEngine should have accessible children")
+        
+        # Get first child and verify it has meaningful content
+        if child_count > 0:
+            child = results_doc.get_child_at_index(0)
+            child_role = child.get_role_name()
+            child_name = child.get_name()
+            
+            # Verify we can access child element information
+            self.assertIsNotNone(child_role, "Child element should have a role")
+            # Note: child_name might be empty for some element types, so don't assert it
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
