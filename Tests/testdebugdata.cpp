@@ -290,6 +290,49 @@ void TestDebugData::testEmptyValues()
 	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 0,	"There should be no labels anymore!");
 }
 
+void TestDebugData::testChangeLabelValueTwice()
+{
+	QVERIFY2(_data,		"No dataset!");
+
+	Column * contBinom = _data->column("contBinom");
+	QVERIFY2(contBinom,					"No contBinom!");
+	QVERIFY2(contBinom->hasLabels(),	"contBinom should have labels");
+	QVERIFY2(contBinom->labels().size() >= 1, "contBinom has no labels!");
+
+	Label * lbl = contBinom->labels()[0];
+
+	// First value change: numeric → non-numeric string (goes through labelValDisplayChanged)
+	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "hello", int(DataSetPackage::specialRoles::value));
+	QVERIFY2(lbl->originalValueAsString() == "hello",	"First value change to 'hello' failed");
+	QVERIFY2(lbl->label() == "hello",	"Lable value change to 'hello' failed");
+
+	// Second value change: non-numeric string → numeric (goes through labelValueChanged,
+	// which uses lastOrigValDisplay(). Since _labelMapUpdates no longer calls
+	// rememberCurrentOrigValDisplay(), _lastValDisMapping is stale → assert failure at line 1638)
+	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "5", int(DataSetPackage::specialRoles::value));
+	QVERIFY2(lbl->originalValueAsString() == "5",		"Second value change to '5' failed");
+	QVERIFY2(lbl->label() == "hello",		"Label value should stay to 'hello' failed");
+
+	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "6", int(DataSetPackage::specialRoles::value));
+	QVERIFY2(lbl->originalValueAsString() == "6",		"Third value change to '6' failed");
+	QVERIFY2(lbl->label() == "hello",		"Label value should stay to 'hello' failed");
+
+	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "6", int(DataSetPackage::specialRoles::label));
+	QVERIFY2(lbl->originalValueAsString() == "6",		"Label value should stay to '6' failed");
+	QVERIFY2(lbl->label() == "6",		"Label change to '6' failed");
+
+	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "7", int(DataSetPackage::specialRoles::label));
+	QVERIFY2(lbl->originalValueAsString() == "6",		"Label value should stay to '6' failed");
+	QVERIFY2(lbl->label() == "7",		"Label change to '7' failed");
+
+	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "8", int(DataSetPackage::specialRoles::value));
+	QVERIFY2(lbl->originalValueAsString() == "8",		"Label value change to '8' failed'");
+	QVERIFY2(lbl->label() == "8",		"Label value change to '8' failed'");
+
+	DataSet loadMe(_data->id());
+	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
+}
+
 void TestDebugData::testChangeLabel()
 {
 	QVERIFY2(_data,		"No dataset!");
