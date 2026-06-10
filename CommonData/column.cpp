@@ -1820,7 +1820,7 @@ void Column::labelValDisplayChanged(Label *label, const std::string &previousDis
 		if(_ints[r] == label->intsId())
 			_dbls[r] = newOrigValDbl;
 	
-	_labelMapUpdates(label, previousDisplay, label->originalValueAsString());
+	_labelMapUpdates(label, previousDisplay, oldOrigValS);
 
 	if(merged)
 		_dbUpdateLabelOrder();
