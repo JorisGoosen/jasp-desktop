@@ -895,6 +895,18 @@ bool DataSetPackage::setLabelDisplay(const QModelIndex &index, const QString &ne
 	if(!column || index.row() > rowCount(parent))
 		return false;
 	
+	std::string newDisplayStr = newLabel.toStdString();
+	std::string originalStr = label->originalValueAsString();
+	auto		newValDis			= std::make_pair(originalStr, newDisplayStr);
+
+	Label * duplicate = column->labelByValueAndDisplay(originalStr, newDisplayStr);
+	if(duplicate && duplicate != label)
+	{
+		beginResetModel();
+		endResetModel();
+		return false;
+	}
+	
 	beginSynchingData(false);
 	
 	if(label->setLabel(newLabel.toStdString()))
@@ -938,6 +950,17 @@ bool DataSetPackage::setLabelValue(const QModelIndex &index, const QString &newL
 	if(	(aNumber =	ColumnUtils::getDoubleValue(newLabelValue.toStdString(), aDouble))	)	originalValue = aDouble;
 	if(				ColumnUtils::getIntValue(	newLabelValue.toStdString(), anInteger)	)	originalValue = anInteger;
 	
+	std::string newOriginalStr = Label::originalValueAsString(column, originalValue);
+	std::string newDisplayStr = label->label();
+	auto		newValDis			= std::make_pair(newOriginalStr, newDisplayStr);
+
+	Label * duplicate = column->labelByValueAndDisplay(newOriginalStr, newDisplayStr);
+	if(duplicate && duplicate != label)
+	{
+		beginResetModel();
+		endResetModel();
+		return false;
+	}
 	
 	{
 		// Here we will overwrite the original value with the new origval.
