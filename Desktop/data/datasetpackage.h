@@ -359,7 +359,9 @@ public slots:
 				void				prepareForLanguageChange();
 				void				languageChangeDone();
 				void				handleAutoSavePrefChange();
-				
+		void				setAutoMergeLabels(bool autoMerge)	{ _autoMergeLabels = autoMerge; }
+		bool				autoMergeLabels() const				{ return _autoMergeLabels; }
+		
 private:
 				bool				isThisTheSameThreadAsEngineSync();
 				bool				setLabelAllowFilter(	const QModelIndex & index, bool newAllowValue);
@@ -394,7 +396,8 @@ private:
 								_filterShouldRunInit		= false,
 								_dataMode					= false,
 								_manualEdits				= false,
-								_waitingForLanguageChange	= false;
+								_waitingForLanguageChange	= false,
+								_autoMergeLabels			= false;
 
 	Json::Value					_analysesData,
 								_database					= Json::nullValue;

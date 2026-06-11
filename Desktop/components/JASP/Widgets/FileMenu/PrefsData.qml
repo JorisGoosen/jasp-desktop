@@ -167,6 +167,25 @@ PrefsScrollView
 
 
 		SpinBox
+	}
+
+	PrefsGroupRect
+	{
+		id:				labelMergeRect
+		title:			qsTr("Label editing")
+
+		CheckBox
+		{
+			id:					mergeDuplicateLabelsNoAsk
+			label:				qsTr("Don't ask confirmation for duplicate label merges")
+			checked:			preferencesModel.mergeDuplicateLabelsNoAsk
+			onCheckedChanged:	preferencesModel.mergeDuplicateLabelsNoAsk = checked
+			toolTip:			qsTr("When enabled, changing a label or value to make it duplicate another will silently merge them without asking. When disabled, you will be asked whether to merge or cancel the change.")
+
+			KeyNavigation.tab:	missingValueDataLabelInput
+		}
+
+	}
 		{
 			id:					thresholdScale
 			text:				qsTr("Threshold for Scale")

@@ -902,9 +902,28 @@ bool DataSetPackage::setLabelDisplay(const QModelIndex &index, const QString &ne
 	Label * duplicate = column->labelByValueAndDisplay(originalStr, newDisplayStr);
 	if(duplicate && duplicate != label)
 	{
-		beginResetModel();
-		endResetModel();
-		return false;
+		bool autoMergeNoAsk = Settings::value(Settings::MERGE_DUPLICATE_LABELS_NO_ASK).toBool();
+		
+		if(autoMergeNoAsk || _autoMergeLabels) {
+			_autoMergeLabels = true;
+		}
+		else {
+			MessageForwarder::DialogResponse response = MessageForwarder::showYesNoCancel(
+				tr("Merge Labels?"),
+				tr("You changed the value/label and now it makes this level a duplicate. They will be merged unless you cancel the change."),
+				tr("Merge"),   // Yes - keep change, merge will happen
+				tr("Cancel")   // Cancel - abort change
+			);
+			
+			if(response == MessageForwarder::DialogResponse::Cancel) {
+				beginResetModel();
+				endResetModel();
+				return false;
+			}
+			else if(response == MessageForwarder::DialogResponse::Yes) {
+				_autoMergeLabels = true;
+			}
+		}
 	}
 	
 	beginSynchingData(false);
@@ -957,9 +976,28 @@ bool DataSetPackage::setLabelValue(const QModelIndex &index, const QString &newL
 	Label * duplicate = column->labelByValueAndDisplay(newOriginalStr, newDisplayStr);
 	if(duplicate && duplicate != label)
 	{
-		beginResetModel();
-		endResetModel();
-		return false;
+		bool autoMergeNoAsk = Settings::value(Settings::MERGE_DUPLICATE_LABELS_NO_ASK).toBool();
+		
+		if(autoMergeNoAsk || _autoMergeLabels) {
+			_autoMergeLabels = true;
+		}
+		else {
+			MessageForwarder::DialogResponse response = MessageForwarder::showYesNoCancel(
+				tr("Merge Labels?"),
+				tr("You changed the value/label and now it makes this level a duplicate. They will be merged unless you cancel the change."),
+				tr("Merge"),   // Yes - keep change, merge will happen
+				tr("Cancel")   // Cancel - abort change
+			);
+			
+			if(response == MessageForwarder::DialogResponse::Cancel) {
+				beginResetModel();
+				endResetModel();
+				return false;
+			}
+			else if(response == MessageForwarder::DialogResponse::Yes) {
+				_autoMergeLabels = true;
+			}
+		}
 	}
 	
 	{

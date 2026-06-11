@@ -144,6 +144,7 @@ const Settings::Setting Settings::Values[] = {
 	{"showInteractiveDefault",		true	},
 	{"autoSaveOn",					true	},
 	{"autoSaveInterval",			5*60	},
+	{"mergeDuplicateLabelsNoAsk",	true	},
 };
 
 QVariant Settings::value(Settings::Type key) {

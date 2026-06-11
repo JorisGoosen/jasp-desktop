@@ -34,6 +34,7 @@ PreferencesModel::PreferencesModel(QObject *parent) :
 	connect(this,					&PreferencesModel::developerModeChanged,		this, [&](){ this->setEngineSandbox(!this->developerMode()); } );
 	
 	connect(LanguageModel::lang(),	&LanguageModel::currentLanguageChanged,			this, &PreferencesModel::languageCodeChanged			);
+	connect(this,					&PreferencesModel::mergeDuplicateLabelsNoAskChanged,	DataSetPackage::pkg(), &DataSetPackage::setAutoMergeLabels,	Qt::QueuedConnection);
 
 	_loadDatabaseFont();
 
@@ -665,5 +666,16 @@ void PreferencesModel::setEngineSandbox(bool engineSandbox) {
 		MessageForwarder::showWarning(tr("Engine Sandbox setting changed"), tr("The Engine Sandbox setting has been changed, this will only take full effect after JASP is restarted."));
 #endif
 		emit engineSandboxChanged(engineSandbox);
+	}
+}
+
+bool PreferencesModel::mergeDuplicateLabelsNoAsk() const {
+	return Settings::value(Settings::MERGE_DUPLICATE_LABELS_NO_ASK).toBool();
+}
+
+void PreferencesModel::setMergeDuplicateLabelsNoAsk(bool mergeDuplicateLabelsNoAsk) {
+	if(mergeDuplicateLabelsNoAsk != mergeDuplicateLabelsNoAsk()) {
+		Settings::setValue(Settings::MERGE_DUPLICATE_LABELS_NO_ASK, mergeDuplicateLabelsNoAsk);
+		emit mergeDuplicateLabelsNoAskChanged(mergeDuplicateLabelsNoAsk);
 	}
 }

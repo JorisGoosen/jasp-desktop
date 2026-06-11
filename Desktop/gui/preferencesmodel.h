@@ -86,7 +86,8 @@ class PreferencesModel : public PreferencesModelBase
 	Q_PROPERTY(bool			storeStateEtc			READ storeStateEtc				WRITE setStoreStateEtc				NOTIFY storeStateEtcChanged				)
 	Q_PROPERTY(bool			showInteractiveDefault	READ showInteractiveDefault		WRITE setShowInteractiveDefault		NOTIFY showInteractiveDefaultChanged	)
 	Q_PROPERTY(int			autoSaveIntervalSec		READ autoSaveIntervalSec		WRITE setAutoSaveIntervalSec		NOTIFY autoSaveIntervalSecChanged		)
-	Q_PROPERTY(bool			autoSaveAtAll			READ autoSaveAtAll				WRITE setAutoSaveAtAll				NOTIFY autoSaveAtAllChanged				)
+	Q_PROPERTY	bool		autoSaveAtAll			READ autoSaveAtAll				WRITE setAutoSaveAtAll				NOTIFY autoSaveAtAllChanged				)
+	Q_PROPERTY	bool		mergeDuplicateLabelsNoAsk	READ mergeDuplicateLabelsNoAsk	WRITE setMergeDuplicateLabelsNoAsk	NOTIFY mergeDuplicateLabelsNoAskChanged	)
 	
 
 
@@ -175,12 +176,14 @@ public:
 	int				autoSaveIntervalSec()					const;
 	bool			autoSaveAtAll()							const;
 	bool			checkUpdatesAskUser()					const;
+	bool			mergeDuplicateLabelsNoAsk()				const;
 	
 	void			setCheckUpdatesAskUser(	bool	newCheckUpdatesAskUser);
 	void			setCheckUpdates(		bool	newCheckUpdates);
 	void			setStartMaximized(		bool	newStartMaximized);
 	void			setAutoSaveIntervalSec(	int		newAutoSaveIntervalSec);
 	void			setAutoSaveAtAll(		bool	newAutoSaveAtAll);
+	void			setMergeDuplicateLabelsNoAsk(	bool	newMergeDuplicateLabelsNoAsk);
 	
 	bool storeStateEtc() const;
 	void setStoreStateEtc(bool newStoreStateEtc);
@@ -328,6 +331,7 @@ signals:
 	void showInteractiveDefaultChanged(	bool		interactive);
 	void autoSaveIntervalSecChanged(	int			interval);
 	void autoSaveAtAllChanged(			bool		autoSave);
+	void mergeDuplicateLabelsNoAskChanged(	bool		mergeDuplicateLabelsNoAsk);
 	
 private slots:
 	void dataLabelNAChangedSlot(QString label);
@@ -342,7 +346,8 @@ private:
 	QVariantList	_pdfPageSizeModel;
 	bool			_githubPatCustom, //Should be initialized on prefs construction
 					_autoSaveIntervalSec,
-					_autoSaveAtAll;
+					_autoSaveAtAll,
+					_mergeDuplicateLabelsNoAsk;
 	void			_loadDatabaseFont();
 	QString			_checkFontList(QString fonts)					const;
 	QStringList		_splitValues(const QString& values)				const;
