@@ -54,10 +54,6 @@ Item
 					Accessible.role:				Accessible.SpinBox
 					Accessible.name:				text
 					Accessible.description:			info === undefined || info == "" ? toolTip !== undefined && toolTip != "" ? toolTip :  qsTr("Spinbox %1").arg(title) : info
-					Accessible.value:				value
-					Accessible.minimumValue:		min
-					Accessible.maximumValue:		max
-					Accessible.stepSize:			stepSize
 					Accessible.onIncreaseAction:	plus.clicked()
 					Accessible.onDecreaseAction:	minus.clicked()
 					
