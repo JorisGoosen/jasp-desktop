@@ -100,34 +100,34 @@ std::vector<InstalledModules::ModuleInfo> InstalledModules::getModules() {
 	// Check if OverrideCommon is specified in configuration
 	QStringList overrideCommonList;
 	JASPConfiguration* config = JASPConfiguration::getInstance();
-	if(config) {
+	
+	if(config) 
+	{
 		const QStringList* configOverrideCommon = config->getOverrideCommon();
-		if(configOverrideCommon && !configOverrideCommon->isEmpty()) {
+		if(configOverrideCommon && !configOverrideCommon->isEmpty())
 			overrideCommonList = *configOverrideCommon;
-		}
 	}
 
 	// Also check for OverrideCommon in modules-settings.json
-	Json::Value overrideCommonJson = root.get("OverrideCommon", Json::arrayValue);
-	if(!overrideCommonJson.isArray()) overrideCommonJson = Json::arrayValue;
+	Json::Value overrideCommonJson = root.get("OverrideCommon", Json::nullValue);
 	
 	// If we have OverrideCommon from either source, use it
-	if(!overrideCommonJson.isArray() && overrideCommonList.isEmpty()) {
+	if((!overrideCommonJson.isArray() || overrideCommonJson.size() == 0) && overrideCommonList.isEmpty()) 
+	{
 		// No OverrideCommon specified, use default behavior
 		std::vector<InstalledModules::ModuleInfo> orderedModules = {};
-		for(auto & name : commonNamesJson) {
+		for(auto & name : commonNamesJson) 
 			if(modules.find(name.asString()) != modules.end()) {
 				modules[name.asString()].common = true;
-				orderedModules.push_back(modules[name.asString()]);
-				modules.erase(name.asString());
+				orderedModules	.push_back(modules[name.asString()]);
+				modules			.erase(name.asString());
 			}
-		}
-		for(auto & name : extraNamesJson) {
+		
+		for(auto & name : extraNamesJson)
 			if(modules.find(name.asString()) != modules.end()) {
-				orderedModules.push_back(modules[name.asString()]);
-				modules.erase(name.asString());
+				orderedModules	.push_back(modules[name.asString()]);
+				modules			.erase(name.asString());
 			}
-		}
 
 		//insert leftover modules
 		for(auto& module : modules)
