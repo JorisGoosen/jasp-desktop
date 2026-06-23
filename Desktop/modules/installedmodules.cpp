@@ -93,86 +93,48 @@ std::vector<InstalledModules::ModuleInfo> InstalledModules::getModules() {
 	std::ifstream in(settings);
 	Json::Value root;
 	Json::Reader().parse(in, root);
-	Json::Value commonNamesJson = root.get("common", Json::arrayValue),
-				extraNamesJson	= root.get("extra", Json::arrayValue);
+	Json::Value						commonNamesJson = root.get("common", Json::arrayValue),
+									extraNamesJson	= root.get("extra", Json::arrayValue);
 	if(!commonNamesJson.isArray())	commonNamesJson = Json::arrayValue;
-	if(!extraNamesJson.isArray())	extraNamesJson = Json::arrayValue;
+	if(!extraNamesJson.isArray())	extraNamesJson	= Json::arrayValue;
 
-	// Check if OverrideCommon is specified in configuration
-	QStringList overrideCommonList;
-	JASPConfiguration* config = JASPConfiguration::getInstance();
 	
-	if(config) 
-	{
-		const QStringList* configOverrideCommon = config->getOverrideCommon();
-		if(configOverrideCommon && !configOverrideCommon->isEmpty())
-			overrideCommonList = *configOverrideCommon;
-	}
-
-	// Also check for OverrideCommon in modules-settings.json
-	Json::Value overrideCommonJson = root.get("OverrideCommon", Json::arrayValue);
+	// Check if OverrideCommon is specified in configuration from toml
+	QStringList overrideCommonList = [&](const QStringList * ql) { return ql ? *ql : QStringList(); }(JASPConfiguration::getInstance()->getOverrideCommon());
+	Json::Value overrideCommonJson = root.get("OverrideCommon", Json::arrayValue);	// Also check for OverrideCommon in modules-settings.json
 	
 	//config overrules json
 	overrideCommonList = overrideCommonList.size() > 0 || !overrideCommonJson.isArray() ? overrideCommonList : tq(JsonUtilities::jsonStringArrayToVec(overrideCommonJson));
 	
-	// If we have OverrideCommon from either source, use it
-	if(overrideCommonList.isEmpty()) 
+	if(!overrideCommonList.isEmpty())
 	{
-		// No OverrideCommon specified, use default behavior
-		std::vector<InstalledModules::ModuleInfo> orderedModules = {};
-		for(auto & name : commonNamesJson) 
-			if(modules.find(name.asString()) != modules.end()) {
-				modules[name.asString()].common = true;
-				orderedModules	.push_back(modules[name.asString()]);
-				modules			.erase(name.asString());
-			}
+		QStringList all		= tq(JsonUtilities::jsonStringArrayToVec(commonNamesJson));	
+		all.append(tq(JsonUtilities::jsonStringArrayToVec(extraNamesJson)));
+		all.sort();
+				
+		commonNamesJson.clear();
+		extraNamesJson.clear();
 		
-		for(auto & name : extraNamesJson)
-			if(modules.find(name.asString()) != modules.end()) {
-				orderedModules	.push_back(modules[name.asString()]);
-				modules			.erase(name.asString());
-			}
-
-		//insert leftover modules
-		for(auto& module : modules)
-			orderedModules.push_back(module.second);
-
-		return orderedModules;
+		commonNamesJson = JsonUtilities::vecToJsonArray(fq(overrideCommonList));
+		for(QString & n : all)
+			extraNamesJson.append(fq(n));
 	}
-
-	// OverrideCommon is specified - build the lists
-	// First, combine common and extra into one list
-	std::set<std::string> allModuleNames;
-	for(auto & name : commonNamesJson)	allModuleNames.insert(name.asString());
-	for(auto & name : extraNamesJson)	allModuleNames.insert(name.asString());
-
-	// Build set of modules in OverrideCommon
-	std::set<std::string> overrideCommonSet;
-	for(const QString& mod : overrideCommonList)
-		overrideCommonSet.insert(mod.toStdString());
-
-	// Modules that should be Common (in OverrideCommon and exist in all modules)
+	
 	std::vector<InstalledModules::ModuleInfo> orderedModules = {};
-	for(const QString& mod : overrideCommonList) {
-		std::string modStr = mod.toStdString();
-		if(modules.find(modStr) != modules.end()) {
-			modules[modStr].common = true;
-			orderedModules.push_back(modules[modStr]);
-			modules.erase(modStr);
-			allModuleNames.erase(modStr);
+	for(auto & name : commonNamesJson) 
+		if(modules.find(name.asString()) != modules.end()) {
+			modules[name.asString()].common = true;
+			orderedModules	.push_back(modules[name.asString()]);
+			modules			.erase(name.asString());
 		}
-	}
-
-
-	// Remaining modules go to Extra (including originally Common modules not in OverrideCommon)
-	for(auto & name : allModuleNames) {
-		if(modules.find(name) != modules.end()) {
-			orderedModules.push_back(modules[name]);
-			modules.erase(name);
+	
+	for(auto & name : extraNamesJson)
+		if(modules.find(name.asString()) != modules.end()) {
+			orderedModules	.push_back(modules[name.asString()]);
+			modules			.erase(name.asString());
 		}
-	}
 
-	//insert leftover modules (shouldn't be any, but just in case)
+	//insert leftover modules
 	for(auto& module : modules)
 		orderedModules.push_back(module.second);
 
