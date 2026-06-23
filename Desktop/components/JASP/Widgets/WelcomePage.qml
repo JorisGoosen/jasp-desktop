@@ -578,11 +578,11 @@ FocusScope
 		Text
 		{
 			id:						jaspUrlBv
-			text:					qsTr("Professional JASP Support")
+			text:					qsTr("Enterprise Support")
 			color:					jaspTheme.white
 			font.family:			jaspTheme.font.family
 			font.pixelSize:			jaspUrlBug.font.pixelSize
-			font.weight:			Font.Normal
+			font.weight:			Font.Bold
 			font.underline:			jaspStatsMouseArea2.containsMouse
 			renderType:				Text.QtRendering
 			textFormat:				Text.StyledText
