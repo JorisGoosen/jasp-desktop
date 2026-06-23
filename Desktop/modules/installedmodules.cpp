@@ -8,7 +8,8 @@
 #include "gui/jaspConfiguration/jaspconfiguration.h"
 #include "log.h"
 #include "resultstesting/compareresults.h"
-
+#include "jsonutilities.h"
+#include "utilities/qutils.h"
 
 const std::string InstalledModules::settingsPath = "modules-settings.json";
 
@@ -109,10 +110,13 @@ std::vector<InstalledModules::ModuleInfo> InstalledModules::getModules() {
 	}
 
 	// Also check for OverrideCommon in modules-settings.json
-	Json::Value overrideCommonJson = root.get("OverrideCommon", Json::nullValue);
+	Json::Value overrideCommonJson = root.get("OverrideCommon", Json::arrayValue);
+	
+	//config overrules json
+	overrideCommonList = overrideCommonList.size() > 0 || !overrideCommonJson.isArray() ? overrideCommonList : tq(JsonUtilities::jsonStringArrayToVec(overrideCommonJson));
 	
 	// If we have OverrideCommon from either source, use it
-	if((!overrideCommonJson.isArray() || overrideCommonJson.size() == 0) && overrideCommonList.isEmpty()) 
+	if(overrideCommonList.isEmpty()) 
 	{
 		// No OverrideCommon specified, use default behavior
 		std::vector<InstalledModules::ModuleInfo> orderedModules = {};
@@ -139,17 +143,13 @@ std::vector<InstalledModules::ModuleInfo> InstalledModules::getModules() {
 	// OverrideCommon is specified - build the lists
 	// First, combine common and extra into one list
 	std::set<std::string> allModuleNames;
-	for(auto & name : commonNamesJson) allModuleNames.insert(name.asString());
-	for(auto & name : extraNamesJson) allModuleNames.insert(name.asString());
+	for(auto & name : commonNamesJson)	allModuleNames.insert(name.asString());
+	for(auto & name : extraNamesJson)	allModuleNames.insert(name.asString());
 
 	// Build set of modules in OverrideCommon
 	std::set<std::string> overrideCommonSet;
-	for(const QString& mod : overrideCommonList) {
+	for(const QString& mod : overrideCommonList)
 		overrideCommonSet.insert(mod.toStdString());
-	}
-	for(auto & name : overrideCommonJson) {
-		overrideCommonSet.insert(name.asString());
-	}
 
 	// Modules that should be Common (in OverrideCommon and exist in all modules)
 	std::vector<InstalledModules::ModuleInfo> orderedModules = {};
@@ -162,15 +162,7 @@ std::vector<InstalledModules::ModuleInfo> InstalledModules::getModules() {
 			allModuleNames.erase(modStr);
 		}
 	}
-	for(auto & name : overrideCommonJson) {
-		std::string modStr = name.asString();
-		if(modules.find(modStr) != modules.end()) {
-			modules[modStr].common = true;
-			orderedModules.push_back(modules[modStr]);
-			modules.erase(modStr);
-			allModuleNames.erase(modStr);
-		}
-	}
+
 
 	// Remaining modules go to Extra (including originally Common modules not in OverrideCommon)
 	for(auto & name : allModuleNames) {
