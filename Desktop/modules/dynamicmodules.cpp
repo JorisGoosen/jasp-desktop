@@ -607,6 +607,31 @@ void DynamicModules::insertCommonModuleNames(std::set<std::string> commonModules
 
 }
 
+void DynamicModules::clearCommonModules()
+{
+	_commonModuleNames.clear();
+	
+	for(auto & module : _modules)
+	{
+		module.second->setIsCommon(false);
+	}
+}
+
+void DynamicModules::refreshCommonModules(const QStringList& overrideCommon)
+{
+	clearCommonModules();
+	
+	for(const QString& modName : overrideCommon)
+	{
+		std::string modStr = modName.toStdString();
+		if(dynamicModule(modStr))
+		{
+			_commonModuleNames.insert(modStr);
+			dynamicModule(modStr)->setIsCommon(true);
+		}
+	}
+}
+
 ///This function says it's copying something, and maybe it did that before, but it doesn't seem to be doing so now.
 void DynamicModules::devModCopyDescription(QString filename)
 {
