@@ -168,12 +168,18 @@ void Column::dbLoadOldIndex(int index)
 		_strs.clear();
 		_dbls.clear();
 		
-		//for(int row=0; row<_ints.size() && row < _dbls.size(); row++)
-		//{
-		//	//if(_ints[row] == 	
-		//	Label * l = labelByIntsId(_ints[row]);
-		//	//Log::log() << "_ints["<< row << "] == " << _ints[row] << " and  _dbls["<< row << "] == " << _dbls[row] << " label is: '" << ( !l ? "null" : l->labelDisplay()) << "'" << std::endl;
-		//}
+		
+		bool everythingIsTheSame = true;
+		
+		for(Label * label : _labels)
+			if(label->originalValueAsString(false, true) != label->label(false))
+			{
+				everythingIsTheSame = false;
+				break;
+			}
+		
+		if(everythingIsTheSame)
+			labelsToNoLabels(false);
 		
 		JASPTIMER_STOP(Column::dbLoadOldIndex load all labels);
 	}
@@ -2866,11 +2872,12 @@ void Column::setHasLabels(bool haveLabels)
 	else			labelsToNoLabels();
 }
 
-void Column::labelsToNoLabels()
+void Column::labelsToNoLabels(bool signalOthers)
 {
 	const auto size = _ints.size();
 	
-	db().transactionWriteBegin();
+	if(signalOthers)
+		db().transactionWriteBegin();
 	
 	_strs.clear();
 	_strs.reserve(size);
@@ -2903,17 +2910,17 @@ void Column::labelsToNoLabels()
 	
 	_ints.clear();
 	
-	
-
 	_hasLabels		= false;
 	_hasShadows		= false;
 	
-	db().columnSetValues(_id, _dbls, _strs);
-	db().columnSetHasLabels(_id, _hasLabels);
-	db().transactionWriteEnd();
-	
-	incRevision();
-	
+	if(signalOthers)
+	{
+		db().columnSetValues(_id, _dbls, _strs);
+		db().columnSetHasLabels(_id, _hasLabels);
+		db().transactionWriteEnd();
+		
+		incRevision();
+	}
 }
 
 void Column::noLabelsToLabels()
