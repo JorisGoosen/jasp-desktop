@@ -100,6 +100,8 @@ void Column::dbLoadOldIndex(int index)
 	
 	if(true)
 	{
+		JASPTIMER_START(Column::dbLoadOldIndex look for trouble);
+		
 		bool					thisCantBeRight = false;
 		std::map<int, double>	lookForTrouble; //0.18 messed up some things, and maybe 0.19, make sure we only import logical labels. These messed up things could also be in upgraded jaspfiles...
 		
@@ -112,22 +114,29 @@ void Column::dbLoadOldIndex(int index)
 			}
 			else
 				lookForTrouble[_ints[r]] = _dbls[r];
+
 		}
+		
+		JASPTIMER_STOP(Column::dbLoadOldIndex look for trouble);
 		
 		//Turns out one label is used in conjunction with more than 1 value... That cant be right, so lets throw away all these integers		
 		if(thisCantBeRight)
 			for(size_t r=0; r<_ints.size(); r++)
 				_ints[r] = Label::NO_LABEL;
-		else // we should still check if these labels even exist and otherwise clean that up
-			for(auto intDbl : lookForTrouble)
-				if( !db().labelExists(_id, intDbl.first))
-					for(size_t r=0; r<_ints.size(); r++)
-						if(intDbl.first == _ints[r])
-							_ints[r] = Label::NO_LABEL;
+		else // we should still check if these labels even exist and otherwise clean that up too
+		{
+			intset existingLabels = db().labelsExisting(_id);
+			
+			for(size_t r=0; r<_ints.size(); r++)
+				if(existingLabels.count(_ints[r]) == 0)
+					_ints[r] = Label::NO_LABEL;
+		}
 	}
 	
 	if(std::all_of(_ints.begin(), _ints.end(), [](int i){ return i == Label::NO_LABEL || i == EmptyValues::missingValueInteger; }))
 	{
+		JASPTIMER_START(Column::dbLoadOldIndex remove all labels);
+		
 		_hasLabels = false;
 		_ints.clear();
 		labelsClear();
@@ -143,9 +152,15 @@ void Column::dbLoadOldIndex(int index)
 				_strs[row] = "";
 		}
 		
+		JASPTIMER_STOP(Column::dbLoadOldIndex remove all labels);
+		
+		
 	}
 	else
 	{
+		JASPTIMER_START(Column::dbLoadOldIndex load all labels);
+
+		
 		_hasLabels = true;
 		
 		db().labelsLoad(this);
@@ -160,6 +175,8 @@ void Column::dbLoadOldIndex(int index)
 		//	Label * l = labelByIntsId(_ints[row]);
 		//	//Log::log() << "_ints["<< row << "] == " << _ints[row] << " and  _dbls["<< row << "] == " << _dbls[row] << " label is: '" << ( !l ? "null" : l->labelDisplay()) << "'" << std::endl;
 		//}
+		
+		JASPTIMER_STOP(Column::dbLoadOldIndex load all labels);
 	}
 	
 	db().columnSetHasLabels(_id, _hasLabels);
