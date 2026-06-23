@@ -69,7 +69,7 @@ public:
 	bool						enabled()													const			{ return _isCommonModule || _enabled;						}
 	std::string					name()														const			{ return _name;												}
 	QString						nameQ()														const			{ return QString::fromStdString(_name);						}
-	Modules::DynamicModule	*	dynamicModule();
+	Modules::DynamicModule	*	module();
 	Modules::AnalysisEntry	*	getEntry(const std::string& name);
 	QVariant					menu()														const			{ return QVariant::fromValue(_menuModel);					}
 	stringvec					getAllEntries()												const;

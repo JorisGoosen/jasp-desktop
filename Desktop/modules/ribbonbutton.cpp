@@ -147,7 +147,7 @@ void RibbonButton::setReady(bool ready)
 	_ready = ready;
 	emit readyChanged(_ready);
 	
-	if(_ready && dynamicModule() && dynamicModule()->isDevMod())
+	if(_ready && module() && module()->isDevMod())
 		setEnabled(true); 
 }
 
@@ -255,7 +255,7 @@ void RibbonButton::setModuleName(std::string moduleName)
 	emit moduleNameChanged();
 }
 
-DynamicModule * RibbonButton::dynamicModule()
+DynamicModule * RibbonButton::module()
 {
 	return _module;
 }

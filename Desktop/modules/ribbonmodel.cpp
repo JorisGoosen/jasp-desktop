@@ -197,7 +197,7 @@ void RibbonModel::dynamicModuleChanged(Modules::DynamicModule * dynMod)
 	Log::log() << "void RibbonModel::dynamicModuleChanged(" << dynMod->toString() << ")" << std::endl;
 
 	for(const auto & nameButton : _buttonModelsByName)
-		if(nameButton.second->dynamicModule() == dynMod)
+		if(nameButton.second->module() == dynMod)
 			nameButton.second->reloadDynamicModule(dynMod);
 }
 
@@ -221,7 +221,7 @@ void RibbonModel::addRibbonButtonModel(RibbonButton* model, size_t row)
 void RibbonModel::dynamicModuleReplaced(Modules::DynamicModule * oldModule, Modules::DynamicModule * module)
 {
 	for(const auto & nameButton : _buttonModelsByName)
-		if(nameButton.second->dynamicModule() == oldModule || nameButton.first == oldModule->name())
+		if(nameButton.second->module() == oldModule || nameButton.first == oldModule->name())
 			nameButton.second->reloadDynamicModule(module);
 }
 
@@ -241,9 +241,9 @@ QVariant RibbonModel::data(const QModelIndex &index, int role) const
 	case ActiveRole:		return ribbonButtonModelAt(row)->active();
 	case CommonRole:		return ribbonButtonModelAt(row)->isCommon();
 	case ModuleNameRole:	return ribbonButtonModelAt(row)->nameQ();
-	case ModuleRole:		return QVariant::fromValue(ribbonButtonModelAt(row)->dynamicModule());
+	case ModuleRole:		return QVariant::fromValue(ribbonButtonModelAt(row)->module());
 	case BundledRole:		return ribbonButtonModelAt(row)->isBundled();
-	case DevModRole:		return ribbonButtonModelAt(row)->dynamicModule() && ribbonButtonModelAt(row)->dynamicModule()->isDevMod();
+	case DevModRole:		return ribbonButtonModelAt(row)->module() && ribbonButtonModelAt(row)->module()->isDevMod();
 	case VersionRole:		return ribbonButtonModelAt(row)->version();
 	case SpecialRole:		return ribbonButtonModelAt(row)->isSpecial();
 	case ClusterRole:		//To Do!?
@@ -312,6 +312,16 @@ void RibbonModel::removeRibbonButtonModel(std::string moduleName)
 				endRemoveRows();
 		}
 	}
+}
+
+QString RibbonModel::moduleName(size_t index) const	
+{ 
+	return QString::fromStdString(_buttonNames[_currentRow][index]);
+}
+
+RibbonButton *RibbonModel::ribbonButtonModelAt(size_t index) const	
+{ 
+	return ribbonButtonModel(		_buttonNames[_currentRow][index]); 
 }
 
 void RibbonModel::analysisClicked(QString analysisFunction, QString analysisQML, QString analysisTitle, QString module)
@@ -425,6 +435,40 @@ int RibbonModel::ribbonButtonModelIndex(RibbonButton * model)	const
 				if(_buttonNames[_currentRow][i] == keyval.first)
 					return int(i);
 	return -1;
+}
+
+void RibbonModel::setCommonOrder(QStringList order)
+{
+	beginResetModel();
+	
+	stringvec	currentNames	= _buttonNames[0],
+				newCommon		= fq(order),
+				newExtra;
+	
+	std::map<std::string,RibbonButton*>		buttons;
+	
+	for(const auto & naam : currentNames)	
+	{ 
+		buttons[naam] = ribbonButtonModel(naam); 
+		
+		if(buttons[naam]->module() && !order.contains(tq(naam)))
+			newExtra.push_back(naam);
+	};
+	
+	std::sort(newExtra.begin(), newExtra.end());
+	
+	stringvec newNames = newCommon;
+	
+	for(const auto & extra : newExtra)
+		newNames.push_back(extra);
+	
+	
+	auto firstModuleButton = std::find_if(_buttonNames[0].begin(), _buttonNames[0].end(), [&](auto & name){ return buttons[name]->module() != nullptr; }); 
+	std::swap_ranges(newNames.begin(), newNames.end(), firstModuleButton); //Swap out exactly the module buttons
+
+	assert(currentNames.size() == _buttonNames[0].size());
+	
+	endResetModel();
 }
 
 

@@ -626,7 +626,7 @@ void DynamicModules::refreshCommonModules(const QStringList& overrideCommon)
 			dynamicModule(modStr)->setIsCommon(true);
 		}
 	
-	RibbonModel::singleton()->refresh();
+	RibbonModel::singleton()->setCommonOrder(overrideCommon);
 }
 
 ///This function says it's copying something, and maybe it did that before, but it doesn't seem to be doing so now.
