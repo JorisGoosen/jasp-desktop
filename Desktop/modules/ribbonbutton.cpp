@@ -44,6 +44,8 @@ RibbonButton::RibbonButton(QObject *parent, DynamicModule * module)  : QObject(p
 	setIsCommon(		_module->isCommon()					);
 	setModuleName(		_module->name()						);
 	setIconSource(tq(	_module->iconFilePath())			);
+	
+	connect(_module, &DynamicModule::isCommonChanged,	this, &RibbonButton::setIsCommon);
 
 	bindYourself();
 }
