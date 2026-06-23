@@ -39,7 +39,7 @@ RibbonModel::RibbonModel() : QAbstractListModel(DynamicModules::dynMods())
 	connect(DynamicModules::dynMods(), &DynamicModules::dynamicModuleUninstalled,	this, &RibbonModel::removeDynamicRibbonButtonModel			);
 	connect(DynamicModules::dynMods(), &DynamicModules::dynamicModuleReplaced,		this, &RibbonModel::dynamicModuleReplaced					);
 	connect(DynamicModules::dynMods(), &DynamicModules::dynamicModuleChanged,		this, &RibbonModel::dynamicModuleChanged					);
-	connect(PreferencesModel::prefs(), &PreferencesModel::languageCodeChanged,		this, &RibbonModel::refreshButtons							);
+	connect(PreferencesModel::prefs(), &PreferencesModel::languageCodeChanged,		this, &RibbonModel::refresh							);
 	connect(DataSetPackage::pkg(),	   &DataSetPackage::setDataMode,				this, &RibbonModel::setDataMode								);
 }
 
@@ -435,7 +435,7 @@ void RibbonModel::ribbonButtonModelChanged(RibbonButton* model)
 		emit dataChanged(index(row), index(row));
 }
 
-void RibbonModel::refreshButtons()
+void RibbonModel::refresh()
 {
 	beginResetModel();
 	endResetModel();	

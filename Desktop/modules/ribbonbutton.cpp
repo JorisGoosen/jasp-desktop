@@ -242,9 +242,6 @@ void RibbonButton::setIsCommon(bool isCommon)
 
 	_isCommonModule = isCommon;
 	emit isCommonChanged();
-
-	if(!_enabled && _isCommonModule)
-		_enabled = true;
 }
 
 void RibbonButton::setModuleName(std::string moduleName)

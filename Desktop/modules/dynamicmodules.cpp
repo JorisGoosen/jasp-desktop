@@ -612,24 +612,21 @@ void DynamicModules::clearCommonModules()
 	_commonModuleNames.clear();
 	
 	for(auto & module : _modules)
-	{
 		module.second->setIsCommon(false);
-	}
 }
 
 void DynamicModules::refreshCommonModules(const QStringList& overrideCommon)
 {
 	clearCommonModules();
 	
-	for(const QString& modName : overrideCommon)
-	{
-		std::string modStr = modName.toStdString();
+	for(const std::string & modStr : fql(overrideCommon))
 		if(dynamicModule(modStr))
 		{
 			_commonModuleNames.insert(modStr);
 			dynamicModule(modStr)->setIsCommon(true);
 		}
-	}
+	
+	RibbonModel::singleton()->refresh();
 }
 
 ///This function says it's copying something, and maybe it did that before, but it doesn't seem to be doing so now.

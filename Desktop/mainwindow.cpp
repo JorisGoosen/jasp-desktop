@@ -2808,7 +2808,7 @@ void MainWindow::loadModulesFromUserConfiguration(configState state)
 		_ribbonModel->setModuleEnabled(_ribbonModel->ribbonButtonModelIndex(button), true);
 	}
 
-	// Apply OverrideCommon to refresh Common/Extra划分
+	// Apply OverrideCommon to refresh Common/Extra
 	const QStringList* overrideCommon = _jaspConfiguration->getOverrideCommon();
 	if(overrideCommon && !overrideCommon->isEmpty())
 	{

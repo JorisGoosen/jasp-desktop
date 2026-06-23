@@ -23,7 +23,6 @@
 #include <set>
 #include <QDir>
 #include <QFile>
-#include <sstream>
 #include <QObject>
 #include "version.h"
 #include <QFileInfo>
