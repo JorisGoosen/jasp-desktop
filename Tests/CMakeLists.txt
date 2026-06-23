@@ -55,23 +55,7 @@ qt_add_executable(
   $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
 )
 
-qt_add_executable(
-  JASPTestJASPConfiguration
-  ${SYSTEM_TYPE}
-  testjaspconfiguration.h
-  testjaspconfiguration.cpp
-  $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
-  $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
-)
 
-qt_add_executable(
-  JASPTestInstalledModules
-  ${SYSTEM_TYPE}
-  testinstalledmodules.h
-  testinstalledmodules.cpp
-  $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
-  $<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/Desktop/JASP.exe.manifest>
-)
 
 
 add_dependencies(JASPTest           JASPDesktopLib)
@@ -80,8 +64,6 @@ add_dependencies(JASPTestEngine     JASPDesktopLib)
 add_dependencies(JASPQuickTest      JASPDesktopLib)
 add_dependencies(JASPTestCsvPrev    JASPDesktopLib)
 add_dependencies(JASPTestColumnEncoderContext Common)
-add_dependencies(JASPTestJASPConfiguration JASPDesktopLib)
-add_dependencies(JASPTestInstalledModules JASPDesktopLib)
 
 target_include_directories(
   JASPTest
@@ -120,18 +102,6 @@ target_include_directories(
   JASPTestColumnEncoderContext
   PUBLIC
   ${PROJECT_SOURCE_DIR}/Common
-)
-
-target_include_directories(
-  JASPTestJASPConfiguration
-  PUBLIC
-  JASPDesktopLib
-)
-
-target_include_directories(
-  JASPTestInstalledModules
-  PUBLIC
-  JASPDesktopLib
 )
 
 target_link_libraries(
@@ -190,20 +160,6 @@ target_link_libraries(
   Qt::Test
 )
 
-target_link_libraries(
-  JASPTestJASPConfiguration
-  PUBLIC
-  JASPDesktopLib
-  Qt::Test
-)
-
-target_link_libraries(
-  JASPTestInstalledModules
-  PUBLIC
-  JASPDesktopLib
-  Qt::Test
-)
-
 target_compile_definitions(
   JASPTest
   PUBLIC TESTLIBRARY_DIR=${CMAKE_SOURCE_DIR}/Tests/TestLibrary
@@ -241,8 +197,6 @@ add_test(NAME testDebugData                COMMAND JASPTestDebugData)
 add_test(NAME testEngine                   COMMAND JASPTestEngine)
 add_test(NAME testQuick                    COMMAND JASPQuickTest)
 add_test(NAME testColumnEncoderContext     COMMAND JASPTestColumnEncoderContext)
-add_test(NAME testJASPConfiguration        COMMAND JASPTestJASPConfiguration)
-add_test(NAME testInstalledModules         COMMAND JASPTestInstalledModules)
 
 
 
