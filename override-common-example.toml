@@ -37,17 +37,7 @@
 #               jaspTTests will be Extra but enabled
 #               All other modules will be Extra (and disabled unless in EnabledModules)
 
-# Example 4: Use modules-settings.json OverrideCommon field
-# Add an "OverrideCommon" array to Modules/modules-settings.json:
-# {
-#     "common": [...],
-#     "extra": [...],
-#     "OverrideCommon": ["module1", "module2"]
-# }
 
-# Example 5: Combine both sources (config.toml + modules-settings.json)
-# OverrideCommon from config.toml takes precedence and is merged with modules-settings.json
-# Modules from both sources will be included in the Common list
 
 # Uncomment and modify the line below to enable OverrideCommon in this file
 # OverrideCommon = []

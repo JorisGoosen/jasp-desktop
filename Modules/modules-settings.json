@@ -39,9 +39,5 @@
 		"jaspTimeSeries",
 		"jaspVisualModeling",
 		"jaspTestModule"
-    ],
-    // OverrideCommon: When specified (in config.toml or here), these modules become Common
-    // and all other modules (including originally Common ones not in this list) become Extra
-    "OverrideCommon" : [
     ]
 }

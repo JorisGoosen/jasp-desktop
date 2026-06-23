@@ -11,11 +11,11 @@ When `OverrideCommon` is specified, the system:
 2. Moves modules listed in `OverrideCommon` to the Common group (in the specified order)
 3. Moves all other modules (including originally Common modules NOT in OverrideCommon) to the Extra group
 
-## Configuration Sources
+## Configuration Source
 
-`OverrideCommon` can be specified in two places:
+`OverrideCommon` can be specified in the TOML configuration file:
 
-### 1. TOML Configuration File (config.toml)
+### TOML Configuration File (config.toml)
 ```toml
 OverrideCommon = [
     "jaspDescriptives",
@@ -23,17 +23,6 @@ OverrideCommon = [
     "jaspRegression"
 ]
 ```
-
-### 2. modules-settings.json
-```json
-{
-    "common": [...],
-    "extra": [...],
-    "OverrideCommon": ["module1", "module2"]
-}
-```
-
-Both sources can be used together - modules from both will be included in the Common list.
 
 ## Examples
 
@@ -90,11 +79,8 @@ OverrideCommon = [
    - Added parsing for `OverrideCommon` array from TOML config
 
 3. **Desktop/modules/installedmodules.cpp/h**
-   - Modified `getModules()` to read and apply `OverrideCommon` from both config sources
+   - Modified `getModules()` to read and apply `OverrideCommon` from config.toml
    - Added logic to reorganize modules into Common/Extra based on OverrideCommon
-
-4. **Modules/modules-settings.json**
-   - Added `OverrideCommon` field (empty by default)
 
 ## Usage
 

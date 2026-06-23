@@ -92,19 +92,14 @@ std::vector<InstalledModules::ModuleInfo> InstalledModules::getModules() {
 	std::string settings = AppDirs::bundledModulesDir().toStdString() + settingsPath;
 	std::ifstream in(settings);
 	Json::Value root;
-	Json::Reader().parse(in, root);
-	Json::Value						commonNamesJson = root.get("common", Json::arrayValue),
-									extraNamesJson	= root.get("extra", Json::arrayValue);
-	if(!commonNamesJson.isArray())	commonNamesJson = Json::arrayValue;
-	if(!extraNamesJson.isArray())	extraNamesJson	= Json::arrayValue;
-
-	
-	// Check if OverrideCommon is specified in configuration from toml
-	QStringList overrideCommonList = [&](const QStringList * ql) { return ql ? *ql : QStringList(); }(JASPConfiguration::getInstance()->getOverrideCommon());
-	Json::Value overrideCommonJson = root.get("OverrideCommon", Json::arrayValue);	// Also check for OverrideCommon in modules-settings.json
-	
-	//config overrules json
-	overrideCommonList = overrideCommonList.size() > 0 || !overrideCommonJson.isArray() ? overrideCommonList : tq(JsonUtilities::jsonStringArrayToVec(overrideCommonJson));
+ 	Json::Reader().parse(in, root);
+ 	Json::Value						commonNamesJson = root.get("common", Json::arrayValue),
+ 									extraNamesJson	= root.get("extra", Json::arrayValue);
+ 	if(!commonNamesJson.isArray())	commonNamesJson = Json::arrayValue;
+ 	if(!extraNamesJson.isArray())	extraNamesJson	= Json::arrayValue;
+ 	
+ 	// Check if OverrideCommon is specified in configuration from toml
+ 	QStringList overrideCommonList = [&](const QStringList * ql) { return ql ? *ql : QStringList(); }(JASPConfiguration::getInstance()->getOverrideCommon());
 	
 	if(!overrideCommonList.isEmpty())
 	{
