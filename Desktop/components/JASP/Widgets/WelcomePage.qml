@@ -560,7 +560,8 @@ FocusScope
 			{
 				right:				parent.right
 				bottom:				PRO ? parent.bottom : jaspUrlBv.top
-				margins:			(PRO ? 10 : 4) * welcomeRoot.scaler
+				margins:			10 * welcomeRoot.scaler
+				bottomMargin:		(PRO ? 10 : 4) * welcomeRoot.scaler
 			}
 			
 			JASPMouseAreaToolTipped
@@ -582,7 +583,7 @@ FocusScope
 			color:					jaspTheme.white
 			font.family:			jaspTheme.font.family
 			font.pixelSize:			jaspUrlBug.font.pixelSize
-			font.weight:			Font.Bold
+			font.weight:			Font.Normal
 			font.underline:			jaspStatsMouseArea2.containsMouse
 			renderType:				Text.QtRendering
 			textFormat:				Text.StyledText
