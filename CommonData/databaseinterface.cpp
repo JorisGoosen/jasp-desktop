@@ -1539,11 +1539,11 @@ bool DatabaseInterface::labelExists(int	columnId, int intsId)
 
 intset DatabaseInterface::labelsExisting(int columnId)
 {
-	JASPTIMER_SCOPE(DatabaseInterface::dataSetGetFilter);
+	JASPTIMER_SCOPE(DatabaseInterface::labelsExisting);
 	intset ints;
 			
 	runStatements(
-				"SELECT id FROM Labels WHERE columnId = ?;", 
+				"SELECT value FROM Labels WHERE columnId = ?;", 
 				[&](sqlite3_stmt *stmt) { sqlite3_bind_int(stmt, 1, columnId); },
 				[&](size_t row, sqlite3_stmt * stmt){ ints.insert( sqlite3_column_int(stmt, 0)); });
 	

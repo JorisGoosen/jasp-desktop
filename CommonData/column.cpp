@@ -114,7 +114,6 @@ void Column::dbLoadOldIndex(int index)
 			}
 			else
 				lookForTrouble[_ints[r]] = _dbls[r];
-
 		}
 		
 		JASPTIMER_STOP(Column::dbLoadOldIndex look for trouble);
