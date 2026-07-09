@@ -23,8 +23,8 @@ void TestCsvPreviewModel::testCsvParsing()
 {
     CsvPreviewModel model;
     
-	QString rawData = "Col1,Col2,Col3\nVal1,Val2,Val3\n1.2,1.20,1.344";
-    model.preparePreview(rawData.toStdString().c_str(), ',');
+ 	QString rawData = "Col1,Col2,Col3\nVal1,Val2,Val3\n1.2,1.20,1.344";
+    model.preparePreview(rawData, ',');
 
     QCOMPARE(model.rowCount(), 3);
     QCOMPARE(model.columnCount(), 3);
@@ -45,13 +45,13 @@ void TestCsvPreviewModel::testCsvParsing()
 	QCOMPARE(model.data(model.index(2, 2), Qt::DisplayRole).toString(), QString("1.344"));
 
     // Test delimiter change to wrong delimiter
-    model.preparePreview(rawData.toStdString().c_str(), ';');
+    model.preparePreview(rawData, ';');
     QCOMPARE(model.rowCount(), 3);
     QCOMPARE(model.columnCount(), 1);
     QCOMPARE(model.data(model.index(0, 0), Qt::DisplayRole).toString(), QString("Col1,Col2,Col3"));
 
     // Test delimiter change back to correct one
-    model.preparePreview(rawData.toStdString().c_str(), ',');
+    model.preparePreview(rawData, ',');
     QCOMPARE(model.columnCount(), 3);
     QCOMPARE(model.data(model.index(0, 0), Qt::DisplayRole).toString(), QString("Col1"));
 }
@@ -61,8 +61,8 @@ void TestCsvPreviewModel::testDifferentDelimiters()
     CsvPreviewModel model;
 
     // Semicolon delimiter
-	QString semicolonData = "Col1;Col2;Col3\n1,2;1,234;1.2";
-    model.preparePreview(semicolonData.toStdString().c_str(), ';');
+ 	QString semicolonData = "Col1;Col2;Col3\n1,2;1,234;1.2";
+    model.preparePreview(semicolonData, ';');
     QCOMPARE(model.columnCount(), 3);
 	QCOMPARE(model.data(model.index(1, 0), Qt::DisplayRole).toString(), QString("\"1,2\""));
 	QCOMPARE(model.data(model.index(1, 1), Qt::DisplayRole).toString(), QString("\"1,234\""));
@@ -70,7 +70,7 @@ void TestCsvPreviewModel::testDifferentDelimiters()
 
     // Tab delimiter
     QString tabData = "Col1\tCol2\tCol3\nVal1\tVal2\tVal3";
-    model.preparePreview(tabData.toStdString().c_str(), '\t');
+    model.preparePreview(tabData, '\t');
     QCOMPARE(model.columnCount(), 3);
     QCOMPARE(model.data(model.index(0, 2), Qt::DisplayRole).toString(), QString("Col3"));
 }
@@ -85,7 +85,7 @@ void TestCsvPreviewModel::testComplexCsvParsing()
         "2,Two,M,21,,1234567890,\"test：\nnewlines\"\n"
         "3,Three,F,18,,,\"this,is,text\"";
 
-    model.preparePreview(rawData.toStdString().c_str(), ',');
+    model.preparePreview(rawData, ',');
 
     QCOMPARE(model.rowCount(), 4);    // header + 3 data rows
     QCOMPARE(model.columnCount(), 7);

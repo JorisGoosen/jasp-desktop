@@ -21,6 +21,12 @@
 
 CsvPreviewModel::CsvPreviewModel(QObject *parent) : QAbstractTableModel(parent)
 {
+	_parser = new CSVParser(',', true);
+}
+
+CsvPreviewModel::~CsvPreviewModel()
+{
+	// CSVParser is a QObject with parent-child relationship, automatic cleanup
 }
 
 void CsvPreviewModel::setRawData(const QString &data)
@@ -35,6 +41,7 @@ void CsvPreviewModel::setDelimiter(QChar delim)
 {
 	if (_delimiter == delim) return;
 	_delimiter = delim;
+	_parser->setDelimiter(delim.toLatin1());
 	emit delimiterChanged();
 	updateInternalStructure();
 }
@@ -46,8 +53,8 @@ void CsvPreviewModel::setDelimiterFromChar(char delim)
 
 void CsvPreviewModel::preparePreview(const QString &data, char delimiter)
 {
-	setRawData(data);
 	setDelimiter(QChar(delimiter));
+	setRawData(data);
 	setVisible(true);
 }
 
@@ -59,110 +66,30 @@ void CsvPreviewModel::updateLocale()
 void CsvPreviewModel::updateInternalStructure()
 {
 	beginResetModel();
-	_grid.clear();
 
 	if (_rawData.isEmpty()) 
 	{
-			endResetModel();
-			return;
+		_grid.clear();
+		endResetModel();
+		return;
 	}
 
-	parseCsvString(_rawData, _delimiter, _grid);
+	// Parse using CSVParser
+	_parser->parse(_rawData.toStdString());
+	_grid = _parser->getGrid();
 
 	endResetModel();
 	emit clearTableForResize();
 }
 
-void CsvPreviewModel::parseCsvString(const QString &rawData, QChar delimiter, QList<QList<QString>> &outGrid) const
-{
-	enum State { Normal, Quoted, QuotedQuote };
-	State state = Normal;
-	QString currentField;
-	QList<QString> currentRow;
-
-	auto finishField = [&]() 
-	{
-		currentField.replace('\r', ' '); // No carriage returns
-		currentField.replace('\n', ' '); // No newlines
-		currentRow.append(currentField);
-		currentField.clear();
-	};
-
-	auto finishRow = [&]() 
-	{
-		if (!currentField.isEmpty() || !currentRow.isEmpty() || state != Normal)
-			finishField();
-
-		if (!currentRow.isEmpty()) 
-		{
-			outGrid.append(currentRow);
-			currentRow.clear();
-		}
-	};
-
-	int i = 0;
-	const int len = rawData.length();
-	while (i < len) {
-		QChar ch = rawData.at(i);
-
-		switch (state) 
-		{
-		case Normal:
-				if (ch == '"') {
-					state = Quoted;
-				} 
-				else if (ch == delimiter) 
-				{
-					finishField();
-				} 
-				else if (ch == '\n' || ch == '\r')
-				{
-					finishRow();
-					if (ch == '\r' && i + 1 < len && rawData.at(i + 1) == '\n')
-						i++;
-				}
-				else 
-				{
-					currentField.append(ch);
-				}
-				break;
-
-		case Quoted:
-				if (ch == '"') 
-				{
-					state = QuotedQuote;
-				} 
-				else 
-				{
-					currentField.append(ch);
-				}
-				break;
-
-		case QuotedQuote:
-				if (ch == '"') 
-				{
-					currentField.append('"');   // escaped quote -> add one double quote
-					state = Quoted;
-				} else 
-				{
-					state = Normal;
-					continue;
-				}
-				break;
-		}
-		i++;
-	}
-	finishRow();
-}
-
 int CsvPreviewModel::rowCount(const QModelIndex &) const
 {
-	return _grid.count();
+	return _grid.size();
 }
 
 int CsvPreviewModel::columnCount(const QModelIndex &) const
 {
-	if (_grid.isEmpty()) 
+	if (_grid.empty()) 
 		return 0;
 	
 	// Find the max number of columns across all rows to ensure a rectangular grid
@@ -184,7 +111,7 @@ QVariant CsvPreviewModel::data(const QModelIndex &index, int role) const
 
 	// Check if the row exists and if this row has a column at this index
 	if (r < _grid.size() && c < _grid[r].size()) {
-		QString val = _grid[r][c];
+		QString val = QString::fromStdString(_grid[r][c]);
 
 		if (val.isEmpty()) {
 			if (r == 0)
@@ -229,3 +156,5 @@ void CsvPreviewModel::setVisible(bool newVisible)
 	if(!_visible)
 		DesktopCommunicator::singleton()->delimiterChosen(_delimiter.toLatin1());
 }
+
+

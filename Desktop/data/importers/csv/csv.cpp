@@ -30,6 +30,7 @@ using namespace std;
 using boost::algorithm::trim;
 
 CSV::CSV(const string &path)
+	: CSVParser(',', true)
 {
 	_encoding = UTF8;
 	_delim = ',';
@@ -441,125 +442,91 @@ bool CSV::readLine(vector<string> &items)
 	if (_utf8BufferEndPos == _utf8BufferStartPos)
 	{
 		if (!readUtf8())
+		{
+			_eof = true;
 			return false;
+		}
 	}
 
-	enum State { Normal, Quoted, QuotedQuote };
-	State state = Normal;
-	string currentField;
-	bool rowFinished = false;
+	// Process characters through the parser until row is complete
+	size_t startPos = _utf8BufferStartPos;
+	size_t i = startPos;
 
-	int i = _utf8BufferStartPos;
-
-	while (!rowFinished)
+	while (i < _utf8BufferEndPos)
 	{
-		// If we reached the end of current buffer, load more data
+		char ch = _utf8Buffer[i];
+
+	// Replace illegal UTF-8 bytes with '.' (same as original logic)
+	if ((unsigned char)ch >= 0xF8)
+		ch = '.';
+
+	if (processChar(ch))
+	{
+		// Same char should be re-processed - don't increment i
+		if (hasRow())
+		{
+			items = extractRow();
+			_utf8BufferStartPos = i + 1;
+			reset();
+			return !items.empty();
+		}
+		// Don't increment i, process same char again
+		continue;
+	}
+
+	if (hasRow())
+	{
+		// Row complete - extract it
+		items = extractRow();
+		
+		// Update buffer position, handling \r\n
+		if (ch == '\r' && i + 1 < _utf8BufferEndPos && _utf8Buffer[i + 1] == '\n')
+		{
+			_utf8BufferStartPos = i + 2;  // Skip both \r and \n
+		}
+		else
+		{
+			_utf8BufferStartPos = i + 1;  // Skip just this char
+		}
+		
+		// Reset parser for next row
+		reset();
+		
+		return !items.empty();
+	}
+
+		i++;
+
+		// If we reached the end of buffer, try to load more
 		if (i >= _utf8BufferEndPos)
 		{
-			bool success = readUtf8();
-			if (!success)
+			if (!readUtf8())
 			{
-				// EOF: if there is pending data, treat as last row
-				if (!currentField.empty() || !items.empty() || state != Normal)
+				// EOF - process remaining data
+				while (i < _utf8BufferEndPos)
 				{
-						boost::algorithm::replace_all(currentField, "\n", " ");
-						items.push_back(currentField);
+					char ch = _utf8Buffer[i];
+					if ((unsigned char)ch >= 0xF8)
+						ch = '.';
+					processChar(ch);
+					i++;
 				}
+
+				items = extractRow();
+				_utf8BufferStartPos = i;
+				reset();
+				
 				_eof = true;
 				return !items.empty();
 			}
-			i = 0; // reset index because readUtf8() resets buffer positions
-			continue;
+			i = 0;
 		}
-
-		char ch = _utf8Buffer[i];
-
-		// Replace illegal UTF-8 bytes with '.' (same as original logic)
-		if ((unsigned char)ch >= 0xF8)
-			ch = '.';
-
-		switch (state)
-		{
-		case Normal:
-			if (ch == '"')
-			{
-				// Start of a quoted field
-				state = Quoted;
-			}
-			else if (ch == _delim)
-			{
-				// End of current field
-				boost::algorithm::replace_all(currentField, "\r\n", " ");
-				boost::algorithm::replace_all(currentField, "\n",   " ");
-				boost::algorithm::replace_all(currentField, "\r",   " ");
-				items.push_back(currentField);
-				currentField.clear();
-				_utf8BufferStartPos = i + 1;
-			}
-			else if (ch == '\r' || ch == '\n')
-			{
-				// End of current row
-				boost::algorithm::replace_all(currentField, "\r\n", " ");
-				boost::algorithm::replace_all(currentField, "\n",   " ");
-				boost::algorithm::replace_all(currentField, "\r",   " ");
-				if (!currentField.empty() || !items.empty() || i > _utf8BufferStartPos)
-					items.push_back(currentField);
-				currentField.clear();
-				rowFinished = true;
-
-				// Handle line endings: consume \r\n or single \r or \n
-				if (ch == '\r' && i + 1 < _utf8BufferEndPos && _utf8Buffer[i + 1] == '\n')
-					_utf8BufferStartPos = i + 2;
-				else
-					_utf8BufferStartPos = i + 1;
-			}
-			else
-			{
-				currentField.push_back(ch);
-			}
-			break;
-
-		case Quoted:
-			if (ch == '"')
-			{
-				// Possible end of quoted field or escaped quote
-				state = QuotedQuote;
-			}
-			else
-			{
-				currentField.push_back(ch);
-			}
-			break;
-
-		case QuotedQuote:
-			if (ch == '"')
-			{
-				// Escaped double quote: add one double quote character
-				currentField.push_back('"');
-				state = Quoted;
-			}
-			else
-			{
-				// End of quoted field, fall back to Normal state and re-process current character
-				state = Normal;
-				continue;   // re-evaluate the same character
-			}
-			break;
-		}
-		i++;
 	}
 
-	// Post-processing: replace newlines with spaces (same as original behavior)
-	// Note: outer quotes are already removed by the state machine – they never entered the field.
-	for (size_t index = 0; index < items.size(); ++index)
-	{
-		string &item = items[index];
-		boost::algorithm::replace_all(item, "\r\n", " ");
-		boost::algorithm::replace_all(item, "\n",   " ");
-		boost::algorithm::replace_all(item, "\r",   " ");
-	}
-
-	return true;
+	// Shouldn't reach here normally, but just in case
+	_eof = true;
+	items.clear();
+	return false;
 }
 
 int64_t CSV::pos()

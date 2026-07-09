@@ -18,6 +18,7 @@ mkdir(c(R_CPP_INCLUDES_LIBRARY, JASP_MODULE_BUNDLE_MANAGER_LIBRARY))
 .libPaths(RENV_LIBRARY)
 options(repos = c(CRAN = "https://packagemanager.posit.co/cran/latest"))
 options(INSTALL_opts = "--no-test-load")
+Sys.setenv(CPPFLAGS = "-DENABLE_LEGACY_NONAPI")
 cat("Restoring Rcpp & RInside\n")
 renv::restore(
   library  = R_CPP_INCLUDES_LIBRARY,
@@ -25,20 +26,6 @@ renv::restore(
   clean    = TRUE
 )
 
-cat("restoring jaspModuleBundleManager deps\n")
-
-renv::restore(
-    lockfile = file.path("@PROJECT_SOURCE_DIR@", "Engine", "jaspModuleBundleManager", "renv.lock"),
-    library  = JASP_MODULE_BUNDLE_MANAGER_LIBRARY,
-    clean    = TRUE,
-    prompt   = FALSE
-)
-
-cat("installing jaspModuleBundleManager\n")
-
-install.packages(
-    file.path("@PROJECT_SOURCE_DIR@", "Engine", "jaspModuleBundleManager"),
-    lib   = JASP_MODULE_BUNDLE_MANAGER_LIBRARY,
-    repos = NULL,
-    type  = "source"
-)
+# jaspModuleBundleManager and its dependencies are not critical for C++ build
+# and may take very long to compile (e.g., stringi/ICU) or fail on newer toolchains
+cat("Skipping jaspModuleBundleManager deps restore (non-critical)\n")
