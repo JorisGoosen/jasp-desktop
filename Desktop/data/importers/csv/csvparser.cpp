@@ -55,60 +55,60 @@ bool CSVParser::processChar(char ch)
 	switch (_state)
 	{
 	case Normal:
-		if (ch == '"')
+		switch (ch)
 		{
+		case '"':
 			_state = Quoted;
-		}
-		else if (ch == _delimiter)
-		{
-			finishField();
-		}
-		else if (ch == '\r')
-		{
+			return false;
+		case '\r':
 			_currentField.push_back(ch);
-		}
-		else if (ch == '\n')
-		{
+			return false;
+		case '\n':
 			if (!_currentField.empty() && _currentField.back() == '\r')
 			{
 				_currentField.pop_back();
 				_currentField += ' ';
 			}
 			finishField();
-		_grid.push_back(_currentRow);
-		_currentRow.clear();
-		_rowFinished = true;
-		emit rowParsed(_grid.back());
+			_grid.push_back(_currentRow);
+			_currentRow.clear();
+			_rowFinished = true;
+			emit rowParsed(_grid.back());
+			return false;
+		default:
+			if (ch == _delimiter)
+			{
+				finishField();
+			}
+			else
+			{
+				_currentField.push_back(ch);
+			}
+			return false;
 		}
-		else
-		{
-			_currentField.push_back(ch);
-		}
-		return false;
 
 	case Quoted:
-		if (ch == '"')
+		switch (ch)
 		{
+		case '"':
 			_state = QuotedQuote;
-		}
-		else
-		{
+			return false;
+		default:
 			_currentField.push_back(ch);
+			return false;
 		}
-		return false;
 
 	case QuotedQuote:
-		if (ch == '"')
+		switch (ch)
 		{
+		case '"':
 			_currentField.push_back('"');
 			_state = Quoted;
-		}
-		else
-		{
+			return false;
+		default:
 			_state = Normal;
 			return true;
 		}
-		return false;
 	}
 	return false;
 }
