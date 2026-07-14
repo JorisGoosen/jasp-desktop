@@ -68,33 +68,28 @@ if((NOT LibArchive_FOUND) AND (NOT WIN32))
 endif()
 
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.78)
-find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(
+  Boost 1.78 REQUIRED
+  COMPONENTS date_time
+             timer
+             chrono)
 
-get_target_property(QT_TARGET_TYPE Qt6::Core TYPE)
-set(USE_QT_STATIC_LIBS OFF)
-message(STATUS "QT_TARGET_TYPE: ${QT_TARGET_TYPE}")
-if(QT_TARGET_TYPE STREQUAL STATIC_LIBRARY)
-  set(USE_QT_STATIC_LIBS ON)
+if(WINDOWS)
+  find_package(
+    Boost 1.78 REQUIRED
+    COMPONENTS date_time
+               timer
+               chrono)
 endif()
 
 if(NOT FLATPAK_USED)
-  find_package(Qt6 REQUIRED COMPONENTS
-      Gui
-      OpenGL
-      Widgets
-      Qml
-      QuickTemplates2
-      Quick
-      QuickLayouts
-      QuickControls2
-      QuickControls2Impl
-      QmlWorkerScript
-      QuickWidgets
-  )
-  if(NOT USE_QT_STATIC_LIBS)
-    find_package(
-      Qt6 REQUIRED COMPONENTS
+  find_package(
+    Qt6 REQUIRED
+    COMPONENTS Core
+               Gui
+               OpenGL
+               Widgets
+               Qml
                WebEngineQuick
                WebChannel
                Svg
@@ -103,13 +98,19 @@ if(NOT FLATPAK_USED)
                Xml
                Sql
                DBus
+               QuickTemplates2
                LabsFolderListModel
-    )
-  endif()
+               Quick
+               QuickLayouts
+               QuickControls2
+               QuickControls2Impl
+               QmlWorkerScript
+               QuickWidgets
+               Core5Compat)
 
 else()
 
-  message(STATUS "flatpak arch is $ENV{FLATPAK_ARCH}")
+	message(STATUS "flatpak arch is $ENV{FLATPAK_ARCH}")
 
   find_package(
     Qt6 REQUIRED
@@ -142,6 +143,14 @@ else()
        ${Qt6WebEngineQuick_DIR}
     NO_DEFAULT_PATH)
 
+  find_package(
+    Qt6Core5Compat
+    REQUIRED
+    PATHS
+	  "/app/lib/$ENV{FLATPAK_ARCH}-linux-gnu/cmake/Qt6Core5Compat/"
+	  ${Qt6Core5Compat_DIR}
+    NO_DEFAULT_PATH)
+
 endif()
 
 if(LINUX)
@@ -163,61 +172,64 @@ if(LINUX)
     message(FATAL_ERROR "librt is required for building libCommon on Linux")
   endif()
 
-  if(NOT JASP_SYNTAX_INTERFACE_ONLY)
+  if(FLATPAK_USED)
+    set(LIBREADSTAT_INCLUDE_DIRS /app/include)
+    set(LIBREADSTAT_LIBRARY_DIRS /app/lib)
+  else()
+    set(LIBREADSTAT_INCLUDE_DIRS /usr/local/include /usr/include)
+    # The last two library paths handle the two most common multiarch cases.
+    # Other multiarch-compliant paths may come up but should be rare.
+    set(LIBREADSTAT_LIBRARY_DIRS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu)
+  endif()
 
-    if(FLATPAK_USED)
-      set(LIBREADSTAT_INCLUDE_DIRS /app/include)
-      set(LIBREADSTAT_LIBRARY_DIRS /app/lib)
-    else()
-      set(LIBREADSTAT_INCLUDE_DIRS /usr/local/include /usr/include)
-      # The last two library paths handle the two most common multiarch cases.
-      # Other multiarch-compliant paths may come up but should be rare.
-      set(LIBREADSTAT_LIBRARY_DIRS /usr/local/lib /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu)
-    endif()
+  message(CHECK_START "Looking for libreadstat.so")
+  find_file(LIBREADSTAT_LIBRARIES libreadstat.so
+            HINTS ${LIBREADSTAT_LIBRARY_DIRS} REQUIRED)
 
-    message(CHECK_START "Looking for libreadstat.so")
-    find_library(LIBREADSTAT_LIBRARIES libreadstat.so
-              HINTS ${LIBREADSTAT_LIBRARY_DIRS} REQUIRED)
+  if(EXISTS ${LIBREADSTAT_LIBRARIES})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${LIBREADSTAT_LIBRARIES}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(
+      FATAL_ERROR
+        "ReadStat is required for building on Windows, please follow the build instruction before you continue."
+    )
+  endif()
 
-    if(EXISTS ${LIBREADSTAT_LIBRARIES})
-      message(CHECK_PASS "found")
-      message(STATUS "  ${LIBREADSTAT_LIBRARIES}")
-    else()
-      message(CHECK_FAIL "not found")
-      message(
-        FATAL_ERROR
-          "ReadStat is required for building on Windows, please follow the build instruction before you continue."
-      )
-    endif()
+  message(CHECK_START "Looking for librdata.so")
+  find_library(LIBRDATA_LIBRARIES NAMES rdata HINTS /usr/local/lib REQUIRED)
+  find_path(LIBRDATA_INCLUDE_DIRS NAMES rdata.h HINTS /usr/local/include REQUIRED)
 
     # ---- libsodium ----
     message(CHECK_START "Looking for `libsodium`")
     set(libsodium_INCLUDE_DIR /usr/include /app/lib64/)
     set(LIBSODIUM_LIBRARY_DIRS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu /app/include/)
 
-    message(CHECK_START "Looking for libsodium.so")
-    find_library(libsodium_LIBRARIES libsodium.so
-              HINTS ${LIBSODIUM_LIBRARY_DIRS} REQUIRED)
+  message(CHECK_START "Looking for libfreexl.so")
+  find_library(LIBFREEXL_LIBRARIES NAMES freexl REQUIRED)
+  find_path(LIBFREEXL_INCLUDE_DIRS NAMES freexl.h REQUIRED)
 
-    if(EXISTS ${libsodium_LIBRARIES})
-      message(CHECK_PASS "found")
-      message(STATUS "  ${LIBSODIUM_LIBRARIES}")
-    else()
-      message(CHECK_FAIL "not found")
-      message(
-        FATAL_ERROR
-          "libsodium is required for building on Linux, please follow the build instruction before you continue."
-      )
-    endif()
+  if(EXISTS ${LIBFREEXL_LIBRARIES})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${LIBFREEXL_LIBRARIES}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(FATAL_ERROR "libfreexl is required")
+  endif()
 
     # ---- FreeXL ----
     message(CHECK_START "Looking for `libfreexl`")
     set(LIBFREEXL_INCLUDE_DIRS /usr/include /app/lib64/)
     set(LIBFREEXL_LIBRARY_DIRS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu /app/include/)
 
-    message(CHECK_START "Looking for libfreexl.so")
-    find_library(LIBFREEXL_LIBRARIES libfreexl.so
-              HINTS ${LIBFREEXL_LIBRARY_DIRS} REQUIRED)
+  if(EXISTS ${libsodium_LIBRARIES})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${libsodium_LIBRARIES}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(FATAL_ERROR "libsodium is required")
+  endif()
 
     if(EXISTS ${LIBFREEXL_LIBRARIES})
       message(CHECK_PASS "found")
@@ -257,39 +269,278 @@ if(LINUX)
 
 endif()
 
-if(APPLE AND NOT JASP_SYNTAX_INTERFACE_ONLY)
+if(APPLE)
 
   message(CHECK_START "Looking for 'libbrotlicommon'")
 
   find_package(Brotli 1.0.9 REQUIRED)
-  find_package(freexl 2.0.99 REQUIRED)
-  find_package(librdata REQUIRED)
-  find_package(libsodium 1.0.20 REQUIRED)
 
 endif()
 
-if(WIN32 AND NOT JASP_SYNTAX_INTERFACE_ONLY)
+if(WIN32)
+  # ReadStat
 
-  include(FindRToolsDLLPath)
+  message(CHECK_START "Looking for libreadstat.dll.a")
+  find_file(
+    RTOOLS_LIBREADSTAT_DLL_A
+    NAMES libreadstat.dll.a
+    PATHS ${RTOOLS_PATH}/lib
+    NO_DEFAULT_PATH)
 
-  find_package(freexl 2.0.99 REQUIRED)
-  find_package(libsodium 1.0.20 REQUIRED)
+  if(EXISTS ${RTOOLS_LIBREADSTAT_DLL_A})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${RTOOLS_LIBREADSTAT_DLL_A}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(
+      FATAL_ERROR
+        "ReadStat is required for building on Windows, please follow the build instruction before you continue."
+    )
+  endif()
 
-  copy_rtools_header(RTOOLS_LIBREADSTAT_H	readstat.h		${CMAKE_SOURCE_DIR}/Desktop/data/importers/readstat/readstat.h)
-  copy_rtools_header(RTOOLS_LIBRDATA_H		rdata.h			${CMAKE_SOURCE_DIR}/Desktop/data/importers/rdata/rdata.h)
+  message(CHECK_START "Looking for readstat.h")
+  find_file(
+    RTOOLS_LIBREADSTAT_H
+    NAMES readstat.h
+    PATHS ${RTOOLS_PATH}/include
+    NO_DEFAULT_PATH)
 
-  find_rtools_dll_path(RTOOLS_ZLIB_DLL            "zlib1.dll")
-  find_rtools_dll_path(RTOOLS_MSYS_DLL            "msys-2.0.dll")
-  find_rtools_dll_path(RTOOLS_LIBBZ2_DLL          "libbz2-1.dll")
-  find_rtools_dll_path(RTOOLS_LIBLZMA_DLL         "liblzma-5.dll")
-  find_rtools_dll_path(RTOOLS_LIBICONV_DLL        "libiconv-2.dll")
-  find_rtools_dll_path(RTOOLS_LIBRDATA_DLL        "librdata-0.dll")
-  find_rtools_dll_path(RTOOLS_LIBSTDCPP_DLL       "libstdc++-6.dll")
-  find_rtools_dll_path(RTOOLS_LIBRDATA_DLL_A      "librdata.dll.a")
-  find_rtools_dll_path(RTOOLS_LIBREADSTAT_DLL     "libreadstat-1.dll")
-  find_rtools_dll_path(RTOOLS_LIBGCC_S_SEH_DLL    "libgcc_s_seh-1.dll")
-  find_rtools_dll_path(RTOOLS_LIBREADSTAT_DLL_A   "libreadstat.dll.a")
-  find_rtools_dll_path(RTOOLS_LIBWINPTHREAD_DLL   "libwinpthread-1.dll")
+  if(EXISTS ${RTOOLS_LIBREADSTAT_H})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${RTOOLS_LIBREADSTAT_H}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(
+      FATAL_ERROR
+        "ReadStat is required for building on Windows, please follow the build instruction before you continue."
+    )
+  endif()
+  
+  message(CHECK_START "Looking for libreadstat-1.dll")
+  find_file(
+    RTOOLS_LIBREADSTAT_DLL
+    NAMES libreadstat-1.dll
+    PATHS ${RTOOLS_PATH}/bin
+    NO_DEFAULT_PATH)
+ 
+  if(EXISTS ${RTOOLS_LIBREADSTAT_DLL})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${RTOOLS_LIBREADSTAT_DLL}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(
+      FATAL_ERROR
+        "ReadStat is required for building on Windows, please follow the build instruction before you continue."
+    )
+  endif()
+  
+
+  message(CHECK_START "Looking for zlib1.dll")
+  find_file(
+    RTOOLS_ZLIB_DLL
+    NAMES zlib1.dll
+    PATHS ${RTOOLS_PATH}/bin
+    NO_DEFAULT_PATH)
+
+  if(EXISTS ${RTOOLS_ZLIB_DLL})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${RTOOLS_ZLIB_DLL}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(
+      FATAL_ERROR
+        "Zlib is required for building on Windows, please follow the build instruction before you continue."
+    )
+  endif()
+
+  message(CHECK_START "Looking for libiconv-2.dll")
+  find_file(
+    RTOOLS_LIBICONV_DLL
+    NAMES libiconv-2.dll
+    PATHS ${RTOOLS_PATH}/bin
+    NO_DEFAULT_PATH)
+
+  if(EXISTS ${RTOOLS_LIBICONV_DLL})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${RTOOLS_LIBICONV_DLL}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(
+      FATAL_ERROR
+        "ReadStat is required for building on Windows, please follow the build instruction before you continue."
+    )
+  endif()
+
+  # MinGW Libraries
+
+  message(CHECK_START "Looking for libgcc_s_seh-1.dll")
+  find_file(
+    RTOOLS_LIBGCC_S_SEH_DLL
+    NAMES libgcc_s_seh-1.dll
+    PATHS ${RTOOLS_PATH}/bin
+    NO_DEFAULT_PATH)
+
+  if(EXISTS ${RTOOLS_LIBGCC_S_SEH_DLL})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${RTOOLS_LIBGCC_S_SEH_DLL}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(
+      FATAL_ERROR
+        "MSYS2 and some of its libraries are required for building on Windows, please follow the build instruction before you continue."
+    )
+  endif()
+
+  message(CHECK_START "Looking for libstdc++-6.dll")
+  find_file(
+    RTOOLS_LIBSTDCPP_DLL
+    NAMES libstdc++-6.dll
+    PATHS ${RTOOLS_PATH}/bin
+    NO_DEFAULT_PATH)
+
+  if(EXISTS ${RTOOLS_LIBSTDCPP_DLL})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${RTOOLS_LIBSTDCPP_DLL}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(
+      FATAL_ERROR
+        "MSYS2 and some of its libraries are required for building on Windows, please follow the build instruction before you continue."
+    )
+  endif()
+  
+  message(CHECK_START "Looking for msys-2.0.dll")
+  find_file(
+    RTOOLS_MSYS_DLL
+    NAMES msys-2.0.dll
+    PATHS ${RTOOLS_PATH}/../usr/bin
+    NO_DEFAULT_PATH)
+
+  if(EXISTS ${RTOOLS_MSYS_DLL})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${RTOOLS_MSYS_DLL}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(
+      FATAL_ERROR
+        "MSYS2 and some of its libraries are required for building on Windows, please follow the build instruction before you continue."
+    )
+  endif()
+
+  message(CHECK_START "Looking for libwinpthread-1.dll")
+  find_file(
+    RTOOLS_LIBWINPTHREAD_DLL
+    NAMES libwinpthread-1.dll
+    PATHS ${RTOOLS_PATH}/bin
+    NO_DEFAULT_PATH)
+
+  if(EXISTS ${RTOOLS_LIBWINPTHREAD_DLL})
+    message(CHECK_PASS "found")
+    message(STATUS "  ${RTOOLS_LIBWINPTHREAD_DLL}")
+  else()
+    message(CHECK_FAIL "not found")
+    message(
+      FATAL_ERROR
+        "MSYS2 and some of its libraries are required for building on Windows, please follow the build instruction before you continue."
+    )
+  endif()
+
+  #message(CHECK_START "Looking for libjsoncpp-24.dll")
+  #find_file(
+  #  RTOOLS_LIBJSONCPP_DLL
+  #  NAMES libjsoncpp-24.dll
+  #  PATHS ${RTOOLS_PATH}/bin
+  #  NO_DEFAULT_PATH)
+
+  #if(EXISTS ${RTOOLS_LIBJSONCPP_DLL})
+  #  message(CHECK_PASS "found")
+  #  message(STATUS "  ${RTOOLS_LIBJSONCPP_DLL}")
+  #else()
+  #  message(CHECK_FAIL "not found")
+  #  message(
+  #    FATAL_ERROR
+  #      "MSYS2 and some of its libraries are required for building on Windows, please follow the build instruction before you continue."
+  #  )
+  #endif()
+
+  # jags
+  # This could all go into its module later, and these can
+  # turn into a function, but I don't want to do it now
+  # because I'm uncertain about CMake variable scopping
+  # message(CHECK_START "Looking for jags files")
+  # find_file(
+  #   RTOOLS_LIBJAGS_BAT
+  #   NAMES jags.bat
+  #   PATHS ${RTOOLS_PATH}/bin REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIBJAGS_BAT}")
+  # find_file(
+  #   RTOOLS_LIBJAGS
+  #   NAMES libjags-4.dll
+  #   PATHS ${RTOOLS_PATH}/bin REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIBJAGS}")
+  # find_file(
+  #   RTOOLS_LIBJAGS_JRMATH
+  #   NAMES libjrmath-0.dll
+  #   PATHS ${RTOOLS_PATH}/bin REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIBJAGS_JRMATH}")
+  # find_file(
+  #   RTOOLS_LIB_BLAS
+  #   NAMES libblas.dll
+  #   PATHS ${RTOOLS_PATH}/bin REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIB_BLAS}")
+  # find_file(
+  #   RTOOLS_LIB_LAPACK
+  #   NAMES liblapack.dll
+  #   PATHS ${RTOOLS_PATH}/bin REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIB_LAPACK}")
+
+  # set(RTOOLS_LIBJAGS_HEADERS_PATH "${RTOOLS_PATH}/include/JAGS")
+  # message(STATUS "  ${RTOOLS_LIBJAGS_HEADERS_PATH}")
+  # set(RTOOLS_LIBJAGS_LIBRARIES_PATH "${RTOOLS_PATH}/lib/JAGS")
+  # message(STATUS "  ${RTOOLS_LIBJAGS_LIBRARIES_PATH}")
+  # set(RTOOLS_LIBJAGS_PKGCONFIG_PATH "${RTOOLS_PATH}/lib/pkgconfig")
+  # message(STATUS "  ${RTOOLS_LIBJAGS_PKGCONFIG_PATH}")
+  # set(RTOOLS_LIBJAGS_MODULES_PATH "${RTOOLS_PATH}/lib/JAGS/modules-4")
+  # message(STATUS "  ${RTOOLS_LIBJAGS_MODULES_PATH}")
+
+  # find_file(
+  #   RTOOLS_LIBJAGS_LIBJAGS_A
+  #   NAMES libjags.dll.a
+  #   PATHS ${RTOOLS_PATH}/lib REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIBJAGS_LIBJAGS_A}")
+  # find_file(
+  #   RTOOLS_LIBJAGS_LIBJAGS_LA
+  #   NAMES libjags.la
+  #   PATHS ${RTOOLS_PATH}/lib REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIBJAGS_LIBJAGS_LA}")
+  # find_file(
+  #   RTOOLS_LIBJAGS_LIBJRMATH_A
+  #   NAMES libjrmath.dll.a
+  #   PATHS ${RTOOLS_PATH}/lib REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIBJAGS_LIBJRMATH_A}")
+  # find_file(
+  #   RTOOLS_LIBJAGS_LIBJRMATH_LA
+  #   NAMES libjrmath.la
+  #   PATHS ${RTOOLS_PATH}/lib REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIBJAGS_LIBJRMATH_LA}")
+  # find_file(
+  #   RTOOLS_LIB_BLAS_DLL_A
+  #   NAMES libblas.dll.a
+  #   PATHS ${RTOOLS_PATH}/lib REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIB_BLAS_DLL_A}")
+  # find_file(
+  #   RTOOLS_LIB_LAPACK_DLL_A
+  #   NAMES liblapack.dll.a
+  #   PATHS ${RTOOLS_PATH}/lib REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIB_LAPACK_DLL_A}")
+
+  # find_file(
+  #   RTOOLS_LIBJAGS_JAGS_TERMINAL_EXE
+  #   NAMES jags-terminal.exe
+  #   PATHS ${RTOOLS_PATH}/libexec REQUIRED)
+  # message(STATUS "  ${RTOOLS_LIBJAGS_JAGS_TERMINAL_EXE}")
+
+  # message(CHECK_PASS "found")
 
   # ICU DLL: needed by Qt 6.1+ on Windows Server 2019 (build < 18362)
   find_file(SYSTEM_ICU_DLL
