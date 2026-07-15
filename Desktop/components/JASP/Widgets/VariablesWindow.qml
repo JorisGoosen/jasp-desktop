@@ -29,6 +29,10 @@ import "./FileMenu"
 FocusScope
 {
 	id:			variablesContainer
+
+	Accessible.role:	Accessible.Pane
+	Accessible.name:	qsTr("Variables Window")
+
 	visible:	columnModel.visible
 
 	property real calculatedBaseHeight:			(columnInfoTop.height + jaspTheme.generalAnchorMargin * 2)

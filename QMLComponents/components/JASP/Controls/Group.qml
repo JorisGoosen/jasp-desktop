@@ -76,9 +76,9 @@ GroupBoxBase
 	ALTNavigation.enabled:		true
 	ALTNavigation.onTagMatch:	{ contentArea.nextItemInFocusChain().forceActiveFocus(); }
 	
-	//Accessible.role:			Accessible.Section
-	//Accessible.name:			label.text
-	//Accessible.description:		qsTr("A section of an analysis")
+	Accessible.role:			Accessible.Section
+	Accessible.name:			label.text
+	Accessible.description:		qsTr("A section of an analysis")
 	
 	
 

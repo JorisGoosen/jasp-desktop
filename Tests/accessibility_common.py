@@ -141,7 +141,7 @@ def _search_desc(obj, desc_lower):
 
 
 def click_element(element):
-    """Click an accessible element via its first click/press action."""
+    """Click an accessible element via its first click/press/activate action."""
     try:
         n_actions = element.get_n_actions()
     except AttributeError:
@@ -158,17 +158,28 @@ def click_element(element):
                 except Exception:
                     pass
                 return False
+
+    if n_actions == 0:
+        return False
+
     for a in range(n_actions):
         try:
             aname = element.get_action_name(a).lower()
         except Exception:
             aname = ""
-        if "click" in aname or "press" in aname or n_actions == 1:
+        if "click" in aname or "press" in aname or "activate" in aname or "toggle" in aname or n_actions == 1:
             try:
                 element.do_action(a)
                 return True
             except Exception:
                 pass
+
+    try:
+        element.do_action(0)
+        return True
+    except Exception:
+        pass
+
     return False
 
 
@@ -182,7 +193,7 @@ def find_jasp_app(timeout=30, main_window_names=None):
     main_window_names is a set/tuple of acceptable frame names.
     Defaults to ('JASP',) for bare startup; pass ('JASP', 'Sleep') etc.
     when loading a .jasp file by name.
-    If None, accepts any frame with > 50 children.
+    If None, accepts any frame with > 3 children.
     """
     if main_window_names is None:
         main_window_names = ("JASP",)
@@ -201,7 +212,7 @@ def find_jasp_app(timeout=30, main_window_names=None):
                 for j in range(a.get_child_count()):
                     try:
                         c = a.get_child_at_index(j)
-                        if c.get_role_name() == "frame" and c.get_child_count() > 50:
+                        if c.get_role_name() == "frame" and c.get_child_count() > 3:
                             if c.get_name() in main_window_names:
                                 app = a
                                 main_window = c
@@ -266,6 +277,97 @@ def dismiss_dialogs(app):
                     pass
         except Exception:
             pass
+
+
+def find_window_by_name(app, window_name, timeout=10):
+    """Find a frame/window child of app by name, with retry."""
+    wl = window_name.lower()
+    for _ in range(timeout * 2):
+        desktop = Atspi.get_desktop(0)
+        for i in range(desktop.get_child_count()):
+            try:
+                a = desktop.get_child_at_index(i)
+                for j in range(a.get_child_count()):
+                    try:
+                        c = a.get_child_at_index(j)
+                        if c.get_role_name() in ("frame", "window") and wl in c.get_name().lower():
+                            return c
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        time.sleep(0.5)
+    return None
+
+
+def find_all_buttons(parent, max_depth=5):
+    """Return list of (name, element) tuples for all button-role descendants."""
+    results = []
+    elements = find_all(parent, max_depth=max_depth)
+    for role, name, child in elements:
+        if "button" in role.lower() and not child.get_name().startswith(("Tool",)):
+            results.append((name, child))
+    return results
+
+
+def find_menu_items(parent):
+    """Return list of (name, element) for all menu-item-role descendants."""
+    results = []
+    elements = find_all(parent, max_depth=4)
+    for role, name, child in elements:
+        if "menu item" in role.lower():
+            results.append((name, child))
+    return results
+
+
+def generate_key_event(keyval):
+    """Send a key event via AT-SPI to generate keyboard events."""
+    try:
+        Atspi.generate_keyboard_event(keyval, "", Atspi.KeySynchType.NO_SYNCH | Atspi.KeySynchType.NO_FILTERING)
+        return True
+    except Exception:
+        return False
+
+
+def type_text(text, delay=0.01):
+    """Type a string character-by-character via AT-SPI keyboard events."""
+    for ch in text:
+        generate_key_event(ord(ch))
+        time.sleep(delay)
+
+
+def close_menu():
+    """Send Escape key to close any open menus/dialogs."""
+    for _ in range(3):
+        generate_key_event(9)  # Escape
+        time.sleep(0.3)
+
+
+def ensure_menu_closed(app, main_window):
+    """Press Escape until the accessible tree returns to baseline size."""
+    try:
+        close_menu()
+        time.sleep(0.5)
+        dismiss_dialogs(app)
+        time.sleep(0.5)
+    except Exception:
+        pass
+
+
+def wait_for_element(parent, name, role="button", timeout=10):
+    """Wait for an element by name and role to appear, with retries."""
+    for _ in range(timeout * 2):
+        result = find_by_name(parent, name, role, timeout=1)
+        if result:
+            return result
+        time.sleep(0.5)
+    return None
+
+
+def count_tree_elements(obj, max_depth=5):
+    """Count total accessible elements in a subtree."""
+    elements = find_all(obj, max_depth=max_depth)
+    return len(elements)
 
 
 # ── debug helpers ────────────────────────────────────────────────────

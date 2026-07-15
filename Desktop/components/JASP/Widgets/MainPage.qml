@@ -27,6 +27,9 @@ Item
 {
 	id: splitViewContainer
 
+	Accessible.role:	Accessible.Pane
+	Accessible.name:	qsTr("Main Page")
+
 	// The MainPage has 3 panels: Data, Analyses form and Results.
 	// There are 3 configurations: only data, only analyses with results or all 3 panels.
 	// Between these 3 panels, there are 2 handles: handleBetweenDataAndAnalyses & handleBetweenAnalysesAndResults: if there are only data

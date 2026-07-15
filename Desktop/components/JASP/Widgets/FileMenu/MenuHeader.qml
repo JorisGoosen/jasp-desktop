@@ -7,6 +7,9 @@ import JASP.Controls
 Item
 {
 
+	Accessible.role:	Accessible.StaticText
+	Accessible.name:	headertext
+
 	property bool	toolseparator:	true
 	property string headertext:		""
 	property string helpfile:		""

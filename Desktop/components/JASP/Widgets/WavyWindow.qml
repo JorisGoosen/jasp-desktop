@@ -10,6 +10,9 @@ Window
 {
 	id:				aboutWindow
 
+	Accessible.role:	Accessible.Window
+	Accessible.name:	title
+
 	width:			1200 * preferencesModel.uiScale
 	height:			600 * preferencesModel.uiScale
 

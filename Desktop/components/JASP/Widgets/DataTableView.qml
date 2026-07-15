@@ -8,6 +8,9 @@ FocusScope
 {
 	id: __myRoot
 
+	Accessible.role:	Accessible.Table
+	Accessible.name:	qsTr("Data Table View")
+
 	signal doubleClicked()
 	
 	property alias isMainDataViewer: dataTableView.isMainDataViewer
