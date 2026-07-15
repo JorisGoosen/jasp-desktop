@@ -94,3 +94,4 @@ Modules/local
 
 # Generated during build
 Desktop/modules/activemodules.h
+Tests/__pycache__/
