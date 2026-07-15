@@ -185,13 +185,19 @@ def click_element(element):
 
 
 def get_jasp_app():
-    """Get a fresh reference to the first JASP application on the AT-SPI bus."""
+    """Get a fresh reference to the JASP application with the most children (main window app)."""
     try:
         desktop = Atspi.get_desktop(0)
+        best = None
+        best_cc = -1
         for i in range(desktop.get_child_count()):
             a = desktop.get_child_at_index(i)
             if "jasp" in a.get_name().lower():
-                return a
+                cc = a.get_child_count()
+                if cc > best_cc:
+                    best_cc = cc
+                    best = a
+        return best
     except Exception:
         pass
     return None

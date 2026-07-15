@@ -290,20 +290,19 @@ class TestJASPAccessibility(unittest.TestCase):
 # ── file menu helpers ────────────────────────────────────────────
 
     def _open_file_menu(self):
-        from accessibility_common import click_element, close_menu, get_jasp_app
-        close_menu()
-        time.sleep(0.5)
-        self._refresh_app()
+        from accessibility_common import click_element, get_jasp_app
         try:
+            self._refresh_app()
             btn = _find_by_role_and_name(self.main_window, "button", "Main menu")
             if not btn:
                 return False
             if not click_element(btn):
                 return False
-            time.sleep(3)
+            time.sleep(5)
             fresh = get_jasp_app()
             if fresh:
                 type(self).app = fresh
+                time.sleep(1)
             self._refresh_app()
             elements = self._get_all_accessible_elements(self.app)
             names = [e["name"] for e in elements]
@@ -330,6 +329,33 @@ class TestJASPAccessibility(unittest.TestCase):
             type(self).app = app
             return True
         return False
+
+    def _robust_search(self, func, *args, max_retries=3):
+        """Call func(*args), retrying on stale-app errors with fresh references.
+        func can be a callable or a 0-arg lambda (for dynamic arguments)."""
+        for attempt in range(max_retries):
+            try:
+                self._fresh_app()
+                if args:
+                    result = func(*args)
+                else:
+                    result = func()
+                if attempt < max_retries - 1 and result is not None and (not isinstance(result, (list, tuple)) or len(result) > 0):
+                    return result
+                if attempt < max_retries - 1:
+                    time.sleep(1.5)
+                    continue
+                return result
+            except Exception as e:
+                msg = str(e)
+                if "no longer exists" in msg or "Did not receive a reply" in msg:
+                    if attempt < max_retries - 1:
+                        time.sleep(1.5)
+                        continue
+        if args:
+            return func(*args)
+        else:
+            return func()
 
     def _assert_file_menu_open(self):
         self.assertTrue(self._open_file_menu(), "Could not open file menu")
@@ -558,9 +584,9 @@ class TestJASPAccessibility(unittest.TestCase):
         time.sleep(0.5)
         self._assert_file_menu_open()
         time.sleep(1)
-        open_buttons = find_all_by_role(self.app, "button", "open", max_depth=8)
-        if not open_buttons:
-            open_buttons = find_all_by_role(self.app, "push button", "open", max_depth=8)
+        open_buttons = self._robust_search(
+            lambda: find_all_by_role(self.app, "button", "open", max_depth=8)
+        )
         if len(open_buttons) >= 2:
             click_element(open_buttons[-1])
         elif open_buttons:
@@ -572,19 +598,28 @@ class TestJASPAccessibility(unittest.TestCase):
         if not self._refresh_app():
             close_menu()
             self.skipTest("App reference stale after clicking Open")
-        computer_btn = _find_by_role_and_name(self.app, "button", "Computer")
+        computer_btn = self._robust_search(
+            lambda: _find_by_role_and_name(self.app, "button", "Computer")
+        )
         if not computer_btn:
-            computer_btn = _find_by_role_and_name(self.app, "push button", "Computer")
+            computer_btn = self._robust_search(
+                lambda: _find_by_role_and_name(self.app, "push button", "Computer")
+            )
         if not computer_btn:
             close_menu()
             self.skipTest("Computer tab button not found in file menu")
         click_element(computer_btn)
         time.sleep(2)
-        browse_btn = _find_by_role_and_name(self.app, "button", "Browse")
+        browse_btn = self._robust_search(
+            lambda: _find_by_role_and_name(self.app, "button", "Browse")
+        )
         if not browse_btn:
-            browse_btn = _find_by_role_and_name(self.app, "push button", "Browse")
-        folder_items = [e for e in self._get_all_accessible_elements(self.app)
-                        if e["name"].lower().startswith("folder ")]
+            browse_btn = self._robust_search(
+                lambda: _find_by_role_and_name(self.app, "push button", "Browse")
+            )
+        folder_items = [e for e in self._robust_search(
+            lambda: self._get_all_accessible_elements(self.app)
+        ) if e["name"].lower().startswith("folder ")]
         self.assertTrue(
             browse_btn is not None or len(folder_items) > 0,
             "Computer tab has no Browse button or folder entries",
@@ -609,7 +644,9 @@ class TestJASPAccessibility(unittest.TestCase):
 
         self._assert_file_menu_open()
         time.sleep(1)
-        open_buttons = find_all_by_role(self.app, "button", "open", max_depth=8)
+        open_buttons = self._robust_search(
+            lambda: find_all_by_role(self.app, "button", "open", max_depth=8)
+        )
         if len(open_buttons) >= 2:
             click_element(open_buttons[-1])
         elif open_buttons:
@@ -621,13 +658,17 @@ class TestJASPAccessibility(unittest.TestCase):
         if not self._refresh_app():
             close_menu()
             self.skipTest("App reference stale after clicking Open")
-        computer_btn = _find_by_role_and_name(self.app, "button", "Computer")
+        computer_btn = self._robust_search(
+            lambda: _find_by_role_and_name(self.app, "button", "Computer")
+        )
         if not computer_btn:
             close_menu()
             self.skipTest("Computer tab not available in file menu")
         click_element(computer_btn)
         time.sleep(2)
-        browse_btn = _find_by_role_and_name(self.app, "button", "Browse")
+        browse_btn = self._robust_search(
+            lambda: _find_by_role_and_name(self.app, "button", "Browse")
+        )
         if not browse_btn:
             close_menu()
             self.skipTest("Browse button not available")

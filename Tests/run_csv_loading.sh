@@ -17,24 +17,24 @@ sleep 2
 ATSPI_REG=$!
 sleep 1
 
-'"$JASP_BIN"' >/tmp/jasp_run.log 2>&1 &
+'"$JASP_BIN"' >/tmp/jasp_csv.log 2>&1 &
 JASP_PID=$!
 sleep 10
 
 if ! kill -0 $JASP_PID 2>/dev/null; then
   echo "FATAL: JASP exited prematurely (PID $JASP_PID)"
-  tail -20 /tmp/jasp_run.log
+  tail -20 /tmp/jasp_csv.log
   exit 1
 fi
 
 echo "JASP running (PID $JASP_PID)"
 
-/usr/bin/python3 '"$SCRIPT_DIR"'/test_accessibility.py
+/usr/bin/python3 '"$SCRIPT_DIR"'/test_csv_loading.py
 rc=$?
 
 if ! kill -0 $JASP_PID 2>/dev/null; then
   echo "WARNING: JASP exited during test run (PID $JASP_PID)"
-  tail -20 /tmp/jasp_run.log
+  tail -20 /tmp/jasp_csv.log
 fi
 
 exit $rc
