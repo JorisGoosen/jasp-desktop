@@ -1,22 +1,18 @@
 #!/bin/bash
 set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/env_accessibility.sh"
 
-export DISPLAY=:0.0
-export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1 QT_ACCESSIBILITY=1
-export QTWEBENGINE_RESOURCES_PATH=/home/virtuoos/JASP-screenreader/qt-install/usr/share/qt6/resources
-export QTWEBENGINEPROCESS_PATH=/home/virtuoos/JASP-screenreader/qt-install/usr/lib/qt6/QtWebEngineProcess
-export QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu --disable-software-rasterizer"
-
-JASP_BIN=/home/virtuoos/JASP-screenreader/jasp-desktop/build/Desktop/JASP
-SLEEP_FILE="/home/virtuoos/JASP-screenreader/jasp-desktop/build/Resources/Data Sets/Data Library/1. Descriptives/Sleep.jasp"
+SLEEP_FILE="$JASP_REPO_ROOT/jasp-desktop/build/Resources/Data Sets/Data Library/1. Descriptives/Sleep.jasp"
 SLEEP_ESC=$(printf '%q' "$SLEEP_FILE")
 
 dbus-run-session -- bash -c '
-export DISPLAY=:0.0
-export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1 QT_ACCESSIBILITY=1
-export QTWEBENGINE_RESOURCES_PATH=/home/virtuoos/JASP-screenreader/qt-install/usr/share/qt6/resources
-export QTWEBENGINEPROCESS_PATH=/home/virtuoos/JASP-screenreader/qt-install/usr/lib/qt6/QtWebEngineProcess
-export QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu --disable-software-rasterizer"
+export DISPLAY='"$DISPLAY"'
+export QT_LINUX_ACCESSIBILITY_ALWAYS_ON='"$QT_LINUX_ACCESSIBILITY_ALWAYS_ON"'
+export QT_ACCESSIBILITY='"$QT_ACCESSIBILITY"'
+export QTWEBENGINE_RESOURCES_PATH='"$QTWEBENGINE_RESOURCES_PATH"'
+export QTWEBENGINEPROCESS_PATH='"$QTWEBENGINEPROCESS_PATH"'
+export QTWEBENGINE_CHROMIUM_FLAGS='"$QTWEBENGINE_CHROMIUM_FLAGS"'
 
 cleanup() { kill $JASP_PID $ATSPI_BUS $ATSPI_REG 2>/dev/null; }
 trap cleanup EXIT
@@ -32,5 +28,5 @@ sleep 1
 JASP_PID=$!
 sleep 20
 
-DISPLAY=:0.0 /usr/bin/python3 /home/virtuoos/JASP-screenreader/jasp-desktop/Tests/test_results_accessibility.py
+/usr/bin/python3 '"$SCRIPT_DIR"'/test_results_accessibility.py
 '
