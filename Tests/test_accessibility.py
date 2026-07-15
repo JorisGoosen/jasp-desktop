@@ -69,10 +69,12 @@ class TestJASPAccessibility(unittest.TestCase):
 
         cls._native_dialogs_disabled = False
 
-    def _refresh_app(self):
+    def _refresh_app(self, names=None):
         from accessibility_common import find_jasp_app
         try:
-            app, mw = find_jasp_app(timeout=5, main_window_names=("JASP",))
+            if names is None:
+                names = ("JASP",)
+            app, mw = find_jasp_app(timeout=5, main_window_names=names)
             if mw:
                 type(self).app = app
                 type(self).main_window = mw
@@ -301,6 +303,17 @@ class TestJASPAccessibility(unittest.TestCase):
         except Exception:
             return False
 
+    def _data_is_loaded(self):
+        """Check if a dataset has been loaded by inspecting the Data Preview panel."""
+        try:
+            for i in range(self.app.get_child_count()):
+                c = self.app.get_child_at_index(i)
+                if c.get_name() == "Data Preview" and c.get_child_count() > 10:
+                    return True
+        except Exception:
+            pass
+        return False
+
     def _assert_file_menu_open(self):
         self.assertTrue(self._open_file_menu(), "Could not open file menu")
 
@@ -512,11 +525,17 @@ class TestJASPAccessibility(unittest.TestCase):
     # ── open CSV via file menu ──────────────────────────────────────
 
     def test_34_computer_tab_accessible(self):
-        from accessibility_common import click_element, close_menu, ensure_menu_closed
+        from accessibility_common import click_element, close_menu, ensure_menu_closed, find_all_by_role
         self._refresh_app()
         ensure_menu_closed(self.app, self.main_window)
         time.sleep(0.5)
         self._assert_file_menu_open()
+        time.sleep(1)
+        open_buttons = find_all_by_role(self.app, "button", "open", max_depth=5)
+        if len(open_buttons) >= 2:
+            click_element(open_buttons[-1])
+        elif open_buttons:
+            click_element(open_buttons[0])
         time.sleep(2)
         computer_btn = _find_by_role_and_name(self.app, "button", "Computer")
         if not computer_btn:
@@ -550,6 +569,12 @@ class TestJASPAccessibility(unittest.TestCase):
         )
 
         self._assert_file_menu_open()
+        time.sleep(1)
+        open_buttons = find_all_by_role(self.app, "button", "open", max_depth=5)
+        if len(open_buttons) >= 2:
+            click_element(open_buttons[-1])
+        elif open_buttons:
+            click_element(open_buttons[0])
         time.sleep(2)
         computer_btn = _find_by_role_and_name(self.app, "button", "Computer")
         if not computer_btn:
@@ -621,6 +646,8 @@ class TestJASPAccessibility(unittest.TestCase):
         dismiss_dialogs(self.app)
         time.sleep(2)
 
+        self._refresh_app(names=("JASP", "debug"))
+
         table_found = False
         for _ in range(10):
             time.sleep(1)
@@ -647,10 +674,10 @@ class TestJASPAccessibility(unittest.TestCase):
         self.assertIsNotNone(data_frame, "Data Preview panel not populated after CSV load")
 
     def test_36_data_loaded_verification(self):
+        if not self._data_is_loaded():
+            self.skipTest("Data not loaded, skipping post-load checks")
         elements = self._get_all_accessible_elements(self.main_window)
         roles = set(e["role"] for e in elements)
-        if "table" not in roles:
-            self.skipTest("Table role missing — data not loaded, skipping post-load checks")
         if "spin box" in roles:
             return
         self.skipTest("No spin box visible — requires opening an analysis")
@@ -659,17 +686,14 @@ class TestJASPAccessibility(unittest.TestCase):
 
     def test_37_edit_data_button_enabled(self):
         self._refresh_app()
-        elements = self._get_all_accessible_elements(self.main_window)
-        roles = set(e["role"] for e in elements)
-        if "table" not in roles:
+        if not self._data_is_loaded():
             self.skipTest("Data not loaded, skipping data-mode tests")
+        elements = self._get_all_accessible_elements(self.main_window)
         edit_data = [e for e in elements if "edit data" in e["name"].lower() and "button" in e["role"]]
         self.assertGreater(len(edit_data), 0, "Edit Data button not found after data load")
 
     def test_38_switch_to_data_mode(self):
-        elements = self._get_all_accessible_elements(self.main_window)
-        roles = set(e["role"] for e in elements)
-        if "table" not in roles:
+        if not self._data_is_loaded():
             self.skipTest("Data not loaded, skipping data-mode tests")
         from accessibility_common import click_element
         btn = _find_by_role_and_name(self.main_window, "button", "Edit Data")
@@ -686,9 +710,7 @@ class TestJASPAccessibility(unittest.TestCase):
 
     def test_39_data_mode_buttons(self):
         self._refresh_app()
-        elements = self._get_all_accessible_elements(self.main_window)
-        roles = set(e["role"] for e in elements)
-        if "table" not in roles:
+        if not self._data_is_loaded():
             self.skipTest("Data not loaded, skipping data-mode tests")
         elements = self._get_all_accessible_elements(self.main_window)
         button_names = [e["name"].lower() for e in elements if "button" in e["role"]]
@@ -697,9 +719,7 @@ class TestJASPAccessibility(unittest.TestCase):
         self.assertGreater(len(found), 3, f"Only {len(found)} data-mode buttons found: {found}")
 
     def test_40_switch_back_to_analyses(self):
-        elements = self._get_all_accessible_elements(self.main_window)
-        roles = set(e["role"] for e in elements)
-        if "table" not in roles:
+        if not self._data_is_loaded():
             self.skipTest("Data not loaded, skipping data-mode tests")
         from accessibility_common import click_element
         btn = _find_by_role_and_name(self.main_window, "button", "Analyses")
