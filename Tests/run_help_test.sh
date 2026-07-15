@@ -16,11 +16,15 @@ export QTWEBENGINE_RESOURCES_PATH=/home/virtuoos/JASP-screenreader/qt-install/us
 export QTWEBENGINEPROCESS_PATH=/home/virtuoos/JASP-screenreader/qt-install/usr/lib/qt6/QtWebEngineProcess
 export QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu --disable-software-rasterizer"
 
-cleanup() { kill $JASP_PID 2>/dev/null; }
+cleanup() { kill $JASP_PID $ATSPI_BUS $ATSPI_REG 2>/dev/null; }
 trap cleanup EXIT
 
-/usr/lib/at-spi-bus-launcher --launch-immediately & sleep 2
-/usr/lib/at-spi2-registryd & sleep 1
+/usr/lib/at-spi-bus-launcher --launch-immediately &
+ATSPI_BUS=$!
+sleep 2
+/usr/lib/at-spi2-registryd &
+ATSPI_REG=$!
+sleep 1
 
 '"$JASP_BIN"' >/dev/null 2>/dev/null &
 JASP_PID=$!
