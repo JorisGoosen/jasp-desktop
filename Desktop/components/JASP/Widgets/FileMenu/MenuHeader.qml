@@ -40,6 +40,8 @@ Item
 	HelpButton
 	{
 		id:					idHelpButton
+		text:				qsTr("Help")
+		visible:			helpfile !== ""
 		height:				parent.height - (jaspTheme.generalAnchorMargin * 2)
 		width:				height
 		buttonPadding:		6 * preferencesModel.uiScale
