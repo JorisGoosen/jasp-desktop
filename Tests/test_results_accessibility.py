@@ -169,8 +169,30 @@ def main():
 
     if not doc:
         all_docs = find_all_by_role(app, "document web")
-        if all_docs:
-            doc = all_docs[0]
+        print(f"  Found {len(all_docs)} document web elements total")
+        best_doc = None
+        best_total = 0
+        for idx, d in enumerate(all_docs):
+            total_descendants = d.get_child_count()
+            for j in range(min(d.get_child_count(), 3)):
+                try:
+                    cc = d.get_child_at_index(j)
+                    total_descendants += cc.get_child_count()
+                except Exception:
+                    pass
+            print(f"    doc[{idx}]: '{d.get_name()}' children={d.get_child_count()} total_descendants~{total_descendants}")
+            if d.get_child_count() > 0:
+                for j in range(min(d.get_child_count(), 3)):
+                    try:
+                        cc = d.get_child_at_index(j)
+                        print(f"      child[{j}]: '{cc.get_name()}' role='{cc.get_role_name()}' children={cc.get_child_count()}")
+                    except Exception:
+                        pass
+            if total_descendants > best_total:
+                best_total = total_descendants
+                best_doc = d
+        if best_doc:
+            doc = best_doc
 
     if not doc:
         print("FAIL: document web not found")
@@ -178,7 +200,7 @@ def main():
 
     print(f"  Document: '{doc.get_name()}', {doc.get_child_count()} children")
 
-    doc_elements = find_all(doc, max_depth=4)
+    doc_elements = find_all(doc, max_depth=6)
 
     desc_stats_found = False
     boxplots_found = False
