@@ -36,7 +36,7 @@ def tool_script(name):
 # ── tree search helpers ──────────────────────────────────────────────
 
 
-def find_all(obj, depth=0, max_depth=5):
+def find_all(obj, depth=0, max_depth=8):
     """Return list of (role, name, child) tuples for all descendants."""
     elements = []
     if depth > max_depth:
@@ -54,7 +54,7 @@ def find_all(obj, depth=0, max_depth=5):
     return elements
 
 
-def find_all_by_role(parent, role, name_contains=None, depth=0, max_depth=5):
+def find_all_by_role(parent, role, name_contains=None, depth=0, max_depth=8):
     """Return list of descendants matching a specific role."""
     results = []
     if depth > max_depth:
@@ -69,6 +69,7 @@ def find_all_by_role(parent, role, name_contains=None, depth=0, max_depth=5):
             results.extend(find_all_by_role(child, role, name_contains, depth + 1, max_depth))
     except Exception:
         pass
+    return results
     return results
 
 
@@ -181,6 +182,19 @@ def click_element(element):
         pass
 
     return False
+
+
+def get_jasp_app():
+    """Get a fresh reference to the first JASP application on the AT-SPI bus."""
+    try:
+        desktop = Atspi.get_desktop(0)
+        for i in range(desktop.get_child_count()):
+            a = desktop.get_child_at_index(i)
+            if "jasp" in a.get_name().lower():
+                return a
+    except Exception:
+        pass
+    return None
 
 
 # ── app/window discovery ─────────────────────────────────────────────
@@ -300,7 +314,7 @@ def find_window_by_name(app, window_name, timeout=10):
     return None
 
 
-def find_all_buttons(parent, max_depth=5):
+def find_all_buttons(parent, max_depth=8):
     """Return list of (name, element) tuples for all button-role descendants."""
     results = []
     elements = find_all(parent, max_depth=max_depth)
@@ -313,7 +327,7 @@ def find_all_buttons(parent, max_depth=5):
 def find_menu_items(parent):
     """Return list of (name, element) for all menu-item-role descendants."""
     results = []
-    elements = find_all(parent, max_depth=4)
+    elements = find_all(parent, max_depth=8)
     for role, name, child in elements:
         if "menu item" in role.lower():
             results.append((name, child))
@@ -364,7 +378,7 @@ def wait_for_element(parent, name, role="button", timeout=10):
     return None
 
 
-def count_tree_elements(obj, max_depth=5):
+def count_tree_elements(obj, max_depth=8):
     """Count total accessible elements in a subtree."""
     elements = find_all(obj, max_depth=max_depth)
     return len(elements)
