@@ -9,15 +9,15 @@ export QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu --disable-software-rasterizer"
 
 JASP_BIN=/home/virtuoos/JASP-screenreader/jasp-desktop/build/Desktop/JASP
 
-pkill -f "$JASP_BIN" 2>/dev/null || true
-sleep 1
-
 dbus-run-session -- bash -c '
 export DISPLAY=:0.0
 export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1 QT_ACCESSIBILITY=1
 export QTWEBENGINE_RESOURCES_PATH=/home/virtuoos/JASP-screenreader/qt-install/usr/share/qt6/resources
 export QTWEBENGINEPROCESS_PATH=/home/virtuoos/JASP-screenreader/qt-install/usr/lib/qt6/QtWebEngineProcess
 export QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu --disable-software-rasterizer"
+
+cleanup() { kill $JASP_PID 2>/dev/null; }
+trap cleanup EXIT
 
 /usr/lib/at-spi-bus-launcher --launch-immediately & sleep 2
 /usr/lib/at-spi2-registryd & sleep 1
@@ -27,8 +27,4 @@ JASP_PID=$!
 sleep 10
 
 DISPLAY=:0.0 /usr/bin/python3 /home/virtuoos/JASP-screenreader/jasp-desktop/Tests/test_help_accessibility.py
-RET=$?
-
-kill $JASP_PID 2>/dev/null
-exit $RET
 '
