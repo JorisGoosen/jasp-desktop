@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Open a CSV via File Menu → Open → Data Library → Descriptives → Sleep CSV."""
+"""Open debug.csv via File Menu → Open → Data Library using AT-SPI2."""
 
 import unittest
 import time
@@ -20,7 +20,8 @@ def _find_btn_by_name(parent, name):
     except Exception:
         pass
     try:
-        for i in range(min(parent.get_child_count(), 100)):
+        cc = parent.get_child_count()
+        for i in range(cc):
             r = _find_btn_by_name(parent.get_child_at_index(i), name)
             if r:
                 return r
@@ -50,6 +51,14 @@ def _robust_search(func, *args, max_retries=3):
     return func(_fresh_app(), *args)
 
 
+def _send_down():
+    """Send Down Arrow via AT-SPI keyboard event."""
+    try:
+        Atspi.generate_keyboard_event(0xFF54, None, Atspi.KeySynthType.SYM)
+    except Exception:
+        pass
+
+
 class TestCSVLoading(unittest.TestCase):
 
     @classmethod
@@ -61,6 +70,19 @@ class TestCSVLoading(unittest.TestCase):
         for _ in range(5):
             dismiss_dialogs(cls.app)
             time.sleep(1)
+
+    def setUp(self):
+        close_menu()
+        time.sleep(0.5)
+        app = _fresh_app()
+        if app:
+            btns = find_all_by_role(app, "button", max_depth=8)
+            names = [(b.get_name() or "").lower() for b in btns]
+            if any("data library" in n or "categories" in n for n in names):
+                hamburger = _find_btn_by_name(app, "Main menu")
+                if hamburger:
+                    click_element(hamburger)
+                    time.sleep(2)
 
     def _open_file_menu(self):
         close_menu()
@@ -77,44 +99,44 @@ class TestCSVLoading(unittest.TestCase):
         names = [(e.get_name() or "").lower() for e in elements]
         return any("save as" in n or "export results" in n for n in names)
 
-    def test_open_csv_from_data_library(self):
+    def test_01_open_csv_via_data_library(self):
         close_menu()
         time.sleep(1)
         self.assertTrue(self._open_file_menu(), "Could not open file menu")
 
-        open_btns = _robust_search(
-            lambda app: find_all_by_role(app, "button", "open", max_depth=8)
-        )
+        open_btns = _robust_search(lambda app: find_all_by_role(app, "button", "open", max_depth=8))
         target = open_btns[-1] if len(open_btns) >= 2 else open_btns[0] if open_btns else None
-        self.assertIsNotNone(target, "No Open button in file menu")
+        self.assertIsNotNone(target, "No Open button")
         click_element(target)
         time.sleep(2)
 
-        dl_btn = _robust_search(
-            lambda app: _find_btn_by_name(app, "Data Library")
-        )
+        dl_btn = _robust_search(lambda app: _find_btn_by_name(app, "Data Library"))
         self.assertIsNotNone(dl_btn, "Data Library tab not found")
         click_element(dl_btn)
-        time.sleep(3)
+        time.sleep(5)
 
-        folder = _robust_search(
-            lambda app: _find_btn_by_name(app, "Folder 1. Descriptives")
-        )
-        self.assertIsNotNone(folder, "Folder 1. Descriptives not found")
-        click_element(folder)
-        time.sleep(3)
+        # Scroll to reveal Debug Dataset at bottom of list (ListView is virtualized)
+        for i in range(30):
+            app = _fresh_app()
+            if app:
+                btns = find_all_by_role(app, "button", max_depth=8)
+                if any("debug" in (b.get_name() or "").lower() for b in btns):
+                    break
+            _send_down()
+            time.sleep(0.3)
 
-        file_btn = _robust_search(
-            lambda app: _find_btn_by_name(app, "Datafile Sleep")
-        )
-        self.assertIsNotNone(file_btn, "Datafile Sleep not found")
-        click_element(file_btn)
+        debug_btn = _robust_search(lambda app: _find_btn_by_name(app, "Debug Dataset"))
+        self.assertIsNotNone(debug_btn, "Debug Dataset not found in Data Library")
+        click_element(debug_btn)
         time.sleep(5)
 
         dp = find_window_by_name(None, "Data Preview", timeout=10)
-        self.assertIsNotNone(dp, "Data Preview not found after selecting dataset")
+        self.assertIsNotNone(dp, "Data Preview not found")
 
-        load_btn = _find_btn_by_name(dp, "Load")
+        load_btn = _robust_search(
+            lambda app: _find_btn_by_name(
+                find_window_by_name(None, "Data Preview", timeout=2) or app, "Load")
+        )
         self.assertIsNotNone(load_btn, "Load button not found")
         click_element(load_btn)
         time.sleep(5)
@@ -128,6 +150,20 @@ class TestCSVLoading(unittest.TestCase):
         names = [(b.get_name() or "").lower() for b in all_btns]
         self.assertTrue(any("edit data" in n or "sync data" in n for n in names),
                         "No data-mode buttons found after loading")
+
+    def test_02_data_mode_buttons(self):
+        edit_btn = _robust_search(lambda app: _find_btn_by_name(app, "Edit Data"))
+        self.assertIsNotNone(edit_btn, "Edit Data button not found")
+        click_element(edit_btn)
+        time.sleep(3)
+
+        app = _fresh_app()
+        all_btns = find_all_by_role(app, "button", max_depth=8)
+        names = [(b.get_name() or "").lower() for b in all_btns]
+        expected = ["analyses", "synchronisation", "resize data", "insert", "remove", "undo", "redo"]
+        found = [n for n in expected if any(n in bn for bn in names)]
+        self.assertGreater(len(found), 3,
+                           f"Too few data-mode buttons: {found}")
 
 
 if __name__ == "__main__":

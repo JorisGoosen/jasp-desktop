@@ -60,7 +60,7 @@ def find_all_by_role(parent, role, name_contains=None, depth=0, max_depth=8):
     if depth > max_depth:
         return results
     try:
-        cc = min(parent.get_child_count(), 100)
+        cc = parent.get_child_count()
         for i in range(cc):
             child = parent.get_child_at_index(i)
             if child.get_role_name().lower() == role.lower():
