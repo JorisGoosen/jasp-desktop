@@ -36,7 +36,11 @@ Item
 		
 		anchors.fill:			parent
 		z:						10
-		
+
+		Accessible.role:		Accessible.EditableText
+		Accessible.focusable:	true
+		Accessible.name:		"Edit cell value"
+
 		Keys.onPressed: (event) =>
 		{
 			keyPressed = true

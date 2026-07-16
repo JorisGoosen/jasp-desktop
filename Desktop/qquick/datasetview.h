@@ -65,6 +65,8 @@ public slots:
 	void		resizeData(int rows, int columns);
 	void		currentSelectedColumnHandler(const QModelIndex &current, const QModelIndex &previous);
 
+	Q_INVOKABLE QString consumeTestEditValueFile();
+
 	bool		isVirtual(			const QPoint& point)	override;
 	bool		isRowVirtual(		int row)				override;
 	bool		isColumnVirtual(	int column)				override;

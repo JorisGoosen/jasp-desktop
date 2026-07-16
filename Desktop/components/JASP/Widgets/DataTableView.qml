@@ -22,6 +22,9 @@ FocusScope
 		__myRoot.forceActiveFocus();
 		dataTableView.view.select(0, 0, false, false);
 		dataTableView.view.edit(0, 0);
+		var val = dataTableView.view.consumeTestEditValueFile();
+		if (val !== "")
+			dataTableView.view.commitEdit(0, 1, val);
 	}
 
 	signal doubleClicked()

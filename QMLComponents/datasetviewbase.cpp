@@ -13,6 +13,7 @@
 #include <QClipboard>
 #include "utils.h"
 #include "emptyvalues.h"
+#include <QAccessible>
 
 
 DataSetViewBase::DataSetViewBase(QQuickItem *parent)
@@ -1135,6 +1136,9 @@ void DataSetViewBase::positionEditItem(int row, int col)
 	}
 
 	setTextItemInfo(row, col, _editItemContextual->item); //Will set it visible
+
+	QAccessibleEvent event(_editItemContextual->item, QAccessible::ObjectCreated);
+	QAccessible::updateAccessibility(&event);
 	//_editItemContextual->item->setFocus(true);
 }
 
