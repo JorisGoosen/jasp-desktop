@@ -12,7 +12,7 @@ Rectangle
 
 	function focusDataTableView()
 	{
-		dataTableView.forceActiveFocus();
+		dataTableView.focusAndEdit();
 	}
 
 	color:			jaspTheme.uiBackground

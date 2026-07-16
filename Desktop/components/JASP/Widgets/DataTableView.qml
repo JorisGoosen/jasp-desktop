@@ -13,7 +13,13 @@ FocusScope
 
 	JaspControls.ALTNavigation.enabled:				true
 	JaspControls.ALTNavigation.requestedPostfix:	"V"
-	JaspControls.ALTNavigation.onTagMatch:			{ __myRoot.forceActiveFocus(); }
+	JaspControls.ALTNavigation.onTagMatch:			{ focusAndEdit(); }
+
+	function focusAndEdit()
+	{
+		__myRoot.forceActiveFocus();
+		dataTableView.view.edit(0, 0);
+	}
 
 	signal doubleClicked()
 	
