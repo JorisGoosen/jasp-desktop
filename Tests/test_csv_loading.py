@@ -8,6 +8,7 @@ from accessibility_common import (
     Atspi, find_jasp_app, click_element, close_menu,
     find_all_by_role, dismiss_dialogs, get_jasp_app,
     find_window_by_name, generate_key_event, type_text,
+    has_focus, find_focused,
 )
 
 
@@ -608,7 +609,7 @@ class TestCSVLoading(unittest.TestCase):
 
     def test_08_edit_cell_value_undo(self):
         """[Spec Test 06] Edit cell value → verify → undo."""
-        self.skipTest("AT-SPI keyboard events to QML TextInput unreliable: Ctrl+A, typing, Enter not received")
+        self.skipTest("DataTableViewEdit delegate invisible to AT-SPI: DataSetView uses custom C++ rendering that breaks QML accessibility hierarchy. Edit cell never appears in tree, so AT-SPI can't type into it.")
 
     def test_09_insert_column_undo(self):
         """[Spec Test 07] Insert column before → verify → undo."""
@@ -662,7 +663,7 @@ class TestCSVLoading(unittest.TestCase):
 
     def test_10_delete_column_undo(self):
         """[Spec Test 08] Delete column via edit entry + Remove menu → verify → undo."""
-        self.skipTest("Column ribbon menu Delete column flaky via AT-SPI")
+        self.skipTest("Ribbon Remove→Delete column not firing via AT-SPI; delete row works, column timing differs")
 
     def test_11_compute_constructor_column_undo(self):
         """[Spec Test 09] Insert constructor column → verify → undo."""
