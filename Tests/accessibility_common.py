@@ -299,18 +299,21 @@ def dismiss_dialogs(app):
             pass
 
 
-def find_window_by_name(app, window_name, timeout=10):
-    """Find a frame/window child of app by name, with retry."""
+def find_window_by_name(app, window_name, timeout=10, role_name=None):
+    """Find a frame/window child of app by name, with retry.
+    If app is None, searches across all desktop apps.
+    If role_name is given, match that role instead of 'frame'/'window'."""
     wl = window_name.lower()
+    roles = (role_name,) if role_name else ("frame", "window")
     for _ in range(timeout * 2):
         desktop = Atspi.get_desktop(0)
-        for i in range(desktop.get_child_count()):
+        apps_to_search = [desktop.get_child_at_index(i) for i in range(desktop.get_child_count())] if app is None else [app]
+        for a in apps_to_search:
             try:
-                a = desktop.get_child_at_index(i)
                 for j in range(a.get_child_count()):
                     try:
                         c = a.get_child_at_index(j)
-                        if c.get_role_name() in ("frame", "window") and wl in c.get_name().lower():
+                        if c.get_role_name() in roles and wl in c.get_name().lower():
                             return c
                     except Exception:
                         pass

@@ -13,11 +13,6 @@ FocusScope
 	property alias color:  rectTitleBackground.color
 	property alias border: rectTitleBackground.border
 	property var datafile: rectTitleAndDataFile.hasDatafile ? rectTitleAndDataFile : null
-	
-	Accessible.role:			Accessible.Button
-	Accessible.name:			(model.type == folderModelType ? qsTr("Folder %1") : qsTr("File %1")).arg(model.name)
-	Accessible.description:		Accessible.name
-	Accessible.onPressAction:	openStuff(model)
 
 	Rectangle
 	{
@@ -64,6 +59,11 @@ FocusScope
 		anchors.top:		parent.top
 		anchors.margins:	1
 		radius:				jaspTheme.borderRadius
+
+		Accessible.role:			Accessible.Button
+		Accessible.name:			(model.type == folderModelType ? qsTr("Folder %1") : qsTr("File %1")).arg(model.name)
+		Accessible.description:		Accessible.name
+		Accessible.onPressAction:	openStuff(model)
 
 		color:				rectTitleAndDescripton.allPressed || (rectTitleAndDescripton.activeFocus && !datafileMouseArea.containsMouse && !rectTitleAndDataFile.activeFocus) ?
 								jaspTheme.buttonColorPressed :
@@ -136,6 +136,7 @@ FocusScope
 			Accessible.name:			qsTr("Datafile %1").arg(model.name)
 			Accessible.description:		qsTr("Datafile %1").arg(model.name)
 			Accessible.onPressAction:	if(hasDataFile) openDataFile();
+			Accessible.ignored:			!hasDatafile
 			
 
 			function openDataFile(event)

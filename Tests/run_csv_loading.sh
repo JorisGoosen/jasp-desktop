@@ -3,9 +3,29 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/env_accessibility.sh"
 
+JASP_CONFIG_DIR="${HOME}/.config/JASP"
+JASP_CONFIG_FILE="${JASP_CONFIG_DIR}/JASP.conf"
+
+if [ ! -f "$JASP_BIN" ]; then
+  echo "FATAL: JASP binary not found at $JASP_BIN"
+  exit 1
+fi
+
+mkdir -p "$JASP_CONFIG_DIR"
+cat > "$JASP_CONFIG_FILE" <<'EOF'
+[General]
+useNativeFileDialog=false
+checkUpdatesAskUser=false
+themeName=darkTheme
+EOF
+
+echo "Config written: native file dialogs disabled"
+
 dbus-run-session -- bash -c '
 set +e
 export DISPLAY='"$DISPLAY"'
+export LANG='"$LANG"'
+export LANGUAGE='"$LANGUAGE"'
 
 cleanup() { kill $JASP_PID $ATSPI_BUS $ATSPI_REG 2>/dev/null; }
 trap cleanup EXIT
@@ -17,6 +37,7 @@ sleep 2
 ATSPI_REG=$!
 sleep 1
 
+# Start JASP normally (test opens CSV via File Menu)
 '"$JASP_BIN"' >/tmp/jasp_csv.log 2>&1 &
 JASP_PID=$!
 sleep 10
