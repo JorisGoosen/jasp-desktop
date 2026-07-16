@@ -11,6 +11,10 @@ FocusScope
 	Accessible.role:	Accessible.Table
 	Accessible.name:	qsTr("Data Table View")
 
+	JaspControls.ALTNavigation.enabled:				true
+	JaspControls.ALTNavigation.requestedPostfix:	"V"
+	JaspControls.ALTNavigation.onTagMatch:			{ __myRoot.forceActiveFocus(); }
+
 	signal doubleClicked()
 	
 	property alias isMainDataViewer: dataTableView.isMainDataViewer

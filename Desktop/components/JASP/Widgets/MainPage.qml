@@ -57,6 +57,12 @@ Item
 		handleDataAnalyses.x = splitViewContainer.width - (hasAnalysis ? handleAnalysesResults.width : 0)
 	}
 
+	function changeFocusToDataViewer()
+	{
+		maximizeDataPanel();
+		dataPanel.focusDataTableView();
+	}
+
 	Connections
 	{
 		target:		analysesModel

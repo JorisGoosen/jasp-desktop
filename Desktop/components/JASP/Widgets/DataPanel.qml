@@ -10,6 +10,11 @@ Rectangle
 	Accessible.role:	Accessible.Pane
 	Accessible.name:	qsTr("Data Panel")
 
+	function focusDataTableView()
+	{
+		dataTableView.forceActiveFocus();
+	}
+
 	color:			jaspTheme.uiBackground
 
 	property int leftHandSpace: 0 //Used to allow splithandler to move out of the screen on the left a bit.
@@ -54,6 +59,7 @@ Rectangle
 
 		DataTableView
 		{
+			id:						dataTableView
 			objectName:				"dataSetTableView"
 			SplitView.fillHeight:	true
 			onDoubleClicked:		ribbonModel.showData()

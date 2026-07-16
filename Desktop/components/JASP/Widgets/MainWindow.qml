@@ -87,6 +87,11 @@ Window
 		ribbon.showFileMenuPressed();
 	}
 
+	function changeFocusToDataViewer()
+	{
+		mainpage.changeFocusToDataViewer();
+	}
+
 	function mod (a, n)
 	{
 		return (a + n) % n;
