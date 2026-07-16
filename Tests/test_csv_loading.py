@@ -194,9 +194,8 @@ def _grab_window_focus():
 
 
 def _click_menu_option(button_name, menu_item_name):
-    """Click a toolbar button to open its dropdown, then use keyboard navigation
-    to select the menu item and press Enter. Keyboard events go through Qt's
-    event system properly, unlike AT-SPI do_action which uses synthetic clicks."""
+    """Click a toolbar button to open its dropdown, find the target menu item
+    in the AT-SPI tree, and click it via do_action."""
     app = _fresh_app()
     if not app:
         return False
@@ -211,29 +210,17 @@ def _click_menu_option(button_name, menu_item_name):
     click_element(btn)
     time.sleep(0.5)
 
-    # Find menu items in AT-SPI tree to determine navigation count
+    # Search for menu items globally via AT-SPI
     app = _fresh_app()
-    items = find_all_by_role(app, "menu item", max_depth=25)
-    item_names = [(mi.get_name() or "") for mi in items]
-    print(f"  [MENU] {len(items)} menu items after {button_name}: {item_names[:15]}", flush=True)
+    if app:
+        items = find_all_by_role(app, "menu item", max_depth=25)
+        for mi in items:
+            if menu_item_name.lower() in (mi.get_name() or "").lower():
+                click_element(mi)
+                time.sleep(2)
+                return True
 
-    # Find the index of our target item
-    target_idx = None
-    for i, name in enumerate(item_names):
-        if menu_item_name.lower() in name.lower():
-            target_idx = i
-            break
-
-    if target_idx is not None:
-        # Navigate to target with Down Arrow keys
-        for _ in range(target_idx):
-            Atspi.generate_keyboard_event(0xFF54, None, Atspi.KeySynthType.SYM)
-            time.sleep(0.1)
-
-    # Press Enter to select
-    Atspi.generate_keyboard_event(0xFF0D, None, Atspi.KeySynthType.SYM)
-    time.sleep(2)
-    return True
+    return False
 
 
 class TestCSVLoading(unittest.TestCase):
