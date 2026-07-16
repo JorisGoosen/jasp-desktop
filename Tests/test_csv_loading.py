@@ -216,6 +216,14 @@ def _click_menu_option(button_name, menu_item_name):
         items = find_all_by_role(app, "menu item", max_depth=25)
         for mi in items:
             if menu_item_name.lower() in (mi.get_name() or "").lower():
+                n_act = mi.get_n_actions()
+                act_names = []
+                for a in range(n_act):
+                    try:
+                        act_names.append(mi.get_action_name(a))
+                    except Exception:
+                        act_names.append("???")
+                print(f"  [MENU] found '{menu_item_name}', actions={n_act} names={act_names}", flush=True)
                 click_element(mi)
                 time.sleep(2)
                 return True
