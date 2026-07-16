@@ -74,15 +74,6 @@ class TestCSVLoading(unittest.TestCase):
     def setUp(self):
         close_menu()
         time.sleep(0.5)
-        app = _fresh_app()
-        if app:
-            btns = find_all_by_role(app, "button", max_depth=8)
-            names = [(b.get_name() or "").lower() for b in btns]
-            if any("data library" in n or "categories" in n for n in names):
-                hamburger = _find_btn_by_name(app, "Main menu")
-                if hamburger:
-                    click_element(hamburger)
-                    time.sleep(2)
 
     def _open_file_menu(self):
         close_menu()
@@ -144,6 +135,14 @@ class TestCSVLoading(unittest.TestCase):
         close_menu()
         time.sleep(2)
 
+        # Toggle Main menu to close the file menu panel if still open
+        app = _fresh_app()
+        if app:
+            hamburger = _find_btn_by_name(app, "Main menu")
+            if hamburger:
+                click_element(hamburger)
+                time.sleep(2)
+
         app = _fresh_app()
         self.assertIsNotNone(app, "JASP gone after Load")
         all_btns = find_all_by_role(app, "button", max_depth=8)
@@ -152,7 +151,9 @@ class TestCSVLoading(unittest.TestCase):
                         "No data-mode buttons found after loading")
 
     def test_02_data_mode_buttons(self):
-        edit_btn = _robust_search(lambda app: _find_btn_by_name(app, "Edit Data"))
+        edit_btn = _robust_search(
+            lambda app: _find_btn_by_name(_fresh_app() or app, "Edit Data")
+        )
         self.assertIsNotNone(edit_btn, "Edit Data button not found")
         click_element(edit_btn)
         time.sleep(3)

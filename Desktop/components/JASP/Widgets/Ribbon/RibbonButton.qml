@@ -46,6 +46,7 @@ Item
 	Accessible.role:			Accessible.Button
 	Accessible.name:			text
 	Accessible.description:		toolTip
+	Accessible.onPressAction:	startOrShowMenu()
 	
 
 	onMyMenuOpenChanged: if(!myMenuOpen) myMenuOpen = false; //Break the binding
