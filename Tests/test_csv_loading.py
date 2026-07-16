@@ -608,15 +608,61 @@ class TestCSVLoading(unittest.TestCase):
 
     def test_08_edit_cell_value_undo(self):
         """[Spec Test 06] Edit cell value → verify → undo."""
-        self.skipTest("AT-SPI character key events don't reach the QML TextInput edit delegate")
+        self.skipTest("AT-SPI keyboard events to QML TextInput unreliable: Ctrl+A, typing, Enter not received")
 
     def test_09_insert_column_undo(self):
         """[Spec Test 07] Insert column before → verify → undo."""
-        self.skipTest("The 'Insert column before' ribbon menu item doesn't execute via AT-SPI")
+        self._ensure_data_mode()
+
+        # Enter edit mode via DataTableView press action (selects col 0)
+        app = _fresh_app()
+        tables = find_all_by_role(app, "table", max_depth=20)
+        table = None
+        for t in tables:
+            if "data table view" in (t.get_name() or "").lower():
+                table = t
+                break
+        self.assertIsNotNone(table, "Data Table View not found")
+        click_element(table)
+        time.sleep(1)
+
+        # Get column names before
+        app = _fresh_app()
+        col_headers_before = find_all_by_role(app, "table column header", max_depth=25)
+        names_before = [(h.get_name() or "") for h in col_headers_before]
+        has_new_before = any("Column 1" in n for n in names_before)
+        print(f"  [T09] Before insert: {len(col_headers_before)} cols, has Column 1: {has_new_before}", flush=True)
+        self.assertFalse(has_new_before, "'Column 1' should not exist before insert")
+
+        # Click Insert → "Insert column before"
+        result = _click_menu_option("Insert", "Insert column before")
+        self.assertTrue(result, "Could not click Insert → Insert column before")
+
+        # Verify new column appears (search global, not just visible delegates)
+        time.sleep(1)
+        app = _fresh_app()
+        col_headers_after = find_all_by_role(app, "table column header", max_depth=25)
+        names_after = [(h.get_name() or "") for h in col_headers_after]
+        has_new_after = any("Column 1" in n for n in names_after)
+        print(f"  [T09] After insert: {len(col_headers_after)} cols, has Column 1: {has_new_after}", flush=True)
+        self.assertTrue(has_new_after, "New empty column 'Column 1' should exist after insert")
+
+        # Undo
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        self.assertIsNotNone(undo_btn, "Undo button not found")
+        click_element(undo_btn)
+        time.sleep(2)
+
+        app = _fresh_app()
+        col_headers_undo = find_all_by_role(app, "table column header", max_depth=25)
+        names_undo = [(h.get_name() or "") for h in col_headers_undo]
+        has_new_undo = any("Column 1" in n for n in names_undo)
+        print(f"  [T09] After undo: has Column 1: {has_new_undo}", flush=True)
+        self.assertFalse(has_new_undo, "'Column 1' should be gone after undo")
 
     def test_10_delete_column_undo(self):
-        """[Spec Test 08] Delete first column → verify → undo."""
-        self.skipTest("Column delete via AT-SPI ribbon menu is flaky: menu click sometimes doesn't execute")
+        """[Spec Test 08] Delete column via edit entry + Remove menu → verify → undo."""
+        self.skipTest("Column ribbon menu Delete column flaky via AT-SPI")
 
     def test_11_compute_constructor_column_undo(self):
         """[Spec Test 09] Insert constructor column → verify → undo."""

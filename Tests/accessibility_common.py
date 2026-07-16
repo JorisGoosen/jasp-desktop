@@ -346,7 +346,7 @@ def find_menu_items(parent):
 def generate_key_event(keyval):
     """Send a key event via AT-SPI to generate keyboard events."""
     try:
-        Atspi.generate_keyboard_event(keyval, "", Atspi.KeySynchType.NO_SYNCH | Atspi.KeySynchType.NO_FILTERING)
+        Atspi.generate_keyboard_event(keyval, None, Atspi.KeySynthType.SYM)
         return True
     except Exception:
         return False
@@ -357,6 +357,31 @@ def type_text(text, delay=0.01):
     for ch in text:
         generate_key_event(ord(ch))
         time.sleep(delay)
+
+
+
+
+def has_focus(element):
+    """Check if an AT-SPI element has keyboard focus."""
+    try:
+        return element.get_state_set().contains(Atspi.StateType.FOCUSED)
+    except Exception:
+        return False
+
+
+def find_focused(app, max_depth=20):
+    """Find the focused element in the AT-SPI tree under app."""
+    try:
+        all_elements = find_all(app, max_depth=max_depth)
+        for role, name, elem in all_elements:
+            try:
+                if elem.get_state_set().contains(Atspi.StateType.FOCUSED):
+                    return elem
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return None
 
 
 def close_menu():
