@@ -362,6 +362,7 @@ FocusScope
 
 									Accessible.role		: Accessible.MenuItem
 									Accessible.name		: (model.modelData !== undefined ? model.modelData : displayText)
+									Accessible.onPressAction: { if (menuItem.itemEnabled) callMenuAction(index) }
 
 									Image
 									{
@@ -448,6 +449,7 @@ FocusScope
 
 									Accessible.role		: Accessible.MenuItem
 									Accessible.name		: (model.modelData !== undefined ? model.modelData.substring(3) : displayText)
+									Accessible.onPressAction: { if (menuItem.itemEnabled) callMenuAction(index) }
 
 									Image
 									{

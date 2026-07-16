@@ -161,6 +161,18 @@ def _send_enter():
         pass
 
 
+def _cell_matches(cell, row, col_name):
+    """Check if cell name matches exact row and column. Avoids substring false positives."""
+    name = (cell.get_name() or "")
+    return name.startswith(f"Row {row}, Col {col_name}:") or name.startswith(f"Row {row}, Col {col_name},")
+
+
+def _cell_names_matching(cell_names, row, col_name):
+    """Filter cell name strings matching exact row and column."""
+    prefix = f"Row {row}, Col {col_name}:"
+    return [n for n in cell_names if n.startswith(prefix)]
+
+
 def _grab_window_focus():
     """Try to give the JASP window X11 focus so keyboard events reach it."""
     try:
@@ -182,7 +194,9 @@ def _grab_window_focus():
 
 
 def _click_menu_option(button_name, menu_item_name):
-    """Click a toolbar button to open its dropdown menu, then select an item."""
+    """Click a toolbar button to open its dropdown, then use keyboard navigation
+    to select the menu item and press Enter. Keyboard events go through Qt's
+    event system properly, unlike AT-SPI do_action which uses synthetic clicks."""
     app = _fresh_app()
     if not app:
         return False
@@ -193,71 +207,31 @@ def _click_menu_option(button_name, menu_item_name):
             btn = b
             break
     if not btn:
-        print(f"  [MENU] btn '{button_name}' not found in buttons", flush=True)
         return False
     click_element(btn)
-    time.sleep(1)
+    time.sleep(0.5)
 
+    # Find menu items in AT-SPI tree to determine navigation count
     app = _fresh_app()
-    menu = None
-    if app:
-        menus = find_all_by_role(app, "menu", max_depth=20)
-        if menus:
-            print(f"  [MENU] found {len(menus)} menus after {button_name} click", flush=True)
-        else:
-            print(f"  [MENU] 0 menus after {button_name} click", flush=True)
-        menus = find_all_by_role(app, "menu", max_depth=20)
-        for m in menus:
-            try:
-                mname = (m.get_name() or "").lower()
-                if mname and mname != "analysis menu":
-                    menu = m
-                    break
-            except Exception:
-                pass
-    if not menu and app:
-        menus = find_all_by_role(app, "menu", max_depth=20)
-        if menus:
-            menu = menus[0]
+    items = find_all_by_role(app, "menu item", max_depth=25)
+    item_names = [(mi.get_name() or "") for mi in items]
+    print(f"  [MENU] {len(items)} menu items after {button_name}: {item_names[:15]}", flush=True)
 
-    if not menu:
-        # Try searching from the JASP main window frame instead of app root
-        try:
-            desktop = Atspi.get_desktop(0)
-            for i in range(desktop.get_child_count()):
-                a = desktop.get_child_at_index(i)
-                if "jasp" in a.get_name().lower():
-                    for j in range(a.get_child_count()):
-                        f = a.get_child_at_index(j)
-                        if f.get_role_name() == "frame":
-                            menus = find_all_by_role(f, "menu", max_depth=15)
-                            for m in menus:
-                                try:
-                                    mname = (m.get_name() or "").lower()
-                                    if mname and mname != "analysis menu":
-                                        menu = m
-                                        break
-                                except Exception:
-                                    pass
-                            if menu:
-                                break
-                    if menu:
-                        break
-        except Exception:
-            pass
-
-    if not menu:
-        return False
-
-    menu_items = find_all_by_role(menu, "menu item", max_depth=10)
-    item = None
-    for mi in menu_items:
-        if menu_item_name.lower() in (mi.get_name() or "").lower():
-            item = mi
+    # Find the index of our target item
+    target_idx = None
+    for i, name in enumerate(item_names):
+        if menu_item_name.lower() in name.lower():
+            target_idx = i
             break
-    if not item:
-        return False
-    click_element(item)
+
+    if target_idx is not None:
+        # Navigate to target with Down Arrow keys
+        for _ in range(target_idx):
+            Atspi.generate_keyboard_event(0xFF54, None, Atspi.KeySynthType.SYM)
+            time.sleep(0.1)
+
+    # Press Enter to select
+    Atspi.generate_keyboard_event(0xFF0D, None, Atspi.KeySynthType.SYM)
     time.sleep(2)
     return True
 
@@ -522,8 +496,8 @@ class TestCSVLoading(unittest.TestCase):
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
 
-        row1_after = [n for n in cell_names if "Row 1" in n and "contNormal" in n]
-        row2_after = [n for n in cell_names if "Row 2" in n and "contNormal" in n]
+        row1_after = _cell_names_matching(cell_names, 1, "contNormal")
+        row2_after = _cell_names_matching(cell_names, 2, "contNormal")
 
         print(f"  [T06] After insert: Row 1: {row1_after}, Row 2: {row2_after}", flush=True)
 
@@ -547,7 +521,7 @@ class TestCSVLoading(unittest.TestCase):
         app = _fresh_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
-        row1_undo = [n for n in cell_names if "Row 1" in n and "contNormal" in n]
+        row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
         self.assertTrue(row1_undo, "Row 1 contNormal not found after undo")
         self.assertIn("Row 1", row1_undo[0])
         print(f"  [T06] After undo: {row1_undo[0]}", flush=True)
@@ -562,7 +536,7 @@ class TestCSVLoading(unittest.TestCase):
         app = _fresh_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
-        row1_redo = [n for n in cell_names if "Row 1" in n and "contNormal" in n]
+        row1_redo = _cell_names_matching(cell_names, 1, "contNormal")
         if row1_redo:
             self.assertTrue(
                 row1_redo[0].endswith(": ") or row1_redo[0].endswith(":  ") or
@@ -585,12 +559,12 @@ class TestCSVLoading(unittest.TestCase):
         app = _fresh_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
-        row1_before = [n for n in cell_names if "Row 1" in n and "contNormal" in n]
+        row1_before = _cell_names_matching(cell_names, 1, "contNormal")
         self.assertTrue(row1_before, "Row 1 contNormal not found before delete")
         row1_before_val = row1_before[0]
         print(f"  [T07] Before delete: {row1_before_val}", flush=True)
 
-        row2_before = [n for n in cell_names if "Row 2" in n and "contNormal" in n]
+        row2_before = _cell_names_matching(cell_names, 2, "contNormal")
         self.assertTrue(row2_before, "Row 2 contNormal not found before delete")
         row2_before_val = row2_before[0]
         print(f"  [T07] Row 2 before delete: {row2_before_val}", flush=True)
@@ -620,7 +594,7 @@ class TestCSVLoading(unittest.TestCase):
         app = _fresh_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
-        row1_after = [n for n in cell_names if "Row 1" in n and "contNormal" in n]
+        row1_after = _cell_names_matching(cell_names, 1, "contNormal")
         print(f"  [T07] After delete, Row 1: {row1_after}", flush=True)
 
         # The new Row 1 should have the old Row 2's value
@@ -644,7 +618,7 @@ class TestCSVLoading(unittest.TestCase):
         app = _fresh_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
-        row1_undo = [n for n in cell_names if "Row 1" in n and "contNormal" in n]
+        row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
         self.assertTrue(row1_undo, "Row 1 not restored after undo")
         print(f"  [T07] After undo: {row1_undo[0]}", flush=True)
 
@@ -657,8 +631,7 @@ class TestCSVLoading(unittest.TestCase):
         cells = find_all_by_role(app, "table cell", max_depth=10)
         row2_cell = None
         for c in cells:
-            name = c.get_name() or ""
-            if "Row 2" in name and "contNormal" in name:
+            if _cell_matches(c, 2, "contNormal"):
                 row2_cell = c
                 break
 
@@ -675,9 +648,14 @@ class TestCSVLoading(unittest.TestCase):
         before_name = row2_cell.get_name() or ""
         print(f"  [T08] Before edit: {before_name}", flush=True)
 
-        # Click cell to enter edit mode
+        # Double-click cell to enter edit mode
+        click_element(row2_cell)
+        time.sleep(0.2)
         click_element(row2_cell)
         time.sleep(0.5)
+        # Press F2 to enter edit mode explicitly
+        Atspi.generate_keyboard_event(0xFFC7, None, Atspi.KeySynthType.SYM)
+        time.sleep(0.3)
 
         # Type new value: "42.5"
         for ch in "42.5":
@@ -861,7 +839,7 @@ class TestCSVLoading(unittest.TestCase):
             close_menu()
             time.sleep(1)
             # Try alternate approach: direct keyboard interaction
-            result2 = _click_menu_option("Insert", "Insert menu", "Insert column before")
+            result2 = _click_menu_option("Insert", "Insert column before")
             if result2:
                 time.sleep(1)
                 for ch in "TestCol":
