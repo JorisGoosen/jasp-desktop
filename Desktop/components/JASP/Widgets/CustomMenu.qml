@@ -26,8 +26,6 @@ FocusScope
 	id							: menu
 	width						: menuRectangle.width
 	height						: menuRectangle.height
-	implicitWidth				: 100
-	implicitHeight				: 50
 	visible						: showMe
 	Accessible.role				: Accessible.Menu
 	Accessible.name				: menuTitle
