@@ -44,6 +44,7 @@ FocusScope
 	property bool	menuMinIsMin: false // If set to true, this prevents the CustomMenu from going out of the scene by having a negative offset
 	property point	scrollOri	: "0,0" //Just for other qmls to use as a general storage of the origin of their scrolling
 	property bool	isSubMenu	: false
+	property string menuTitle	: "Analysis menu"
 
 	property int	currentIndex: -1
 
@@ -103,6 +104,7 @@ FocusScope
 	{
 		hasIcons	= (menu.props === undefined || "undefined" === typeof(menu.props["hasIcons"]))		? true	: menu.props["hasIcons"]
 		hasSubMenus = (menu.props === undefined || "undefined" === typeof(menu.props["hasSubMenus"]))	? false : menu.props["hasSubMenus"]
+		menuTitle	= (menu.props === undefined || "undefined" === typeof(menu.props["menuTitle"]))		? "Analysis menu" : menu.props["menuTitle"]
 
 		if (menu.props === undefined || menu.props["model"] !== resultMenuModel)
 			resultsJsInterface.runJavaScript("window.setSelection(false);")
@@ -200,7 +202,7 @@ FocusScope
 		height			: (menu.y + implicitHeight) > sceneHeight ? (sceneHeight - menu.y) : implicitHeight // The menu should not exceed the scene
 
 		Accessible.role		: Accessible.Menu
-		Accessible.name		: "Analysis menu"
+		Accessible.name		: menuTitle
 
 		MouseArea
 		{

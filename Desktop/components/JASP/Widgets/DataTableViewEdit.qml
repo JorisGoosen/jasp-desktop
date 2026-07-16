@@ -13,6 +13,15 @@ Item
 	property bool keyPressed:	false
 	property alias text:		editItem.text
 
+	Accessible.role:		Accessible.Cell
+	Accessible.name:		qsTr("Row %1, Col %2: %3 (editing)")
+								.arg(rowIndex + 1)
+								.arg(columnName || columnIndex + 1)
+								.arg(itemTextEdit || "")
+	Accessible.description:	qsTr("Editing data cell at row %1, column %2")
+								.arg(rowIndex + 1)
+								.arg(columnName || columnIndex + 1)
+
 	TextInput
 	{
 		id:						editItem

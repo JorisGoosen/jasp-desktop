@@ -180,7 +180,8 @@ Item
 			"hasIcons"				: ribbonButton.menu.hasIcons(),
 			"hasSubMenus"			: ribbonButton.menu.hasSubMenus(),
 			"navigateFunc"			: navigateFunc,
-			"parentNavigateFunc"	: parentNavigateFunc
+			"parentNavigateFunc"	: parentNavigateFunc,
+			"menuTitle"				: ribbonButton.text + " menu"
 		};
 
 		customMenu.toggle(ribbonButton, props);

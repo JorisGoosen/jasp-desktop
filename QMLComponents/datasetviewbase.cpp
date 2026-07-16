@@ -1526,6 +1526,12 @@ QQmlContext * DataSetViewBase::setStyleDataItem(QQmlContext * previousContext, b
 	previousContext->setContextProperty("itemInputType",	_model->data(modelIndex, getRole("itemInputValue")));
 	previousContext->setContextProperty("columnIndex",		static_cast<int>(col));
 	previousContext->setContextProperty("rowIndex",			static_cast<int>(row));
+
+	QString colName = _model->headerData(col, Qt::Horizontal, Qt::DisplayRole).toString();
+	QString colDesc = _model->headerData(col, Qt::Horizontal, getRole("description")).toString();
+	previousContext->setContextProperty("columnName",			colName);
+	previousContext->setContextProperty("columnDescription",	colDesc);
+
 	//previousContext->setContextProperty("index",			idx);
 	previousContext->setContextProperty("isDynamic",		true);
 	previousContext->setContextProperty("tableView",		_tableViewItem);

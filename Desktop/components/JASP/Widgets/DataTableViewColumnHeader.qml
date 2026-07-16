@@ -13,6 +13,13 @@ Rectangle
 				? jaspTheme.itemSelectedNoFocusColor 
 				: jaspTheme.buttonColor
 
+	signal headerClicked()
+
+	Accessible.role:		Accessible.ColumnHeader
+	Accessible.name:		qsTr("Column: %1").arg(headerText)
+	Accessible.description:	columnDescription || ""
+	Accessible.onPressAction:	{ headerRoot.headerClicked(); }
+
 	readonly	property int	__iconDim:			baseBlockDim * preferencesModel.uiScale
 
 	function getColumnTypeIcon(type)
@@ -199,6 +206,7 @@ Rectangle
 			if(columnIndex >= 0)
 			{
 				headerRoot.forceActiveFocus()
+				headerRoot.headerClicked()
 
 				if(mouseEvent.button === Qt.LeftButton)
 				{

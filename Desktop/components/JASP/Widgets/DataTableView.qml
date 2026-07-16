@@ -165,6 +165,7 @@ FocusScope
 					"icons":		menuIcons,
 					"shortcut":		menuShortcuts,
 					"enabled":		menuEnabled,
+					"menuTitle":	qsTr("Context menu"),
 					"functionCall": function (index)
 					{
 						menuFunctions[index]();
