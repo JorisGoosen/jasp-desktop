@@ -11,6 +11,8 @@ FocusScope
 	Accessible.role:	Accessible.Table
 	Accessible.name:	qsTr("Data Table View")
 
+	Accessible.onPressAction:	{ focusAndEdit(); }
+
 	JaspControls.ALTNavigation.enabled:				true
 	JaspControls.ALTNavigation.requestedPostfix:	"V"
 	JaspControls.ALTNavigation.onTagMatch:			{ focusAndEdit(); }
@@ -18,6 +20,7 @@ FocusScope
 	function focusAndEdit()
 	{
 		__myRoot.forceActiveFocus();
+		dataTableView.view.select(0, 0, false, false);
 		dataTableView.view.edit(0, 0);
 	}
 

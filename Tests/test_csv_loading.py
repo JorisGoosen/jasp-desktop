@@ -540,14 +540,31 @@ class TestCSVLoading(unittest.TestCase):
 
     def test_07_delete_row_undo(self):
         """[Spec Test 05] Delete Row 1 → verify → undo."""
-        self.skipTest("AT-SPI row header click doesn't trigger Qt row selection")
-        return
+        self._ensure_data_mode()
+
+        # Enter edit mode via DataTableView press action (selects row 0, col 0)
+        app = _fresh_app()
+        tables = find_all_by_role(app, "table", max_depth=20)
+        table = None
+        for t in tables:
+            if "data table view" in (t.get_name() or "").lower():
+                table = t
+                break
+        self.assertIsNotNone(table, "Data Table View not found in AT-SPI tree")
+        click_element(table)
+        time.sleep(1)
 
         # Find reference cell before deletion
         app = _fresh_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_before = _cell_names_matching(cell_names, 1, "contNormal")
+        # If edit entry changed cell display, retry fresh
+        if not row1_before:
+            app = _fresh_app()
+            cells = find_all_by_role(app, "table cell", max_depth=10)
+            cell_names = [(c.get_name() or "") for c in cells]
+            row1_before = _cell_names_matching(cell_names, 1, "contNormal")
         self.assertTrue(row1_before, "Row 1 contNormal not found before delete")
         row1_before_val = row1_before[0]
         print(f"  [T07] Before delete: {row1_before_val}", flush=True)
@@ -557,40 +574,20 @@ class TestCSVLoading(unittest.TestCase):
         row2_before_val = row2_before[0]
         print(f"  [T07] Row 2 before delete: {row2_before_val}", flush=True)
 
-        # Select Row 1 by clicking its row header
-        row1_header = _robust_search(
-            lambda app: _find_by_role_and_name_bounded(app, "table row header", "Row 1")
-        )
-        if not row1_header:
-            # Fallback: find by cell
-            app = _fresh_app()
-            cells = find_all_by_role(app, "table cell", max_depth=10)
-            for c in cells:
-                if "Row 1" in (c.get_name() or "") and "contNormal" in (c.get_name() or ""):
-                    click_element(c)
-                    time.sleep(0.5)
-                    break
-        else:
-            click_element(row1_header)
-        time.sleep(1)
-
         # Click Remove → "Delete row"
         result = _click_menu_option("Remove", "Delete row")
         self.assertTrue(result, "Could not click Remove → Delete row")
 
-        # Verify removal
+        # Verify removal: Row 1 should now have Row 2's old value (shifted up)
         app = _fresh_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_after = _cell_names_matching(cell_names, 1, "contNormal")
         print(f"  [T07] After delete, Row 1: {row1_after}", flush=True)
 
-        # The new Row 1 should have the old Row 2's value
         if row1_after and row2_before_val:
-            # Extract just the value part after the column name
             r2_value = row2_before_val.split("contNormal: ")[-1] if "contNormal: " in row2_before_val else row2_before_val
             r1_value = row1_after[0].split("contNormal: ")[-1] if "contNormal: " in row1_after[0] else row1_after[0]
-            # They should match if row 2 shifted up
             self.assertTrue(
                 r2_value in r1_value or r1_value in r2_value or r2_value == r1_value,
                 f"New Row 1 ({r1_value}) should match old Row 2 ({r2_value})"
@@ -602,7 +599,6 @@ class TestCSVLoading(unittest.TestCase):
         click_element(undo_btn)
         time.sleep(2)
 
-        # Verify undo restored Row 1
         app = _fresh_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
@@ -612,99 +608,15 @@ class TestCSVLoading(unittest.TestCase):
 
     def test_08_edit_cell_value_undo(self):
         """[Spec Test 06] Edit cell value → verify → undo."""
-        self.skipTest("AT-SPI cannot enter JASP cell edit mode (requires Qt focus)")
+        self.skipTest("AT-SPI character key events don't reach the QML TextInput edit delegate")
 
     def test_09_insert_column_undo(self):
         """[Spec Test 07] Insert column before → verify → undo."""
-        self.skipTest("AT-SPI column insert requires column selection that doesn't work via AT-SPI")
-        return
-
-        # Count columns before
-        app = _fresh_app()
-        col_headers_before = find_all_by_role(app, "table column header", max_depth=10)
-        count_before = len(col_headers_before)
-        names_before = [(h.get_name() or "") for h in col_headers_before]
-        print(f"  [T09] Before: {count_before} columns", flush=True)
-
-        # Select first column as insertion target
-        if col_headers_before:
-            click_element(col_headers_before[0])
-            time.sleep(0.5)
-
-        # Click Insert → "Insert column before"
-        result = _click_menu_option("Insert", "Insert column before")
-        self.assertTrue(result, "Could not click Insert → Insert column before")
-
-        # Verify new column appears
-        app = _fresh_app()
-        col_headers_after = find_all_by_role(app, "table column header", max_depth=10)
-        count_after = len(col_headers_after)
-        names_after = [(h.get_name() or "") for h in col_headers_after]
-        print(f"  [T09] After: {count_after} columns", flush=True)
-
-        self.assertGreater(count_after, count_before,
-                           f"Column count should increase from {count_before}")
-
-        # Undo
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
-        self.assertIsNotNone(undo_btn, "Undo button not found")
-        click_element(undo_btn)
-        time.sleep(2)
-
-        # Verify column removed
-        app = _fresh_app()
-        col_headers_undo = find_all_by_role(app, "table column header", max_depth=10)
-        count_undo = len(col_headers_undo)
-        print(f"  [T09] After undo: {count_undo} columns", flush=True)
-        self.assertLessEqual(count_undo, count_before + 1,
-                             f"Column count should be back to ~{count_before} after undo")
+        self.skipTest("The 'Insert column before' ribbon menu item doesn't execute via AT-SPI")
 
     def test_10_delete_column_undo(self):
-        """[Spec Test 08] Delete column contGamma → verify → undo."""
-        self.skipTest("AT-SPI column delete requires column selection that doesn't work via AT-SPI")
-        return
-
-        # Find contGamma column header
-        app = _fresh_app()
-        col_headers = find_all_by_role(app, "table column header", max_depth=20)
-        contGamma_header = None
-        for h in col_headers:
-            name = h.get_name() or ""
-            if "contGamma" in name and "Column:" in name:
-                contGamma_header = h
-                break
-
-        self.assertIsNotNone(contGamma_header, "Column: contGamma header not found")
-
-        # Click header to select column
-        click_element(contGamma_header)
-        time.sleep(1)
-
-        # Click Remove → "Delete column"
-        result = _click_menu_option("Remove", "Delete column")
-        self.assertTrue(result, "Could not click Remove → Delete column")
-
-        # Verify column removed
-        app = _fresh_app()
-        col_headers_after = find_all_by_role(app, "table column header", max_depth=10)
-        names_after = [(h.get_name() or "") for h in col_headers_after]
-        has_contGamma = any("contGamma" in n and "Column:" in n for n in names_after)
-        self.assertFalse(has_contGamma, "contGamma column should be deleted")
-        print(f"  [T10] contGamma removed. Columns: {len(col_headers_after)}", flush=True)
-
-        # Undo
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
-        self.assertIsNotNone(undo_btn, "Undo button not found")
-        click_element(undo_btn)
-        time.sleep(2)
-
-        # Verify restored
-        app = _fresh_app()
-        col_headers_undo = find_all_by_role(app, "table column header", max_depth=10)
-        names_undo = [(h.get_name() or "") for h in col_headers_undo]
-        has_contGamma_undo = any("contGamma" in n and "Column:" in n for n in names_undo)
-        self.assertTrue(has_contGamma_undo, "contGamma column should be restored after undo")
-        print(f"  [T10] contGamma restored.", flush=True)
+        """[Spec Test 08] Delete first column → verify → undo."""
+        self.skipTest("Column delete via AT-SPI ribbon menu is flaky: menu click sometimes doesn't execute")
 
     def test_11_compute_constructor_column_undo(self):
         """[Spec Test 09] Insert constructor column → verify → undo."""
