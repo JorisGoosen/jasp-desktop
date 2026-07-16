@@ -196,9 +196,13 @@ FocusScope
 
 	function callMenuAction(index)
 	{
+		// Execute the action FIRST, before focus changes can close the menu
+		// and clear menu.props. forceActiveFocus triggers onActiveFocusChanged
+		// which calls closeMenu() → hide() → menu.props = undefined.
+		var funcCall = menu.props['functionCall']
 		if (menu.sourceItem !== null)
 			menu.sourceItem.forceActiveFocus()
-		menu.props['functionCall'](index)
+		funcCall(index)
 	}
 
 	function currentMenuItem(index)
