@@ -59,6 +59,11 @@ Rectangle
 		anchors.left:			parent.left
 		anchors.margins:		4 * jaspTheme.uiScale
 
+		Accessible.role:			Accessible.PushButton
+		Accessible.name:			qsTr("Change column type: %1").arg(headerText)
+		Accessible.description:		qsTr("Open menu to change type for column %1").arg(headerText)
+		Accessible.onPressAction:	{ if (!virtual && computedColumnType !== computedColumnTypeAnalysis) colIcon.openTypeMenu(); }
+
 
 		source:					getColumnTypeIcon(columnType)
 		width:					source == "" ? 0 : headerRoot.__iconDim
@@ -73,34 +78,37 @@ Rectangle
 			dataTableView.view.setColumnType(columnIndex, newColumnType)
 		}
 
+		function openTypeMenu()
+		{
+			var functionCall      = function (index)
+			{
+				colIcon.setColumnType(columnTypesModel.getType(index));
+				customMenu.hideMenus()
+			}
+
+			var props = {
+				"model":		columnTypesModel,
+				"functionCall": functionCall,
+				"menuTitle":	qsTr("Column type menu for %1").arg(headerText)
+			};
+
+			customMenu.scrollOri.x	= dataTableView.contentX;
+			customMenu.scrollOri.y	= 0;
+
+			customMenu.toggle(headerRoot, props);
+
+			customMenu.menuScroll.x	= Qt.binding(function() { return -1 * (dataTableView.contentX - customMenu.scrollOri.x); });
+			customMenu.menuScroll.y	= 0;
+			customMenu.menuMinIsMin	= true
+			customMenu.sceneWidth	= Qt.binding(function() { return dataTableView.width + dataTableView.x })
+		}
+
 
 		MouseArea
 		{
 			enabled:			!virtual && computedColumnType !== computedColumnTypeAnalysis
 			anchors.fill:		parent
-			onClicked:
-			{
-				var functionCall      = function (index)
-				{
-					colIcon.setColumnType(columnTypesModel.getType(index));
-					customMenu.hideMenus()
-				}
-
-				var props = {
-					"model":		columnTypesModel,
-					"functionCall": functionCall
-				};
-
-				customMenu.scrollOri.x	= dataTableView.contentX;
-				customMenu.scrollOri.y	= 0;
-
-				customMenu.toggle(headerRoot, props);
-
-				customMenu.menuScroll.x	= Qt.binding(function() { return -1 * (dataTableView.contentX - customMenu.scrollOri.x); });
-				customMenu.menuScroll.y	= 0;
-				customMenu.menuMinIsMin	= true
-				customMenu.sceneWidth		= Qt.binding(function() { return dataTableView.width + dataTableView.x })
-			}
+			onClicked:			colIcon.openTypeMenu()
 
 			hoverEnabled:		true
 			ToolTip.visible:	containsMouse
