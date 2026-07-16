@@ -42,6 +42,7 @@ Item
 	property var	menu		: []
 	property bool	myMenuOpen	: false
 	property bool	showPressed	: ribbonButton.activeFocus || myMenuOpen
+	property real	_lastToggleTime: 0
 	
 	Accessible.role:			Accessible.Button
 	Accessible.name:			text
@@ -187,6 +188,7 @@ Item
 		customMenu.toggle(ribbonButton, props);
 
 		myMenuOpen = Qt.binding(function() { return customMenu.visible && customMenu.sourceItem == ribbonButton; });
+		_lastToggleTime = Date.now();
 
 	}
 
@@ -424,8 +426,17 @@ Item
 			{
 				if(!ribbonButton.ready) return; //Be patient!
 
+				if (mouse.source === Qt.MouseEventSynthesizedByApplication)
+					return; // Skip toggle for AT-SPI synthetic clicks
+
+				// Guard against rapid toggle (AT-SPI dual-fire: onPressAction + onClicked
+				// happen in the same tick). Real double-clicks are >> 200ms apart.
+				if (myMenuOpen && _lastToggleTime > 0 && (Date.now() - _lastToggleTime) < 200)
+					return;
+
 				if (myMenuOpen)
 				{
+					_lastToggleTime = Date.now();
 					ribbonButton.focus = false;
 					customMenu.hideMenus();
 				}

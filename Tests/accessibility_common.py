@@ -362,7 +362,10 @@ def type_text(text, delay=0.01):
 def close_menu():
     """Send Escape key to close any open menus/dialogs."""
     for _ in range(3):
-        generate_key_event(9)  # Escape
+        try:
+            Atspi.generate_keyboard_event(0xFF1B, None, Atspi.KeySynthType.SYM)
+        except Exception:
+            pass
         time.sleep(0.3)
 
 

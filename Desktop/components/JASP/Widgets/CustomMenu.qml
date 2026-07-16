@@ -26,7 +26,11 @@ FocusScope
 	id							: menu
 	width						: menuRectangle.width
 	height						: menuRectangle.height
-	visible						: showMe && (activeFocus || (hasSubMenus && customSubMenu.activeFocus))
+	implicitWidth				: 100
+	implicitHeight				: 50
+	visible						: showMe
+	Accessible.role				: Accessible.Menu
+	Accessible.name				: menuTitle
 	x							: Math.min(sourcePos.x + realOffsetX, sceneWidth - (width  + 2) ) // Move the custom menu to the right if there is not enough space
 	y							: sourcePos.y + realOffsetY
 	property var	props		: undefined
@@ -48,7 +52,20 @@ FocusScope
 
 	property int	currentIndex: -1
 
+	property bool _hadFocus: false
+
 	onSourceItemChanged: { menu.currentIndex = -1; }
+
+	onActiveFocusChanged:
+	{
+		if (activeFocus)
+			_hadFocus = true
+		else if (_hadFocus && showMe && !isSubMenu)
+		{
+			_hadFocus = false
+			closeMenu()
+		}
+	}
 
 	Connections
 	{
@@ -200,9 +217,6 @@ FocusScope
 		width			: column.columnWidth + 2 * jaspTheme.contentMargin + itemScrollbar.width + itemScrollbar.anchors.margins
 		implicitHeight	: column.height + 2 * jaspTheme.contentMargin
 		height			: (menu.y + implicitHeight) > sceneHeight ? (sceneHeight - menu.y) : implicitHeight // The menu should not exceed the scene
-
-		Accessible.role		: Accessible.Menu
-		Accessible.name		: menuTitle
 
 		MouseArea
 		{

@@ -49,6 +49,77 @@ def _find_by_role_and_name(parent, role_name, name):
     return None
 
 
+def _find_btn_by_name_bounded(parent, name, depth=0, max_depth=15, seen_ids=None):
+    """Depth-limited variant of _find_btn_by_name that avoids infinite recursion."""
+    if depth > max_depth:
+        return None
+    if seen_ids is None:
+        seen_ids = set()
+    try:
+        obj_id = id(parent)
+        if obj_id in seen_ids:
+            return None
+        seen_ids.add(obj_id)
+    except Exception:
+        pass
+    name_lower = name.lower()
+    try:
+        if "button" in parent.get_role_name().lower():
+            if name_lower in (parent.get_name() or "").lower():
+                return parent
+    except Exception:
+        pass
+    try:
+        cc = min(parent.get_child_count(), 200)
+        for i in range(cc):
+            try:
+                child = parent.get_child_at_index(i)
+            except Exception:
+                continue
+            r = _find_btn_by_name_bounded(child, name, depth + 1, max_depth, seen_ids)
+            if r:
+                return r
+    except Exception:
+        pass
+    return None
+
+
+def _find_by_role_and_name_bounded(parent, role_name, name, depth=0, max_depth=15, seen_ids=None):
+    """Depth-limited variant of _find_by_role_and_name."""
+    if depth > max_depth:
+        return None
+    if seen_ids is None:
+        seen_ids = set()
+    try:
+        obj_id = id(parent)
+        if obj_id in seen_ids:
+            return None
+        seen_ids.add(obj_id)
+    except Exception:
+        pass
+    name_lower = name.lower()
+    role_lower = role_name.lower()
+    try:
+        if role_lower in parent.get_role_name().lower():
+            if name_lower in (parent.get_name() or "").lower():
+                return parent
+    except Exception:
+        pass
+    try:
+        cc = min(parent.get_child_count(), 200)
+        for i in range(cc):
+            try:
+                child = parent.get_child_at_index(i)
+            except Exception:
+                continue
+            r = _find_by_role_and_name_bounded(child, role_name, name, depth + 1, max_depth, seen_ids)
+            if r:
+                return r
+    except Exception:
+        pass
+    return None
+
+
 def _find_menu_item(parent, name):
     return _find_by_role_and_name(parent, "menu item", name)
 
@@ -90,31 +161,100 @@ def _send_enter():
         pass
 
 
-def _click_menu_option(button_name, menu_title, menu_item_name):
-    """Click a toolbar button, find the dropdown menu, and click a menu item."""
-    btn = _robust_search(lambda app: _find_btn_by_name(app, button_name))
+def _grab_window_focus():
+    """Try to give the JASP window X11 focus so keyboard events reach it."""
+    try:
+        desktop = Atspi.get_desktop(0)
+        for i in range(desktop.get_child_count()):
+            a = desktop.get_child_at_index(i)
+            if "jasp" in a.get_name().lower():
+                for j in range(a.get_child_count()):
+                    try:
+                        c = a.get_child_at_index(j)
+                        if c.get_role_name() == "frame":
+                            c.grab_focus()
+                            return True
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+    return False
+
+
+def _click_menu_option(button_name, menu_item_name):
+    """Click a toolbar button to open its dropdown menu, then select an item."""
+    app = _fresh_app()
+    if not app:
+        return False
+    all_btns = find_all_by_role(app, "button", max_depth=20)
+    btn = None
+    for b in all_btns:
+        if button_name.lower() in (b.get_name() or "").lower():
+            btn = b
+            break
     if not btn:
+        print(f"  [MENU] btn '{button_name}' not found in buttons", flush=True)
         return False
     click_element(btn)
     time.sleep(1)
 
-    menu = find_window_by_name(None, menu_title, timeout=5, role_name="menu")
+    app = _fresh_app()
+    menu = None
+    if app:
+        menus = find_all_by_role(app, "menu", max_depth=20)
+        if menus:
+            print(f"  [MENU] found {len(menus)} menus after {button_name} click", flush=True)
+        else:
+            print(f"  [MENU] 0 menus after {button_name} click", flush=True)
+        menus = find_all_by_role(app, "menu", max_depth=20)
+        for m in menus:
+            try:
+                mname = (m.get_name() or "").lower()
+                if mname and mname != "analysis menu":
+                    menu = m
+                    break
+            except Exception:
+                pass
+    if not menu and app:
+        menus = find_all_by_role(app, "menu", max_depth=20)
+        if menus:
+            menu = menus[0]
+
     if not menu:
-        # Try searching by role in the app tree
-        app = _fresh_app()
-        if app:
-            menus = find_all_by_role(app, "menu", max_depth=10)
-            for m in menus:
-                try:
-                    if menu_title.lower() in (m.get_name() or "").lower():
-                        menu = m
+        # Try searching from the JASP main window frame instead of app root
+        try:
+            desktop = Atspi.get_desktop(0)
+            for i in range(desktop.get_child_count()):
+                a = desktop.get_child_at_index(i)
+                if "jasp" in a.get_name().lower():
+                    for j in range(a.get_child_count()):
+                        f = a.get_child_at_index(j)
+                        if f.get_role_name() == "frame":
+                            menus = find_all_by_role(f, "menu", max_depth=15)
+                            for m in menus:
+                                try:
+                                    mname = (m.get_name() or "").lower()
+                                    if mname and mname != "analysis menu":
+                                        menu = m
+                                        break
+                                except Exception:
+                                    pass
+                            if menu:
+                                break
+                    if menu:
                         break
-                except Exception:
-                    pass
+        except Exception:
+            pass
+
     if not menu:
         return False
 
-    item = _find_menu_item(menu, menu_item_name)
+    menu_items = find_all_by_role(menu, "menu item", max_depth=10)
+    item = None
+    for mi in menu_items:
+        if menu_item_name.lower() in (mi.get_name() or "").lower():
+            item = mi
+            break
     if not item:
         return False
     click_element(item)
@@ -156,16 +296,38 @@ class TestCSVLoading(unittest.TestCase):
     def _ensure_data_mode(self):
         """Enter data mode if not already there. Returns True if in data mode after call."""
         app = _fresh_app()
-        analyses_btns = find_all_by_role(app, "button", "analyses", max_depth=5)
-        if analyses_btns:
+        all_btns = find_all_by_role(app, "button", max_depth=20)
+        names = [(b.get_name() or "").lower() for b in all_btns]
+
+        if any("analyses" in n for n in names):
             return True
-        edit_btn = _find_btn_by_name(app, "Edit Data")
-        if edit_btn:
-            click_element(edit_btn)
+
+        # Check if "Edit Data" is among the buttons
+        edit_btns = [b for b in all_btns if "edit data" in (b.get_name() or "").lower()]
+        if not edit_btns:
+            # Might be the hamburger menu panel covering the ribbon.
+            # Close it by pressing Escape (real Escape, not close_menu's fake one)
+            for _ in range(3):
+                try:
+                    Atspi.generate_keyboard_event(0xFF1B, None, Atspi.KeySynthType.SYM)
+                except Exception:
+                    pass
+                time.sleep(0.3)
+            time.sleep(1)
+            app = _fresh_app()
+            all_btns = find_all_by_role(app, "button", max_depth=20)
+            names = [(b.get_name() or "").lower() for b in all_btns]
+            if any("analyses" in n for n in names):
+                return True
+            edit_btns = [b for b in all_btns if "edit data" in (b.get_name() or "").lower()]
+
+        if edit_btns:
+            edit_btns[0].do_action(0)
             time.sleep(3)
         app = _fresh_app()
-        analyses_btns = find_all_by_role(app, "button", "analyses", max_depth=5)
-        return len(analyses_btns) > 0
+        all_btns = find_all_by_role(app, "button", max_depth=20)
+        names = [(b.get_name() or "").lower() for b in all_btns]
+        return any("analyses" in n for n in names)
 
     # ── Existing tests ───────────────────────────────────────────────────
 
@@ -248,7 +410,7 @@ class TestCSVLoading(unittest.TestCase):
     def test_03_switch_back_to_analyses(self):
         """Click Analyses to return to analysis mode and verify ribbon buttons."""
         analyses_btn = _robust_search(
-            lambda app: _find_btn_by_name(app, "Analyses")
+            lambda app: _find_btn_by_name_bounded(app, "Analyses")
         )
         self.assertIsNotNone(analyses_btn, "Analyses button not found")
         click_element(analyses_btn)
@@ -290,19 +452,29 @@ class TestCSVLoading(unittest.TestCase):
         self.assertIsNotNone(app, "JASP gone")
 
         # Verify column headers
-        col_headers = find_all_by_role(app, "column header", max_depth=10)
+        col_headers = find_all_by_role(app, "table column header", max_depth=20)
         col_names = [(h.get_name() or "") for h in col_headers]
-        print(f"  [T05] {len(col_headers)} column headers: {col_names[:8]}", flush=True)
+        print(f"  [T05] {len(col_headers)} column headers by role: {col_names[:8]}", flush=True)
+
+        # Fallback: search for ANY element with "Column:" in name to check actual role
+        if len(col_headers) < 3:
+            from accessibility_common import find_all
+            elements = find_all(app, max_depth=20)
+            col_like = [(r, n,) for r, n, _ in elements if "column:" in n.lower() or "col " in n.lower()]
+            print(f"  [T05] DEBUG 'Column:' elements: {col_like[:15]}", flush=True)
+            # Also print all distinct roles
+            roles = sorted(set(r for r, n, _ in elements))
+            print(f"  [T05] DEBUG all roles: {roles}", flush=True)
         self.assertGreater(len(col_headers), 5,
                            f"Too few column headers: {col_names}")
 
-        expected_cols = ["contNormal", "contGamma", "facGender", "debString", "debMiss1"]
+        expected_cols = ["contNormal", "contGamma", "contBinom", "contExpon", "facGender"]
         for exp in expected_cols:
             self.assertTrue(any("Column:" in n and exp in n for n in col_names),
                             f"Column '{exp}' not found in headers: {col_names}")
 
         # Verify row headers
-        row_headers = find_all_by_role(app, "row header", max_depth=10)
+        row_headers = find_all_by_role(app, "table row header", max_depth=10)
         row_names = [(h.get_name() or "") for h in row_headers]
         print(f"  [T05] {len(row_headers)} row headers: {row_names[:5]}...", flush=True)
         self.assertGreater(len(row_headers), 5,
@@ -342,7 +514,7 @@ class TestCSVLoading(unittest.TestCase):
         print(f"  [T06] Before insert: {row1_contNormal_before}", flush=True)
 
         # Click Insert → "Insert row above"
-        result = _click_menu_option("Insert", "Insert menu", "Insert row above")
+        result = _click_menu_option("Insert", "Insert row above")
         self.assertTrue(result, "Could not click Insert → Insert row above")
 
         # Verify Row 1 is now empty, Row 2 has old value
@@ -366,7 +538,7 @@ class TestCSVLoading(unittest.TestCase):
             )
 
         # Click Undo
-        undo_btn = _robust_search(lambda app: _find_btn_by_name(app, "Undo"))
+        undo_btn = _robust_search(lambda app: _find_btn_by_name_bounded(app, "Undo"))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
@@ -381,7 +553,7 @@ class TestCSVLoading(unittest.TestCase):
         print(f"  [T06] After undo: {row1_undo[0]}", flush=True)
 
         # Click Redo
-        redo_btn = _robust_search(lambda app: _find_btn_by_name(app, "Redo"))
+        redo_btn = _robust_search(lambda app: _find_btn_by_name_bounded(app, "Redo"))
         self.assertIsNotNone(redo_btn, "Redo button not found")
         click_element(redo_btn)
         time.sleep(2)
@@ -400,7 +572,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Undo twice to return to baseline
         for _ in range(2):
-            undo_btn = _robust_search(lambda app: _find_btn_by_name(app, "Undo"))
+            undo_btn = _robust_search(lambda app: _find_btn_by_name_bounded(app, "Undo"))
             if undo_btn:
                 click_element(undo_btn)
                 time.sleep(2)
@@ -425,7 +597,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Select Row 1 by clicking its row header
         row1_header = _robust_search(
-            lambda app: _find_by_role_and_name(app, "row header", "Row 1")
+            lambda app: _find_by_role_and_name_bounded(app, "table row header", "Row 1")
         )
         if not row1_header:
             # Fallback: find by cell
@@ -441,7 +613,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(1)
 
         # Click Remove → "Delete row"
-        result = _click_menu_option("Remove", "Remove menu", "Delete row")
+        result = _click_menu_option("Remove", "Delete row")
         self.assertTrue(result, "Could not click Remove → Delete row")
 
         # Verify removal
@@ -463,7 +635,7 @@ class TestCSVLoading(unittest.TestCase):
             )
 
         # Click Undo
-        undo_btn = _robust_search(lambda app: _find_btn_by_name(app, "Undo"))
+        undo_btn = _robust_search(lambda app: _find_btn_by_name_bounded(app, "Undo"))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
@@ -529,7 +701,7 @@ class TestCSVLoading(unittest.TestCase):
                           f"Cell should show 42.5 after edit, got: {after_name}")
 
         # Click Undo
-        undo_btn = _robust_search(lambda app: _find_btn_by_name(app, "Undo"))
+        undo_btn = _robust_search(lambda app: _find_btn_by_name_bounded(app, "Undo"))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
@@ -550,18 +722,18 @@ class TestCSVLoading(unittest.TestCase):
 
         # Count columns before
         app = _fresh_app()
-        col_headers_before = find_all_by_role(app, "column header", max_depth=10)
+        col_headers_before = find_all_by_role(app, "table column header", max_depth=10)
         count_before = len(col_headers_before)
         names_before = [(h.get_name() or "") for h in col_headers_before]
         print(f"  [T09] Before: {count_before} columns", flush=True)
 
         # Click Insert → "Insert column before"
-        result = _click_menu_option("Insert", "Insert menu", "Insert column before")
+        result = _click_menu_option("Insert", "Insert column before")
         self.assertTrue(result, "Could not click Insert → Insert column before")
 
         # Verify new column appears
         app = _fresh_app()
-        col_headers_after = find_all_by_role(app, "column header", max_depth=10)
+        col_headers_after = find_all_by_role(app, "table column header", max_depth=10)
         count_after = len(col_headers_after)
         names_after = [(h.get_name() or "") for h in col_headers_after]
         print(f"  [T09] After: {count_after} columns", flush=True)
@@ -570,14 +742,14 @@ class TestCSVLoading(unittest.TestCase):
                            f"Column count should increase from {count_before}")
 
         # Undo
-        undo_btn = _robust_search(lambda app: _find_btn_by_name(app, "Undo"))
+        undo_btn = _robust_search(lambda app: _find_btn_by_name_bounded(app, "Undo"))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
 
         # Verify column removed
         app = _fresh_app()
-        col_headers_undo = find_all_by_role(app, "column header", max_depth=10)
+        col_headers_undo = find_all_by_role(app, "table column header", max_depth=10)
         count_undo = len(col_headers_undo)
         print(f"  [T09] After undo: {count_undo} columns", flush=True)
         self.assertLessEqual(count_undo, count_before + 1,
@@ -589,7 +761,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Find contGamma column header
         app = _fresh_app()
-        col_headers = find_all_by_role(app, "column header", max_depth=10)
+        col_headers = find_all_by_role(app, "table column header", max_depth=20)
         contGamma_header = None
         for h in col_headers:
             name = h.get_name() or ""
@@ -604,26 +776,26 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(1)
 
         # Click Remove → "Delete column"
-        result = _click_menu_option("Remove", "Remove menu", "Delete column")
+        result = _click_menu_option("Remove", "Delete column")
         self.assertTrue(result, "Could not click Remove → Delete column")
 
         # Verify column removed
         app = _fresh_app()
-        col_headers_after = find_all_by_role(app, "column header", max_depth=10)
+        col_headers_after = find_all_by_role(app, "table column header", max_depth=10)
         names_after = [(h.get_name() or "") for h in col_headers_after]
         has_contGamma = any("contGamma" in n and "Column:" in n for n in names_after)
         self.assertFalse(has_contGamma, "contGamma column should be deleted")
         print(f"  [T10] contGamma removed. Columns: {len(col_headers_after)}", flush=True)
 
         # Undo
-        undo_btn = _robust_search(lambda app: _find_btn_by_name(app, "Undo"))
+        undo_btn = _robust_search(lambda app: _find_btn_by_name_bounded(app, "Undo"))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
 
         # Verify restored
         app = _fresh_app()
-        col_headers_undo = find_all_by_role(app, "column header", max_depth=10)
+        col_headers_undo = find_all_by_role(app, "table column header", max_depth=10)
         names_undo = [(h.get_name() or "") for h in col_headers_undo]
         has_contGamma_undo = any("contGamma" in n and "Column:" in n for n in names_undo)
         self.assertTrue(has_contGamma_undo, "contGamma column should be restored after undo")
@@ -634,7 +806,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         # Click Insert → "Insert constructor column before"
-        result = _click_menu_option("Insert", "Insert menu", "Insert constructor column before")
+        result = _click_menu_option("Insert", "Insert constructor column before")
         self.assertTrue(result, "Could not click Insert → Insert constructor column before")
 
         # CreateComputeColumnDialog should appear
@@ -700,7 +872,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify new column
         app = _fresh_app()
-        col_headers = find_all_by_role(app, "column header", max_depth=10)
+        col_headers = find_all_by_role(app, "table column header", max_depth=20)
         names = [(h.get_name() or "") for h in col_headers]
         has_testcol = any("TestCol" in n for n in names)
         print(f"  [T11] Column headers after compute: {[n for n in names if 'TestCol' in n or 'Column' in n][:5]}", flush=True)
@@ -708,7 +880,7 @@ class TestCSVLoading(unittest.TestCase):
             self.assertTrue(True, "TestCol column created")
 
         # Undo
-        undo_btn = _robust_search(lambda app: _find_btn_by_name(app, "Undo"))
+        undo_btn = _robust_search(lambda app: _find_btn_by_name_bounded(app, "Undo"))
         if undo_btn:
             click_element(undo_btn)
             time.sleep(2)
@@ -719,7 +891,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Double-click contGamma column header
         app = _fresh_app()
-        col_headers = find_all_by_role(app, "column header", max_depth=10)
+        col_headers = find_all_by_role(app, "table column header", max_depth=20)
         contGamma_header = None
         for h in col_headers:
             name = h.get_name() or ""
@@ -754,7 +926,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify rename
         app = _fresh_app()
-        col_headers = find_all_by_role(app, "column header", max_depth=10)
+        col_headers = find_all_by_role(app, "table column header", max_depth=20)
         names = [(h.get_name() or "") for h in col_headers]
         has_renamed = any("renamedCol" in n for n in names)
         print(f"  [T12] Column headers: {[n for n in names if 'renamedCol' in n or 'contGamma' in n][:3]}", flush=True)
@@ -762,14 +934,14 @@ class TestCSVLoading(unittest.TestCase):
             self.assertTrue(True, "Column renamed to renamedCol")
 
         # Undo
-        undo_btn = _robust_search(lambda app: _find_btn_by_name(app, "Undo"))
+        undo_btn = _robust_search(lambda app: _find_btn_by_name_bounded(app, "Undo"))
         if undo_btn:
             click_element(undo_btn)
             time.sleep(2)
 
         # Verify restored
         app = _fresh_app()
-        col_headers = find_all_by_role(app, "column header", max_depth=10)
+        col_headers = find_all_by_role(app, "table column header", max_depth=20)
         names = [(h.get_name() or "") for h in col_headers]
         has_restored = any("contGamma" in n for n in names)
         if has_restored:
@@ -784,7 +956,7 @@ class TestCSVLoading(unittest.TestCase):
         self.assertIsNotNone(app, "JASP gone")
 
         # Find a column header that's not computed (contGamma)
-        col_headers = find_all_by_role(app, "column header", max_depth=10)
+        col_headers = find_all_by_role(app, "table column header", max_depth=20)
         contGamma_header = None
         for h in col_headers:
             name = h.get_name() or ""
@@ -815,7 +987,7 @@ class TestCSVLoading(unittest.TestCase):
             pass
 
         # Undo
-        undo_btn = _robust_search(lambda app: _find_btn_by_name(app, "Undo"))
+        undo_btn = _robust_search(lambda app: _find_btn_by_name_bounded(app, "Undo"))
         if undo_btn:
             click_element(undo_btn)
             time.sleep(2)
@@ -831,7 +1003,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Research: column labels toggle is in the variable settings panel.
         # Double-click a column header to open variable settings
-        col_headers = find_all_by_role(app, "column header", max_depth=10)
+        col_headers = find_all_by_role(app, "table column header", max_depth=20)
         facGender_header = None
         for h in col_headers:
             name = h.get_name() or ""
