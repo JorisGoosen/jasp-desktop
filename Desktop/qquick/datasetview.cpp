@@ -10,8 +10,6 @@
 #include <QGuiApplication>
 #include <QClipboard>
 #include "utils.h"
-#include <QFile>
-#include <QStandardPaths>
 
 DataSetView * DataSetView::_mainDataSetView = nullptr;
 
@@ -504,6 +502,9 @@ void DataSetView::resizeData(int rows, int columns)
 	_expandedModel->resize(rows - 1, columns - 1, false, tr("Resize data to %1 rows and %2 columns").arg(rows).arg(columns));
 }
 
+#include <QFile>
+#include <QStandardPaths>
+
 QString DataSetView::consumeTestEditValueFile()
 {
 	QString path = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/jasp-edit-cell-value.txt";
@@ -513,7 +514,9 @@ QString DataSetView::consumeTestEditValueFile()
 		QString val = QString::fromUtf8(f.readAll()).trimmed();
 		f.close();
 		f.remove();
-			return val;
+		return val;
 	}
 	return "";
 }
+
+
