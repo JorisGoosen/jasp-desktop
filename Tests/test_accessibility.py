@@ -12,6 +12,8 @@ import sys
 import os
 from accessibility_common import (
     Atspi, find_jasp_app, find_document_web, dismiss_dialogs,
+    find_by_role_and_name, find_file_dialog,
+    KEY_ENTER,
 )
 
 
@@ -26,28 +28,6 @@ def _find_by_role(parent, role_name):
                 return result
         except Exception:
             pass
-    return None
-
-
-def _find_by_role_and_name(parent, role_name, name):
-    try:
-        if parent.get_role_name().lower() == role_name.lower():
-            pname = parent.get_name().lower()
-            if name.lower() in pname or pname == name.lower():
-                return parent
-    except Exception:
-        return None
-    try:
-        for i in range(parent.get_child_count()):
-            child = parent.get_child_at_index(i)
-            try:
-                result = _find_by_role_and_name(child, role_name, name)
-                if result:
-                    return result
-            except Exception:
-                pass
-    except Exception:
-        pass
     return None
 
 
@@ -147,23 +127,23 @@ class TestJASPAccessibility(unittest.TestCase):
         self.assertEqual(self.app.get_role_name(), "application")
 
     def test_02_main_menu_accessible(self):
-        btn = _find_by_role_and_name(self.main_window, "button", "Main menu")
+        btn = find_by_role_and_name(self.main_window, "button", "Main menu")
         self.assertIsNotNone(btn, "Main menu button not found")
 
     def test_03_modules_menu_accessible(self):
-        btn = _find_by_role_and_name(self.main_window, "button", "Modules menu")
+        btn = find_by_role_and_name(self.main_window, "button", "Modules menu")
         self.assertIsNotNone(btn, "Modules menu button not found")
 
     def test_04_analysis_menu_accessible(self):
-        filler = _find_by_role_and_name(self.main_window, "filler", "Analysis menu")
+        filler = find_by_role_and_name(self.main_window, "filler", "Analysis menu")
         self.assertIsNotNone(filler, "Analysis menu not found")
 
     def test_05_open_button_accessible(self):
-        btn = _find_by_role_and_name(self.main_window, "button", "Open")
+        btn = find_by_role_and_name(self.main_window, "button", "Open")
         self.assertIsNotNone(btn, "Open button not found")
 
     def test_06_save_button_accessible(self):
-        btn = _find_by_role_and_name(self.main_window, "button", "Save")
+        btn = find_by_role_and_name(self.main_window, "button", "Save")
         self.assertIsNotNone(btn, "Save button not found")
 
     def test_07_results_accessible(self):
@@ -293,7 +273,7 @@ class TestJASPAccessibility(unittest.TestCase):
         from accessibility_common import click_element, get_jasp_app
         try:
             self._refresh_app()
-            btn = _find_by_role_and_name(self.main_window, "button", "Main menu")
+            btn = find_by_role_and_name(self.main_window, "button", "Main menu")
             if not btn:
                 return False
             if not click_element(btn):
@@ -369,7 +349,7 @@ class TestJASPAccessibility(unittest.TestCase):
                 return False
             self._refresh_app()
             time.sleep(1)
-            prefs_btn = _find_by_role_and_name(self.app, "button", "Preferences")
+            prefs_btn = find_by_role_and_name(self.app, "button", "Preferences")
             if not prefs_btn:
                 close_menu()
                 return False
@@ -384,14 +364,14 @@ class TestJASPAccessibility(unittest.TestCase):
             if not ui_btns:
                 close_menu()
                 return False
-            ui_btn = _find_by_role_and_name(self.app, "button", ui_btns[0]["name"])
+            ui_btn = find_by_role_and_name(self.app, "button", ui_btns[0]["name"])
             if not ui_btn:
                 close_menu()
                 return False
             click_element(ui_btn)
             time.sleep(2)
 
-            native_check = _find_by_role_and_name(self.app, "check box", "native")
+            native_check = find_by_role_and_name(self.app, "check box", "native")
             if not native_check:
                 elements = self._get_all_accessible_elements(self.app)
                 for e in elements:
@@ -461,7 +441,7 @@ class TestJASPAccessibility(unittest.TestCase):
         time.sleep(0.5)
         self._assert_file_menu_open()
         time.sleep(1)
-        prefs_btn = _find_by_role_and_name(self.app, "button", "Preferences")
+        prefs_btn = find_by_role_and_name(self.app, "button", "Preferences")
         if not prefs_btn:
             close_menu()
             self.skipTest("Preferences button not found in file menu")
@@ -487,13 +467,13 @@ class TestJASPAccessibility(unittest.TestCase):
         time.sleep(0.5)
         self._assert_file_menu_open()
         time.sleep(1)
-        prefs_btn = _find_by_role_and_name(self.app, "button", "Preferences")
+        prefs_btn = find_by_role_and_name(self.app, "button", "Preferences")
         if not prefs_btn:
             close_menu()
             self.skipTest("Preferences button not found in file menu")
         click_element(prefs_btn)
         time.sleep(2)
-        help_btn = _find_by_role_and_name(self.app, "button", "Help")
+        help_btn = find_by_role_and_name(self.app, "button", "Help")
         if not help_btn:
             close_menu()
             self.skipTest("Help button not found in Preferences")
@@ -513,7 +493,7 @@ class TestJASPAccessibility(unittest.TestCase):
         time.sleep(0.5)
         self._assert_file_menu_open()
         time.sleep(1)
-        about_btn = _find_by_role_and_name(self.app, "button", "About")
+        about_btn = find_by_role_and_name(self.app, "button", "About")
         if not about_btn:
             close_menu()
             self.skipTest("About button not found in file menu")
@@ -533,7 +513,7 @@ class TestJASPAccessibility(unittest.TestCase):
         time.sleep(0.5)
         self._assert_file_menu_open()
         time.sleep(1)
-        contact_btn = _find_by_role_and_name(self.app, "button", "Contact")
+        contact_btn = find_by_role_and_name(self.app, "button", "Contact")
         if not contact_btn:
             close_menu()
             self.skipTest("Contact button not found in file menu")
@@ -553,7 +533,7 @@ class TestJASPAccessibility(unittest.TestCase):
         time.sleep(0.5)
         self._assert_file_menu_open()
         time.sleep(1)
-        community_btn = _find_by_role_and_name(self.app, "button", "Community")
+        community_btn = find_by_role_and_name(self.app, "button", "Community")
         if not community_btn:
             close_menu()
             self.skipTest("Community button not found in file menu")
@@ -599,11 +579,11 @@ class TestJASPAccessibility(unittest.TestCase):
             close_menu()
             self.skipTest("App reference stale after clicking Open")
         computer_btn = self._robust_search(
-            lambda: _find_by_role_and_name(self.app, "button", "Computer")
+            lambda: find_by_role_and_name(self.app, "button", "Computer")
         )
         if not computer_btn:
             computer_btn = self._robust_search(
-                lambda: _find_by_role_and_name(self.app, "push button", "Computer")
+                lambda: find_by_role_and_name(self.app, "push button", "Computer")
             )
         if not computer_btn:
             close_menu()
@@ -611,11 +591,11 @@ class TestJASPAccessibility(unittest.TestCase):
         click_element(computer_btn)
         time.sleep(2)
         browse_btn = self._robust_search(
-            lambda: _find_by_role_and_name(self.app, "button", "Browse")
+            lambda: find_by_role_and_name(self.app, "button", "Browse")
         )
         if not browse_btn:
             browse_btn = self._robust_search(
-                lambda: _find_by_role_and_name(self.app, "push button", "Browse")
+                lambda: find_by_role_and_name(self.app, "push button", "Browse")
             )
         folder_items = [e for e in self._robust_search(
             lambda: self._get_all_accessible_elements(self.app)
@@ -659,7 +639,7 @@ class TestJASPAccessibility(unittest.TestCase):
             close_menu()
             self.skipTest("App reference stale after clicking Open")
         computer_btn = self._robust_search(
-            lambda: _find_by_role_and_name(self.app, "button", "Computer")
+            lambda: find_by_role_and_name(self.app, "button", "Computer")
         )
         if not computer_btn:
             close_menu()
@@ -667,7 +647,7 @@ class TestJASPAccessibility(unittest.TestCase):
         click_element(computer_btn)
         time.sleep(2)
         browse_btn = self._robust_search(
-            lambda: _find_by_role_and_name(self.app, "button", "Browse")
+            lambda: find_by_role_and_name(self.app, "button", "Browse")
         )
         if not browse_btn:
             close_menu()
@@ -675,27 +655,7 @@ class TestJASPAccessibility(unittest.TestCase):
         click_element(browse_btn)
         time.sleep(3)
 
-        dialog = None
-        for _ in range(10):
-            time.sleep(0.5)
-            desktop = Atspi.get_desktop(0)
-            for i in range(desktop.get_child_count()):
-                try:
-                    a = desktop.get_child_at_index(i)
-                    for j in range(a.get_child_count()):
-                        c = a.get_child_at_index(j)
-                        role = c.get_role_name()
-                        if role in ("frame", "dialog", "file chooser") and c.get_child_count() > 0:
-                            name = c.get_name()
-                            if name not in ("JASP", "Data Preview") and "jasp" not in name.lower():
-                                dialog = c
-                                break
-                    if dialog:
-                        break
-                except Exception:
-                    pass
-            if dialog:
-                break
+        dialog = find_file_dialog(timeout=5)
 
         if not dialog:
             close_menu()
@@ -723,7 +683,7 @@ class TestJASPAccessibility(unittest.TestCase):
                     time.sleep(0.005)
 
             time.sleep(0.5)
-            generate_key_event(0xFF0D)  # Return
+            generate_key_event(KEY_ENTER)
             time.sleep(4)
         except Exception:
             pass
@@ -782,7 +742,7 @@ class TestJASPAccessibility(unittest.TestCase):
         if not self._data_is_loaded():
             self.skipTest("Data not loaded, skipping data-mode tests")
         from accessibility_common import click_element
-        btn = _find_by_role_and_name(self.main_window, "button", "Edit Data")
+        btn = find_by_role_and_name(self.main_window, "button", "Edit Data")
         if not btn:
             self.skipTest("Edit Data button not found")
         self.assertTrue(click_element(btn), "Could not click Edit Data")
@@ -808,7 +768,7 @@ class TestJASPAccessibility(unittest.TestCase):
         if not self._data_is_loaded():
             self.skipTest("Data not loaded, skipping data-mode tests")
         from accessibility_common import click_element
-        btn = _find_by_role_and_name(self.main_window, "button", "Analyses")
+        btn = find_by_role_and_name(self.main_window, "button", "Analyses")
         if not btn:
             self.skipTest("Analyses button not found")
         self.assertTrue(click_element(btn), "Could not click Analyses")
@@ -844,7 +804,7 @@ class TestJASPAccessibility(unittest.TestCase):
         ]
         if not mod_buttons:
             self.skipTest("No analysis module buttons found in ribbon")
-        btn = _find_by_role_and_name(self.main_window, "button", mod_buttons[0]["name"])
+        btn = find_by_role_and_name(self.main_window, "button", mod_buttons[0]["name"])
         if not btn:
             self.skipTest(f"Could not locate module button: {mod_buttons[0]['name']}")
         self.assertTrue(click_element(btn), f"Could not click {mod_buttons[0]['name']}")
@@ -868,7 +828,7 @@ class TestJASPAccessibility(unittest.TestCase):
         self._refresh_app()
         ensure_menu_closed(self.app, self.main_window)
         time.sleep(0.5)
-        btn = _find_by_role_and_name(self.main_window, "button", "Modules menu")
+        btn = find_by_role_and_name(self.main_window, "button", "Modules menu")
         if not btn:
             self.skipTest("Modules menu button not found")
         self.assertTrue(click_element(btn), "Could not click Modules menu")

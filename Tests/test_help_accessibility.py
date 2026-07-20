@@ -8,7 +8,7 @@ import sys
 import time
 from accessibility_common import (
     Atspi, find_jasp_app, find_by_name, find_by_desc,
-    click_element, dump_tree,
+    click_element, dump_tree, find_window_by_name,
 )
 
 
@@ -66,27 +66,7 @@ def main():
 
     # Step 4: Find Help window frame
     print("Looking for Help window...")
-    help_frame = None
-    for _ in range(15):
-        time.sleep(1)
-        try:
-            desktop = Atspi.get_desktop(0)
-            for i in range(desktop.get_child_count()):
-                a = desktop.get_child_at_index(i)
-                for j in range(a.get_child_count()):
-                    try:
-                        c = a.get_child_at_index(j)
-                        if c.get_name() == "JASP Help" and c.get_role_name() == "frame":
-                            help_frame = c
-                            break
-                    except Exception:
-                        pass
-                if help_frame:
-                    break
-        except Exception:
-            pass
-        if help_frame:
-            break
+    help_frame = find_window_by_name(None, "JASP Help", timeout=15)
 
     if not help_frame:
         print("FATAL: Help window not found")

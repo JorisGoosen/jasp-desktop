@@ -18,6 +18,15 @@ except ImportError as e:
     sys.exit(77)
 
 
+# ── key code constants ────────────────────────────────────────────────
+
+KEY_ENTER      = 0xFF0D
+KEY_ESCAPE     = 0xFF1B
+KEY_DOWN       = 0xFF54
+KEY_RIGHT      = 0xFF53
+KEY_RETURN     = 0xFF0D
+
+
 def repo_root():
     """Absolute path to the JASP-screenreader repo root."""
     return Path(__file__).resolve().parent.parent.parent
@@ -136,6 +145,82 @@ def _search_desc(obj, desc_lower):
         except Exception:
             pass
     return None
+
+
+def find_by_role_and_name(parent, role_name, name, timeout=5):
+    """Search for an element by role and name (checks parent node, too)."""
+    role_lower = role_name.lower()
+    name_lower = name.lower()
+    for _ in range(timeout * 2):
+        try:
+            result = _search_by_role_and_name(parent, role_lower, name_lower)
+            if result:
+                return result
+        except Exception:
+            pass
+        time.sleep(0.5)
+    return None
+
+
+def _search_by_role_and_name(obj, role_lower, name_lower):
+    try:
+        if role_lower == obj.get_role_name().lower():
+            if name_lower in (obj.get_name() or "").lower():
+                return obj
+    except Exception:
+        pass
+    try:
+        for i in range(obj.get_child_count()):
+            child = obj.get_child_at_index(i)
+            result = _search_by_role_and_name(child, role_lower, name_lower)
+            if result:
+                return result
+    except Exception:
+        pass
+    return None
+
+
+def find_file_dialog(timeout=10):
+    """Find any non-JASP file dialog / frame on the AT-SPI desktop."""
+    for _ in range(timeout * 2):
+        try:
+            desktop = Atspi.get_desktop(0)
+            for i in range(desktop.get_child_count()):
+                a = desktop.get_child_at_index(i)
+                for j in range(a.get_child_count()):
+                    try:
+                        c = a.get_child_at_index(j)
+                        role = c.get_role_name()
+                        if role in ("frame", "dialog", "file chooser") and c.get_child_count() > 0:
+                            name = c.get_name()
+                            if name not in ("JASP", "Data Preview") and "jasp" not in name.lower():
+                                return c
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        time.sleep(0.5)
+    return None
+
+
+def grab_window_focus():
+    """Grab X11 focus for the first JASP frame window."""
+    try:
+        desktop = Atspi.get_desktop(0)
+        for i in range(desktop.get_child_count()):
+            a = desktop.get_child_at_index(i)
+            if "jasp" in a.get_name().lower():
+                for j in range(a.get_child_count()):
+                    try:
+                        c = a.get_child_at_index(j)
+                        if c.get_role_name() == "frame":
+                            c.grab_focus()
+                            return True
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+    return False
 
 
 # ── interaction helpers ──────────────────────────────────────────────
@@ -388,7 +473,7 @@ def close_menu():
     """Send Escape key to close any open menus/dialogs."""
     for _ in range(3):
         try:
-            Atspi.generate_keyboard_event(0xFF1B, None, Atspi.KeySynthType.SYM)
+            Atspi.generate_keyboard_event(KEY_ESCAPE, None, Atspi.KeySynthType.SYM)
         except Exception:
             pass
         time.sleep(0.3)

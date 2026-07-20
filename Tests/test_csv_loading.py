@@ -8,121 +8,9 @@ from accessibility_common import (
     Atspi, find_jasp_app, click_element, close_menu,
     find_all_by_role, dismiss_dialogs, get_jasp_app,
     find_window_by_name, generate_key_event, type_text,
-    has_focus, find_focused,
+    has_focus, find_focused, find_by_role_and_name,
+    grab_window_focus, KEY_ENTER, KEY_DOWN, KEY_ESCAPE, KEY_RIGHT,
 )
-
-
-def _find_btn_by_name(parent, name):
-    name_lower = name.lower()
-    try:
-        if "button" in parent.get_role_name().lower():
-            if name_lower in (parent.get_name() or "").lower():
-                return parent
-    except Exception:
-        pass
-    try:
-        cc = parent.get_child_count()
-        for i in range(cc):
-            r = _find_btn_by_name(parent.get_child_at_index(i), name)
-            if r:
-                return r
-    except Exception:
-        pass
-    return None
-
-
-def _find_by_role_and_name(parent, role_name, name):
-    name_lower = name.lower()
-    try:
-        if role_name.lower() in parent.get_role_name().lower():
-            if name_lower in (parent.get_name() or "").lower():
-                return parent
-    except Exception:
-        pass
-    try:
-        cc = parent.get_child_count()
-        for i in range(cc):
-            r = _find_by_role_and_name(parent.get_child_at_index(i), role_name, name)
-            if r:
-                return r
-    except Exception:
-        pass
-    return None
-
-
-def _find_btn_by_name_bounded(parent, name, depth=0, max_depth=15, seen_ids=None):
-    """Depth-limited variant of _find_btn_by_name that avoids infinite recursion."""
-    if depth > max_depth:
-        return None
-    if seen_ids is None:
-        seen_ids = set()
-    try:
-        obj_id = id(parent)
-        if obj_id in seen_ids:
-            return None
-        seen_ids.add(obj_id)
-    except Exception:
-        pass
-    name_lower = name.lower()
-    try:
-        if "button" in parent.get_role_name().lower():
-            if name_lower in (parent.get_name() or "").lower():
-                return parent
-    except Exception:
-        pass
-    try:
-        cc = min(parent.get_child_count(), 200)
-        for i in range(cc):
-            try:
-                child = parent.get_child_at_index(i)
-            except Exception:
-                continue
-            r = _find_btn_by_name_bounded(child, name, depth + 1, max_depth, seen_ids)
-            if r:
-                return r
-    except Exception:
-        pass
-    return None
-
-
-def _find_by_role_and_name_bounded(parent, role_name, name, depth=0, max_depth=15, seen_ids=None):
-    """Depth-limited variant of _find_by_role_and_name."""
-    if depth > max_depth:
-        return None
-    if seen_ids is None:
-        seen_ids = set()
-    try:
-        obj_id = id(parent)
-        if obj_id in seen_ids:
-            return None
-        seen_ids.add(obj_id)
-    except Exception:
-        pass
-    name_lower = name.lower()
-    role_lower = role_name.lower()
-    try:
-        if role_lower in parent.get_role_name().lower():
-            if name_lower in (parent.get_name() or "").lower():
-                return parent
-    except Exception:
-        pass
-    try:
-        cc = min(parent.get_child_count(), 200)
-        for i in range(cc):
-            try:
-                child = parent.get_child_at_index(i)
-            except Exception:
-                continue
-            r = _find_by_role_and_name_bounded(child, role_name, name, depth + 1, max_depth, seen_ids)
-            if r:
-                return r
-    except Exception:
-        pass
-    return None
-
-
-def _find_menu_item(parent, name):
-    return _find_by_role_and_name(parent, "menu item", name)
 
 
 def _fresh_app():
@@ -146,22 +34,6 @@ def _robust_search(func, *args, max_retries=3):
     return func(_fresh_app(), *args)
 
 
-def _send_down():
-    """Send Down Arrow via AT-SPI keyboard event."""
-    try:
-        Atspi.generate_keyboard_event(0xFF54, None, Atspi.KeySynthType.SYM)
-    except Exception:
-        pass
-
-
-def _send_enter():
-    """Send Enter key via AT-SPI keyboard event."""
-    try:
-        Atspi.generate_keyboard_event(0xFF0D, None, Atspi.KeySynthType.SYM)
-    except Exception:
-        pass
-
-
 def _cell_matches(cell, row, col_name):
     """Check if cell name matches exact row and column. Avoids substring false positives."""
     name = (cell.get_name() or "")
@@ -172,26 +44,6 @@ def _cell_names_matching(cell_names, row, col_name):
     """Filter cell name strings matching exact row and column."""
     prefix = f"Row {row}, Col {col_name}:"
     return [n for n in cell_names if n.startswith(prefix)]
-
-
-def _grab_window_focus():
-    """Try to give the JASP window X11 focus so keyboard events reach it."""
-    try:
-        desktop = Atspi.get_desktop(0)
-        for i in range(desktop.get_child_count()):
-            a = desktop.get_child_at_index(i)
-            if "jasp" in a.get_name().lower():
-                for j in range(a.get_child_count()):
-                    try:
-                        c = a.get_child_at_index(j)
-                        if c.get_role_name() == "frame":
-                            c.grab_focus()
-                            return True
-                    except Exception:
-                        pass
-    except Exception:
-        pass
-    return False
 
 
 def _click_menu_option(button_name, menu_item_name):
@@ -243,7 +95,7 @@ class TestCSVLoading(unittest.TestCase):
     def _open_file_menu(self):
         close_menu()
         time.sleep(1)
-        btn = _find_btn_by_name(self.main_window, "Main menu")
+        btn = find_by_role_and_name(self.main_window, "button", "Main menu")
         if not btn:
             return False
         click_element(btn)
@@ -271,7 +123,7 @@ class TestCSVLoading(unittest.TestCase):
             # Close it by pressing Escape (real Escape, not close_menu's fake one)
             for _ in range(3):
                 try:
-                    Atspi.generate_keyboard_event(0xFF1B, None, Atspi.KeySynthType.SYM)
+                    Atspi.generate_keyboard_event(KEY_ESCAPE, None, Atspi.KeySynthType.SYM)
                 except Exception:
                     pass
                 time.sleep(0.3)
@@ -304,7 +156,7 @@ class TestCSVLoading(unittest.TestCase):
         click_element(target)
         time.sleep(2)
 
-        dl_btn = _robust_search(lambda app: _find_btn_by_name(app, "Data Library"))
+        dl_btn = _robust_search(lambda app: find_by_role_and_name(app, "button", "Data Library"))
         self.assertIsNotNone(dl_btn, "Data Library tab not found")
         click_element(dl_btn)
         time.sleep(5)
@@ -316,10 +168,10 @@ class TestCSVLoading(unittest.TestCase):
                 btns = find_all_by_role(app, "button", max_depth=8)
                 if any("debug" in (b.get_name() or "").lower() for b in btns):
                     break
-            _send_down()
+            generate_key_event(KEY_DOWN)
             time.sleep(0.3)
 
-        debug_btn = _robust_search(lambda app: _find_btn_by_name(app, "Debug Dataset"))
+        debug_btn = _robust_search(lambda app: find_by_role_and_name(app, "button", "Debug Dataset"))
         self.assertIsNotNone(debug_btn, "Debug Dataset not found in Data Library")
         click_element(debug_btn)
         time.sleep(5)
@@ -328,8 +180,8 @@ class TestCSVLoading(unittest.TestCase):
         self.assertIsNotNone(dp, "Data Preview not found")
 
         load_btn = _robust_search(
-            lambda app: _find_btn_by_name(
-                find_window_by_name(None, "Data Preview", timeout=2) or app, "Load")
+            lambda app: find_by_role_and_name(
+                find_window_by_name(None, "Data Preview", timeout=2) or app, "button", "Load")
         )
         self.assertIsNotNone(load_btn, "Load button not found")
         click_element(load_btn)
@@ -341,7 +193,7 @@ class TestCSVLoading(unittest.TestCase):
         # Toggle Main menu to close the file menu panel if still open
         app = _fresh_app()
         if app:
-            hamburger = _find_btn_by_name(app, "Main menu")
+            hamburger = find_by_role_and_name(app, "button", "Main menu")
             if hamburger:
                 click_element(hamburger)
                 time.sleep(2)
@@ -355,7 +207,7 @@ class TestCSVLoading(unittest.TestCase):
 
     def test_02_data_mode_buttons(self):
         edit_btn = _robust_search(
-            lambda app: _find_btn_by_name(_fresh_app() or app, "Edit Data")
+            lambda app: find_by_role_and_name(_fresh_app() or app, "button", "Edit Data")
         )
         self.assertIsNotNone(edit_btn, "Edit Data button not found")
         click_element(edit_btn)
@@ -639,9 +491,9 @@ class TestCSVLoading(unittest.TestCase):
             time.sleep(0.05)
         time.sleep(0.3)
         # Press Enter
-        Atspi.generate_keyboard_event(0xFF0D, None, Atspi.KeySynthType.PRESS)
+        Atspi.generate_keyboard_event(KEY_ENTER, None, Atspi.KeySynthType.PRESS)
         time.sleep(0.01)
-        Atspi.generate_keyboard_event(0xFF0D, None, Atspi.KeySynthType.RELEASE)
+        Atspi.generate_keyboard_event(KEY_ENTER, None, Atspi.KeySynthType.RELEASE)
         time.sleep(2)
 
         app = _fresh_app()
@@ -749,12 +601,12 @@ class TestCSVLoading(unittest.TestCase):
 
         # Use Right arrow 3 times to select column 3 (contBinom)
         for _ in range(3):
-            generate_key_event(0xFF53)
+            generate_key_event(KEY_RIGHT)
             time.sleep(0.15)
         time.sleep(0.5)
 
         # Close edit to release keyboard so menu can open
-        generate_key_event(0xFF1B)
+        generate_key_event(KEY_ESCAPE)
         time.sleep(0.5)
 
         # Remove → Delete column
@@ -811,14 +663,14 @@ class TestCSVLoading(unittest.TestCase):
             print(f"  [T11] Found dialog: role={dialog.get_role_name()}, name={dialog.get_name()}", flush=True)
             # Find Create Column button
             create_btn = _robust_search(
-                lambda app: _find_btn_by_name(app, "Create Column")
+                lambda app: find_by_role_and_name(app, "button", "Create Column")
             )
             if create_btn:
                 click_element(create_btn)
                 time.sleep(3)
             else:
                 # Try pressing Enter to accept default
-                _send_enter()
+                generate_key_event(KEY_ENTER)
                 time.sleep(3)
         else:
             # Dialog might not be findable — try closing and fall back
@@ -906,7 +758,7 @@ class TestCSVLoading(unittest.TestCase):
                         path.write_text("renamedCol")
                         # Use the table click approach to trigger commitEdit
                         # Press Enter on dialog to commit (if default name works)
-                        _send_enter()
+                        generate_key_event(KEY_ENTER)
                         time.sleep(3)
                         break
         else:
@@ -1116,7 +968,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(1)
 
         # Close edit
-        generate_key_event(0xFF1B)
+        generate_key_event(KEY_ESCAPE)
         time.sleep(0.5)
 
         # Get columns before
@@ -1165,11 +1017,11 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(1)
 
         # Use Right arrow to select col 1 (contNormal)
-        generate_key_event(0xFF53)
+        generate_key_event(KEY_RIGHT)
         time.sleep(0.15)
 
         # Close edit
-        generate_key_event(0xFF1B)
+        generate_key_event(KEY_ESCAPE)
         time.sleep(0.5)
 
         # Get value before
