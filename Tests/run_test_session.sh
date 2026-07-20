@@ -114,78 +114,105 @@ fi
 # ── log file ──────────────────────────────────────────────────────────
 LOG_FILE="/tmp/jasp_${TEST_NAME}.log"
 
-# ── export vars for the dbus sub-shell ─────────────────────────────────
-export __jasp_bin="$JASP_BIN"
-export __jasp_args="$JASP_ARGS"
-export __jasp_log="$LOG_FILE"
-export __jasp_wait="$WAIT_SEC"
-export __jasp_test="$TEST_SCRIPT"
-export __jasp_name="$TEST_NAME"
-export __jasp_display="$DISPLAY"
-export __jasp_qt_acc="$QT_LINUX_ACCESSIBILITY_ALWAYS_ON"
-export __jasp_qt_acc2="$QT_ACCESSIBILITY"
-export __jasp_qtwr="$QTWEBENGINE_RESOURCES_PATH"
-export __jasp_qtwe="$QTWEBENGINEPROCESS_PATH"
-export __jasp_qtcf="$QTWEBENGINE_CHROMIUM_FLAGS"
+# ── session bus ────────────────────────────────────────────────────────
+export DISPLAY
+export QT_LINUX_ACCESSIBILITY_ALWAYS_ON
+export QT_ACCESSIBILITY
+export QTWEBENGINE_RESOURCES_PATH
+export QTWEBENGINEPROCESS_PATH
+export QTWEBENGINE_CHROMIUM_FLAGS
 
-# ── main session ──────────────────────────────────────────────────────
-dbus-run-session -- bash -c '
-set +e
-export DISPLAY="$__jasp_display"
-export QT_LINUX_ACCESSIBILITY_ALWAYS_ON="$__jasp_qt_acc"
-export QT_ACCESSIBILITY="$__jasp_qt_acc2"
-export QTWEBENGINE_RESOURCES_PATH="$__jasp_qtwr"
-export QTWEBENGINEPROCESS_PATH="$__jasp_qtwe"
-export QTWEBENGINE_CHROMIUM_FLAGS="$__jasp_qtcf"
+# dbus-run-session can hang waiting for bus daemon to exit.
+# Start the session bus ourselves so we can kill it forcefully.
+DBUS_PID=""
+BUS_ADDR="$(dbus-daemon --session --print-address --fork 2>/dev/null)"
+if [[ -n "$BUS_ADDR" ]]; then
+    DBUS_PID="$(pgrep -fn "dbus-daemon.*--print-address" | head -1)"
+    export DBUS_SESSION_BUS_ADDRESS="$BUS_ADDR"
+fi
+
+if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+    echo "FATAL: could not start session bus"
+    exit 2
+fi
 
 cleanup() {
-    kill $JASP_PID $ATSPI_BUS $ATSPI_REG 2>/dev/null
-    wait $JASP_PID $ATSPI_BUS $ATSPI_REG 2>/dev/null
+    for pid in $JASP_PID $ATSPI_BUS $ATSPI_REG $WATCHDOG_PID; do
+        [[ -n "$pid" ]] || continue
+        kill -9 "$pid" 2>/dev/null
+    done
+    if [[ -n "$DBUS_PID" ]]; then
+        kill -9 "$DBUS_PID" 2>/dev/null
+    fi
+    if [[ -n "$XVFB_PID" ]]; then
+        echo "Stopping Xvfb (PID $XVFB_PID)"
+        kill -9 "$XVFB_PID" 2>/dev/null
+    fi
 }
 trap cleanup EXIT
 
+sleep 1  # let session bus settle
+
 /usr/lib/at-spi-bus-launcher --launch-immediately &
 ATSPI_BUS=$!
-sleep 2
+for i in $(seq 1 5); do
+    sleep 1
+    if gdbus call --session --dest org.a11y.Bus --object-path /org/a11y/bus --method org.freedesktop.DBus.Peer.Ping &>/dev/null; then
+        break
+    fi
+    if ! kill -0 "$ATSPI_BUS" 2>/dev/null; then
+        echo "FATAL: at-spi-bus-launcher died (PID $ATSPI_BUS)"
+        exit 2
+    fi
+done
+if ! gdbus call --session --dest org.a11y.Bus --object-path /org/a11y/bus --method org.freedesktop.DBus.Peer.Ping &>/dev/null; then
+    echo "FATAL: AT-SPI bus failed after retries"
+    exit 2
+fi
+
 /usr/lib/at-spi2-registryd &
 ATSPI_REG=$!
 sleep 1
 
 echo "Starting JASP ..."
-if [ -n "$__jasp_args" ]; then
-    "$__jasp_bin" "$__jasp_args" >"$__jasp_log" 2>&1 &
+if [ -n "$JASP_ARGS" ]; then
+    "$JASP_BIN" "$JASP_ARGS" >"$LOG_FILE" 2>&1 &
 else
-    "$__jasp_bin" >"$__jasp_log" 2>&1 &
+    "$JASP_BIN" >"$LOG_FILE" 2>&1 &
 fi
 JASP_PID=$!
-sleep "$__jasp_wait"
+sleep "$WAIT_SEC"
 
 if ! kill -0 $JASP_PID 2>/dev/null; then
   echo "FATAL: JASP exited prematurely (PID $JASP_PID)"
-  tail -20 "$__jasp_log"
+  tail -20 "$LOG_FILE"
   exit 1
 fi
 
 echo "JASP running (PID $JASP_PID)"
-echo "Running test: $__jasp_name"
+echo "Running test: $TEST_NAME"
 
-/usr/bin/python3 "$__jasp_test"
+export JASP_PID
+
+# Background watchdog: if JASP dies, kill the Python test promptly
+(
+    while kill -0 $JASP_PID 2>/dev/null; do
+        sleep 2
+    done
+    for c in $(pgrep -P "$$" python3 2>/dev/null); do
+        kill -9 "$c" 2>/dev/null
+    done
+) &
+WATCHDOG_PID=$!
+
+/usr/bin/python3 "$TEST_SCRIPT"
 rc=$?
+
+kill $WATCHDOG_PID 2>/dev/null
 
 if ! kill -0 $JASP_PID 2>/dev/null; then
   echo "WARNING: JASP exited during test run (PID $JASP_PID)"
-  tail -20 "$__jasp_log"
+  tail -20 "$LOG_FILE"
 fi
 
 exit $rc
-'
-MAIN_RC=$?
-
-# ── cleanup ───────────────────────────────────────────────────────────
-if [[ -n "$XVFB_PID" ]] && kill -0 "$XVFB_PID" 2>/dev/null; then
-    echo "Stopping Xvfb (PID $XVFB_PID)"
-    kill "$XVFB_PID"
-    wait "$XVFB_PID" 2>/dev/null
-fi
-
-exit $MAIN_RC

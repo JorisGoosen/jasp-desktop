@@ -7,15 +7,59 @@ and window-discovery logic across test files.
 
 import time
 import sys
+import os
 from pathlib import Path
 
 try:
     gi = __import__("gi")
     gi.require_version("Atspi", "2.0")
-    from gi.repository import Atspi
+    from gi.repository import Atspi, GLib
+
+    _GLIB_HANDLER_DONE = False
+    if not _GLIB_HANDLER_DONE:
+        _GLIB_HANDLER_DONE = True
+        def _glib_suppress_fatal(domain, level, message, user_data):
+            pass
+        for dm in ("GLib", "GLib-GObject", "dbind"):
+            GLib.log_set_handler(dm, GLib.LogLevelFlags.LEVEL_ERROR, _glib_suppress_fatal, None)
 except ImportError as e:
     print(f"PyGObject not available: {e}")
     sys.exit(77)
+
+
+class JASPCrashed(Exception):
+    """Raised when the JASP process has died."""
+    pass
+
+
+_JASP_PID = None
+
+
+def _get_jasp_pid():
+    global _JASP_PID
+    if _JASP_PID is None:
+        raw = os.environ.get("JASP_PID", "")
+        if raw:
+            _JASP_PID = int(raw)
+    return _JASP_PID
+
+
+def is_jasp_alive():
+    """Return True if JASP is still running, False if it has died."""
+    pid = _get_jasp_pid()
+    if pid is None:
+        return True
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+def require_jasp_alive():
+    """Raise JASPCrashed if JASP has exited."""
+    if not is_jasp_alive():
+        raise JASPCrashed("JASP process has died")
 
 
 # ── key code constants ────────────────────────────────────────────────
@@ -92,6 +136,7 @@ def find_by_name(parent, name, role=None, timeout=5, recursive=True):
                 return result
         except Exception:
             pass
+        require_jasp_alive()
         time.sleep(0.5)
     return None
 
@@ -129,6 +174,7 @@ def find_by_desc(parent, description, timeout=3):
                     return result
             except Exception:
                 pass
+        require_jasp_alive()
         time.sleep(0.5)
     return None
 
@@ -158,6 +204,7 @@ def find_by_role_and_name(parent, role_name, name, timeout=5):
                 return result
         except Exception:
             pass
+        require_jasp_alive()
         time.sleep(0.5)
     return None
 
@@ -199,6 +246,7 @@ def find_file_dialog(timeout=10):
                         pass
         except Exception:
             pass
+        require_jasp_alive()
         time.sleep(0.5)
     return None
 
@@ -238,6 +286,7 @@ def setup_jasp_app(timeout=30, main_window_names=None):
 def robust_search(get_app, func, *args, max_retries=3):
     """Call func(app, *args), retrying with fresh app references on failure."""
     for attempt in range(max_retries):
+        require_jasp_alive()
         try:
             app = get_app()
             if not app:
@@ -352,6 +401,7 @@ def find_jasp_app(timeout=30, main_window_names=None):
     app = None
     main_window = None
     for attempt in range(timeout):
+        require_jasp_alive()
         time.sleep(1)
         try:
             desktop = Atspi.get_desktop(0)
@@ -391,13 +441,16 @@ def find_document_web(app):
     best_doc = None
     best_total = 0
     for d in all_docs:
-        total = d.get_child_count()
-        for j in range(min(d.get_child_count(), 3)):
-            try:
-                cc = d.get_child_at_index(j)
-                total += cc.get_child_count()
-            except Exception:
-                pass
+        try:
+            total = d.get_child_count()
+            for j in range(min(d.get_child_count(), 3)):
+                try:
+                    cc = d.get_child_at_index(j)
+                    total += cc.get_child_count()
+                except Exception:
+                    pass
+        except Exception:
+            continue
         if total > best_total:
             best_total = total
             best_doc = d
@@ -449,6 +502,7 @@ def find_window_by_name(app, window_name, timeout=10, role_name=None):
                         pass
             except Exception:
                 pass
+        require_jasp_alive()
         time.sleep(0.5)
     return None
 
