@@ -7,25 +7,17 @@ Assumes JASP is already running with Sleep.jasp loaded.
 import time
 import sys
 from accessibility_common import (
-    Atspi, find_jasp_app, find_document_web, find_all, find_all_by_role,
+    find_document_web, find_all, find_all_by_role,
+    setup_jasp_app,
 )
 
 
 def main():
-    app, main_window = find_jasp_app(timeout=30, main_window_names=("JASP", "Sleep"))
+    app, main_window = setup_jasp_app(timeout=30, main_window_names=("JASP", "Sleep"))
     if not main_window:
         print("FAIL: JASP main window not found via AT-SPI2")
         sys.exit(1)
     print(f"JASP found, main window has {main_window.get_child_count()} children")
-
-    # Dismiss any dialogs that may have appeared
-    for _ in range(5):
-        try:
-            from accessibility_common import dismiss_dialogs
-            dismiss_dialogs(app)
-            time.sleep(0.5)
-        except Exception:
-            pass
 
     print("\n--- Waiting for results to render ---")
     time.sleep(8)

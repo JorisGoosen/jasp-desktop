@@ -5,33 +5,17 @@ import unittest
 import time
 import sys
 from accessibility_common import (
-    Atspi, find_jasp_app, click_element, close_menu,
-    find_all_by_role, dismiss_dialogs, get_jasp_app,
+    Atspi, click_element, close_menu,
+    find_all_by_role, get_jasp_app,
     find_window_by_name, generate_key_event, type_text,
     has_focus, find_focused, find_by_role_and_name,
     grab_window_focus, KEY_ENTER, KEY_DOWN, KEY_ESCAPE, KEY_RIGHT,
+    setup_jasp_app, robust_search, open_file_menu,
 )
 
 
-def _fresh_app():
-    return get_jasp_app()
-
-
 def _robust_search(func, *args, max_retries=3):
-    for attempt in range(max_retries):
-        try:
-            app = _fresh_app()
-            if not app:
-                time.sleep(1.5)
-                continue
-            result = func(app, *args)
-            if result is not None and (not isinstance(result, (list, tuple)) or len(result) > 0):
-                return result
-            time.sleep(1.5)
-        except Exception as e:
-            if "no longer exists" in str(e) or "Did not receive a reply" in str(e):
-                time.sleep(1.5)
-    return func(_fresh_app(), *args)
+    return robust_search(get_jasp_app, func, *args, max_retries=max_retries)
 
 
 def _cell_matches(cell, row, col_name):
@@ -49,7 +33,7 @@ def _cell_names_matching(cell_names, row, col_name):
 def _click_menu_option(button_name, menu_item_name):
     """Click a toolbar button to open its dropdown, find the target menu item
     in the AT-SPI tree, and click it via do_action."""
-    app = _fresh_app()
+    app = get_jasp_app()
     if not app:
         return False
     all_btns = find_all_by_role(app, "button", max_depth=20)
@@ -64,7 +48,7 @@ def _click_menu_option(button_name, menu_item_name):
     time.sleep(0.5)
 
     # Search for menu items globally via AT-SPI
-    app = _fresh_app()
+    app = get_jasp_app()
     if app:
         items = find_all_by_role(app, "menu item", max_depth=25)
         for mi in items:
@@ -80,36 +64,25 @@ class TestCSVLoading(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        Atspi.init()
-        cls.app, cls.main_window = find_jasp_app(timeout=30)
+        cls.app, cls.main_window = setup_jasp_app(timeout=30)
         if not cls.main_window:
             sys.exit(1)
-        for _ in range(5):
-            dismiss_dialogs(cls.app)
-            time.sleep(1)
 
     def setUp(self):
         close_menu()
         time.sleep(0.5)
 
     def _open_file_menu(self):
-        close_menu()
-        time.sleep(1)
-        btn = find_by_role_and_name(self.main_window, "button", "Main menu")
-        if not btn:
-            return False
-        click_element(btn)
-        time.sleep(5)
-        app = _fresh_app()
-        if app:
-            type(self).app = app
-        elements = find_all_by_role(self.app, "button", max_depth=8)
-        names = [(e.get_name() or "").lower() for e in elements]
-        return any("save as" in n or "export results" in n for n in names)
+        result = open_file_menu(self.app, self.main_window)
+        if result:
+            app = get_jasp_app()
+            if app:
+                type(self).app = app
+        return result
 
     def _ensure_data_mode(self):
         """Enter data mode if not already there. Returns True if in data mode after call."""
-        app = _fresh_app()
+        app = get_jasp_app()
         all_btns = find_all_by_role(app, "button", max_depth=20)
         names = [(b.get_name() or "").lower() for b in all_btns]
 
@@ -128,7 +101,7 @@ class TestCSVLoading(unittest.TestCase):
                     pass
                 time.sleep(0.3)
             time.sleep(1)
-            app = _fresh_app()
+            app = get_jasp_app()
             all_btns = find_all_by_role(app, "button", max_depth=20)
             names = [(b.get_name() or "").lower() for b in all_btns]
             if any("analyses" in n for n in names):
@@ -138,7 +111,7 @@ class TestCSVLoading(unittest.TestCase):
         if edit_btns:
             edit_btns[0].do_action(0)
             time.sleep(3)
-        app = _fresh_app()
+        app = get_jasp_app()
         all_btns = find_all_by_role(app, "button", max_depth=20)
         names = [(b.get_name() or "").lower() for b in all_btns]
         return any("analyses" in n for n in names)
@@ -163,7 +136,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Scroll to reveal Debug Dataset at bottom of list (ListView is virtualized)
         for i in range(30):
-            app = _fresh_app()
+            app = get_jasp_app()
             if app:
                 btns = find_all_by_role(app, "button", max_depth=8)
                 if any("debug" in (b.get_name() or "").lower() for b in btns):
@@ -191,14 +164,14 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Toggle Main menu to close the file menu panel if still open
-        app = _fresh_app()
+        app = get_jasp_app()
         if app:
             hamburger = find_by_role_and_name(app, "button", "Main menu")
             if hamburger:
                 click_element(hamburger)
                 time.sleep(2)
 
-        app = _fresh_app()
+        app = get_jasp_app()
         self.assertIsNotNone(app, "JASP gone after Load")
         all_btns = find_all_by_role(app, "button", max_depth=8)
         names = [(b.get_name() or "").lower() for b in all_btns]
@@ -207,13 +180,13 @@ class TestCSVLoading(unittest.TestCase):
 
     def test_02_data_mode_buttons(self):
         edit_btn = _robust_search(
-            lambda app: find_by_role_and_name(_fresh_app() or app, "button", "Edit Data")
+            lambda app: find_by_role_and_name(get_jasp_app() or app, "button", "Edit Data")
         )
         self.assertIsNotNone(edit_btn, "Edit Data button not found")
         click_element(edit_btn)
         time.sleep(3)
 
-        app = _fresh_app()
+        app = get_jasp_app()
         all_btns = find_all_by_role(app, "button", max_depth=8)
         names = [(b.get_name() or "").lower() for b in all_btns]
         expected = ["analyses", "synchronisation", "resize data", "insert", "remove", "undo", "redo"]
@@ -230,7 +203,7 @@ class TestCSVLoading(unittest.TestCase):
         click_element(analyses_btn)
         time.sleep(3)
 
-        app = _fresh_app()
+        app = get_jasp_app()
         all_btns = find_all_by_role(app, "button", max_depth=8)
         names = [(b.get_name() or "").lower() for b in all_btns]
         self.assertTrue(any("edit data" in n for n in names),
@@ -240,7 +213,7 @@ class TestCSVLoading(unittest.TestCase):
 
     def test_04_data_table_accessible(self):
         """Verify the data table has accessible table cells with content."""
-        app = _fresh_app()
+        app = get_jasp_app()
         self.assertIsNotNone(app, "JASP gone")
 
         tables = find_all_by_role(app, "table", max_depth=10)
@@ -262,7 +235,7 @@ class TestCSVLoading(unittest.TestCase):
         """[Spec Test 03] Verify data table has accessible cells, row/col headers with content."""
         self._ensure_data_mode()
 
-        app = _fresh_app()
+        app = get_jasp_app()
         self.assertIsNotNone(app, "JASP gone")
 
         # Verify column headers
@@ -314,7 +287,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         # Find reference cell before insertion
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
 
@@ -332,7 +305,7 @@ class TestCSVLoading(unittest.TestCase):
         self.assertTrue(result, "Could not click Insert → Insert row above")
 
         # Verify Row 1 is now empty, Row 2 has old value
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
 
@@ -358,7 +331,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Verify undo restored
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
@@ -373,7 +346,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Verify redo re-inserted
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_redo = _cell_names_matching(cell_names, 1, "contNormal")
@@ -396,7 +369,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         # Enter edit mode via DataTableView press action (selects row 0, col 0)
-        app = _fresh_app()
+        app = get_jasp_app()
         tables = find_all_by_role(app, "table", max_depth=20)
         table = None
         for t in tables:
@@ -408,13 +381,13 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(1)
 
         # Find reference cell before deletion
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_before = _cell_names_matching(cell_names, 1, "contNormal")
         # If edit entry changed cell display, retry fresh
         if not row1_before:
-            app = _fresh_app()
+            app = get_jasp_app()
             cells = find_all_by_role(app, "table cell", max_depth=10)
             cell_names = [(c.get_name() or "") for c in cells]
             row1_before = _cell_names_matching(cell_names, 1, "contNormal")
@@ -432,7 +405,7 @@ class TestCSVLoading(unittest.TestCase):
         self.assertTrue(result, "Could not click Remove → Delete row")
 
         # Verify removal: Row 1 should now have Row 2's old value (shifted up)
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_after = _cell_names_matching(cell_names, 1, "contNormal")
@@ -452,7 +425,7 @@ class TestCSVLoading(unittest.TestCase):
         click_element(undo_btn)
         time.sleep(2)
 
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
@@ -463,7 +436,7 @@ class TestCSVLoading(unittest.TestCase):
         """[Spec Test 06] Edit cell value → verify → undo."""
         self._ensure_data_mode()
 
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_before = _cell_names_matching(cell_names, 1, "contNormal")
@@ -471,7 +444,7 @@ class TestCSVLoading(unittest.TestCase):
         print(f"  [T08] Before: {row1_before[0]}", flush=True)
 
         # Enter edit mode
-        app = _fresh_app()
+        app = get_jasp_app()
         tables = find_all_by_role(app, "table", max_depth=20)
         table = None
         for t in tables:
@@ -496,7 +469,7 @@ class TestCSVLoading(unittest.TestCase):
         Atspi.generate_keyboard_event(KEY_ENTER, None, Atspi.KeySynthType.RELEASE)
         time.sleep(2)
 
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_kb = _cell_names_matching(cell_names, 1, "contNormal")
@@ -512,7 +485,7 @@ class TestCSVLoading(unittest.TestCase):
             print(f"  [T08] Keyboard failed, using temp-file fallback", flush=True)
             click_element(table)
             time.sleep(2)
-            app = _fresh_app()
+            app = get_jasp_app()
             cells = find_all_by_role(app, "table cell", max_depth=10)
             cell_names = [(c.get_name() or "") for c in cells]
             row1_kb = _cell_names_matching(cell_names, 1, "contNormal")
@@ -528,7 +501,7 @@ class TestCSVLoading(unittest.TestCase):
         click_element(undo_btn)
         time.sleep(2)
 
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
@@ -538,7 +511,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         # Enter edit mode via DataTableView press action (selects col 0)
-        app = _fresh_app()
+        app = get_jasp_app()
         tables = find_all_by_role(app, "table", max_depth=20)
         table = None
         for t in tables:
@@ -550,7 +523,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(1)
 
         # Get column names before
-        app = _fresh_app()
+        app = get_jasp_app()
         col_headers_before = find_all_by_role(app, "table column header", max_depth=25)
         names_before = [(h.get_name() or "") for h in col_headers_before]
         has_new_before = any("Column 1" in n for n in names_before)
@@ -563,7 +536,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify new column appears (search global, not just visible delegates)
         time.sleep(1)
-        app = _fresh_app()
+        app = get_jasp_app()
         col_headers_after = find_all_by_role(app, "table column header", max_depth=25)
         names_after = [(h.get_name() or "") for h in col_headers_after]
         has_new_after = any("Column 1" in n for n in names_after)
@@ -576,7 +549,7 @@ class TestCSVLoading(unittest.TestCase):
         click_element(undo_btn)
         time.sleep(2)
 
-        app = _fresh_app()
+        app = get_jasp_app()
         col_headers_undo = find_all_by_role(app, "table column header", max_depth=25)
         names_undo = [(h.get_name() or "") for h in col_headers_undo]
         has_new_undo = any("Column 1" in n for n in names_undo)
@@ -588,7 +561,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         # Click table to enter edit mode (selects row 0 = V1 col, sets selection)
-        app = _fresh_app()
+        app = get_jasp_app()
         tables = find_all_by_role(app, "table", max_depth=20)
         table = None
         for t in tables:
@@ -615,7 +588,7 @@ class TestCSVLoading(unittest.TestCase):
             self.skipTest("Remove → Delete column menu item not found via AT-SPI")
 
         # Verify column count decreased
-        app = _fresh_app()
+        app = get_jasp_app()
         cols_after = find_all_by_role(app, "table column header", max_depth=25)
         names_after = [(h.get_name() or "") for h in cols_after]
         print(f"  [T10] After delete: {len(cols_after)} cols", flush=True)
@@ -627,7 +600,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Verify restored
-        app = _fresh_app()
+        app = get_jasp_app()
         cols_undo = find_all_by_role(app, "table column header", max_depth=25)
         print(f"  [T10] After undo: {len(cols_undo)} cols", flush=True)
 
@@ -636,7 +609,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         # Record column count before
-        app = _fresh_app()
+        app = get_jasp_app()
         cols_before = find_all_by_role(app, "table column header", max_depth=25)
         names_before = set((h.get_name() or "") for h in cols_before)
         print(f"  [T11] Before: {len(cols_before)} cols", flush=True)
@@ -647,7 +620,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Find the Create dialog
-        app = _fresh_app()
+        app = get_jasp_app()
         dialog = None
         for rn in ["dialog", "window"]:
             dlgs = find_all_by_role(app, rn, max_depth=5)
@@ -681,7 +654,7 @@ class TestCSVLoading(unittest.TestCase):
             time.sleep(2)
 
         # Verify a new column appeared
-        app = _fresh_app()
+        app = get_jasp_app()
         cols_after = find_all_by_role(app, "table column header", max_depth=25)
         names_after = set((h.get_name() or "") for h in cols_after)
         new_cols = names_after - names_before
@@ -696,7 +669,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Verify undo restored state (columns created may still appear if compute dialog path was used)
-        app = _fresh_app()
+        app = get_jasp_app()
         cols_undo = find_all_by_role(app, "table column header", max_depth=25)
         names_undo = set((h.get_name() or "") for h in cols_undo)
         still_new = names_undo & new_cols
@@ -708,7 +681,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         # Double-click contGamma column header to open VariablesWindow
-        app = _fresh_app()
+        app = get_jasp_app()
         col_headers = find_all_by_role(app, "table column header", max_depth=25)
         contGamma_header = None
         for h in col_headers:
@@ -724,7 +697,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Check if VariablesWindow or any pane appeared
-        app = _fresh_app()
+        app = get_jasp_app()
         from accessibility_common import find_all
         all_el = find_all(app, max_depth=20)
         var_el = [(r, n) for r, n, c in all_el if 'variable' in (n or '').lower() or 'pane' in r.lower()]
@@ -733,7 +706,7 @@ class TestCSVLoading(unittest.TestCase):
             print(f"  [T12] Variables panel found", flush=True)
 
         # Find the rename dialog if it appeared (some operations use RenameColumnDialog popup)
-        app = _fresh_app()
+        app = get_jasp_app()
         dialogs = find_all_by_role(app, "dialog", max_depth=10)
         rename_dialog = None
         for d in dialogs:
@@ -765,7 +738,7 @@ class TestCSVLoading(unittest.TestCase):
             print(f"  [T12] No rename dialog, using VariablesWindow panel", flush=True)
 
         # Verify column still exists with contGamma
-        app = _fresh_app()
+        app = get_jasp_app()
         col_headers = find_all_by_role(app, "table column header", max_depth=25)
         names = [(h.get_name() or "") for h in col_headers]
         has_contGamma = any("contGamma" in n and "Column:" in n for n in names)
@@ -782,7 +755,7 @@ class TestCSVLoading(unittest.TestCase):
         """[Spec Test 11] Change column type via accessible icon → verify → undo."""
         self._ensure_data_mode()
 
-        app = _fresh_app()
+        app = get_jasp_app()
         self.assertIsNotNone(app, "JASP gone")
 
         # Find contGamma column header
@@ -797,7 +770,7 @@ class TestCSVLoading(unittest.TestCase):
             self.skipTest("Column: contGamma header not found")
 
         # Find the type-change icon (now accessible as PushButton)
-        app = _fresh_app()
+        app = get_jasp_app()
         type_icons = find_all_by_role(app, "push button", max_depth=25)
         contGamma_icon = None
         for icon in type_icons:
@@ -834,7 +807,7 @@ class TestCSVLoading(unittest.TestCase):
             time.sleep(1)
 
         # Verify undo is now available (a change was made)
-        app = _fresh_app()
+        app = get_jasp_app()
         undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button should be available after type change")
         click_element(undo_btn)
@@ -845,7 +818,7 @@ class TestCSVLoading(unittest.TestCase):
         """[Spec Test 12] Toggle column labels via VariablesWindow checkbox."""
         self._ensure_data_mode()
 
-        app = _fresh_app()
+        app = get_jasp_app()
         self.assertIsNotNone(app, "JASP gone")
 
         # Double-click facGender header to open VariablesWindow
@@ -870,7 +843,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Find VariablesWindow and look for checkboxes
-        app = _fresh_app()
+        app = get_jasp_app()
         all_checkboxes = find_all_by_role(app, "check box", max_depth=15)
         print(f"  [T14] Found {len(all_checkboxes)} checkboxes", flush=True)
         checkbox_names = [(cb.get_name() or "") for cb in all_checkboxes]
@@ -898,7 +871,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         # Enter edit mode (selects row 0, col 0)
-        app = _fresh_app()
+        app = get_jasp_app()
         tables = find_all_by_role(app, "table", max_depth=20)
         table = None
         for t in tables:
@@ -910,7 +883,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(1)
 
         # Reference: Row 1 value before insert (will shift to Row 2 after insert below row 0)
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_before = _cell_names_matching(cell_names, 1, "contNormal")
@@ -923,7 +896,7 @@ class TestCSVLoading(unittest.TestCase):
         self.assertTrue(result, "Could not click Insert → Insert row below")
 
         # Verify: Row 1 should be empty, Row 2 has old Row 1 value
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_after = _cell_names_matching(cell_names, 1, "contNormal")
@@ -944,7 +917,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Verify Row 1 restored
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
@@ -956,7 +929,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         # Enter edit mode to set selection
-        app = _fresh_app()
+        app = get_jasp_app()
         tables = find_all_by_role(app, "table", max_depth=20)
         table = None
         for t in tables:
@@ -972,7 +945,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(0.5)
 
         # Get columns before
-        app = _fresh_app()
+        app = get_jasp_app()
         cols_before = set((h.get_name() or "") for h in find_all_by_role(app, "table column header", max_depth=25))
         print(f"  [T16] Before: {len(cols_before)} cols", flush=True)
 
@@ -981,7 +954,7 @@ class TestCSVLoading(unittest.TestCase):
         self.assertTrue(result, "Could not click Insert → Insert column after")
 
         # Verify new column
-        app = _fresh_app()
+        app = get_jasp_app()
         cols_after = set((h.get_name() or "") for h in find_all_by_role(app, "table column header", max_depth=25))
         new_cols = cols_after - cols_before
         print(f"  [T16] After: {len(cols_after)} cols, new: {new_cols}", flush=True)
@@ -994,7 +967,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Verify restored
-        app = _fresh_app()
+        app = get_jasp_app()
         cols_undo = set((h.get_name() or "") for h in find_all_by_role(app, "table column header", max_depth=25))
         still_new = cols_undo & new_cols
         self.assertEqual(len(still_new), 0, f"New columns should be gone after undo: {still_new}")
@@ -1005,7 +978,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         # Enter edit mode at row 0, col 0
-        app = _fresh_app()
+        app = get_jasp_app()
         tables = find_all_by_role(app, "table", max_depth=20)
         table = None
         for t in tables:
@@ -1025,7 +998,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(0.5)
 
         # Get value before
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_before = _cell_names_matching(cell_names, 1, "contNormal")
@@ -1039,7 +1012,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Verify cell cleared — check editing cell (may appear alongside stale delegate)
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_after = _cell_names_matching(cell_names, 1, "contNormal")
@@ -1064,7 +1037,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Verify restored
-        app = _fresh_app()
+        app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
         row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
@@ -1087,7 +1060,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         # Double-click contNormal header
-        app = _fresh_app()
+        app = get_jasp_app()
         col_headers = find_all_by_role(app, "table column header", max_depth=25)
         contNormal_header = None
         for h in col_headers:
@@ -1101,7 +1074,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(2)
 
         # Verify "Computed type:" combo box is accessible
-        app = _fresh_app()
+        app = get_jasp_app()
         combo_boxes = find_all_by_role(app, "combo box", max_depth=20)
         computed_type_cb = None
         for cb in combo_boxes:
@@ -1112,14 +1085,14 @@ class TestCSVLoading(unittest.TestCase):
         print(f"  [T18] Computed type combo box accessible", flush=True)
 
         # Verify tab buttons are accessible
-        app = _fresh_app()
+        app = get_jasp_app()
         tabs = find_all_by_role(app, "page tab", max_depth=20)
         tab_names = [(t.get_name() or "") for t in tabs]
         print(f"  [T18] Tab buttons: {tab_names}", flush=True)
         self.assertTrue(len(tabs) > 0, "VariablesWindow tabs should be accessible")
 
         # Verify "Compute column" button is present
-        app = _fresh_app()
+        app = get_jasp_app()
         all_btns = find_all_by_role(app, "button", max_depth=25)
         compute_btn = None
         for b in all_btns:

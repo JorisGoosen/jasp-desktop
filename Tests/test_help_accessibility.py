@@ -7,25 +7,18 @@ and verifying content is exposed through the accessibility tree.
 import sys
 import time
 from accessibility_common import (
-    Atspi, find_jasp_app, find_by_name, find_by_desc,
+    find_by_name, find_by_desc,
     click_element, dump_tree, find_window_by_name,
+    setup_jasp_app,
 )
 
 
 def main():
-    app, main_window = find_jasp_app(timeout=30)
+    app, main_window = setup_jasp_app(timeout=30)
     if not main_window:
         print("FATAL: Could not find JASP main window")
         sys.exit(1)
     print(f"Found main window: {main_window.get_child_count()} children")
-
-    for _ in range(5):
-        try:
-            from accessibility_common import dismiss_dialogs
-            dismiss_dialogs(app)
-            time.sleep(1)
-        except Exception:
-            pass
 
     # Step 1: Click "Main menu" button
     print("Clicking 'Main menu' button...")

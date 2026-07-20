@@ -223,6 +223,51 @@ def grab_window_focus():
     return False
 
 
+def setup_jasp_app(timeout=30, main_window_names=None):
+    """Initialize AT-SPI, find JASP, dismiss dialogs. Returns (app, main_window)."""
+    Atspi.init()
+    app, main_window = find_jasp_app(timeout=timeout, main_window_names=main_window_names)
+    if not main_window:
+        return None, None
+    for _ in range(5):
+        dismiss_dialogs(app)
+        time.sleep(1)
+    return app, main_window
+
+
+def robust_search(get_app, func, *args, max_retries=3):
+    """Call func(app, *args), retrying with fresh app references on failure."""
+    for attempt in range(max_retries):
+        try:
+            app = get_app()
+            if not app:
+                time.sleep(1.5)
+                continue
+            result = func(app, *args)
+            if result is not None and (not isinstance(result, (list, tuple)) or len(result) > 0):
+                return result
+            time.sleep(1.5)
+        except Exception as e:
+            if "no longer exists" in str(e) or "Did not receive a reply" in str(e):
+                time.sleep(1.5)
+    return func(get_app(), *args)
+
+
+def open_file_menu(app, main_window):
+    """Click Main menu and verify the file menu opened."""
+    close_menu()
+    time.sleep(1)
+    btn = find_by_role_and_name(main_window, "button", "Main menu")
+    if not btn:
+        return False
+    if not click_element(btn):
+        return False
+    time.sleep(5)
+    elements = find_all_by_role(app, "button", max_depth=8)
+    names = [(e.get_name() or "").lower() for e in elements]
+    return any("save as" in n or "export results" in n for n in names)
+
+
 # ── interaction helpers ──────────────────────────────────────────────
 
 
