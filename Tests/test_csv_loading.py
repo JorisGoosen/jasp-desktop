@@ -618,12 +618,7 @@ class TestCSVLoading(unittest.TestCase):
         self.assertTrue(row1_before, "Row 1 contNormal not found before edit")
         print(f"  [T08] Before: {row1_before[0]}", flush=True)
 
-        # Write test value to temp file
-        import tempfile, pathlib
-        path = pathlib.Path(tempfile.gettempdir()) / "jasp-edit-cell-value.txt"
-        path.write_text("5.0")
-
-        # Click table → focusAndEdit() reads file → commitEdit(0, 1, val)
+        # Enter edit mode
         app = _fresh_app()
         tables = find_all_by_role(app, "table", max_depth=20)
         table = None
@@ -633,16 +628,48 @@ class TestCSVLoading(unittest.TestCase):
                 break
         self.assertIsNotNone(table, "Data Table View not found")
         click_element(table)
+        time.sleep(1.5)
+
+        # === KEYBOARD APPROACH: try PRESS+RELEASE for characters ===
+        print(f"  [T08] Trying PRESS+RELEASE for characters...", flush=True)
+        for ch in "5.0":
+            Atspi.generate_keyboard_event(ord(ch), None, Atspi.KeySynthType.PRESS)
+            time.sleep(0.05)
+            Atspi.generate_keyboard_event(ord(ch), None, Atspi.KeySynthType.RELEASE)
+            time.sleep(0.05)
+        time.sleep(0.3)
+        # Press Enter
+        Atspi.generate_keyboard_event(0xFF0D, None, Atspi.KeySynthType.PRESS)
+        time.sleep(0.01)
+        Atspi.generate_keyboard_event(0xFF0D, None, Atspi.KeySynthType.RELEASE)
         time.sleep(2)
 
         app = _fresh_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
-        row1_after = _cell_names_matching(cell_names, 1, "contNormal")
-        print(f"  [T08] After edit: {row1_after}", flush=True)
-        self.assertTrue(row1_after, "Row 1 not found after edit")
-        edited_found = any("5" in n.split("contNormal: ")[-1][:3] for n in row1_after)
-        self.assertTrue(edited_found, f"Cell should contain '5' after edit, got: {row1_after}")
+        row1_kb = _cell_names_matching(cell_names, 1, "contNormal")
+        print(f"  [T08] After PRESS+RELEASE keys: {row1_kb}", flush=True)
+
+        kb_worked = row1_kb and any("5" in n.split("contNormal: ")[-1][:3] for n in row1_kb)
+
+        if not kb_worked:
+            # Fall back to temp-file approach
+            import tempfile, pathlib
+            path = pathlib.Path(tempfile.gettempdir()) / "jasp-edit-cell-value.txt"
+            path.write_text("5.0")
+            print(f"  [T08] Keyboard failed, using temp-file fallback", flush=True)
+            click_element(table)
+            time.sleep(2)
+            app = _fresh_app()
+            cells = find_all_by_role(app, "table cell", max_depth=10)
+            cell_names = [(c.get_name() or "") for c in cells]
+            row1_kb = _cell_names_matching(cell_names, 1, "contNormal")
+            path.unlink(missing_ok=True)
+
+        print(f"  [T08] After edit: {row1_kb}", flush=True)
+        self.assertTrue(row1_kb, "Row 1 not found after edit")
+        edited_found = any("5" in n.split("contNormal: ")[-1][:3] for n in row1_kb)
+        self.assertTrue(edited_found, f"Cell should contain '5' after edit, got: {row1_kb}")
 
         undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button not found")
@@ -654,7 +681,6 @@ class TestCSVLoading(unittest.TestCase):
         cell_names = [(c.get_name() or "") for c in cells]
         row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
         print(f"  [T08] After undo: {row1_undo}", flush=True)
-        path.unlink(missing_ok=True)
     def test_09_insert_column_undo(self):
         """[Spec Test 07] Insert column before → verify → undo."""
         self._ensure_data_mode()

@@ -44,6 +44,7 @@ Item
 		Keys.onPressed: (event) =>
 		{
 			keyPressed = true
+			messages.log("DataTableViewEdit KEYS: key=" + event.key + " text='" + event.text + "' mod=" + event.modifiers)
 	
 			var rowI			= rowIndex
 			var colI			= columnIndex
