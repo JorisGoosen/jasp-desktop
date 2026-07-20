@@ -114,15 +114,29 @@ fi
 # ── log file ──────────────────────────────────────────────────────────
 LOG_FILE="/tmp/jasp_${TEST_NAME}.log"
 
+# ── export vars for the dbus sub-shell ─────────────────────────────────
+export __jasp_bin="$JASP_BIN"
+export __jasp_args="$JASP_ARGS"
+export __jasp_log="$LOG_FILE"
+export __jasp_wait="$WAIT_SEC"
+export __jasp_test="$TEST_SCRIPT"
+export __jasp_name="$TEST_NAME"
+export __jasp_display="$DISPLAY"
+export __jasp_qt_acc="$QT_LINUX_ACCESSIBILITY_ALWAYS_ON"
+export __jasp_qt_acc2="$QT_ACCESSIBILITY"
+export __jasp_qtwr="$QTWEBENGINE_RESOURCES_PATH"
+export __jasp_qtwe="$QTWEBENGINEPROCESS_PATH"
+export __jasp_qtcf="$QTWEBENGINE_CHROMIUM_FLAGS"
+
 # ── main session ──────────────────────────────────────────────────────
 dbus-run-session -- bash -c '
 set +e
-export DISPLAY="'"$DISPLAY"'"
-export QT_LINUX_ACCESSIBILITY_ALWAYS_ON="'"$QT_LINUX_ACCESSIBILITY_ALWAYS_ON"'"
-export QT_ACCESSIBILITY="'"$QT_ACCESSIBILITY"'"
-export QTWEBENGINE_RESOURCES_PATH="'"$QTWEBENGINE_RESOURCES_PATH"'"
-export QTWEBENGINEPROCESS_PATH="'"$QTWEBENGINEPROCESS_PATH"'"
-export QTWEBENGINE_CHROMIUM_FLAGS="'"$QTWEBENGINE_CHROMIUM_FLAGS"'"
+export DISPLAY="$__jasp_display"
+export QT_LINUX_ACCESSIBILITY_ALWAYS_ON="$__jasp_qt_acc"
+export QT_ACCESSIBILITY="$__jasp_qt_acc2"
+export QTWEBENGINE_RESOURCES_PATH="$__jasp_qtwr"
+export QTWEBENGINEPROCESS_PATH="$__jasp_qtwe"
+export QTWEBENGINE_CHROMIUM_FLAGS="$__jasp_qtcf"
 
 cleanup() {
     kill $JASP_PID $ATSPI_BUS $ATSPI_REG 2>/dev/null
@@ -138,25 +152,29 @@ ATSPI_REG=$!
 sleep 1
 
 echo "Starting JASP ..."
-"'"$JASP_BIN"'" '"$JASP_ARGS"' >"'"$LOG_FILE"'" 2>&1 &
+if [ -n "$__jasp_args" ]; then
+    "$__jasp_bin" "$__jasp_args" >"$__jasp_log" 2>&1 &
+else
+    "$__jasp_bin" >"$__jasp_log" 2>&1 &
+fi
 JASP_PID=$!
-sleep '"$WAIT_SEC"'
+sleep "$__jasp_wait"
 
 if ! kill -0 $JASP_PID 2>/dev/null; then
   echo "FATAL: JASP exited prematurely (PID $JASP_PID)"
-  tail -20 '"$LOG_FILE"'
+  tail -20 "$__jasp_log"
   exit 1
 fi
 
 echo "JASP running (PID $JASP_PID)"
-echo "Running test: '"$TEST_NAME"'"
+echo "Running test: $__jasp_name"
 
-/usr/bin/python3 "'"$TEST_SCRIPT"'"
+/usr/bin/python3 "$__jasp_test"
 rc=$?
 
 if ! kill -0 $JASP_PID 2>/dev/null; then
   echo "WARNING: JASP exited during test run (PID $JASP_PID)"
-  tail -20 '"$LOG_FILE"'
+  tail -20 "$__jasp_log"
 fi
 
 exit $rc

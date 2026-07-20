@@ -263,8 +263,8 @@ def open_file_menu(app, main_window):
     if not click_element(btn):
         return False
     time.sleep(5)
-    elements = find_all_by_role(app, "button", max_depth=8)
-    names = [(e.get_name() or "").lower() for e in elements]
+    elements = find_all(app, max_depth=6)
+    names = [name.lower() for _, name, _ in elements]
     return any("save as" in n or "export results" in n for n in names)
 
 

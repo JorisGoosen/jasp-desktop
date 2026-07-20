@@ -250,7 +250,10 @@ class TestJASPAccessibility(unittest.TestCase):
 
     def _open_file_menu(self):
         self._refresh_app()
-        result = open_file_menu(self.app, self.main_window)
+        try:
+            result = open_file_menu(self.app, self.main_window)
+        except Exception:
+            return False
         if result:
             fresh = get_jasp_app()
             if fresh:
