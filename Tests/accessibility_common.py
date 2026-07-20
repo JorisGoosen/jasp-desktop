@@ -123,7 +123,6 @@ def find_all_by_role(parent, role, name_contains=None, depth=0, max_depth=8):
     except Exception:
         pass
     return results
-    return results
 
 
 def find_by_name(parent, name, role=None, timeout=5, recursive=True):
@@ -432,7 +431,15 @@ def find_document_web(app):
     """
     Find the most content-rich document web in the JASP app.
     JASP has multiple document web elements (help, about, community, results).
-    Returns the one with the largest ancestor count.
+    Returns the one with the largest descendant count.
+
+    NOTE: QtWebEngine may nest an inner 'document web' child inside the
+    outer 'document web'. Callers that need the innermost content root
+    should check for single-child nesting and recurse:
+        if doc.get_child_count() == 1:
+            inner = doc.get_child_at_index(0)
+            if 'document' in inner.get_role_name().lower():
+                doc = inner
     """
     all_docs = find_all_by_role(app, "document web")
     if not all_docs:

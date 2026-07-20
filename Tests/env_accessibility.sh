@@ -37,6 +37,9 @@ fi
 export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
 export QT_ACCESSIBILITY=1
 
+# Enable test-only debug features (e.g., temp-file cell edit communication)
+export JASP_DEBUG=1
+
 # Chromium flags for headless/CI
 if [ -z "${QTWEBENGINE_CHROMIUM_FLAGS}" ]; then
     QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu --disable-software-rasterizer"

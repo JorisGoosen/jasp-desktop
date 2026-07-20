@@ -29,6 +29,7 @@ FocusScope
 	visible						: showMe
 	Accessible.role				: Accessible.Menu
 	Accessible.name				: menuTitle
+	Accessible.ignored			: !showMe
 	x							: Math.min(sourcePos.x + realOffsetX, sceneWidth - (width  + 2) ) // Move the custom menu to the right if there is not enough space
 	y							: sourcePos.y + realOffsetY
 	property var	props		: undefined

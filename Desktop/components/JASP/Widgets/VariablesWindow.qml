@@ -151,7 +151,7 @@ FocusScope
 						Accessible.role:			Accessible.PageTab
 						Accessible.name:			columnModel.tabs[index].title
 						Accessible.description:		qsTr("Switch to %1 tab").arg(columnModel.tabs[index].title)
-						Accessible.onPressAction:	{ checked = true; }
+						Accessible.onPressAction:	{ tabbar.currentIndex = index; }
 
 						onCheckedChanged:	if (checked)
 												tabView.currentTabButton				= tabButton;

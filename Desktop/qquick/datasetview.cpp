@@ -504,9 +504,13 @@ void DataSetView::resizeData(int rows, int columns)
 
 #include <QFile>
 #include <QStandardPaths>
+#include <QProcessEnvironment>
 
 QString DataSetView::consumeTestEditValueFile()
 {
+	if (!qEnvironmentVariableIsSet("JASP_DEBUG"))
+		return "";
+
 	QString path = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/jasp-edit-cell-value.txt";
 	QFile f(path);
 	if (f.exists() && f.open(QIODevice::ReadOnly))

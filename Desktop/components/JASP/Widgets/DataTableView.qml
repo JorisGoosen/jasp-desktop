@@ -20,11 +20,13 @@ FocusScope
 	function focusAndEdit()
 	{
 		__myRoot.forceActiveFocus();
-		dataTableView.view.select(0, 0, false, false);
-		dataTableView.view.edit(0, 0);
+		var col = dataTableView.view.selectionMin.x >= 0 ? dataTableView.view.selectionMin.x : 0;
+		var row = dataTableView.view.selectionMin.y >= 0 ? dataTableView.view.selectionMin.y : 0;
+		dataTableView.view.select(row, col, false, false);
+		dataTableView.view.edit(row, col);
 		var val = dataTableView.view.consumeTestEditValueFile();
 		if (val !== "")
-			dataTableView.view.commitEdit(0, 1, val);
+			dataTableView.view.commitEdit(row, col, val);
 	}
 
 	signal doubleClicked()

@@ -121,6 +121,7 @@ export QT_ACCESSIBILITY
 export QTWEBENGINE_RESOURCES_PATH
 export QTWEBENGINEPROCESS_PATH
 export QTWEBENGINE_CHROMIUM_FLAGS
+export JASP_DEBUG
 
 # dbus-run-session can hang waiting for bus daemon to exit.
 # Start the session bus ourselves so we can kill it forcefully.

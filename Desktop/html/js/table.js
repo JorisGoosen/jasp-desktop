@@ -551,10 +551,10 @@ JASPWidgets.tablePrimitive = JASPWidgets.View.extend({
 		var tableTitle = optTitle ? optTitle : (optError ? optError.errorMessage : 'Table');
 
 		if (optError) {
-			chunks.push('<table class="error-state jasp-no-select" role="table" aria-label="' + escapeAriaAttribute(tableTitle) + '" aria-describedby="' + tableId + '-description" tabindex="0">')
+			chunks.push('<table class="error-state jasp-no-select" role="table" aria-label="' + escapeHTML(tableTitle) + '" aria-describedby="' + tableId + '-description" tabindex="0">')
 		}
 		else {
-			chunks.push('<table class="jasp-no-select" role="table" aria-label="' + escapeAriaAttribute(tableTitle) + '" id="' + tableId + '" tabindex="0">')
+			chunks.push('<table class="jasp-no-select" role="table" aria-label="' + escapeHTML(tableTitle) + '" id="' + tableId + '" tabindex="0">')
 		}
 
 		chunks.push('<thead>')
@@ -630,9 +630,9 @@ JASPWidgets.tablePrimitive = JASPWidgets.View.extend({
 					}
 					else {
 						if (hasAdjacentOvertitles)
-							chunks.push('<th colspan="' + span + '"><div class="over-title-space">' + escapeAriaAttribute(oldTitle) + '</div></th>');
+							chunks.push('<th colspan="' + span + '"><div class="over-title-space">' + escapeHTML(oldTitle) + '</div></th>');
 						else
-							chunks.push('<th colspan="' + span + '">' + escapeAriaAttribute(oldTitle) + '</th>');
+							chunks.push('<th colspan="' + span + '">' + escapeHTML(oldTitle) + '</th>');
 
 						oldTitle = newTitle
 						span = 1
@@ -641,11 +641,12 @@ JASPWidgets.tablePrimitive = JASPWidgets.View.extend({
 
 if (newTitle == oldTitle) {
 					if (hasAdjacentOvertitles)
-						chunks.push('<th colspan="' + span + '"><div class="over-title-space">' + escapeAriaAttribute(newTitle) + '</div></th>')
+						chunks.push('<th colspan="' + span + '"><div class="over-title-space">' + escapeHTML(newTitle) + '</div></th>')
 					else
-						chunks.push('<th colspan="' + span + '">' + escapeAriaAttribute(newTitle) + '</th>')
-					chunks.push('</tr>')
+						chunks.push('<th colspan="' + span + '">' + escapeHTML(newTitle) + '</th>')
 				}
+
+				chunks.push('</tr>')
 			}
 		}
 
@@ -666,7 +667,7 @@ if (newTitle == oldTitle) {
 			if (span) {
 				var headerId = 'header-' + colNo;
 				var headerRole = (cell.type === 'row-header' || cell.header) ? 'rowheader' : 'columnheader';
-				var ariaLabel = cell.content ? 'aria-label="' + escapeAriaAttribute(cell.content) + '"' : '';
+				var ariaLabel = cell.content ? 'aria-label="' + escapeHTML(cell.content) + '"' : '';
 				chunks.push('<th role="' + headerRole + '" colspan="' + span + '" class="' + cell.type + '" id="' + headerId + '" ' + ariaLabel + '>')
 				if (cell.footnotes)
 					chunks.push(cell.footnotes.join(' '))
@@ -692,7 +693,7 @@ if (newTitle == oldTitle) {
 				rowAriaLabel = optTitle + ' row ' + (rowNo + 1);
 			}
 			
-			chunks.push('<tr role="row" aria-label="' + escapeAriaAttribute(rowAriaLabel) + '">')
+			chunks.push('<tr role="row" aria-label="' + escapeHTML(rowAriaLabel) + '">')
 
 			for (var colNo = 0; colNo < columnCount; colNo++) {
 
@@ -715,7 +716,7 @@ if (newTitle == oldTitle) {
 					
 					var ariaLabel = '';
 					if (cell.content) {
-						ariaLabel = ' aria-label="' + escapeAriaAttribute(cell.content) + '"';
+						ariaLabel = ' aria-label="' + escapeHTML(cell.content) + '"';
 					}
 					
 					var headersAttr = ' headers="header-' + colNo + '"';
@@ -929,7 +930,7 @@ chunks.push('</table>');
 	},
 });
 
-function escapeAriaAttribute(str) {
+function escapeHTML(str) {
 	if (!str) return '';
 	return String(str)
 		.replace(/&/g, '&amp;')
@@ -938,14 +939,4 @@ function escapeAriaAttribute(str) {
 		.replace(/</g, '&lt;')
 		.replace(/>/g, '&gt;')
 		.replace(/\n/g, ' ');
-}
-
-function escapeHTML(str) {
-	if (!str) return '';
-	return String(str)
-		.replace(/&/g, '&amp;')
-		.replace(/"/g, '&quot;')
-		.replace(/'/g, '&#39;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;');
 }
