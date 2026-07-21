@@ -75,8 +75,7 @@ void CsvPreviewModel::updateInternalStructure()
 	}
 
 	// Parse using CSVParser
-	_parser->parse(_rawData.toStdString());
-	_grid = _parser->getGrid();
+	_grid = _parser->parse(_rawData.toStdString());
 
 	endResetModel();
 	emit clearTableForResize();

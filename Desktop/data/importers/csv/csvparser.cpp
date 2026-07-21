@@ -29,7 +29,7 @@ CSVParser::CSVParser(char delimiter, bool replaceLineEndings)
 	reset();
 }
 
-void CSVParser::parse(const string& data)
+CSVParser::Grid CSVParser::parse(const string& data)
 {
 	reset();
 	size_t i = 0;
@@ -43,11 +43,13 @@ void CSVParser::parse(const string& data)
 	}
 	finishRow();
 	emit parsingComplete();
+	
+	return getGrid();
 }
 
-void CSVParser::parse(const QString& data)
+CSVParser::Grid CSVParser::parse(const QString& data)
 {
-	parse(data.toStdString());
+	return parse(data.toStdString());
 }
 
 bool CSVParser::processChar(char ch)
@@ -70,10 +72,10 @@ bool CSVParser::processChar(char ch)
 				_currentField += ' ';
 			}
 			finishField();
-			_grid.push_back(_currentRow);
+			_gridQueue.push(_currentRow);
 			_currentRow.clear();
 			_rowFinished = true;
-			emit rowParsed(_grid.back());
+			emit rowParsed(_gridQueue.back());
 			return false;
 		default:
 			if (ch == _delimiter)
@@ -115,7 +117,7 @@ bool CSVParser::processChar(char ch)
 
 bool CSVParser::hasRow() const
 {
-	return !_grid.empty() || (_rowFinished && (!_currentRow.empty() || !_currentField.empty()));
+	return !_gridQueue.empty() || (_rowFinished && (!_currentRow.empty() || !_currentField.empty()));
 }
 
 vector<string> CSVParser::extractRow()
@@ -125,38 +127,37 @@ vector<string> CSVParser::extractRow()
 		finishRow();
 	}
 
-	if (_grid.empty())
+	if (_gridQueue.empty())
 	{
 		return {};
 	}
 
-	auto row = _grid.front();
-	_grid.erase(_grid.begin());
+	auto row = _gridQueue.front();
+	_gridQueue.pop();
 	return row;
 }
 
-const vector<vector<string>>& CSVParser::getGrid() const
+CSVParser::Grid CSVParser::getGrid()
 {
-	return _grid;
+	Grid grid;
+	
+	while(!_gridQueue.empty())
+	{
+		grid.push_back(_gridQueue.front());
+		_gridQueue.pop();
+	}
+
+	return grid;
 }
 
 size_t CSVParser::getRowCount() const
 {
-	return _grid.size();
-}
-
-size_t CSVParser::getColumnCount(size_t row) const
-{
-	if (row >= _grid.size())
-	{
-		return 0;
-	}
-	return _grid[row].size();
+	return _gridQueue.size();
 }
 
 bool CSVParser::hasPendingData() const
 {
-	return !_currentField.empty() || !_currentRow.empty() || !_grid.empty();
+	return !_currentField.empty() || !_currentRow.empty() || !_gridQueue.empty();
 }
 
 void CSVParser::reset()
@@ -164,7 +165,8 @@ void CSVParser::reset()
 	_state = Normal;
 	_currentField.clear();
 	_currentRow.clear();
-	_grid.clear();
+	while(!_gridQueue.empty())
+		_gridQueue.pop();
 	_rowFinished = false;
 }
 
@@ -193,7 +195,7 @@ void CSVParser::finishRow()
 
 	if (!_currentRow.empty())
 	{
-		_grid.push_back(_currentRow);
+		_gridQueue.push(_currentRow);
 		_currentRow.clear();
 	}
 	_rowFinished = false;

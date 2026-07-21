@@ -19,10 +19,11 @@
 #ifndef CSVPARSER_H
 #define CSVPARSER_H
 
-#include <vector>
+#include <queue>
 #include <string>
 #include <QString>
 #include <QObject>
+#include <utils.h>
 
 ///
 /// CSVParser: Pure state machine for CSV parsing (RFC 4180 compliant)
@@ -48,11 +49,11 @@ public:
 
 	/// Parse a complete CSV string
 	/// @param data The CSV data as a string
-	void parse(const std::string& data);
+	Grid parse(const std::string& data);
 
 	/// Parse a complete CSV string from QString
 	/// @param data The CSV data as a QString
-	void parse(const QString& data);
+	Grid parse(const QString& data);
 
 	/// Process a single character (for streaming)
 	/// @param ch The character to process
@@ -67,18 +68,11 @@ public:
 	/// @return Vector of field strings for the row
 	std::vector<std::string> extractRow();
 
-	/// Get all parsed rows
-	/// @return Reference to the grid containing all parsed data
-	const Grid& getGrid() const;
+
 
 	/// Get number of rows parsed
 	/// @return Row count
 	size_t getRowCount() const;
-
-	/// Get number of columns in a specific row
-	/// @param row Row index
-	/// @return Column count, or 0 if row doesn't exist
-	size_t getColumnCount(size_t row) const;
 
 	/// Check if parser has any pending data
 	/// @return true if there's unextracted data
@@ -93,21 +87,27 @@ public:
 
 	/// Get current delimiter
 	char delimiter() const { return _delimiter; }
+	
+	
+protected:
+	/// Get all parsed rows
+	/// @return Reference to the grid containing all parsed data, wipes the queue!
+	Grid getGrid();
 
 signals:
-	void rowParsed(const std::vector<std::string>& row);
+	void rowParsed(const stringvec & row);
 	void parsingComplete();
 
 private:
 	enum State { Normal, Quoted, QuotedQuote };
 
-	State _state;
-	std::string _currentField;
-	std::vector<std::string> _currentRow;
-	Grid _grid;
-	char _delimiter;
-	bool _replaceLineEndings;
-	bool _rowFinished;
+	State						_state;
+	std::string					_currentField;
+	std::vector<std::string>	_currentRow;
+	std::queue<stringvec>		_gridQueue;
+	char						_delimiter;
+	bool						_replaceLineEndings;
+	bool						_rowFinished;
 
 	/// Finish current field (add to row, reset field)
 	void finishField();
