@@ -38,6 +38,8 @@ Item
 	property double	stepSize:				1
 	property alias	text:					label.text
 	property string toolTip:				""
+	property string info:					""
+	property string title:					""
 	property alias	implicitWidthLabel:		label.implicitWidth
 	property alias	widthLabel:				label.width
 

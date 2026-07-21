@@ -411,6 +411,7 @@ class TestJASPAccessibility(unittest.TestCase):
     def test_30_help_window_accessible(self):
         from accessibility_common import (
             click_element, close_menu, find_window_by_name, ensure_menu_closed,
+            close_window,
         )
         self._refresh_app()
         ensure_menu_closed(self.app, self.main_window)
@@ -431,13 +432,15 @@ class TestJASPAccessibility(unittest.TestCase):
         time.sleep(3)
         help_win = find_window_by_name(self.app, "JASP Help", timeout=8)
         if not help_win:
+            close_menu()
             self.skipTest("Help window did not open")
         self.assertTrue(help_win.get_child_count() > 0, "Help window has no children")
+        close_window(help_win)
         close_menu()
         time.sleep(1)
 
     def test_31_about_window_accessible(self):
-        from accessibility_common import click_element, close_menu, find_window_by_name, ensure_menu_closed
+        from accessibility_common import click_element, close_menu, find_window_by_name, ensure_menu_closed, close_window
         self._refresh_app()
         ensure_menu_closed(self.app, self.main_window)
         time.sleep(0.5)
@@ -453,11 +456,12 @@ class TestJASPAccessibility(unittest.TestCase):
         if not about_win:
             self.skipTest("About window did not open")
         self.assertTrue(about_win.get_child_count() > 0, "About window has no children")
+        close_window(about_win)
         close_menu()
         time.sleep(1)
 
     def test_32_contact_window_accessible(self):
-        from accessibility_common import click_element, close_menu, find_window_by_name, ensure_menu_closed
+        from accessibility_common import click_element, close_menu, find_window_by_name, ensure_menu_closed, close_window
         self._refresh_app()
         ensure_menu_closed(self.app, self.main_window)
         time.sleep(0.5)
@@ -473,11 +477,12 @@ class TestJASPAccessibility(unittest.TestCase):
         if not contact_win:
             self.skipTest("Contact window did not open")
         self.assertTrue(contact_win.get_child_count() > 0, "Contact window has no children")
+        close_window(contact_win)
         close_menu()
         time.sleep(1)
 
     def test_33_community_window_accessible(self):
-        from accessibility_common import click_element, close_menu, find_window_by_name, ensure_menu_closed
+        from accessibility_common import click_element, close_menu, find_window_by_name, ensure_menu_closed, close_window
         self._refresh_app()
         ensure_menu_closed(self.app, self.main_window)
         time.sleep(0.5)
@@ -493,6 +498,7 @@ class TestJASPAccessibility(unittest.TestCase):
         if not community_win:
             self.skipTest("Community window did not open")
         self.assertTrue(community_win.get_child_count() > 0, "Community window has no children")
+        close_window(community_win)
         close_menu()
         time.sleep(1)
 
@@ -507,7 +513,7 @@ class TestJASPAccessibility(unittest.TestCase):
 
     # ── open CSV via file menu ──────────────────────────────────────
 
-    def test_34_computer_tab_accessible(self):
+    def test_29b_computer_tab_accessible(self):
         from accessibility_common import click_element, close_menu, ensure_menu_closed, find_all_by_role
         self._refresh_app()
         ensure_menu_closed(self.app, self.main_window)

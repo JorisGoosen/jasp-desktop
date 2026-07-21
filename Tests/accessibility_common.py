@@ -69,6 +69,41 @@ KEY_ESCAPE     = 0xFF1B
 KEY_DOWN       = 0xFF54
 KEY_RIGHT      = 0xFF53
 KEY_RETURN     = 0xFF0D
+KEY_CONTROL_L  = 0xFFE3
+KEY_CONTROL_R  = 0xFFE4
+
+
+def close_window_via_shortcut():
+    """Send Ctrl+W (close window shortcut) via AT-SPI keyboard events."""
+    Atspi.generate_keyboard_event(KEY_CONTROL_L, None, Atspi.KeySynthType.PRESS)
+    time.sleep(0.02)
+    Atspi.generate_keyboard_event(ord('w'), None, Atspi.KeySynthType.PRESS)
+    time.sleep(0.02)
+    Atspi.generate_keyboard_event(ord('w'), None, Atspi.KeySynthType.RELEASE)
+    time.sleep(0.02)
+    Atspi.generate_keyboard_event(KEY_CONTROL_L, None, Atspi.KeySynthType.RELEASE)
+    time.sleep(0.5)
+
+
+def close_window(window_frame, timeout=3):
+    """
+    Close a window frame via AT-SPI. Tries the Close button first,
+    then grabs focus and sends Escape.
+    """
+    close_btn = find_by_role_and_name(window_frame, "button", "Close", timeout=timeout)
+    if close_btn:
+        click_element(close_btn)
+        time.sleep(1)
+        return True
+    try:
+        ci = window_frame.get_component_iface()
+        ci.grab_focus()
+        time.sleep(0.3)
+    except Exception:
+        pass
+    generate_key_event(KEY_ESCAPE)
+    time.sleep(1)
+    return True
 
 
 def repo_root():
