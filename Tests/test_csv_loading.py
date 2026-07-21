@@ -781,7 +781,8 @@ class TestCSVLoading(unittest.TestCase):
                 current_type = ""
         print(f"  [T13] Current column type: '{current_type}'", flush=True)
 
-        # Open popup and navigate with keyboard (Qt doesn't expose popup items via AT-SPI)
+        # Open popup — delegates not exposed by Qt AT-SPI bridge for QTC.Popup
+        # Must use keyboard navigation instead of direct item selection
         click_element(type_combo)
         time.sleep(1)
 
