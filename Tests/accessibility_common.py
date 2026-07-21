@@ -534,6 +534,36 @@ def find_menu_items(parent):
     return results
 
 
+def find_menu_items_global(app, timeout=3):
+    """
+    Find all menu items in the AT-SPI tree, including those in transient
+    popup windows that are not direct children of the app.
+    Searches both the app subtree and the desktop for transient frames.
+    """
+    items = find_menu_items(app)
+    if items:
+        return items
+
+    for _ in range(timeout * 4):
+        try:
+            desktop = Atspi.get_desktop(0)
+            for i in range(desktop.get_child_count()):
+                a = desktop.get_child_at_index(i)
+                for j in range(a.get_child_count()):
+                    try:
+                        c = a.get_child_at_index(j)
+                        if c.get_role_name() in ("popup menu", "window", "frame", "dialog", "popup tool tip"):
+                            items = find_menu_items(c)
+                            if items:
+                                return items
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        time.sleep(0.25)
+    return items
+
+
 def generate_key_event(keyval):
     """Send a key event via AT-SPI to generate keyboard events."""
     try:
@@ -548,6 +578,57 @@ def type_text(text, delay=0.01):
     for ch in text:
         generate_key_event(ord(ch))
         time.sleep(delay)
+
+
+def edit_cell_text(app, new_value, timeout=5):
+    """
+    Find the editable text cell in the data table and set its content
+    via the AT-SPI EditableText interface, then commit with Enter.
+
+    Qt6 maps QML Accessible.EditableText to AT-SPI role "text".
+    Returns True on success, None if the element was not found.
+    Raises AssertionError if set_text_contents fails.
+    """
+    editable = None
+    for role_name in ("editable text", "text", "edit bar"):
+        editable = find_by_role_and_name(app, role_name, "Edit cell value", timeout=timeout)
+        if editable:
+            break
+    if not editable:
+        editable = find_by_name(app, "Edit cell value", timeout=timeout)
+    if not editable:
+        return None
+
+    try:
+        ei = editable.get_editable_text_iface()
+        ei.set_text_contents(new_value)
+    except Exception:
+        raise AssertionError(f"set_text_contents failed on '{editable.get_name()}'")
+
+    time.sleep(0.3)
+    generate_key_event(KEY_ENTER)
+    time.sleep(1.5)
+    return True
+
+
+def set_editable_text(element, new_value, commit_with_enter=True):
+    """
+    Set the text of any AT-SPI editable text element via
+    get_editable_text_iface, then optionally commit with Enter.
+
+    Returns True on success, raises Exception on failure.
+    """
+    try:
+        ei = element.get_editable_text_iface()
+        ei.set_text_contents(new_value)
+    except Exception as e:
+        raise RuntimeError(f"set_text_contents failed on '{element.get_name()}': {e}")
+
+    if commit_with_enter:
+        time.sleep(0.3)
+        generate_key_event(KEY_ENTER)
+        time.sleep(1.5)
+    return True
 
 
 

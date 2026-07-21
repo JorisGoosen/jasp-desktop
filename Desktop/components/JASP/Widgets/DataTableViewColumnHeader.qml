@@ -59,11 +59,6 @@ Rectangle
 		anchors.left:			parent.left
 		anchors.margins:		4 * jaspTheme.uiScale
 
-		Accessible.role:			Accessible.PushButton
-		Accessible.name:			qsTr("Change column type: %1").arg(headerText)
-		Accessible.description:		qsTr("Open menu to change type for column %1").arg(headerText)
-		Accessible.onPressAction:	{ if (!virtual && computedColumnType !== computedColumnTypeAnalysis) colIcon.openTypeMenu(); }
-
 
 		source:					getColumnTypeIcon(columnType)
 		width:					source == "" ? 0 : headerRoot.__iconDim
@@ -109,6 +104,11 @@ Rectangle
 			enabled:			!virtual && computedColumnType !== computedColumnTypeAnalysis
 			anchors.fill:		parent
 			onClicked:			colIcon.openTypeMenu()
+
+			Accessible.role:			Accessible.PushButton
+			Accessible.name:			qsTr("Change column type: %1").arg(headerText)
+			Accessible.description:		qsTr("Open menu to change type for column %1").arg(headerText)
+			Accessible.onPressAction:	{ if (enabled) colIcon.openTypeMenu(); }
 
 			hoverEnabled:		true
 			ToolTip.visible:	containsMouse

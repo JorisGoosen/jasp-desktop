@@ -121,7 +121,6 @@ export QT_ACCESSIBILITY
 export QTWEBENGINE_RESOURCES_PATH
 export QTWEBENGINEPROCESS_PATH
 export QTWEBENGINE_CHROMIUM_FLAGS
-export JASP_DEBUG
 
 # dbus-run-session can hang waiting for bus daemon to exit.
 # Start the session bus ourselves so we can kill it forcefully.
@@ -140,15 +139,16 @@ fi
 cleanup() {
     for pid in $JASP_PID $ATSPI_BUS $ATSPI_REG $WATCHDOG_PID; do
         [[ -n "$pid" ]] || continue
-        kill -9 "$pid" 2>/dev/null
+        kill -9 "$pid" 2>/dev/null || true
     done
     if [[ -n "$DBUS_PID" ]]; then
-        kill -9 "$DBUS_PID" 2>/dev/null
+        kill -9 "$DBUS_PID" 2>/dev/null || true
     fi
     if [[ -n "$XVFB_PID" ]]; then
         echo "Stopping Xvfb (PID $XVFB_PID)"
-        kill -9 "$XVFB_PID" 2>/dev/null
+        kill -9 "$XVFB_PID" 2>/dev/null || true
     fi
+    pkill -P "$$" 2>/dev/null || true
 }
 trap cleanup EXIT
 

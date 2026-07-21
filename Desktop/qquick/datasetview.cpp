@@ -502,25 +502,4 @@ void DataSetView::resizeData(int rows, int columns)
 	_expandedModel->resize(rows - 1, columns - 1, false, tr("Resize data to %1 rows and %2 columns").arg(rows).arg(columns));
 }
 
-#include <QFile>
-#include <QStandardPaths>
-#include <QProcessEnvironment>
-
-QString DataSetView::consumeTestEditValueFile()
-{
-	if (!qEnvironmentVariableIsSet("JASP_DEBUG"))
-		return "";
-
-	QString path = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/jasp-edit-cell-value.txt";
-	QFile f(path);
-	if (f.exists() && f.open(QIODevice::ReadOnly))
-	{
-		QString val = QString::fromUtf8(f.readAll()).trimmed();
-		f.close();
-		f.remove();
-		return val;
-	}
-	return "";
-}
-
 

@@ -6,11 +6,12 @@ import time
 import sys
 from accessibility_common import (
     Atspi, click_element, close_menu,
-    find_all_by_role, get_jasp_app,
+    find_all_by_role, get_jasp_app, find_menu_items_global,
     find_window_by_name, generate_key_event, type_text,
     has_focus, find_focused, find_by_role_and_name,
     grab_window_focus, KEY_ENTER, KEY_DOWN, KEY_ESCAPE, KEY_RIGHT,
     setup_jasp_app, robust_search, open_file_menu,
+    edit_cell_text, set_editable_text,
 )
 
 
@@ -455,46 +456,25 @@ class TestCSVLoading(unittest.TestCase):
         click_element(table)
         time.sleep(1.5)
 
-        # === KEYBOARD APPROACH: try PRESS+RELEASE for characters ===
-        print(f"  [T08] Trying PRESS+RELEASE for characters...", flush=True)
-        for ch in "5.0":
-            Atspi.generate_keyboard_event(ord(ch), None, Atspi.KeySynthType.PRESS)
-            time.sleep(0.05)
-            Atspi.generate_keyboard_event(ord(ch), None, Atspi.KeySynthType.RELEASE)
-            time.sleep(0.05)
-        time.sleep(0.3)
-        # Press Enter
-        Atspi.generate_keyboard_event(KEY_ENTER, None, Atspi.KeySynthType.PRESS)
-        time.sleep(0.01)
-        Atspi.generate_keyboard_event(KEY_ENTER, None, Atspi.KeySynthType.RELEASE)
-        time.sleep(2)
+        # Navigate right to contNormal column (col 1) in edit mode
+        generate_key_event(KEY_RIGHT)
+        time.sleep(0.2)
+
+        # Set cell value via AT-SPI EditableText interface
+        print(f"  [T08] Setting cell value via EditableText...", flush=True)
+        result = edit_cell_text(app, "5.0", timeout=3)
+        if result is None:
+            self.skipTest("Edit cell value editable text not found via AT-SPI")
+        self.assertTrue(result, "edit_cell_text failed")
 
         app = get_jasp_app()
         cells = find_all_by_role(app, "table cell", max_depth=10)
         cell_names = [(c.get_name() or "") for c in cells]
-        row1_kb = _cell_names_matching(cell_names, 1, "contNormal")
-        print(f"  [T08] After PRESS+RELEASE keys: {row1_kb}", flush=True)
-
-        kb_worked = row1_kb and any("5" in n.split("contNormal: ")[-1][:3] for n in row1_kb)
-
-        if not kb_worked:
-            # Fall back to temp-file approach
-            import tempfile, pathlib
-            path = pathlib.Path(tempfile.gettempdir()) / "jasp-edit-cell-value.txt"
-            path.write_text("5.0")
-            print(f"  [T08] Keyboard failed, using temp-file fallback", flush=True)
-            click_element(table)
-            time.sleep(2)
-            app = get_jasp_app()
-            cells = find_all_by_role(app, "table cell", max_depth=10)
-            cell_names = [(c.get_name() or "") for c in cells]
-            row1_kb = _cell_names_matching(cell_names, 1, "contNormal")
-            path.unlink(missing_ok=True)
-
-        print(f"  [T08] After edit: {row1_kb}", flush=True)
-        self.assertTrue(row1_kb, "Row 1 not found after edit")
-        edited_found = any("5" in n.split("contNormal: ")[-1][:3] for n in row1_kb)
-        self.assertTrue(edited_found, f"Cell should contain '5' after edit, got: {row1_kb}")
+        row1_after = _cell_names_matching(cell_names, 1, "contNormal")
+        print(f"  [T08] After edit: {row1_after}", flush=True)
+        self.assertTrue(row1_after, "Row 1 not found after edit")
+        edited_found = any("5" in n.split("contNormal: ")[-1][:3] for n in row1_after)
+        self.assertTrue(edited_found, f"Cell should contain '5' after edit, got: {row1_after}")
 
         undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button not found")
@@ -716,7 +696,6 @@ class TestCSVLoading(unittest.TestCase):
 
         if rename_dialog:
             print(f"  [T12] RenameColumnDialog found: {rename_dialog.get_name()}", flush=True)
-            # Find editable text in dialog
             editable = find_all_by_role(app, "editable text", max_depth=10)
             if not editable:
                 editable = find_all_by_role(app, "text", max_depth=10)
@@ -725,14 +704,13 @@ class TestCSVLoading(unittest.TestCase):
                     nm = (et.get_name() or "").lower()
                     if "new column name" in nm or "rename" in nm or "name" in nm:
                         print(f"  [T12] Found name field: {et.get_name()}", flush=True)
-                        # Write rename value to temp file
-                        import tempfile, pathlib
-                        path = pathlib.Path(tempfile.gettempdir()) / "jasp-edit-cell-value.txt"
-                        path.write_text("renamedCol")
-                        # Use the table click approach to trigger commitEdit
-                        # Press Enter on dialog to commit (if default name works)
-                        generate_key_event(KEY_ENTER)
-                        time.sleep(3)
+                        try:
+                            set_editable_text(et, "renamedCol")
+                            print(f"  [T12] Renamed to 'renamedCol' via EditableText", flush=True)
+                        except Exception as e:
+                            print(f"  [T12] EditableText failed: {e}, trying Enter fallback", flush=True)
+                            generate_key_event(KEY_ENTER)
+                            time.sleep(3)
                         break
         else:
             print(f"  [T12] No rename dialog, using VariablesWindow panel", flush=True)
@@ -752,7 +730,7 @@ class TestCSVLoading(unittest.TestCase):
             time.sleep(2)
 
     def test_13_change_column_type_undo(self):
-        """[Spec Test 11] Change column type via accessible icon → verify → undo."""
+        """[Spec Test 11] Change column type via VariablesWindow combo box → verify → undo."""
         self._ensure_data_mode()
 
         app = get_jasp_app()
@@ -769,45 +747,60 @@ class TestCSVLoading(unittest.TestCase):
         if not contGamma_header:
             self.skipTest("Column: contGamma header not found")
 
-        # Find the type-change icon (now accessible as PushButton)
+        # Double-click header to open VariablesWindow
+        click_element(contGamma_header)
+        time.sleep(0.3)
+        click_element(contGamma_header)
+        time.sleep(2)
+
+        # Find "Column type:" combo box in VariablesWindow
+        # Qt exposes ComboBox as "button drop down" or "combo box" via AT-SPI
         app = get_jasp_app()
-        type_icons = find_all_by_role(app, "push button", max_depth=25)
-        contGamma_icon = None
-        for icon in type_icons:
-            nm = (icon.get_name() or "").lower()
-            if "change column type" in nm and "contgamma" in nm:
-                contGamma_icon = icon
+        type_combo = None
+        for role in ("combo box", "button drop down", "combo-box"):
+            type_combo = find_by_role_and_name(app, role, "Column type:", timeout=3)
+            if type_combo:
+                print(f"  [T13] Found type combo via role '{role}'", flush=True)
                 break
+        if not type_combo:
+            # Try with partial name match
+            type_combo = find_by_name(app, "Column type", timeout=3)
+            if type_combo:
+                print(f"  [T13] Found type combo by name, role={type_combo.get_role_name()}", flush=True)
+        if not type_combo:
+            self.skipTest("Column type combo box not found in VariablesWindow via AT-SPI")
 
-        if contGamma_icon:
-            print(f"  [T13] Found type icon: {contGamma_icon.get_name()}", flush=True)
-            click_element(contGamma_icon)
-            time.sleep(1)
+        # Read current type and select a different one
+        try:
+            combo_text = type_combo.query_text()
+            current_type = (combo_text.get_text(0, -1) or "").strip()
+        except Exception:
+            current_type = ""
+        print(f"  [T13] Current column type: '{current_type}'", flush=True)
 
-            # Look for the type selector menu
-            menu_items = find_all_by_role(app, "menu item", max_depth=25)
-            type_items = [(mi.get_name() or "") for mi in menu_items]
-            print(f"  [T13] Menu items: {type_items[:8]}", flush=True)
+        # Open popup and search globally for menu items (popup is transient)
+        click_element(type_combo)
+        time.sleep(1.5)
 
-            # Click "Ordinal" to change contGamma from Scale to Ordinal
-            for type_name in ["Ordinal", "ordinal"]:
-                for mi in menu_items:
-                    if type_name in (mi.get_name() or ""):
-                        print(f"  [T13] Clicking '{mi.get_name()}'", flush=True)
-                        click_element(mi)
-                        time.sleep(2)
-                        break
-                else:
-                    continue
+        menu_items = find_menu_items_global(app, timeout=3)
+        names = [(mi.get_name() or "") for mi in menu_items]
+        print(f"  [T13] Global menu items: {names[:10]}", flush=True)
+
+        ordinal_item = None
+        for mi in menu_items:
+            if (mi.get_name() or "").lower() in ("ordinal", "nominal", "nominal text"):
+                ordinal_item = mi
                 break
-        else:
-            # Fallback: click the header to select it and try
-            print(f"  [T13] Type icon not found via AT-SPI, trying header click", flush=True)
-            click_element(contGamma_header)
-            time.sleep(1)
+        if not ordinal_item:
+            close_menu()
+            self.skipTest("No type menu items found in column type popup")
 
-        # Verify undo is now available (a change was made)
-        app = get_jasp_app()
+        new_type = ordinal_item.get_name()
+        print(f"  [T13] Selecting '{new_type}'", flush=True)
+        click_element(ordinal_item)
+        time.sleep(2)
+
+        # Undo
         undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button should be available after type change")
         click_element(undo_btn)

@@ -24,9 +24,6 @@ FocusScope
 		var row = dataTableView.view.selectionMin.y >= 0 ? dataTableView.view.selectionMin.y : 0;
 		dataTableView.view.select(row, col, false, false);
 		dataTableView.view.edit(row, col);
-		var val = dataTableView.view.consumeTestEditValueFile();
-		if (val !== "")
-			dataTableView.view.commitEdit(row, col, val);
 	}
 
 	signal doubleClicked()
