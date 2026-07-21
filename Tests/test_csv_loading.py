@@ -6,7 +6,7 @@ import time
 import sys
 from accessibility_common import (
     Atspi, click_element, close_menu,
-    find_all_by_role, get_jasp_app, find_menu_items_global,
+    find_all_by_role, get_jasp_app,
     find_window_by_name, generate_key_event, type_text,
     has_focus, find_focused, find_by_role_and_name,
     grab_window_focus, KEY_ENTER, KEY_DOWN, KEY_ESCAPE, KEY_RIGHT,
@@ -772,33 +772,25 @@ class TestCSVLoading(unittest.TestCase):
 
         # Read current type and select a different one
         try:
-            combo_text = type_combo.query_text()
+            combo_text = type_combo.get_text_iface()
             current_type = (combo_text.get_text(0, -1) or "").strip()
         except Exception:
-            current_type = ""
+            try:
+                current_type = (type_combo.get_text() or "").strip()
+            except Exception:
+                current_type = ""
         print(f"  [T13] Current column type: '{current_type}'", flush=True)
 
-        # Open popup and search globally for menu items (popup is transient)
+        # Open popup and navigate with keyboard (Qt doesn't expose popup items via AT-SPI)
         click_element(type_combo)
-        time.sleep(1.5)
+        time.sleep(1)
 
-        menu_items = find_menu_items_global(app, timeout=3)
-        names = [(mi.get_name() or "") for mi in menu_items]
-        print(f"  [T13] Global menu items: {names[:10]}", flush=True)
-
-        ordinal_item = None
-        for mi in menu_items:
-            if (mi.get_name() or "").lower() in ("ordinal", "nominal", "nominal text"):
-                ordinal_item = mi
-                break
-        if not ordinal_item:
-            close_menu()
-            self.skipTest("No type menu items found in column type popup")
-
-        new_type = ordinal_item.get_name()
-        print(f"  [T13] Selecting '{new_type}'", flush=True)
-        click_element(ordinal_item)
+        # Press Down to move from Scale → Ordinal, then Enter to select
+        generate_key_event(KEY_DOWN)
+        time.sleep(0.3)
+        generate_key_event(KEY_ENTER)
         time.sleep(2)
+        print(f"  [T13] Selected next type via keyboard", flush=True)
 
         # Undo
         undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
