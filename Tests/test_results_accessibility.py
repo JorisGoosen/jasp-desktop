@@ -29,7 +29,7 @@ def main():
 
     print(f"  Document: '{doc.get_name()}', {doc.get_child_count()} children")
 
-    doc_elements = find_all(doc, max_depth=6)
+    doc_elements = find_all(doc)
 
     desc_stats_found = False
     boxplots_found = False

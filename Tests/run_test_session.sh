@@ -61,9 +61,19 @@ TEST_NAME="$(basename "$TEST_SCRIPT" .py)"
 
 # ── X server detection / Xvfb autostart ──────────────────────────────
 XVFB_PID=""
+XVFB_DISPLAY=""
+
+_pick_display() {
+    for dn in $(seq 99 199); do
+        if [[ ! -S "/tmp/.X11-unix/X$dn" ]]; then
+            echo ":$dn"
+            return 0
+        fi
+    done
+    return 1
+}
 
 _has_running_xserver() {
-    # Check for a live X socket
     for sock in /tmp/.X11-unix/X*; do
         [[ -S "$sock" ]] && return 0
     done
@@ -71,15 +81,21 @@ _has_running_xserver() {
 }
 
 _start_xvfb() {
-    echo "Starting Xvfb on $DISPLAY ..."
-    Xvfb "$DISPLAY" -screen 0 1920x1080x24 +extension RANDR &
+    XVFB_DISPLAY="$(_pick_display)"
+    if [[ -z "$XVFB_DISPLAY" ]]; then
+        echo "FATAL: could not find free display"
+        exit 1
+    fi
+    echo "Starting Xvfb on $XVFB_DISPLAY ..."
+    Xvfb "$XVFB_DISPLAY" -screen 0 1920x1080x24 +extension RANDR &
     XVFB_PID=$!
     sleep 1
     if ! kill -0 $XVFB_PID 2>/dev/null; then
         echo "FATAL: Xvfb failed to start"
         exit 1
     fi
-    echo "Xvfb running (PID $XVFB_PID)"
+    DISPLAY="$XVFB_DISPLAY"
+    echo "Xvfb running (PID $XVFB_PID) on $DISPLAY"
 }
 
 if $NO_HEADLESS; then
@@ -88,10 +104,8 @@ if $NO_HEADLESS; then
         exit 1
     fi
 elif $FORCE_HEADLESS; then
-    DISPLAY=:99
     _start_xvfb
 elif ! _has_running_xserver; then
-    [[ -z "${DISPLAY:-}" ]] && DISPLAY=:99
     _start_xvfb
 fi
 
@@ -105,9 +119,6 @@ if [[ ${#JASP_CONFIG_VARS[@]} -gt 0 ]]; then
     for kv in "${JASP_CONFIG_VARS[@]}"; do
         echo "${kv}" >> "$JASP_CONFIG_FILE"
     done
-    # Ensure the default section exists if user didn't prepend a section
-    # (the [General] header is already written; subsequent sections are
-    #  the caller's responsibility)
     echo "Config written: ${JASP_CONFIG_VARS[*]}"
 fi
 
@@ -122,12 +133,10 @@ export QTWEBENGINE_RESOURCES_PATH
 export QTWEBENGINEPROCESS_PATH
 export QTWEBENGINE_CHROMIUM_FLAGS
 
-# dbus-run-session can hang waiting for bus daemon to exit.
-# Start the session bus ourselves so we can kill it forcefully.
 DBUS_PID=""
 BUS_ADDR="$(dbus-daemon --session --print-address --fork 2>/dev/null)"
 if [[ -n "$BUS_ADDR" ]]; then
-    DBUS_PID="$(pgrep -fn "dbus-daemon.*--print-address" | head -1)"
+    DBUS_PID="$(pgrep -fn "dbus-daemon.*--print-address" 2>/dev/null | head -1)"
     export DBUS_SESSION_BUS_ADDRESS="$BUS_ADDR"
 fi
 
@@ -137,18 +146,9 @@ if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
 fi
 
 cleanup() {
-    for pid in $JASP_PID $ATSPI_BUS $ATSPI_REG $WATCHDOG_PID; do
-        [[ -n "$pid" ]] || continue
-        kill -9 "$pid" 2>/dev/null || true
-    done
-    if [[ -n "$DBUS_PID" ]]; then
-        kill -9 "$DBUS_PID" 2>/dev/null || true
-    fi
-    if [[ -n "$XVFB_PID" ]]; then
-        echo "Stopping Xvfb (PID $XVFB_PID)"
-        kill -9 "$XVFB_PID" 2>/dev/null || true
-    fi
-    pkill -P "$$" 2>/dev/null || true
+    # Fire-and-forget kill — no wait, no hang
+    kill -KILL $XVFB_PID $JASP_PID $ATSPI_BUS $ATSPI_REG $WATCHDOG_PID $DBUS_PID 2>/dev/null
+    pkill -KILL -P "$$" 2>/dev/null
 }
 trap cleanup EXIT
 
@@ -200,16 +200,14 @@ export JASP_PID
     while kill -0 $JASP_PID 2>/dev/null; do
         sleep 2
     done
-    for c in $(pgrep -P "$$" python3 2>/dev/null); do
-        kill -9 "$c" 2>/dev/null
-    done
+    pkill -KILL -P "$$" python3 2>/dev/null
 ) &
 WATCHDOG_PID=$!
 
 /usr/bin/python3 "$TEST_SCRIPT"
 rc=$?
 
-kill $WATCHDOG_PID 2>/dev/null
+kill -KILL $WATCHDOG_PID 2>/dev/null
 
 if ! kill -0 $JASP_PID 2>/dev/null; then
   echo "WARNING: JASP exited during test run (PID $JASP_PID)"

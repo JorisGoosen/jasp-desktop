@@ -124,13 +124,13 @@ def tool_script(name):
 # ── tree search helpers ──────────────────────────────────────────────
 
 
-def find_all(obj, depth=0, max_depth=8):
+def find_all(obj, depth=0, max_depth=30):
     """Return list of (role, name, child) tuples for all descendants."""
     elements = []
     if depth > max_depth:
         return elements
     try:
-        cc = min(obj.get_child_count(), 100)
+        cc = obj.get_child_count()
         for i in range(cc):
             child = obj.get_child_at_index(i)
             role = child.get_role_name() or "unknown"
@@ -142,7 +142,7 @@ def find_all(obj, depth=0, max_depth=8):
     return elements
 
 
-def find_all_by_role(parent, role, name_contains=None, depth=0, max_depth=8):
+def find_all_by_role(parent, role, name_contains=None, depth=0, max_depth=30):
     """Return list of descendants matching a specific role."""
     results = []
     if depth > max_depth:

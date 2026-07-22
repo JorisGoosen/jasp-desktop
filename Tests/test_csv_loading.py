@@ -37,7 +37,7 @@ def _click_menu_option(button_name, menu_item_name):
     app = get_jasp_app()
     if not app:
         return False
-    all_btns = find_all_by_role(app, "button", max_depth=20)
+    all_btns = find_all_by_role(app, "button")
     btn = None
     for b in all_btns:
         if button_name.lower() in (b.get_name() or "").lower():
@@ -51,7 +51,7 @@ def _click_menu_option(button_name, menu_item_name):
     # Search for menu items globally via AT-SPI
     app = get_jasp_app()
     if app:
-        items = find_all_by_role(app, "menu item", max_depth=25)
+        items = find_all_by_role(app, "menu item")
         for mi in items:
             if menu_item_name.lower() in (mi.get_name() or "").lower():
                 click_element(mi)
@@ -84,7 +84,7 @@ class TestCSVLoading(unittest.TestCase):
     def _ensure_data_mode(self):
         """Enter data mode if not already there. Returns True if in data mode after call."""
         app = get_jasp_app()
-        all_btns = find_all_by_role(app, "button", max_depth=20)
+        all_btns = find_all_by_role(app, "button")
         names = [(b.get_name() or "").lower() for b in all_btns]
 
         if any("analyses" in n for n in names):
@@ -93,8 +93,8 @@ class TestCSVLoading(unittest.TestCase):
         # Check if "Edit Data" is among the buttons
         edit_btns = [b for b in all_btns if "edit data" in (b.get_name() or "").lower()]
         if not edit_btns:
-            # Might be the hamburger menu panel covering the ribbon.
-            # Close it by pressing Escape (real Escape, not close_menu's fake one)
+            # The hamburger menu panel may be covering the ribbon.
+            # Close it with Escape key events via AT-SPI.
             for _ in range(3):
                 try:
                     Atspi.generate_keyboard_event(KEY_ESCAPE, None, Atspi.KeySynthType.SYM)
@@ -103,7 +103,7 @@ class TestCSVLoading(unittest.TestCase):
                 time.sleep(0.3)
             time.sleep(1)
             app = get_jasp_app()
-            all_btns = find_all_by_role(app, "button", max_depth=20)
+            all_btns = find_all_by_role(app, "button")
             names = [(b.get_name() or "").lower() for b in all_btns]
             if any("analyses" in n for n in names):
                 return True
@@ -113,7 +113,7 @@ class TestCSVLoading(unittest.TestCase):
             edit_btns[0].do_action(0)
             time.sleep(3)
         app = get_jasp_app()
-        all_btns = find_all_by_role(app, "button", max_depth=20)
+        all_btns = find_all_by_role(app, "button")
         names = [(b.get_name() or "").lower() for b in all_btns]
         return any("analyses" in n for n in names)
 
@@ -124,7 +124,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(1)
         self.assertTrue(self._open_file_menu(), "Could not open file menu")
 
-        open_btns = _robust_search(lambda app: find_all_by_role(app, "button", "open", max_depth=8))
+        open_btns = _robust_search(lambda app: find_all_by_role(app, "button", "open"))
         target = open_btns[-1] if len(open_btns) >= 2 else open_btns[0] if open_btns else None
         self.assertIsNotNone(target, "No Open button")
         click_element(target)
@@ -139,7 +139,7 @@ class TestCSVLoading(unittest.TestCase):
         for i in range(30):
             app = get_jasp_app()
             if app:
-                btns = find_all_by_role(app, "button", max_depth=8)
+                btns = find_all_by_role(app, "button")
                 if any("debug" in (b.get_name() or "").lower() for b in btns):
                     break
             generate_key_event(KEY_DOWN)
@@ -174,7 +174,7 @@ class TestCSVLoading(unittest.TestCase):
 
         app = get_jasp_app()
         self.assertIsNotNone(app, "JASP gone after Load")
-        all_btns = find_all_by_role(app, "button", max_depth=8)
+        all_btns = find_all_by_role(app, "button")
         names = [(b.get_name() or "").lower() for b in all_btns]
         self.assertTrue(any("edit data" in n or "sync data" in n for n in names),
                         "No data-mode buttons found after loading")
@@ -188,7 +188,7 @@ class TestCSVLoading(unittest.TestCase):
         time.sleep(3)
 
         app = get_jasp_app()
-        all_btns = find_all_by_role(app, "button", max_depth=8)
+        all_btns = find_all_by_role(app, "button")
         names = [(b.get_name() or "").lower() for b in all_btns]
         expected = ["analyses", "synchronisation", "resize data", "insert", "remove", "undo", "redo"]
         found = [n for n in expected if any(n in bn for bn in names)]
@@ -198,14 +198,14 @@ class TestCSVLoading(unittest.TestCase):
     def test_03_switch_back_to_analyses(self):
         """Click Analyses to return to analysis mode and verify ribbon buttons."""
         analyses_btn = _robust_search(
-            lambda app: next((b for b in find_all_by_role(app, "button", max_depth=30) if "analyses" in (b.get_name() or "").lower()), None)
+            lambda app: next((b for b in find_all_by_role(app, "button") if "analyses" in (b.get_name() or "").lower()), None)
         )
         self.assertIsNotNone(analyses_btn, "Analyses button not found")
         click_element(analyses_btn)
         time.sleep(3)
 
         app = get_jasp_app()
-        all_btns = find_all_by_role(app, "button", max_depth=8)
+        all_btns = find_all_by_role(app, "button")
         names = [(b.get_name() or "").lower() for b in all_btns]
         self.assertTrue(any("edit data" in n for n in names),
                         "Edit Data not found after switching back to Analyses")
@@ -217,11 +217,11 @@ class TestCSVLoading(unittest.TestCase):
         app = get_jasp_app()
         self.assertIsNotNone(app, "JASP gone")
 
-        tables = find_all_by_role(app, "table", max_depth=10)
+        tables = find_all_by_role(app, "table")
         if not tables:
             self.skipTest("No table elements found in the app")
 
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         self.assertGreater(len(cells), 0, "No table cells found after loading CSV")
 
         named_cells = [(c.get_name() or c.get_description() or "") for c in cells]
@@ -240,14 +240,14 @@ class TestCSVLoading(unittest.TestCase):
         self.assertIsNotNone(app, "JASP gone")
 
         # Verify column headers
-        col_headers = find_all_by_role(app, "table column header", max_depth=20)
+        col_headers = find_all_by_role(app, "table column header")
         col_names = [(h.get_name() or "") for h in col_headers]
         print(f"  [T05] {len(col_headers)} column headers by role: {col_names[:8]}", flush=True)
 
         # Fallback: search for ANY element with "Column:" in name to check actual role
         if len(col_headers) < 3:
             from accessibility_common import find_all
-            elements = find_all(app, max_depth=20)
+            elements = find_all(app)
             col_like = [(r, n,) for r, n, _ in elements if "column:" in n.lower() or "col " in n.lower()]
             print(f"  [T05] DEBUG 'Column:' elements: {col_like[:15]}", flush=True)
             # Also print all distinct roles
@@ -262,7 +262,7 @@ class TestCSVLoading(unittest.TestCase):
                             f"Column '{exp}' not found in headers: {col_names}")
 
         # Verify row headers
-        row_headers = find_all_by_role(app, "table row header", max_depth=10)
+        row_headers = find_all_by_role(app, "table row header")
         row_names = [(h.get_name() or "") for h in row_headers]
         print(f"  [T05] {len(row_headers)} row headers: {row_names[:5]}...", flush=True)
         self.assertGreater(len(row_headers), 5,
@@ -272,7 +272,7 @@ class TestCSVLoading(unittest.TestCase):
         self.assertTrue(has_row1, f"Row 1 not found in row headers: {row_names}")
 
         # Verify cell content
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         non_empty = [n for n in cell_names if n]
         print(f"  [T05] {len(cells)} cells, {len(non_empty)} named", flush=True)
@@ -289,7 +289,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Find reference cell before insertion
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
 
         row1_contNormal_before = None
@@ -307,7 +307,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify Row 1 is now empty, Row 2 has old value
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
 
         row1_after = _cell_names_matching(cell_names, 1, "contNormal")
@@ -326,14 +326,14 @@ class TestCSVLoading(unittest.TestCase):
             )
 
         # Click Undo
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
 
         # Verify undo restored
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
         self.assertTrue(row1_undo, "Row 1 contNormal not found after undo")
@@ -341,14 +341,14 @@ class TestCSVLoading(unittest.TestCase):
         print(f"  [T06] After undo: {row1_undo[0]}", flush=True)
 
         # Click Redo
-        redo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "redo" in (b.get_name() or "").lower()), None))
+        redo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "redo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(redo_btn, "Redo button not found")
         click_element(redo_btn)
         time.sleep(2)
 
         # Verify redo re-inserted
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_redo = _cell_names_matching(cell_names, 1, "contNormal")
         if row1_redo:
@@ -360,7 +360,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Undo twice to return to baseline
         for _ in range(2):
-            undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+            undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
             if undo_btn:
                 click_element(undo_btn)
                 time.sleep(2)
@@ -371,7 +371,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Enter edit mode via DataTableView press action (selects row 0, col 0)
         app = get_jasp_app()
-        tables = find_all_by_role(app, "table", max_depth=20)
+        tables = find_all_by_role(app, "table")
         table = None
         for t in tables:
             if "data table view" in (t.get_name() or "").lower():
@@ -383,13 +383,13 @@ class TestCSVLoading(unittest.TestCase):
 
         # Find reference cell before deletion
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_before = _cell_names_matching(cell_names, 1, "contNormal")
         # If edit entry changed cell display, retry fresh
         if not row1_before:
             app = get_jasp_app()
-            cells = find_all_by_role(app, "table cell", max_depth=10)
+            cells = find_all_by_role(app, "table cell")
             cell_names = [(c.get_name() or "") for c in cells]
             row1_before = _cell_names_matching(cell_names, 1, "contNormal")
         self.assertTrue(row1_before, "Row 1 contNormal not found before delete")
@@ -407,7 +407,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify removal: Row 1 should now have Row 2's old value (shifted up)
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_after = _cell_names_matching(cell_names, 1, "contNormal")
         print(f"  [T07] After delete, Row 1: {row1_after}", flush=True)
@@ -421,13 +421,13 @@ class TestCSVLoading(unittest.TestCase):
             )
 
         # Click Undo
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
 
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
         self.assertTrue(row1_undo, "Row 1 not restored after undo")
@@ -438,7 +438,7 @@ class TestCSVLoading(unittest.TestCase):
         self._ensure_data_mode()
 
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_before = _cell_names_matching(cell_names, 1, "contNormal")
         self.assertTrue(row1_before, "Row 1 contNormal not found before edit")
@@ -446,7 +446,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Enter edit mode
         app = get_jasp_app()
-        tables = find_all_by_role(app, "table", max_depth=20)
+        tables = find_all_by_role(app, "table")
         table = None
         for t in tables:
             if "data table view" in (t.get_name() or "").lower():
@@ -468,7 +468,7 @@ class TestCSVLoading(unittest.TestCase):
         self.assertTrue(result, "edit_cell_text failed")
 
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_after = _cell_names_matching(cell_names, 1, "contNormal")
         print(f"  [T08] After edit: {row1_after}", flush=True)
@@ -476,13 +476,13 @@ class TestCSVLoading(unittest.TestCase):
         edited_found = any("5" in n.split("contNormal: ")[-1][:3] for n in row1_after)
         self.assertTrue(edited_found, f"Cell should contain '5' after edit, got: {row1_after}")
 
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
 
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
         print(f"  [T08] After undo: {row1_undo}", flush=True)
@@ -492,7 +492,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Enter edit mode via DataTableView press action (selects col 0)
         app = get_jasp_app()
-        tables = find_all_by_role(app, "table", max_depth=20)
+        tables = find_all_by_role(app, "table")
         table = None
         for t in tables:
             if "data table view" in (t.get_name() or "").lower():
@@ -504,7 +504,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Get column names before
         app = get_jasp_app()
-        col_headers_before = find_all_by_role(app, "table column header", max_depth=25)
+        col_headers_before = find_all_by_role(app, "table column header")
         names_before = [(h.get_name() or "") for h in col_headers_before]
         has_new_before = any("Column 1" in n for n in names_before)
         print(f"  [T09] Before insert: {len(col_headers_before)} cols, has Column 1: {has_new_before}", flush=True)
@@ -517,20 +517,20 @@ class TestCSVLoading(unittest.TestCase):
         # Verify new column appears (search global, not just visible delegates)
         time.sleep(1)
         app = get_jasp_app()
-        col_headers_after = find_all_by_role(app, "table column header", max_depth=25)
+        col_headers_after = find_all_by_role(app, "table column header")
         names_after = [(h.get_name() or "") for h in col_headers_after]
         has_new_after = any("Column 1" in n for n in names_after)
         print(f"  [T09] After insert: {len(col_headers_after)} cols, has Column 1: {has_new_after}", flush=True)
         self.assertTrue(has_new_after, "New empty column 'Column 1' should exist after insert")
 
         # Undo
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
 
         app = get_jasp_app()
-        col_headers_undo = find_all_by_role(app, "table column header", max_depth=25)
+        col_headers_undo = find_all_by_role(app, "table column header")
         names_undo = [(h.get_name() or "") for h in col_headers_undo]
         has_new_undo = any("Column 1" in n for n in names_undo)
         print(f"  [T09] After undo: has Column 1: {has_new_undo}", flush=True)
@@ -542,7 +542,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Click table to enter edit mode (selects row 0 = V1 col, sets selection)
         app = get_jasp_app()
-        tables = find_all_by_role(app, "table", max_depth=20)
+        tables = find_all_by_role(app, "table")
         table = None
         for t in tables:
             if "data table view" in (t.get_name() or "").lower():
@@ -569,19 +569,19 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify column count decreased
         app = get_jasp_app()
-        cols_after = find_all_by_role(app, "table column header", max_depth=25)
+        cols_after = find_all_by_role(app, "table column header")
         names_after = [(h.get_name() or "") for h in cols_after]
         print(f"  [T10] After delete: {len(cols_after)} cols", flush=True)
 
         # Undo
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
 
         # Verify restored
         app = get_jasp_app()
-        cols_undo = find_all_by_role(app, "table column header", max_depth=25)
+        cols_undo = find_all_by_role(app, "table column header")
         print(f"  [T10] After undo: {len(cols_undo)} cols", flush=True)
 
     def test_11_compute_constructor_column_undo(self):
@@ -590,7 +590,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Record column count before
         app = get_jasp_app()
-        cols_before = find_all_by_role(app, "table column header", max_depth=25)
+        cols_before = find_all_by_role(app, "table column header")
         names_before = set((h.get_name() or "") for h in cols_before)
         print(f"  [T11] Before: {len(cols_before)} cols", flush=True)
 
@@ -603,7 +603,7 @@ class TestCSVLoading(unittest.TestCase):
         app = get_jasp_app()
         dialog = None
         for rn in ["dialog", "window"]:
-            dlgs = find_all_by_role(app, rn, max_depth=5)
+            dlgs = find_all_by_role(app, rn)
             for d in dlgs:
                 nm = (d.get_name() or "").lower()
                 if "create" in nm or "computed" in nm or "compute" in nm:
@@ -635,7 +635,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify a new column appeared
         app = get_jasp_app()
-        cols_after = find_all_by_role(app, "table column header", max_depth=25)
+        cols_after = find_all_by_role(app, "table column header")
         names_after = set((h.get_name() or "") for h in cols_after)
         new_cols = names_after - names_before
         print(f"  [T11] After: {len(cols_after)} cols, new: {new_cols}", flush=True)
@@ -643,14 +643,14 @@ class TestCSVLoading(unittest.TestCase):
                        f"Expected new column after compute, got same set: {len(cols_after)}")
 
         # Undo
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
 
         # Verify undo restored state (columns created may still appear if compute dialog path was used)
         app = get_jasp_app()
-        cols_undo = find_all_by_role(app, "table column header", max_depth=25)
+        cols_undo = find_all_by_role(app, "table column header")
         names_undo = set((h.get_name() or "") for h in cols_undo)
         still_new = names_undo & new_cols
         print(f"  [T11] After undo: {len(cols_undo)} cols, new cols remaining: {still_new}", flush=True)
@@ -662,7 +662,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Double-click contGamma column header to open VariablesWindow
         app = get_jasp_app()
-        col_headers = find_all_by_role(app, "table column header", max_depth=25)
+        col_headers = find_all_by_role(app, "table column header")
         contGamma_header = None
         for h in col_headers:
             name = h.get_name() or ""
@@ -679,7 +679,7 @@ class TestCSVLoading(unittest.TestCase):
         # Check if VariablesWindow or any pane appeared
         app = get_jasp_app()
         from accessibility_common import find_all
-        all_el = find_all(app, max_depth=20)
+        all_el = find_all(app)
         var_el = [(r, n) for r, n, c in all_el if 'variable' in (n or '').lower() or 'pane' in r.lower()]
         print(f"  [T12] Variable/pane elements: {var_el[:5]}", flush=True)
         if var_el:
@@ -687,7 +687,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Find the rename dialog if it appeared (some operations use RenameColumnDialog popup)
         app = get_jasp_app()
-        dialogs = find_all_by_role(app, "dialog", max_depth=10)
+        dialogs = find_all_by_role(app, "dialog")
         rename_dialog = None
         for d in dialogs:
             if "rename" in (d.get_name() or "").lower():
@@ -696,9 +696,9 @@ class TestCSVLoading(unittest.TestCase):
 
         if rename_dialog:
             print(f"  [T12] RenameColumnDialog found: {rename_dialog.get_name()}", flush=True)
-            editable = find_all_by_role(app, "editable text", max_depth=10)
+            editable = find_all_by_role(app, "editable text")
             if not editable:
-                editable = find_all_by_role(app, "text", max_depth=10)
+                editable = find_all_by_role(app, "text")
             if editable:
                 for et in editable:
                     nm = (et.get_name() or "").lower()
@@ -717,14 +717,14 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify column still exists with contGamma
         app = get_jasp_app()
-        col_headers = find_all_by_role(app, "table column header", max_depth=25)
+        col_headers = find_all_by_role(app, "table column header")
         names = [(h.get_name() or "") for h in col_headers]
         has_contGamma = any("contGamma" in n and "Column:" in n for n in names)
         print(f"  [T12] contGamma present: {has_contGamma}", flush=True)
         self.assertTrue(has_contGamma, "contGamma column should still exist")
 
         # Undo (if anything was changed)
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
         if undo_btn:
             click_element(undo_btn)
             time.sleep(2)
@@ -737,7 +737,7 @@ class TestCSVLoading(unittest.TestCase):
         self.assertIsNotNone(app, "JASP gone")
 
         # Find contGamma column header
-        col_headers = find_all_by_role(app, "table column header", max_depth=25)
+        col_headers = find_all_by_role(app, "table column header")
         contGamma_header = None
         for h in col_headers:
             name = h.get_name() or ""
@@ -794,7 +794,7 @@ class TestCSVLoading(unittest.TestCase):
         print(f"  [T13] Selected next type via keyboard", flush=True)
 
         # Undo
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button should be available after type change")
         click_element(undo_btn)
         time.sleep(2)
@@ -808,7 +808,7 @@ class TestCSVLoading(unittest.TestCase):
         self.assertIsNotNone(app, "JASP gone")
 
         # Double-click facGender header to open VariablesWindow
-        col_headers = find_all_by_role(app, "table column header", max_depth=25)
+        col_headers = find_all_by_role(app, "table column header")
         facGender_header = None
         for h in col_headers:
             name = h.get_name() or ""
@@ -830,7 +830,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Find VariablesWindow and look for checkboxes
         app = get_jasp_app()
-        all_checkboxes = find_all_by_role(app, "check box", max_depth=15)
+        all_checkboxes = find_all_by_role(app, "check box")
         print(f"  [T14] Found {len(all_checkboxes)} checkboxes", flush=True)
         checkbox_names = [(cb.get_name() or "") for cb in all_checkboxes]
         print(f"  [T14] Checkbox names: {checkbox_names[:5]}", flush=True)
@@ -858,7 +858,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Enter edit mode (selects row 0, col 0)
         app = get_jasp_app()
-        tables = find_all_by_role(app, "table", max_depth=20)
+        tables = find_all_by_role(app, "table")
         table = None
         for t in tables:
             if "data table view" in (t.get_name() or "").lower():
@@ -870,7 +870,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Reference: Row 1 value before insert (will shift to Row 2 after insert below row 0)
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_before = _cell_names_matching(cell_names, 1, "contNormal")
         self.assertTrue(row1_before, "Row 1 not found before insert")
@@ -883,7 +883,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify: Row 1 should be empty, Row 2 has old Row 1 value
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_after = _cell_names_matching(cell_names, 1, "contNormal")
         row2_after = _cell_names_matching(cell_names, 2, "contNormal")
@@ -897,14 +897,14 @@ class TestCSVLoading(unittest.TestCase):
             )
 
         # Undo
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
 
         # Verify Row 1 restored
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
         if row1_undo:
@@ -916,7 +916,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Enter edit mode to set selection
         app = get_jasp_app()
-        tables = find_all_by_role(app, "table", max_depth=20)
+        tables = find_all_by_role(app, "table")
         table = None
         for t in tables:
             if "data table view" in (t.get_name() or "").lower():
@@ -932,7 +932,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Get columns before
         app = get_jasp_app()
-        cols_before = set((h.get_name() or "") for h in find_all_by_role(app, "table column header", max_depth=25))
+        cols_before = set((h.get_name() or "") for h in find_all_by_role(app, "table column header"))
         print(f"  [T16] Before: {len(cols_before)} cols", flush=True)
 
         # Insert → Insert column after
@@ -941,20 +941,20 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify new column
         app = get_jasp_app()
-        cols_after = set((h.get_name() or "") for h in find_all_by_role(app, "table column header", max_depth=25))
+        cols_after = set((h.get_name() or "") for h in find_all_by_role(app, "table column header"))
         new_cols = cols_after - cols_before
         print(f"  [T16] After: {len(cols_after)} cols, new: {new_cols}", flush=True)
         self.assertTrue(len(new_cols) > 0, f"Expected new column after insert, got same set")
 
         # Undo
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
 
         # Verify restored
         app = get_jasp_app()
-        cols_undo = set((h.get_name() or "") for h in find_all_by_role(app, "table column header", max_depth=25))
+        cols_undo = set((h.get_name() or "") for h in find_all_by_role(app, "table column header"))
         still_new = cols_undo & new_cols
         self.assertEqual(len(still_new), 0, f"New columns should be gone after undo: {still_new}")
         print(f"  [T16] After undo: {len(cols_undo)} cols, restored", flush=True)
@@ -965,7 +965,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Enter edit mode at row 0, col 0
         app = get_jasp_app()
-        tables = find_all_by_role(app, "table", max_depth=20)
+        tables = find_all_by_role(app, "table")
         table = None
         for t in tables:
             if "data table view" in (t.get_name() or "").lower():
@@ -985,7 +985,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Get value before
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_before = _cell_names_matching(cell_names, 1, "contNormal")
         self.assertTrue(row1_before, "Row 1 contNormal not found")
@@ -999,7 +999,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify cell cleared — check editing cell (may appear alongside stale delegate)
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_after = _cell_names_matching(cell_names, 1, "contNormal")
         print(f"  [T17] After clear: {row1_after}", flush=True)
@@ -1017,14 +1017,14 @@ class TestCSVLoading(unittest.TestCase):
                                   f"Cell value should change after clear, still: {after_val}")
 
         # Undo
-        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button", max_depth=20) if "undo" in (b.get_name() or "").lower()), None))
+        undo_btn = _robust_search(lambda app: next((b for b in find_all_by_role(app, "button") if "undo" in (b.get_name() or "").lower()), None))
         self.assertIsNotNone(undo_btn, "Undo button not found")
         click_element(undo_btn)
         time.sleep(2)
 
         # Verify restored
         app = get_jasp_app()
-        cells = find_all_by_role(app, "table cell", max_depth=10)
+        cells = find_all_by_role(app, "table cell")
         cell_names = [(c.get_name() or "") for c in cells]
         row1_undo = _cell_names_matching(cell_names, 1, "contNormal")
         print(f"  [T17] After undo: {row1_undo}", flush=True)
@@ -1033,7 +1033,7 @@ class TestCSVLoading(unittest.TestCase):
             self.assertEqual(before_val, undo_val,
                            f"Value should be restored after undo: expected '{before_val}', got '{undo_val}'")
         else:
-            print(f"  [T14] Labels checkbox not found in AT-SPI tree", flush=True)
+            self.fail("Row 1 value was not restored after undo")
 
         # Close variables
         close_menu()
@@ -1047,7 +1047,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Double-click contNormal header
         app = get_jasp_app()
-        col_headers = find_all_by_role(app, "table column header", max_depth=25)
+        col_headers = find_all_by_role(app, "table column header")
         contNormal_header = None
         for h in col_headers:
             if "contNormal" in h.get_name() and "Column:" in h.get_name():
@@ -1061,7 +1061,7 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify "Computed type:" combo box is accessible
         app = get_jasp_app()
-        combo_boxes = find_all_by_role(app, "combo box", max_depth=20)
+        combo_boxes = find_all_by_role(app, "combo box")
         computed_type_cb = None
         for cb in combo_boxes:
             if "computed type" in (cb.get_name() or "").lower():
@@ -1072,14 +1072,14 @@ class TestCSVLoading(unittest.TestCase):
 
         # Verify tab buttons are accessible
         app = get_jasp_app()
-        tabs = find_all_by_role(app, "page tab", max_depth=20)
+        tabs = find_all_by_role(app, "page tab")
         tab_names = [(t.get_name() or "") for t in tabs]
         print(f"  [T18] Tab buttons: {tab_names}", flush=True)
         self.assertTrue(len(tabs) > 0, "VariablesWindow tabs should be accessible")
 
         # Verify "Compute column" button is present
         app = get_jasp_app()
-        all_btns = find_all_by_role(app, "button", max_depth=25)
+        all_btns = find_all_by_role(app, "button")
         compute_btn = None
         for b in all_btns:
             if "compute column" in (b.get_name() or "").lower():
