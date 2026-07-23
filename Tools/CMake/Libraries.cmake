@@ -172,64 +172,61 @@ if(LINUX)
     message(FATAL_ERROR "librt is required for building libCommon on Linux")
   endif()
 
-  if(FLATPAK_USED)
-    set(LIBREADSTAT_INCLUDE_DIRS /app/include)
-    set(LIBREADSTAT_LIBRARY_DIRS /app/lib)
-  else()
-    set(LIBREADSTAT_INCLUDE_DIRS /usr/local/include /usr/include)
-    # The last two library paths handle the two most common multiarch cases.
-    # Other multiarch-compliant paths may come up but should be rare.
-    set(LIBREADSTAT_LIBRARY_DIRS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu)
-  endif()
+  if(NOT JASP_SYNTAX_INTERFACE_ONLY)
 
-  message(CHECK_START "Looking for libreadstat.so")
-  find_file(LIBREADSTAT_LIBRARIES libreadstat.so
-            HINTS ${LIBREADSTAT_LIBRARY_DIRS} REQUIRED)
+    if(FLATPAK_USED)
+      set(LIBREADSTAT_INCLUDE_DIRS /app/include)
+      set(LIBREADSTAT_LIBRARY_DIRS /app/lib)
+    else()
+      set(LIBREADSTAT_INCLUDE_DIRS /usr/local/include /usr/include)
+      # The last two library paths handle the two most common multiarch cases.
+      # Other multiarch-compliant paths may come up but should be rare.
+      set(LIBREADSTAT_LIBRARY_DIRS /usr/local/lib /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu)
+    endif()
 
-  if(EXISTS ${LIBREADSTAT_LIBRARIES})
-    message(CHECK_PASS "found")
-    message(STATUS "  ${LIBREADSTAT_LIBRARIES}")
-  else()
-    message(CHECK_FAIL "not found")
-    message(
-      FATAL_ERROR
-        "ReadStat is required for building on Windows, please follow the build instruction before you continue."
-    )
-  endif()
+    message(CHECK_START "Looking for libreadstat.so")
+    find_library(LIBREADSTAT_LIBRARIES libreadstat.so
+              HINTS ${LIBREADSTAT_LIBRARY_DIRS} REQUIRED)
 
-  message(CHECK_START "Looking for librdata.so")
-  find_library(LIBRDATA_LIBRARIES NAMES rdata HINTS /usr/local/lib REQUIRED)
-  find_path(LIBRDATA_INCLUDE_DIRS NAMES rdata.h HINTS /usr/local/include REQUIRED)
+    if(EXISTS ${LIBREADSTAT_LIBRARIES})
+      message(CHECK_PASS "found")
+      message(STATUS "  ${LIBREADSTAT_LIBRARIES}")
+    else()
+      message(CHECK_FAIL "not found")
+      message(
+        FATAL_ERROR
+          "ReadStat is required for building on Linux, please follow the build instruction before you continue."
+      )
+    endif()
 
     # ---- libsodium ----
     message(CHECK_START "Looking for `libsodium`")
     set(libsodium_INCLUDE_DIR /usr/include /app/lib64/)
     set(LIBSODIUM_LIBRARY_DIRS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu /app/include/)
 
-  message(CHECK_START "Looking for libfreexl.so")
-  find_library(LIBFREEXL_LIBRARIES NAMES freexl REQUIRED)
-  find_path(LIBFREEXL_INCLUDE_DIRS NAMES freexl.h REQUIRED)
+    message(CHECK_START "Looking for libsodium.so")
+    find_library(libsodium_LIBRARIES libsodium.so
+              HINTS ${LIBSODIUM_LIBRARY_DIRS} REQUIRED)
 
-  if(EXISTS ${LIBFREEXL_LIBRARIES})
-    message(CHECK_PASS "found")
-    message(STATUS "  ${LIBFREEXL_LIBRARIES}")
-  else()
-    message(CHECK_FAIL "not found")
-    message(FATAL_ERROR "libfreexl is required")
-  endif()
+    if(EXISTS ${libsodium_LIBRARIES})
+      message(CHECK_PASS "found")
+      message(STATUS "  ${LIBSODIUM_LIBRARIES}")
+    else()
+      message(CHECK_FAIL "not found")
+      message(
+        FATAL_ERROR
+          "libsodium is required for building on Linux, please follow the build instruction before you continue."
+      )
+    endif()
 
     # ---- FreeXL ----
     message(CHECK_START "Looking for `libfreexl`")
     set(LIBFREEXL_INCLUDE_DIRS /usr/include /app/lib64/)
     set(LIBFREEXL_LIBRARY_DIRS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu /app/include/)
 
-  if(EXISTS ${libsodium_LIBRARIES})
-    message(CHECK_PASS "found")
-    message(STATUS "  ${libsodium_LIBRARIES}")
-  else()
-    message(CHECK_FAIL "not found")
-    message(FATAL_ERROR "libsodium is required")
-  endif()
+    message(CHECK_START "Looking for libfreexl.so")
+    find_library(LIBFREEXL_LIBRARIES libfreexl.so
+              HINTS ${LIBFREEXL_LIBRARY_DIRS} REQUIRED)
 
     if(EXISTS ${LIBFREEXL_LIBRARIES})
       message(CHECK_PASS "found")
