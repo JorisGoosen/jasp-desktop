@@ -64,10 +64,6 @@ target_link_libraries(
          #
          $<$<PLATFORM_ID:Windows>:${_LIB_R_INTERFACE_STATIC_DLL_A}>
          $<$<NOT:$<PLATFORM_ID:Windows>>:R-Interface>
-# Boost
-          Boost::date_time
-         Boost::timer
-         Boost::chrono
          #
          LibArchive::LibArchive)
 

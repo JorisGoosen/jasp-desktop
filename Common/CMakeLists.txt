@@ -29,14 +29,12 @@ target_include_directories(
 	 ${R_INCLUDE_PATH}
 	 ${R_HOME_PATH}/include
 	 ${RCPP_PATH}/include
+	 ${Boost_INCLUDE_DIRS}
 	)
 
 target_link_libraries(
 	Common
 	PUBLIC
-	Boost::date_time
-	Boost::timer
-	Boost::chrono
 	$<$<BOOL:${WINDOWS}>:ntdll>
 	$<$<BOOL:${JASP_USES_QT_HERE}>:Qt::Core>
   )

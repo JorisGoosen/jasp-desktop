@@ -207,9 +207,7 @@ else()
 
   target_link_libraries(
     R-Interface
-    PUBLIC Boost::date_time
-           Boost::timer
-           Boost::chrono
+    PUBLIC
            # CPM/CMake
            #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LIBRARIES}>
            #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LINK_LIBRARIES}>
