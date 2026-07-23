@@ -58,9 +58,17 @@ if(WIN32)
 
   # This is a variable and it's provided by the main CMakeFiles.txt.
   # It is here only if we someone wants to build the R-Interface separately.
-  if(${R_VERSION} VERSION_GREATER_EQUAL "4.3.0")
+if(${R_VERSION} VERSION_GREATER_EQUAL "4.5.0")
     set(RTOOLS_PATH
-      "C:/rtools43/ucrt64"
+      "C:/rtools45/ucrt64"
+       CACHE PATH "Path to Rtools45 ucrt64 folder")
+  elseif(${R_VERSION} VERSION_GREATER_EQUAL "4.4.0")
+    set(RTOOLS_PATH
+      "C:/rtools44/ucrt64"
+       CACHE PATH "Path to Rtools44 ucrt64 folder")
+  elseif(${R_VERSION} VERSION_GREATER_EQUAL "4.3.0")
+    set(RTOOLS_PATH
+       "C:/rtools43/ucrt64"
        CACHE PATH "Path to Rtools43 ucrt64 folder")
   elseif(${R_VERSION} VERSION_GREATER_EQUAL "4.2.0")
     set(RTOOLS_PATH
@@ -87,9 +95,17 @@ if(WIN32)
   set(R_EXECUTABLE "${R_HOME_PATH}/bin/R")
   set(R_INCLUDE_PATH "${R_HOME_PATH}/include")
 
-  set(RCPP_PATH "${R_LIBRARY_PATH}/Rcpp")
-  set(RINSIDE_PATH "${R_LIBRARY_PATH}/RInside")
-  set(RENV_PATH "${R_LIBRARY_PATH}/renv")
+  set(RENV_PATH      "${JASP_BINARY_DIR}/_cache/R/renv_library/renv")
+
+  set(R_CPP_INCLUDES_LIBRARY      "${JASP_BINARY_DIR}/Modules/Tools/R_cpp_includes_library")
+  include(FindRPackagePath)
+
+  find_package_path(RCPP_PATH       ${R_CPP_INCLUDES_LIBRARY} "Rcpp")
+  find_package_path(RINSIDE_PATH    ${R_CPP_INCLUDES_LIBRARY} "RInside")
+
+  message(STATUS "RCPP_PATH    = ${RCPP_PATH}")
+  message(STATUS "RINSIDE_PATH = ${RINSIDE_PATH}")
+  message(STATUS "RENV_PATH    = ${RENV_PATH}")
 
   include(FetchContent)
   include(ExternalProject)
@@ -127,109 +143,67 @@ if(WIN32)
     message(FATAL_ERROR "libRInside is required for building ")
   endif()
 
-  #message(CHECK_START "Checking for 'libjsoncpp-25.dll'")
-  #find_file(
-  #  RTOOLS_LIB_JSONCPP_DLL
-  #  NAMES libjsoncpp-25.dll
-  #  PATHS ${RTOOLS_PATH}/bin REQUIRED
-  #  NO_DEFAULT_PATH)
+  add_library(R-Interface			SHARED ${SOURCE_FILES} ${HEADER_FILES})
+  add_library(R-InterfaceNoRInside	SHARED ${SOURCE_FILES} ${HEADER_FILES})
 
-  #if(RTOOLS_LIB_JSONCPP_DLL)
-  #  message(CHECK_PASS "found.")
-  #  message(STATUS "  ${RTOOLS_LIB_JSONCPP_DLL}")
-  #else()
-  #  message(CHECK_FAIL "not found in ${RTOOLS_PATH}/bin")
-  #  message(FATAL_ERROR "libjsoncpp-25.dll is required for building. If it is missing, you need to install it in your rtools42 ucrt64 environment using `pacman -Syu mingw-w64-ucrt-x86_64-jsoncpp`.")
-  #endif()
+  set(R_INTERFACE_INCLUDE_DIRS
+		${CMAKE_CURRENT_LIST_DIR}
+        ${PROJECT_SOURCE_DIR}/../Common
+		${R_INCLUDE_PATH}
+		${RCPP_PATH}/include
+  )
 
-  add_library(R-Interface SHARED ${SOURCE_FILES} ${HEADER_FILES})
+  set(R_INTERFACE_LIBS ${_LIB_R})
 
   add_definitions(-DJASP_R_INTERFACE_LIBRARY)
 
-  target_include_directories(
-    R-Interface
-    PUBLIC # JASP
-           ${CMAKE_CURRENT_LIST_DIR}
-           ${PROJECT_SOURCE_DIR}/../Common
-           ${PROJECT_SOURCE_DIR}/../CommonData
-           # R
-           ${R_INCLUDE_PATH}
-           ${RCPP_PATH}/include
-           ${RINSIDE_PATH}/include
-           # Boost and jsoncpp
-           ${RTOOLS_PATH}/include)
+  target_include_directories(R-Interface			PUBLIC ${R_INTERFACE_INCLUDE_DIRS} ${RINSIDE_PATH}/include)
+  target_include_directories(R-InterfaceNoRInside	PUBLIC ${R_INTERFACE_INCLUDE_DIRS})
 
-  target_link_libraries(
-    R-Interface
-    PUBLIC # RInside
-           ${_LIB_RINSIDE}
-           # R
-           ${_LIB_R}
-           #
-           #${RTOOLS_LIB_JSONCPP_DLL}
-           #
-           $<$<BOOL:${JASP_USES_QT_HERE}>:Qt::Core>)
+  target_link_libraries(R-Interface					PUBLIC ${R_INTERFACE_LIBS} ${_LIB_RINSIDE})
+  target_link_libraries(R-InterfaceNoRInside		PUBLIC ${R_INTERFACE_LIBS})
 
-  target_compile_definitions(
-    R-Interface
-    PUBLIC JASP_R_INTERFACE_LIBRARY
-           QT_NO_DEPRECATED_WARNINGS
-           $<$<BOOL:${JASP_USES_QT_HERE}>:JASP_USES_QT_HERE>
-           $<$<BOOL:${PRINT_ENGINE_MESSAGES}>:PRINT_ENGINE_MESSAGES>)
 
-  target_compile_definitions(
-    R-Interface
-    PUBLIC BOOST_INTERPROCESS_BOOTSTAMP_IS_SESSION_MANAGER_BASED
-           BOOST_USE_WINDOWS_H
-           NOMINMAX
-		   RCPP_NO_SUGAR
-           WIN32_LEAN_AND_MEAN)
+  target_compile_definitions(R-Interface			PUBLIC JASP_R_INTERFACE_LIBRARY NOMINMAX RCPP_NO_SUGAR WIN32_LEAN_AND_MEAN
+															$<$<BOOL:${PRINT_ENGINE_MESSAGES}>:PRINT_ENGINE_MESSAGES>)
+  target_compile_definitions(R-InterfaceNoRInside	PUBLIC JASP_R_INTERFACE_LIBRARY NOMINMAX RCPP_NO_SUGAR WIN32_LEAN_AND_MEAN
+															$<$<BOOL:${PRINT_ENGINE_MESSAGES}>:PRINT_ENGINE_MESSAGES>
+															JASP_NO_RINSIDE)
 
 else()
   # Linux and macOS
 
 
   add_library(R-Interface ${SOURCE_FILES} ${HEADER_FILES})
+  add_library(R-InterfaceNoRInside ${SOURCE_FILES} ${HEADER_FILES})
 
-  target_include_directories(
-    R-Interface
-    PUBLIC # JASP
-           ${PROJECT_SOURCE_DIR}/Common
-           ${PROJECT_SOURCE_DIR}/CommonData
-           ${PROJECT_SOURCE_DIR}/Common/json
-           #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_INCLUDEDIR}>
-           # R
-           ${R_INCLUDE_PATH}
-           ${RCPP_PATH}/include
-           ${RINSIDE_PATH}/include
-           #
-           ${Boost_INCLUDE_DIRS})
+  set(R_INTERFACE_INCLUDE_DIRS
+        ${PROJECT_SOURCE_DIR}/Common
+		${R_INCLUDE_PATH}
+		${RCPP_PATH}/include
+	)
 
-  target_link_libraries(
-    R-Interface
-    PUBLIC
-           # CPM/CMake
-           #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LIBRARIES}>
-           #$<$<PLATFORM_ID:Linux>:${_PKGCONFIG_LIB_JSONCPP_LINK_LIBRARIES}>
-		       #$<$<BOOL:${USE_CONAN}>:jsoncpp::jsoncpp>
-           # R
-           ${_LIB_RINSIDE}
-           $<$<PLATFORM_ID:Linux>:${_LIB_R}>
-           $<$<PLATFORM_ID:Darwin>:${_R_Framework}>
-           #
-           $<$<BOOL:${JASP_USES_QT_HERE}>:Qt::Core>)
+  set(R_INTERFACE_LIBS
+		$<$<PLATFORM_ID:Linux>:${_LIB_R}>
+		$<$<PLATFORM_ID:Darwin>:${_R_Framework}>
+	)
 
-  target_compile_definitions(
-    R-Interface
-    PUBLIC JASP_R_INTERFACE_LIBRARY
-           QT_NO_DEPRECATED_WARNINGS
-		   RCPP_NO_SUGAR
-           $<$<BOOL:${JASP_USES_QT_HERE}>:JASP_USES_QT_HERE>
-           $<$<BOOL:${PRINT_ENGINE_MESSAGES}>:PRINT_ENGINE_MESSAGES>)
+
+  target_include_directories(R-Interface			PUBLIC ${R_INTERFACE_INCLUDE_DIRS} ${RINSIDE_PATH}/include)
+  target_include_directories(R-InterfaceNoRInside	PUBLIC ${R_INTERFACE_INCLUDE_DIRS})
+
+  target_link_libraries(R-Interface					PUBLIC ${R_INTERFACE_LIBS} ${_LIB_RINSIDE})
+  target_link_libraries(R-InterfaceNoRInside		PUBLIC ${R_INTERFACE_LIBS})
+
+  target_compile_definitions(R-Interface			PUBLIC	RCPP_NO_SUGAR
+															$<$<BOOL:${PRINT_ENGINE_MESSAGES}>:PRINT_ENGINE_MESSAGES>)
+  target_compile_definitions(R-InterfaceNoRInside	PUBLIC	RCPP_NO_SUGAR
+															  $<$<BOOL:${PRINT_ENGINE_MESSAGES}>:PRINT_ENGINE_MESSAGES>
+															  JASP_NO_RINSIDE)
 
   if(IWYU_EXECUTABLE AND RUN_IWYU)
-    set_target_properties(R-Interface PROPERTIES CXX_INCLUDE_WHAT_YOU_USE
-                                                 ${IWYU_EXECUTABLE})
+	set_target_properties(R-Interface			PROPERTIES CXX_INCLUDE_WHAT_YOU_USE ${IWYU_EXECUTABLE})
+	set_target_properties(R-InterfaceNoRInside	PROPERTIES CXX_INCLUDE_WHAT_YOU_USE ${IWYU_EXECUTABLE})
   endif()
 
 endif()

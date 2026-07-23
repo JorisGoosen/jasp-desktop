@@ -22,6 +22,7 @@
 #include "rbridge.h"
 #include "tempfiles.h"
 #include "columnutils.h"
+#include "utilities/qutils.h"
 #include "databaseinterface.h"
 #include "r_functionwhitelist.h"
 
@@ -1048,6 +1049,8 @@ void Engine::absorbSettings(const Json::Value & jsonRequest)
 	rbridge_setLANG(_langR);
 	jaspRCPP_setDecimalSettings(_numDecimals, _fixedDecimals, _normalizedNotation, _exactPValues);
 	jaspRCPP_setFontAndPlotSettings(_resultFont.c_str(), _ppi, _imageBackground.c_str());
+	
+	QColumnUtils::setCallbacksAndDefaultLocale(QLocale(tq(_qLocaleName)), _useThousandSeps);
 }
 
 
