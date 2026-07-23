@@ -409,6 +409,7 @@ void DataSetViewBase::storeAllItems()
             if(intTextItem.second)
             {
                 intTextItem.second->item->setVisible(false);
+				intTextItem.second->item->setParentItem(nullptr);
 
                 if (_cacheItems)		_textItemStorage.push(intTextItem.second);
                 else					delete intTextItem.second;
@@ -422,6 +423,7 @@ void DataSetViewBase::storeAllItems()
     for(auto & intItem : _columnHeaderItems)
     {
         intItem.second->item->setVisible(false);
+        intItem.second->item->setParentItem(nullptr);
 
         if (_cacheItems)		_columnHeaderStorage.push(intItem.second);
         else					delete intItem.second;
@@ -432,6 +434,7 @@ void DataSetViewBase::storeAllItems()
     for(auto & intItem : _rowNumberItems)
     {
         intItem.second->item->setVisible(false);
+        intItem.second->item->setParentItem(nullptr);
 
         if (_cacheItems)		_rowNumberStorage.push(intItem.second);
         else					delete intItem.second;
@@ -459,6 +462,7 @@ void DataSetViewBase::storeOutOfViewItems()
                     if(col < _currentViewportColMin || col > _currentViewportColMax || row < _currentViewportRowMin || row > _currentViewportRowMax)
                     {
                         intTextItem.second->item->setVisible(false);
+						intTextItem.second->item->setParentItem(nullptr);
 
                         if (_cacheItems)		_textItemStorage.push(intTextItem.second);
                         else					delete intTextItem.second;
@@ -484,6 +488,7 @@ void DataSetViewBase::storeOutOfViewItems()
             if(col < _currentViewportColMin || col > _currentViewportColMax)
             {
                 intItem.second->item->setVisible(false);
+                intItem.second->item->setParentItem(nullptr);
 
                 if (_cacheItems)		_columnHeaderStorage.push(intItem.second);
                 else					delete intItem.second;
@@ -506,6 +511,7 @@ void DataSetViewBase::storeOutOfViewItems()
             if(row < _currentViewportRowMin || row > _currentViewportRowMax)
             {
                 intItem.second->item->setVisible(false);
+                intItem.second->item->setParentItem(nullptr);
 
                 if (_cacheItems)		_rowNumberStorage.push(intItem.second);
                 else					delete intItem.second;
@@ -711,6 +717,7 @@ QQuickItem * DataSetViewBase::createTextItem(int row, int col)
 			textItem = itemCon->item;
 			_textItemStorage.pop();
 			setStyleDataItem(itemCon->context, active, col, row);
+			textItem->setParentItem(this);
 			JASPTIMER_STOP(DataSetViewBase::createTextItem textItemStorage has something);
 		}
 		else
@@ -789,6 +796,7 @@ void DataSetViewBase::storeTextItem(int row, int col, bool cleanUp)
 
 	textItem->item->setFocus(	false);
 	textItem->item->setVisible(	false);
+	textItem->item->setParentItem(nullptr);
 
 	if (_cacheItems)		_textItemStorage.push(textItem);
 	else					delete textItem;
@@ -829,6 +837,7 @@ QQuickItem * DataSetViewBase::createRowNumber(int row)
 			 itemCon = _rowNumberStorage.top();
 			_rowNumberStorage.pop();
 			rowNumber = itemCon->item;
+			rowNumber->setParentItem(this);
 
 			setStyleDataRowNumber(itemCon->context,
 								  _model->headerData(row, Qt::Orientation::Vertical).toString(),
@@ -885,6 +894,7 @@ void DataSetViewBase::storeRowNumber(int row)
 	_rowNumberItems.erase(row);
 
 	rowNumber->item->setVisible(false);
+	rowNumber->item->setParentItem(nullptr);
 
 	if (_cacheItems)		_rowNumberStorage.push(rowNumber);
 	else					delete rowNumber;
@@ -920,6 +930,7 @@ QQuickItem * DataSetViewBase::createColumnHeader(int col)
 			itemCon = _columnHeaderStorage.top();
 			_columnHeaderStorage.pop();
 			columnHeader = itemCon->item;
+			columnHeader->setParentItem(this);
 
 			setStyleDataColumnHeader(itemCon->context,
 									_model->headerData(col, Qt::Orientation::Horizontal).toString(),
@@ -988,6 +999,7 @@ void DataSetViewBase::storeColumnHeader(int col)
 	_columnHeaderItems.erase(col);
 
 	columnHeader->item->setVisible(false);
+	columnHeader->item->setParentItem(nullptr);
 
 	if (_cacheItems)		_columnHeaderStorage.push(columnHeader);
 	else					delete columnHeader;
