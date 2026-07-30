@@ -25,6 +25,7 @@ CSVParser::CSVParser(char delimiter, bool replaceLineEndings)
 	: QObject()
 	, _delimiter(delimiter)
 	, _replaceLineEndings(replaceLineEndings)
+	, _skipNextLF(false)
 {
 	reset();
 }
@@ -63,13 +64,18 @@ bool CSVParser::processChar(char ch)
 			_state = Quoted;
 			return false;
 		case '\r':
-			_currentField.push_back(ch);
+			finishField();
+			_gridQueue.push(_currentRow);
+			_currentRow.clear();
+			_rowFinished = true;
+			_skipNextLF = true;
+			emit rowParsed(_gridQueue.back());
 			return false;
 		case '\n':
-			if (!_currentField.empty() && _currentField.back() == '\r')
+			if (_skipNextLF)
 			{
-				_currentField.pop_back();
-				_currentField += ' ';
+				_skipNextLF = false;
+				return false;
 			}
 			finishField();
 			_gridQueue.push(_currentRow);
@@ -78,6 +84,7 @@ bool CSVParser::processChar(char ch)
 			emit rowParsed(_gridQueue.back());
 			return false;
 		default:
+			_skipNextLF = false;
 			if (ch == _delimiter)
 			{
 				finishField();
@@ -108,6 +115,7 @@ bool CSVParser::processChar(char ch)
 			_state = Quoted;
 			return false;
 		default:
+			_skipNextLF = false;
 			_state = Normal;
 			return true;
 		}
@@ -122,7 +130,7 @@ bool CSVParser::hasRow() const
 
 vector<string> CSVParser::extractRow()
 {
-	if (_rowFinished && (!_currentRow.empty() || !_currentField.empty()))
+	if (!_currentRow.empty() || !_currentField.empty())
 	{
 		finishRow();
 	}
@@ -173,6 +181,7 @@ void CSVParser::reset()
 void CSVParser::setDelimiter(char delimiter)
 {
 	_delimiter = delimiter;
+	_skipNextLF = false;
 	reset();
 }
 

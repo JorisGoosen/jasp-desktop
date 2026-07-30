@@ -108,6 +108,7 @@ private:
 	char						_delimiter;
 	bool						_replaceLineEndings;
 	bool						_rowFinished;
+	bool						_skipNextLF;
 
 	/// Finish current field (add to row, reset field)
 	void finishField();

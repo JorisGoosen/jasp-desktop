@@ -129,5 +129,53 @@ void TestCsvPreviewModel::testComplexCsvParsing()
     QCOMPARE(model.data(model.index(3, 6), Qt::DisplayRole).toString(), QString("\"this,is,text\""));
 }
 
+void TestCsvPreviewModel::testNoTrailingNewline()
+{
+    CsvPreviewModel model;
+
+    QString rawData = "Col1,Col2,Col3\nVal1,Val2,Val3\n1.2,1.20,1.344";
+    model.preparePreview(rawData, ',');
+
+    QCOMPARE(model.rowCount(), 3);
+    QCOMPARE(model.columnCount(), 3);
+
+    QCOMPARE(model.data(model.index(0, 0), Qt::DisplayRole).toString(), QString("Col1"));
+    QCOMPARE(model.data(model.index(1, 0), Qt::DisplayRole).toString(), QString("\"Val1\""));
+    QCOMPARE(model.data(model.index(2, 0), Qt::DisplayRole).toString(), QString("1.2"));
+}
+
+void TestCsvPreviewModel::testCRLFLineEndings()
+{
+    CsvPreviewModel model;
+
+    QString rawData = "Col1,Col2\r\nVal1,Val2\r\n1.2,1.20";
+    model.preparePreview(rawData, ',');
+
+    QCOMPARE(model.rowCount(), 3);
+    QCOMPARE(model.columnCount(), 2);
+
+    QCOMPARE(model.data(model.index(0, 0), Qt::DisplayRole).toString(), QString("Col1"));
+    QCOMPARE(model.data(model.index(1, 0), Qt::DisplayRole).toString(), QString("\"Val1\""));
+    QCOMPARE(model.data(model.index(2, 0), Qt::DisplayRole).toString(), QString("1.2"));
+
+    // Fields should NOT have trailing spaces from \r replacement
+    QCOMPARE(model.data(model.index(2, 1), Qt::DisplayRole).toString(), QString("1.2"));
+}
+
+void TestCsvPreviewModel::testCRLineEndings()
+{
+    CsvPreviewModel model;
+
+    QString rawData = "Col1,Col2\rVal1,Val2\r1.2,1.20";
+    model.preparePreview(rawData, ',');
+
+    QCOMPARE(model.rowCount(), 3);
+    QCOMPARE(model.columnCount(), 2);
+
+    QCOMPARE(model.data(model.index(0, 0), Qt::DisplayRole).toString(), QString("Col1"));
+    QCOMPARE(model.data(model.index(1, 0), Qt::DisplayRole).toString(), QString("\"Val1\""));
+    QCOMPARE(model.data(model.index(2, 0), Qt::DisplayRole).toString(), QString("1.2"));
+}
+
 
 QTEST_MAIN(TestCsvPreviewModel)

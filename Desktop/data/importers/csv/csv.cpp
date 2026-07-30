@@ -470,7 +470,7 @@ bool CSV::readLine(vector<string> &items)
 			reset();
 			return !items.empty();
 		}
-		// Don't increment i, process same char again
+		_utf8BufferStartPos = i; // Same char will be re-processed
 		continue;
 	}
 
@@ -478,20 +478,8 @@ bool CSV::readLine(vector<string> &items)
 	{
 		// Row complete - extract it
 		items = extractRow();
-		
-		// Update buffer position, handling \r\n
-		if (ch == '\r' && i + 1 < _utf8BufferEndPos && _utf8Buffer[i + 1] == '\n')
-		{
-			_utf8BufferStartPos = i + 2;  // Skip both \r and \n
-		}
-		else
-		{
-			_utf8BufferStartPos = i + 1;  // Skip just this char
-		}
-		
-		// Reset parser for next row
+		_utf8BufferStartPos = i + 1;
 		reset();
-		
 		return !items.empty();
 	}
 
@@ -500,6 +488,7 @@ bool CSV::readLine(vector<string> &items)
 		// If we reached the end of buffer, try to load more
 		if (i >= _utf8BufferEndPos)
 		{
+			_utf8BufferStartPos = i; // Only unprocessed bytes from here
 			if (!readUtf8())
 			{
 				// EOF - process remaining data

@@ -26,5 +26,8 @@ class TestCsvPreviewModel : public QObject
 private slots:
     void testCsvParsing();
     void testDifferentDelimiters();
-		void testComplexCsvParsing(); 
+    void testComplexCsvParsing();
+    void testNoTrailingNewline();
+    void testCRLFLineEndings();
+    void testCRLineEndings(); 
 };

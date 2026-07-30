@@ -21,6 +21,7 @@
 				"",
 				"",
 				"",
+				"",
 				""
 			],
 			"description" : "",
@@ -42,6 +43,7 @@
 			},
 			"data" : 
 			[
+				"1",
 				"1",
 				"1",
 				"1",
@@ -93,6 +95,7 @@
 				"0.5",
 				"0.5",
 				"0.5",
+				"0.5",
 				"0.5"
 			],
 			"description" : "",
@@ -114,6 +117,7 @@
 			},
 			"data" : 
 			[
+				"Hallo Wereld",
 				"Hallo Wereld",
 				"Hallo Wereld",
 				"Hallo Wereld",
@@ -165,7 +169,8 @@
 				"0.666",
 				"0.111",
 				"0.666",
-				"0.111"
+				"0.111",
+				"0.666"
 			],
 			"description" : "",
 			"labels" : [],
@@ -195,7 +200,8 @@
 				"1",
 				"2",
 				"1",
-				"2"
+				"2",
+				"1"
 			],
 			"description" : "",
 			"labels" : 
@@ -245,7 +251,8 @@
 				"Hallo",
 				"Wereld",
 				"Hallo",
-				"Wereld"
+				"Wereld",
+				"Hallo"
 			],
 			"description" : "",
 			"labels" : 
@@ -295,7 +302,8 @@
 				"0.7",
 				"0.8",
 				"0.9",
-				"1"
+				"1",
+				"1.1"
 			],
 			"description" : "",
 			"labels" : [],
@@ -325,7 +333,8 @@
 				"0.7",
 				"0.8",
 				"0.9",
-				"0.1"
+				"0.1",
+				"0.2"
 			],
 			"description" : "",
 			"labels" : [],
@@ -355,99 +364,16 @@
 				"7",
 				"8",
 				"9",
-				"10"
+				"10",
+				"11"
 			],
 			"description" : "",
-			"labels" : 
-			[
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 0,
-					"originalValue" : "1"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 1,
-					"originalValue" : "2"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 2,
-					"originalValue" : "3"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 3,
-					"originalValue" : "4"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 4,
-					"originalValue" : "5"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 5,
-					"originalValue" : "6"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 6,
-					"originalValue" : "7"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 7,
-					"originalValue" : "8"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 8,
-					"originalValue" : "9"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 9,
-					"originalValue" : "10"
-				}
-			],
+			"labels" : [],
 			"name" : "Scale >= 10 Ints (Treshold)",
-			"nonEmptyLabels" : 
-			[
-				"1",
-				"2",
-				"3",
-				"4",
-				"5",
-				"6",
-				"7",
-				"8",
-				"9",
-				"10"
-			],
+			"nonEmptyLabels" : [],
 			"rCode" : "",
 			"title" : "",
-			"type" : "ordinal"
+			"type" : "scale"
 		},
 		{
 			"autoSortByValue" : true,
@@ -469,7 +395,8 @@
 				"7",
 				"8",
 				"9",
-				"1"
+				"1",
+				"2"
 			],
 			"description" : "",
 			"labels" : 
@@ -575,7 +502,8 @@
 				"G",
 				"H",
 				"I",
-				"J"
+				"J",
+				"K"
 			],
 			"description" : "",
 			"labels" : [],
@@ -605,7 +533,8 @@
 				"G",
 				"H",
 				"I",
-				"A"
+				"A",
+				"B"
 			],
 			"description" : "",
 			"labels" : 
@@ -704,92 +633,7 @@
 			[
 				"",
 				"",
-				" ",
-				"0.1",
-				"0.2",
-				"0.3",
-				"0.4",
-				"0.5",
-				"0.6",
-				"0.7"
-			],
-			"description" : "",
-			"labels" : 
-			[
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 0,
-					"originalValue" : "0.1"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 1,
-					"originalValue" : "0.2"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 2,
-					"originalValue" : "0.3"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 3,
-					"originalValue" : "0.4"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 4,
-					"originalValue" : "0.5"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 5,
-					"originalValue" : "0.6"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "",
-					"order" : 6,
-					"originalValue" : "0.7"
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : " ",
-					"order" : 7,
-					"originalValue" : " "
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : ".",
-					"order" : 8,
-					"originalValue" : "."
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
-					"label" : "Missing",
-					"order" : 9,
-					"originalValue" : "Missing"
-				}
-			],
-			"name" : "Scale with Manual Missing Value",
-			"nonEmptyLabels" : 
-			[
+				"",
 				"0.1",
 				"0.2",
 				"0.3",
@@ -797,11 +641,15 @@
 				"0.5",
 				"0.6",
 				"0.7",
-				" "
+				"0.8"
 			],
+			"description" : "",
+			"labels" : [],
+			"name" : "Scale with Manual Missing Value",
+			"nonEmptyLabels" : [],
 			"rCode" : "",
 			"title" : "",
-			"type" : "nominal"
+			"type" : "scale"
 		},
 		{
 			"autoSortByValue" : true,
@@ -816,14 +664,15 @@
 			[
 				"",
 				"",
-				" ",
+				"",
 				"1",
 				"2",
 				"3",
 				"4",
 				"5",
 				"6",
-				"7"
+				"7",
+				"8"
 			],
 			"description" : "",
 			"labels" : 
@@ -880,9 +729,9 @@
 				{
 					"description" : "",
 					"filterAllows" : true,
-					"label" : " ",
+					"label" : "",
 					"order" : 7,
-					"originalValue" : " "
+					"originalValue" : "8"
 				},
 				{
 					"description" : "",
@@ -909,11 +758,11 @@
 				"5",
 				"6",
 				"7",
-				" "
+				"8"
 			],
 			"rCode" : "",
 			"title" : "",
-			"type" : "nominal"
+			"type" : "ordinal"
 		},
 		{
 			"autoSortByValue" : true,
@@ -928,14 +777,15 @@
 			[
 				"",
 				"",
-				" ",
+				"",
 				"1",
 				"2",
 				"1",
 				"2",
 				"1",
 				"2",
-				"1"
+				"1",
+				"2"
 			],
 			"description" : "",
 			"labels" : 
@@ -957,22 +807,15 @@
 				{
 					"description" : "",
 					"filterAllows" : true,
-					"label" : " ",
-					"order" : 2,
-					"originalValue" : " "
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
 					"label" : ".",
-					"order" : 3,
+					"order" : 2,
 					"originalValue" : "."
 				},
 				{
 					"description" : "",
 					"filterAllows" : true,
 					"label" : "Missing",
-					"order" : 4,
+					"order" : 3,
 					"originalValue" : "Missing"
 				}
 			],
@@ -980,8 +823,7 @@
 			"nonEmptyLabels" : 
 			[
 				"1",
-				"2",
-				" "
+				"2"
 			],
 			"rCode" : "",
 			"title" : "",
@@ -1000,14 +842,15 @@
 			[
 				"",
 				"",
-				" ",
+				"",
 				"Hallo",
 				"Wereld",
 				"Hallo",
 				"Wereld",
 				"Hallo",
 				"Wereld",
-				"Hallo"
+				"Hallo",
+				"Wereld"
 			],
 			"description" : "",
 			"labels" : 
@@ -1015,43 +858,35 @@
 				{
 					"description" : "",
 					"filterAllows" : true,
-					"label" : " ",
-					"order" : 0,
-					"originalValue" : " "
-				},
-				{
-					"description" : "",
-					"filterAllows" : true,
 					"label" : ".",
-					"order" : 1,
+					"order" : 0,
 					"originalValue" : "."
 				},
 				{
 					"description" : "",
 					"filterAllows" : true,
 					"label" : "Hallo",
-					"order" : 2,
+					"order" : 1,
 					"originalValue" : "Hallo"
 				},
 				{
 					"description" : "",
 					"filterAllows" : true,
 					"label" : "Missing",
-					"order" : 3,
+					"order" : 2,
 					"originalValue" : "Missing"
 				},
 				{
 					"description" : "",
 					"filterAllows" : true,
 					"label" : "Wereld",
-					"order" : 4,
+					"order" : 3,
 					"originalValue" : "Wereld"
 				}
 			],
 			"name" : "Nominal Text with Manual Missing Value",
 			"nonEmptyLabels" : 
 			[
-				" ",
 				"Hallo",
 				"Wereld"
 			],
