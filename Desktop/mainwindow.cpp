@@ -1437,21 +1437,33 @@ void MainWindow::registerRpcHandlers()
 
 	// Shared helper — builds the dataset metadata portion used by
 	// data_load (on success), data_load_status (on complete), and data_info.
-	auto buildDataInfo = [](DataSetPackage* pkg) -> Json::Value
+	auto resolveDataSet = [](const Json::Value& params) -> DataSet *
+	{
+		Workspace * ws = DataSetPackage::pkg() ? DataSetPackage::pkg()->workspace() : nullptr;
+		if (!ws)
+			return nullptr;
+
+		if (params.isMember("dataSetId"))
+			return ws->dataSetById(params["dataSetId"].asInt());
+
+		return ws->shownDataSet();
+	};
+
+	auto buildDataInfo = [](DataSet * ds) -> Json::Value
 	{
 		Json::Value info;
 
-		if (!pkg->hasDataSet())
+		if (!ds)
 		{
 			info["loaded"] = false;
 			return info;
 		}
 
 		info["loaded"]      = true;
-		info["path"]        = pkg->currentFile().toStdString();
-		info["rowCount"]    = static_cast<int>(pkg->dataRowCount());
+		info["path"]        = tq(ds->dataFilePath()).toStdString();
+		info["rowCount"]    = static_cast<int>(ds->rowCount());
 
-		auto colTypes = pkg->getColumnTypesMap();
+		auto colTypes = ds->getColumnTypesMap();
 		info["columnCount"] = static_cast<int>(colTypes.size());
 
 		Json::Value columns(Json::arrayValue);
@@ -1463,7 +1475,7 @@ void MainWindow::registerRpcHandlers()
 
 			if (type == columnType::nominal || type == columnType::nominalText || type == columnType::ordinal)
 			{
-				Column * column = pkg->dataSet()->column(name);
+				Column * column = ds->column(name);
 				if (column)
 					col["distinctCount"] = static_cast<int>(column->labelsNonEmptyCount());
 			}
@@ -1572,7 +1584,7 @@ void MainWindow::registerRpcHandlers()
 
 		// job.status == "complete" — return full metadata
 		{
-			Json::Value response = buildDataInfo(DataSetPackage::pkg());
+			Json::Value response = buildDataInfo(DataSetPackage::pkg() && DataSetPackage::pkg()->workspace() ? DataSetPackage::pkg()->workspace()->shownDataSet() : nullptr);
 			response["status"] = "success";
 			response["jobId"]  = jobId;
 
@@ -1611,7 +1623,7 @@ void MainWindow::registerRpcHandlers()
 
 				if (job.status == "complete")
 				{
-					Json::Value response = buildDataInfo(DataSetPackage::pkg());
+					Json::Value response = buildDataInfo(DataSetPackage::pkg() && DataSetPackage::pkg()->workspace() ? DataSetPackage::pkg()->workspace()->shownDataSet() : nullptr);
 					response["status"] = "complete";
 					response["jobId"]  = jobId;
 					AgentStateTracker::notifyDataObserved();
@@ -1653,7 +1665,7 @@ void MainWindow::registerRpcHandlers()
 
 			if (job.status == "complete")
 			{
-				Json::Value response = buildDataInfo(DataSetPackage::pkg());
+				Json::Value response = buildDataInfo(DataSetPackage::pkg() && DataSetPackage::pkg()->workspace() ? DataSetPackage::pkg()->workspace()->shownDataSet() : nullptr);
 				response["status"] = "complete";
 				response["jobId"]  = jobId;
 				AgentStateTracker::notifyDataObserved();
@@ -1667,9 +1679,9 @@ void MainWindow::registerRpcHandlers()
 			});
 
 		// --- data_info ---
-		disp->registerMethodByName("data_info", [buildDataInfo](const Json::Value&) -> Json::Value
+		disp->registerMethodByName("data_info", [buildDataInfo, resolveDataSet](const Json::Value& params) -> Json::Value
 		{
-			Json::Value response = buildDataInfo(DataSetPackage::pkg());
+			Json::Value response = buildDataInfo(resolveDataSet(params));
 			response["status"] = "success";
 
 			// Agent just observed the dataset — clear data dirty flags

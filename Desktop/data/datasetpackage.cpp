@@ -80,7 +80,7 @@ void DataSetPackage::createWorkspace()
 	
 	_workspace = new Workspace(this);
 	
-	_workspace->setShowRSyntax(PreferencesModel::prefs()->showRSyntaxInResults());
+	_workspace->setShowRSyntax(PreferencesModel::prefs() ? PreferencesModel::prefs()->showRSyntaxInResults() : false);
 	
 	connectWorkspace();
 	
@@ -244,7 +244,7 @@ void DataSetPackage::generateEmptyData()
 	newSet->setColumnCount(1);
 	newSet->setRowCount(1, false);
 	
-	newSet->column(0)->initFromLookups(newSet->freeNewColumnName(0), 1, [](size_t){return "";}, [](size_t){return "";}, "", columnType::scale, {}, PreferencesModel::prefs()->thresholdScale(), PreferencesModel::prefs()->orderByValueByDefault());
+	newSet->column(0)->initFromLookups(newSet->freeNewColumnName(0), 1, [](size_t){return "";}, [](size_t){return "";}, "", columnType::scale, {}, thresholdScale(), orderByValueByDefault());
 	
 	setModified(false);
 	
@@ -337,9 +337,9 @@ void DataSetPackage::languageChangeDone()
 
 void DataSetPackage::handleAutoSavePrefChange()
 {
-	_autoSaveTimer.setInterval(1000 * PreferencesModel::prefs()->autoSaveIntervalSec());
+	_autoSaveTimer.setInterval(1000 * (PreferencesModel::prefs() ? PreferencesModel::prefs()->autoSaveIntervalSec() : 1));
 	
-	if(_autoSaveTimer.isActive() != PreferencesModel::prefs()->autoSaveAtAll())
+	if(PreferencesModel::prefs() && _autoSaveTimer.isActive() != PreferencesModel::prefs()->autoSaveAtAll())
 	{
 		if(!PreferencesModel::prefs()->autoSaveAtAll())		
 			_autoSaveTimer.stop();
@@ -424,24 +424,24 @@ void DataSetPackage::dbDelete()
 
 int DataSetPackage::thresholdScale()
 {
-	return PreferencesModel::prefs()->thresholdScale();
+	return PreferencesModel::prefs() ? PreferencesModel::prefs()->thresholdScale() : 5;
 }
 
 int DataSetPackage::orderByValueByDefault()
 {
-	return PreferencesModel::prefs()->orderByValueByDefault();
+	return PreferencesModel::prefs() ? int(PreferencesModel::prefs()->orderByValueByDefault()) : true;
 }
 
 void DataSetPackage::resetVariableTypes()
 {
 	if(workspace())
 		for(DataSet * dataSet : workspace()->dataSets())
-			dataSet->resetVariableTypes(PreferencesModel::prefs()->thresholdScale());
+			dataSet->resetVariableTypes(thresholdScale());
 }
 
 bool DataSetPackage::workspaceShowRSyntax() const
 {
-	return workspace() ? workspace()->showRSyntax() : PreferencesModel::prefs()->showRSyntaxInResults();
+	return workspace() ? workspace()->showRSyntax() : (PreferencesModel::prefs() ? PreferencesModel::prefs()->showRSyntaxInResults() : false);
 }
 
 
@@ -462,7 +462,7 @@ void DataSetPackage::setDataSetEmptyValues(const stringset &emptyValues, bool re
 
 void DataSetPackage::setDefaultWorkspaceEmptyValues()
 {
-	stringvec prefs = fq(PreferencesModel::prefs()->emptyValues());
+	stringvec prefs = PreferencesModel::prefs() ? fq(PreferencesModel::prefs()->emptyValues()) : stringvec();
 	setDataSetEmptyValues(stringset(prefs.begin(), prefs.end()));
 }
 
