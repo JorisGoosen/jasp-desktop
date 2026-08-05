@@ -1,7 +1,8 @@
+#include "utilities/messageforwarder.h"
 #include "enginerepresentation.h"
 #include "gui/preferencesmodel.h"
-#include "utilities/messageforwarder.h"
-#include "utilities/qutils.h"
+#include "data/datasetpackage.h"
+#include "qutils.h"
 #include "utils.h"
 #include "log.h"
 
@@ -65,6 +66,7 @@ void EngineRepresentation::cleanUpAfterClose(bool forgetAnalyses)
 	_settingsChanged	= true;
 	_abortAndRestart	= false;
 	_lastCompColName	= "???";
+	_lastCompColDataSet	= -1;
 
 
 	if(_dynModName != "")
@@ -128,7 +130,13 @@ void EngineRepresentation::handleEngineCrash()
 		break;
 
 	case engineState::computeColumn:
-		emit computeColumnFailed(tq(_lastCompColName), tr("The engine crashed while trying to compute this column..."));
+		{
+			DataSet * dataSet = Workspace::singleton()->dataSetById(_lastCompColDataSet);
+			Column  * column  = dataSet ? dataSet->column(_lastCompColName) : nullptr;
+			
+			if(column)
+				column->setError(fq(tr("The engine crashed while trying to compute this column...")));
+		}
 		break;
 
 	case engineState::rCode:
@@ -322,7 +330,7 @@ void EngineRepresentation::processReplies()
 			case engineState::moduleLoadRequest:	processModuleRequestReply(json);	break;
 			case engineState::logCfg:				processLogCfgReply();				break;
 			case engineState::settings:				processSettingsReply();				break;
-			case engineState::reloadData:			processReloadDataReply();			break;
+			case engineState::loadingData:			processLoadingDataReply(json);			break;
 			default:								throw std::logic_error("If you define/send-from-engine new engineStates ("+engineStateToString(typeRequest)+") you should add them to the switch in EngineRepresentation::processReplies()!");
 			}
 	}
@@ -348,6 +356,7 @@ void EngineRepresentation::runScriptOnProcess(RFilterStore * filterStore)
 	json["typeRequest"]		= engineStateToString(_engineState);
 	json["generatedFilter"] = filterStore->generatedfilter.toStdString();
 	json["requestId"]		= filterStore->requestId;
+	json["dataSetId"]		= filterStore->dataSetId;
 
 	_lastRequestId			= filterStore->requestId;
 
@@ -367,6 +376,7 @@ void EngineRepresentation::runScriptOnProcess(RFilterByNameStore *filterStore)
 
 	json["typeRequest"]		= engineStateToString(_engineState);
 	json["name"]			= filterStore->name.toStdString();
+	json["dataSetId"]		= filterStore->dataSetId;
 
 	sendString(json);
 }
@@ -374,8 +384,6 @@ void EngineRepresentation::runScriptOnProcess(RFilterByNameStore *filterStore)
 void EngineRepresentation::processFilterReply(Json::Value & json)
 {
 	checkIfExpectedReplyType(engineState::filter);
-
-
 	setState(engineState::idle);
 
 #ifdef PRINT_ENGINE_MESSAGES
@@ -384,15 +392,10 @@ void EngineRepresentation::processFilterReply(Json::Value & json)
 
 	int requestId = json.get("requestId", -1).asInt();
 
-	if(requestId == _lastRequestId)
-	{
-		emit filterDone(requestId);
+	emit filterDone(requestId);
 
-		if(json.isMember("error"))
-			emit processFilterErrorMsg(tq(json["error"].asString()), requestId);
-		else
-			emit processNewFilterResult(requestId);
-	}
+	if(requestId == _lastRequestId)
+		Workspace::singleton()->checkForUpdates();
 }
 
 void EngineRepresentation::processFilterByNameReply(Json::Value &json)
@@ -407,13 +410,16 @@ void EngineRepresentation::processFilterByNameReply(Json::Value &json)
 
 	std::string name	= json.get("name",			"???").asString(),
 				error	= json.get("errorMessage", "").asString();
+	int			dataSet = json["dataSetID"].asInt();
 
-	emit filterByNameDone(tq(name), tq(error));
+	
+	Workspace::singleton()->checkForUpdates();
+	emit filterByNameDone(dataSet, tq(name), tq(error));
 }
 
 void EngineRepresentation::runScriptOnProcess(const QString & rCmdCode)
 {
-	RScriptStore * script = new RScriptStore(-1, rCmdCode, "", engineState::rCode, false, true);
+	RScriptStore * script = new RScriptStore(DataSetPackage::pkg()->dataSet() ? DataSetPackage::pkg()->dataSet()->id() : -1, -1, rCmdCode, "", engineState::rCode, false, true);
 
 	runScriptOnProcess(script);
 
@@ -480,8 +486,10 @@ void EngineRepresentation::runScriptOnProcess(RComputeColumnStore * computeColum
 	json["columnName"]		= computeColumnStore->_columnName.toStdString();
 	json["computeCode"]		= computeColumnStore->script.toStdString();
 	json["columnType"]		= columnTypeToString(computeColumnStore->_columnType);
+	json["dataSetId"]		= computeColumnStore->dataSetId;
 
 	_lastCompColName		= json["columnName"].asString();
+	_lastCompColDataSet		= computeColumnStore->dataSetId;
 
 	sendString(json);
 }
@@ -493,14 +501,12 @@ void EngineRepresentation::processComputeColumnReply(Json::Value & json)
 
 	setState(engineState::idle);
 
-
-	std::string result		= json.get("result", "some string that is not 'TRUE' or 'FALSE'").asString();
-	std::string error		= json.get("error", "").asString();
 	std::string columnName	= json.get("columnName", "").asString();
+	std::string warning		= json.get("error", "").asString();
+	bool		dataChanged	= warning.empty();
 
-	if(result == "TRUE")		emit computeColumnSucceeded(QString::fromStdString(columnName), QString::fromStdString(error), true);
-	else if(result == "FALSE")	emit computeColumnSucceeded(QString::fromStdString(columnName), QString::fromStdString(error), false);
-	else						emit computeColumnFailed(	QString::fromStdString(columnName), QString::fromStdString(error == "" ? "Unknown Error" : error));
+	emit computeColumnSucceeded(tq(columnName), tq(warning), dataChanged);
+	emit checkDataSetForUpdates();
 }
 
 void EngineRepresentation::runAnalysisOnProcess(Analysis *analysis)
@@ -686,15 +692,7 @@ void EngineRepresentation::checkForComputedColumns(const Json::Value & results)
 							typeChanged	= results["typeChanged"].asBool(),
 							removed 	= results["removed"]	.asBool();
 
-			if(removed)
-				emit computeColumnRemoved(tq(columnName));
-			else
-			{
-				emit computeColumnSucceeded(tq(columnName), "", dataChanged);
-
-				if(typeChanged)
-					emit columnDataTypeChanged(tq(columnName));
-			}
+			emit checkDataSetForUpdates();
 		}
 		else
 			for(const std::string & member : members)
@@ -894,9 +892,9 @@ void EngineRepresentation::processEngineResumedReply(Json::Value & json)
 	Log::log() << "EngineRepresentation::processEngineResumedReply() for engine #" << channelNumber() << std::endl;
 	
 	if(json.get("justReloadedData", false))
-		_reloadData = false;
-	
-	if(_engineState != engineState::resuming && _engineState != engineState::initializing && _engineState != engineState::reloadData && _engineState != engineState::idle)
+		_loadingProgress = 0.0;
+
+	if(_engineState != engineState::resuming && _engineState != engineState::initializing && _engineState != engineState::loadingData && _engineState != engineState::idle)
 	{
 	//	throw unexpectedEngineReply("Received an unexpected engine #" + std::to_string(channelNumber()) + " resumed reply (current state is " + engineStateToString(_engineState) +")!");
 		resend();
@@ -920,12 +918,15 @@ void EngineRepresentation::processEngineStoppedReply()
 }
 
 
-void EngineRepresentation::processReloadDataReply()
+void EngineRepresentation::processLoadingDataReply(Json::Value & json)
 {
-	Log::log() << "EngineRepresentation::processReloadDataReply() for engine #" << channelNumber() << std::endl;
-
-	_reloadData = false;
-	setState(engineState::reloadData); //Its probably already in this state
+	float progress = json.get("progress", 0.0).asFloat();
+	if(std::abs(progress - _loadingProgress) > 0.001f)
+	{
+		_loadingProgress = progress;
+		emit loadingProgressChanged();
+	}
+	setState(engineState::loadingData);
 }
 
 
@@ -1123,20 +1124,6 @@ void EngineRepresentation::sendSettings()
 	_settingsChanged = false;
 }
 
-void EngineRepresentation::sendReloadData()
-{
-	Log::log() << "EngineRepresentation::sendReloadData()" << std::endl;
-
-	if(_engineState != engineState::idle)
-		throw std::runtime_error("EngineRepresentation::sendReloadData() expects to be run from an idle engine.");
-
-	setState(engineState::reloadData);
-	Json::Value msg			= Json::objectValue;
-	msg["typeRequest"]		= engineStateToString(_engineState);
-
-	sendString(msg);
-}
-
 void EngineRepresentation::addSettingsToJson(Json::Value & msg)
 {
 	if(!PreferencesModel::prefs()) //During testing only!
@@ -1190,7 +1177,7 @@ bool EngineRepresentation::idleSoon() const
 	case engineState::settings:
 	case engineState::logCfg:
 	case engineState::moduleLoadRequest:
-	case engineState::reloadData:
+	case engineState::loadingData:
 	case engineState::idle:
 		return true;
 	

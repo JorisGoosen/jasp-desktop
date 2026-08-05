@@ -26,7 +26,7 @@
 
 #include <boost/bind.hpp>
 
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "utils.h"
 #include "osf/onlinedatamanager.h"
 #include "log.h"
@@ -56,6 +56,7 @@ void AsyncLoader::io(FileEvent *event)
 {
 	switch (event->operation())
 	{
+	case FileEvent::FileSyncData:
 	case FileEvent::FileNew:
 		emit progress(tr("Loading New Data Set"), 0);
 		emit beginLoad(event);
@@ -81,13 +82,6 @@ void AsyncLoader::io(FileEvent *event)
 		emit progress(tr("Exporting Data Set"), 0);
 		emit beginSave(event);
 		break;
-
-	case FileEvent::FileSyncData:
-	{
-		emit progress(tr("Sync Data Set"), 0);
-		emit beginLoad(event);
-		break;
-	}
 
 	case FileEvent::FileClose:
 		event->setComplete();
@@ -245,16 +239,20 @@ void AsyncLoader::loadPackage(QString id)
 
 			DataSetPackage * pkg = DataSetPackage::pkg();
 
-			if(!pkg->dataSet())
-				pkg->createDataSet();
-
 			if (_currentEvent->operation() == FileEvent::FileSyncData)
-				_loader.syncPackage(path, extension, boost::bind(&AsyncLoader::progressHandler, this, _1));
+			{
+				DataSet * dataSet = pkg->workspace()->dataSetById(_currentEvent->syncDataSetId());
+				if(!dataSet)
+				{
+					_currentEvent->setComplete(false, "No dataset found for sync");
+					return;
+				}
+				_loader.syncPackage(path, extension, dataSet, boost::bind(&AsyncLoader::progressHandler, this, _1));
+
+				_currentEvent->setComplete();
+			}
 			else
 				_loader.loadPackage(path, extension, boost::bind(&AsyncLoader::progressHandler, this, _1));
-
-			if(_currentEvent->operation() != FileEvent::FileSyncData && _currentEvent->type() != Utils::FileType::jasp && !_currentEvent->isReadOnly())
-				pkg->setSynchingExternally(true);
 
 			QString calcMD5 = fileChecksum(tq(path), QCryptographicHash::Md5);
 
@@ -276,12 +274,12 @@ void AsyncLoader::loadPackage(QString id)
 				QFileInfo fileInfo(_currentEvent->path());
 				long timestamp = fileInfo.isFile() ? fileInfo.lastModified().toSecsSinceEpoch() : 0;
 
-				pkg->setDataFilePath(_currentEvent->path().toStdString(), timestamp);
-				pkg->setDatabaseJson(_currentEvent->database());
+				pkg->dataSet()->setDataFileAndTimeStamp(_currentEvent->path().toStdString(), timestamp);
+				pkg->dataSet()->setDatabaseJson(_currentEvent->database());
 			}
 
-			pkg->setDataFileReadOnly(_currentEvent->isReadOnly());
-			_currentEvent->setDataFilePath(QString::fromStdString(pkg->dataFilePath()));
+			pkg->setFileReadOnly(_currentEvent->isReadOnly());
+			_currentEvent->setDataFilePath(QString::fromStdString(pkg->dataSet()->dataFilePath()));
 			_currentEvent->setComplete();
 
 			if (dataNode != nullptr)
@@ -291,8 +289,7 @@ void AsyncLoader::loadPackage(QString id)
 		{
 			Log::log() << "Loader Exception in loadPackage: " << e.what() << std::endl;
 
-			DataSetPackage::pkg()->dbDelete();
-			DataSetPackage::pkg()->deleteDataSet(); //Make sure we dont keep failed stuff in memory
+			DataSetPackage::pkg()->deleteWorkspace(false); //Make sure we dont keep failed stuff in memory
 
 			if (dataNode != nullptr)
 				_odm->deleteActionDataNode(id);
@@ -302,8 +299,7 @@ void AsyncLoader::loadPackage(QString id)
 		{
 			Log::log() << "Exception in loadPackage: " << e.what() << std::endl;
 
-			DataSetPackage::pkg()->dbDelete();
-			DataSetPackage::pkg()->deleteDataSet(); //Make sure we dont keep failed stuff in memory
+			DataSetPackage::pkg()->deleteWorkspace(true); //Make sure we dont keep failed stuff in memory
 
 			if (dataNode != nullptr)
 				_odm->deleteActionDataNode(id);

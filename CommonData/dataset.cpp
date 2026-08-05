@@ -18,58 +18,229 @@
 #include "log.h"
 #include <cassert>
 #include "timers.h"
+#include "qutils.h"
 #include "dataset.h"
+#include "appinfo.h"
+#include "workspace.h"
+#include "dataenums.h"
 #include "columnencoder.h"
 #include "jsonutilities.h"
 #include "databaseinterface.h"
+#include "undostack.h"
 
 stringset DataSet::_defaultEmptyvalues;
 
-DataSet::DataSet(int id)
-	: DataSetBaseNode(dataSetBaseNodeType::dataSet, nullptr)
+DataSet::DataSet(Workspace * workspace, int id)
+	: DataSetBaseNode(dataSetBaseNodeType::dataSet, workspace),
+	  _workspace(workspace)
 {
-	Log::log() << "DataSet::DataSet(index=" << id << ")" << std::endl;
+	Log::log() << "DataSet::DataSet(id=" << id << ")" << std::endl;
 
-	_dataNode		= new DataSetBaseNode(dataSetBaseNodeType::data,	this);
-	_filtersNode	= new DataSetBaseNode(dataSetBaseNodeType::filters, this);
-	_emptyValues	= new EmptyValues();
+	_encoder = new ColumnEncoder();
+	_syncer  = new DataSetSyncer(this);
+	_emptyValues	= new EmptyValues(nullptr);
+	connect(_emptyValues,	&EmptyValues::emptyValuesChanged,	this,		&DataSet::emptyValuesChanged			);
+	connect(this,			&DataSet::emptyValuesChanged,		_workspace, &Workspace::emptyValuesChanged			);
 	
-	if(id == -1)        dbCreate();
-	else if(id > 0)		dbLoad(id);
+	if(id == -1)			dbCreate();
+	else if(id > 0)			dbLoad(id);
+	
+	_undoStack = new UndoStack(this);
+	
+	connect(this,			&DataSet::datasetChanged,			this,		&DataSet::handleDataSetChanged			);
+	
+	connect(this,			&DataSet::showYesNo,				_workspace, &Workspace::showYesNo					);
+	connect(this,			&DataSet::askPassword,				_workspace, &Workspace::askPassword					);
+	connect(this,			&DataSet::showWarning,				_workspace, &Workspace::showWarning					);
+	connect(this,			&DataSet::manualEditMade,			_workspace, &Workspace::manualEditMade				);
+	connect(this,			&DataSet::datasetChanged,			_workspace, &Workspace::datasetChanged				);
+	connect(this,			&DataSet::labelsReordered,			_workspace, &Workspace::labelsReordered				);
+
+	connect(this,			&DataSet::somethingModified,		_workspace, &Workspace::enableModified				);
+	connect(this,			&DataSet::sendFilter,				_workspace, &Workspace::sendFilter					);
+	connect(this,			&DataSet::sendFilterByName,			_workspace, &Workspace::sendFilterByName			);
+	connect(this,			&DataSet::filtersCountChanged,		_workspace, &Workspace::filtersCountChanged			);
+	connect(this,			&DataSet::refreshAllAnalyses,		_workspace, &Workspace::refreshAllAnalyses			);
+	connect(this,			&DataSet::refreshAllCompCols,		_workspace, &Workspace::refreshAllCompCols			);
+	
+	connect(_workspace,		&Workspace::filterByNameDone,		this,		&DataSet::filterByNameDone				);
+
+	_description = fq(tr("Originally created empty by %1 on %2").arg(tq(AppInfo::getShortDesc())).arg(tq(Utils::currentDateTime())));
+
+	connect(_syncer, &DataSetSyncer::askPassword,  this, [this](int, QString title, QString msg) -> QString { return emit askPassword(title, msg); });
+	connect(_syncer, &DataSetSyncer::askYesNo,     this, [this](int, QString title, QString msg) -> bool   { return emit showYesNo(title, msg); });
+	connect(_syncer, &DataSetSyncer::showWarning,  this, [this](int, QString title, QString msg)          { emit showWarning(title, msg); });
+	connect(_syncer, &DataSetSyncer::syncRequired, this, &DataSet::syncRequired);
 }
 
 DataSet::~DataSet()
 {
 	JASPTIMER_SCOPE(DataSet::~DataSet);
-	//delete columns before dataNode as they depend on it via DataSetBaseNode inheritance
+
+	delete _syncer;
+	_syncer = nullptr;
+	delete _encoder;
+	_encoder = nullptr;
+
 	for(Column * col : _columns)
-		delete col;
+		unregisterNode(col);
 
 	_columns.clear();
 	
 	delete _emptyValues;
-	delete _dataNode;
-	delete _filter;
 	
+	for(Filter * f : _filters)
+		unregisterNode(f);
+		
 	_emptyValues	= nullptr;
-	_dataNode		= nullptr;
-	_filter			= nullptr;
+	_defaultFilter	= nullptr;
+}
+
+void DataSet::deleteShownFilter()
+{
+	if(_shownFilter != _defaultFilter)
+	{
+		_shownFilter->dbDelete();
+		
+		Filters newList;
+		
+		size_t indexWas = 0;
+		for(size_t i=0; i<_filters.size(); i++)
+			if(_filters[i] != _shownFilter)
+				newList.push_back(_filters[i]);
+			else
+				indexWas = i;
+			
+		_filters = newList;
+		
+		emit filterRemoved(_shownFilter);
+		
+		delete _shownFilter;
+		_shownFilter = _filters[std::max(indexWas, _filters.size()-1)];
+		emit shownFilterChanged(this);
+		incRevision();
+		refresh();		
+	}
+}
+
+void DataSet::addFilter()
+{
+	std::string filterName;
 	
+	int filterId = 0;
+	do
+	{
+		filterName = fq(tr("Filter %1").arg(filterId++));
+	}
+	while(filterExists(filterName));
 	
+	showFilter(createFilter(filterName));
+}
+
+void DataSet::showFilter(Filter * f)
+{
+	if(f->data() != this)
+		return;
+	
+	_shownFilter = f;
+	emit shownFilterChanged(this);
+	refresh();	
+}
+
+Filter * DataSet::showFilter(const std::string &filterName)
+{
+	if(filterName == "")
+	{
+		_shownFilter = nullptr;
+		return nullptr;
+	}
+	
+	Filter * found = filter(filterName);;
+	
+	try
+	{
+		if(!found)
+			found = new Filter(this, filterName, false);
+	}
+	catch(...){}
+	
+	if(!found)
+		found = defaultFilter();
+	
+	if(found && found != _shownFilter)
+		showFilter(found);
+	
+	return found;
+}
+	
+
+Filter * DataSet::showFilter(const QString &filterName)
+{
+	return showFilter(fq(filterName));
+}
+
+QString DataSet::name() const
+{
+	return tq(db().dataSetName(id()));
+}
+
+QString DataSet::title() const
+{
+	return _title.empty() ? name().replace("_", " ") : tq(_title);
+}
+
+
+Filter * DataSet::filter(const std::string &name)
+{
+	for(Filter * f : _filters)
+		if(f->name() == name)
+			return f;
+	
+	return _defaultFilter && _defaultFilter->name() == name ? _defaultFilter : nullptr;
+}
+
+Filter *DataSet::filter(int id)
+{
+	for(Filter * f : _filters)
+		if(f->id() == id)
+			return f;
+	
+	return _defaultFilter->id() == id ? _defaultFilter : nullptr;
+}
+
+void DataSet::registerFilter(Filter *f)
+{
+	_filters.push_back(f);
+	emit filtersCountChanged();
 }
 
 void DataSet::dbDelete()
 {
 	JASPTIMER_SCOPE(DataSet::dbDelete);
-
-	assert(_dataSetID != -1);
 	
-	//We know there is only a single dataset, so we can truncate every table superquickly instead of doing it carefully
-
-	db().dataSetDelete(_dataSetID);
-	db().truncateAllTables();	
+	assert(_dataSetId != -1);
 	
-	_dataSetID = -1;
+	for(Filter * f : _filters)
+	{
+		f->dbDelete();
+		delete f;
+	}
+	
+	_filters.clear();
+	
+	
+	for(Column * c : _columns)
+	{
+		c->dbDelete();
+		delete c;
+	}
+	
+	_columns.clear();
+	
+
+	db().dataSetDelete(_dataSetId);
+	
+	_dataSetId = -1;
 }
 
 void DataSet::beginBatchedToDB()
@@ -169,6 +340,14 @@ void DataSet::columnsReorder(stringvec order)
 	}
 	
 	incRevision();
+	
+	refresh();
+}
+
+void DataSet::columnRefreshed(Column *column)
+{
+	int idx = columnIndex(column);
+	emit dataChanged(index(0, idx), index(rowCount(), idx), roleNames().keys());
 }
 
 Column *DataSet::column(const std::string &name)
@@ -180,7 +359,12 @@ Column *DataSet::column(const std::string &name)
 	return nullptr;
 }
 
-Column *DataSet::column(size_t index)
+Column *DataSet::column(const QString &name)
+{
+	return column(fq(name));
+}
+
+Column *DataSet::column(int index)
 {
 	if(index < 0 || index >= _columns.size())
 		return nullptr;
@@ -188,62 +372,110 @@ Column *DataSet::column(size_t index)
 	return _columns[index];
 }
 
+
 void DataSet::removeColumn(size_t index)
 {
-	assert(_dataSetID > 0);
+	assert(_dataSetId > 0);
 
+	beginRemoveColumns(QModelIndex(), index, index);
 	Column * removeMe = _columns[index];
 	_columns.erase(_columns.begin() + index);
 
 	removeMe->dbDelete();
 	delete removeMe;
+	
+	endRemoveColumns();
 
 	incRevision();
 }
 
 void DataSet::removeColumn(const std::string & name)
 {
-	assert(_dataSetID > 0);
-
-	for(auto col = _columns.begin() ; col != _columns.end(); col++)
-		if((*col)->name() == name)
-		{
-			(*col)->dbDelete();
-			delete *col;
-			
-			_columns.erase(col);
-				
-			incRevision();
-			return;
-		}
+	assert(_dataSetId > 0);
+	Column * col = column(name);
+	
+	if(col)
+		removeColumn(columnIndex(col));
 }
 
-void DataSet::insertColumn(size_t index,	bool alterDataSetTable)
+void DataSet::insertColumns(size_t index, size_t count,	bool alterDataSetTable)
 {
 
-	assert(_dataSetID > 0);
+	assert(_dataSetId > 0);
 
-	Column * newColumn = new Column(this, db().columnInsert(_dataSetID, index, "", columnType::unknown, alterDataSetTable));
+	beginInsertColumns(QModelIndex(), index, index + count);
+	
+	intvec colIds = db().columnsInsert(_dataSetId, count, index, "", columnType::unknown, alterDataSetTable);
+	
+	for(int c = 0; c<colIds.size(); c++)
+	{
+		Column * newColumn = new Column(this, colIds[c]);
 
-	_columns.insert(_columns.begin()+index, newColumn);
+		_columns.insert(_columns.begin()+index+c, newColumn);
 
-	newColumn->setRowCount(_rowCount);
+		newColumn->setRowCount(_rowCount);
+	}
+	
+	endInsertColumns();
 
 	incRevision();
 }
 
-Column * DataSet::newColumn(const std::string &name)
+void DataSet::insertColumn(size_t index, bool alterDataSetTable)
 {
-	assert(_dataSetID > 0);
-	Column * col = new Column(this, db().columnInsert(_dataSetID, -1, name));
+	insertColumns(index, 1, alterDataSetTable);
+}
+
+
+QString DataSet::insertColumnSpecial(int columnIndex, const QMap<QString, QVariant>& props)
+{
+	columnIndex = std::min(std::max(0, columnIndex), columnCount());
+
+	insertColumn(columnIndex);
+	
+	Column * col = column(columnIndex);
+
+	col->setName(				props.contains("name")			? fq(props["name"].toString())					: freeNewColumnName(columnIndex)	);
+	col->setDefaultValues(		props.contains("type")			? columnType(props["type"].toInt())				: columnType::scale					);
+	col->setCodeType(			props.contains("computed")		? computedColumnType(props["computed"].toInt())	: computedColumnType::notComputed	);
+	col->setComputeFilter(fq(	props.contains("computeFilter")	? props["computeFilter"].toString()				: ""								));
+
+	incRevision();
+	
+	emit datasetChanged(_dataSetId, tq(stringvec{col->name()}), {}, {}, false, true);
+
+	_encoder->setCurrentNames(	getColumnTypesMap());
+	
+	if(col->codeType() == computedColumnType::constructorCode || col->codeType() == computedColumnType::rCode)
+		setShownColumn(col);
+	
+	refresh();
+
+	return tq(col->name());
+}
+
+Column * DataSet::createColumn(const std::string & name, columnType columnType)
+{
+
+	if(getColumnIndex(name) >= 0)
+		return nullptr;
+
+	beginInsertColumns(QModelIndex(), columnCount(), columnCount());
+	
+	Column * col = new Column(this, db().columnInsert(_dataSetId, -1, name));
 	col->setName(name);
-
+	col->setDefaultValues(columnType, false);
 	_columns.push_back(col);
+	endInsertColumns();
 
 	incRevision();
+	
+	refresh();
+	emit manualEditMade();
 
 	return col;
 }
+
 
 size_t DataSet::getMaximumColumnWidthInCharacters(size_t columnIndex) const
 {
@@ -274,22 +506,107 @@ std::map<std::string,columnType> DataSet::getColumnTypesMap()
 	return theMap;
 }
 
+void DataSet::setDataFileAndTimeStamp(const std::string &dataFilePath, long timestamp)
+{
+	bool isChange		= _dataFilePath	!= dataFilePath || _dataFileTimestamp	!= timestamp;
+	_dataFileTimestamp	= timestamp;		
+	_dataFilePath		= dataFilePath;
+	dbUpdate(); 
+	
+	if(isChange)
+	{
+		emit dataFileChanged();
+		emit dataTimestampChanged();
+	}
+}
+
+void DataSet::setDataFile(const std::string &dataFilePath)	
+{ 
+	bool isChange	= _dataFilePath	!= dataFilePath;
+	_dataFilePath	= dataFilePath;
+	dbUpdate(); 
+	
+	if(isChange)
+		emit dataFileChanged();
+}
+
+void DataSet::setDataTimestamp(long timestamp)						
+{ 
+	bool isChange		= _dataFileTimestamp	!= timestamp;
+	_dataFileTimestamp	= timestamp;		
+	dbUpdate(); 
+	
+	if(isChange)
+		emit dataTimestampChanged();
+}
+
+void DataSet::setDatabaseJson(const Json::Value & databaseJson)
+{ 
+
+	bool isChange	= _database	!= databaseJson;
+	_database	= databaseJson;
+	dbUpdate(); 
+	
+	if(isChange)
+		emit databaseJsonChanged(); 
+}
+
+void DataSet::setDataFileSynch(bool synchronizing)					
+{ 
+	bool isChange	= _dataFileSynch	!= synchronizing;
+	_dataFileSynch	= synchronizing;	
+	dbUpdate(); 
+	
+	if(isChange)
+		emit dataFileChanged();
+}
+
+void DataSet::synchronize()
+{
+	_syncer->syncNow();
+}
+
+void DataSet::synchronizeFromDatabase()
+{
+	if(!isDatabase())
+	{
+		Log::log()	<< "Trying to synch from db but there is no databaseJson" << std::endl;
+		return;
+	}
+
+	_syncer->syncNow();
+}
+
+void DataSet::synchronizeFromDataFile()
+{
+	if(dataFileQ() == "")
+	{
+		Log::log()	<< "Trying to synch from a file but there is no datafile path" << std::endl;
+		return;
+	}
+
+	if(!QFileInfo::exists(dataFileQ()))
+	{
+		Log::log()	<< "Trying to synch from a file but it does not exist (" << dataFileQ() << ")." << std::endl;
+		return;
+	}
+
+	_syncer->syncNow();
+}
 
 void DataSet::dbCreate()
 {
 	JASPTIMER_SCOPE(DataSet::dbCreate);
-
-	assert(!_filter && _dataSetID == -1);
-
+	
+	assert(!_defaultFilter && _dataSetId == -1);
+	
 	db().transactionWriteBegin();
 
 	//The variables are probably empty though:
-	_dataSetID	= db().dataSetInsert(_dataFilePath, _dataFileTimestamp, _description, _databaseJson, _emptyValues->toJson().toStyledString(), _dataFileSynch, _showRSyntax, _csvDelimiter);
+_dataSetId		= db().dataSetInsert(_dataFilePath, _dataFileTimestamp, _description, _database.toStyledString(), _emptyValues->toJson().toStyledString(), _dataFileSynch, _csvDelimiter);
+	_defaultFilter	= new Filter(this);
 	
-	assert(_dataSetID == 1);
-	
-	_filter = new Filter(this);
-	_filter->dbCreate();
+	_defaultFilter->dbCreate();
 	_columns.clear();
 
 	db().transactionWriteEnd();
@@ -299,43 +616,44 @@ void DataSet::dbCreate()
 
 void DataSet::dbUpdate()
 {
-	assert(_dataSetID > 0);
-	db().dataSetUpdate(_dataSetID, _dataFilePath, _dataFileTimestamp, _description, _databaseJson, _emptyValues->toJson().toStyledString(), _dataFileSynch, _showRSyntax, _csvDelimiter);
+assert(_dataSetId > 0);
+	db().dataSetUpdate(_dataSetId, _title, _dataFilePath, _dataFileTimestamp, _description, _database.toStyledString(), _emptyValues->toJson().toStyledString(), _dataFileSynch, _csvDelimiter);
 	incRevision();
 }
 
-void DataSet::dbLoad(int index, std::function<void(float)> progressCallback, Version doUpgradeFrom)
+void DataSet::dbLoad(int id, std::function<void(float)> progressCallback, Version doUpgradeFrom)
 {
-	//Log::log() << "loadDataSet(index=" << index << "), _dataSetID="<< _dataSetID <<";" << std::endl;
-
 	JASPTIMER_SCOPE(DataSet::dbLoad);
 
-	assert(_dataSetID == -1 || _dataSetID == index || (_dataSetID != -1 && index == -1));
+	assert(_dataSetId == -1 || _dataSetId == id || (_dataSetId != -1 && id == -1));
 
-	if(index != -1 && !db().dataSetExists(index))
+	if(id != -1 && !db().dataSetExists(id))
 	{
-		Log::log() << "No DataSet with id " << index << "!" << std::endl;
+		Log::log() << "No DataSet with id " << id << "!" << std::endl;
 		return;
 	}
 		
-	if(index != -1)
-		_dataSetID	= index;
+	if(id != -1)
+		_dataSetId	= id;
 
-	assert(_dataSetID > 0);
-	assert(_dataSetID == 1);
+	assert(_dataSetId > 0);
 
-	std::string emptyVals;
+	std::string emptyVals, databaseJson;
 
-	db().dataSetLoad(_dataSetID, _dataFilePath, _dataFileTimestamp, _description, _databaseJson, emptyVals, _revision, _dataFileSynch, _showRSyntax, _csvDelimiter);
+	db().dataSetLoad(_dataSetId, _title, _dataFilePath, _dataFileTimestamp, _description, databaseJson, emptyVals, _revision, _dataFileSynch, _csvDelimiter);
+
+	Json::Reader().parse(databaseJson,	_database);
+
 	progressCallback(0.1);
 
-	if(!_filter)
-		_filter = new Filter(this);
-	_filter->dbLoad();
+	if(!_defaultFilter)
+		_defaultFilter = new Filter(this);
+	_defaultFilter->dbLoad();
+	
 	progressCallback(0.2);
 
-	int colCount	= db().dataSetColCount(_dataSetID);
-	_rowCount		= db().dataSetRowCount(_dataSetID);
+	int colCount	= db().dataSetColCount(_dataSetId);
+	_rowCount		= db().dataSetRowCount(_dataSetId);
 	//Log::log() << "colCount: " << colCount << ", " << "rowCount: " << rowCount() << std::endl;
 
 	float colProgressMult = 1.0 / colCount;
@@ -385,7 +703,7 @@ void DataSet::dbLoad(int index, std::function<void(float)> progressCallback, Ver
 		}
 		
 		//Now we will recreate the dataset, but because Audit can make special Filters we need to handle that here now, otherwise they dissappear		
-		intset allFilters = db().dataSetGetFilters(id());
+		intset allFilters = db().dataSetGetFilters(_dataSetId);
 		std::set<Filter*> notDefaultFilters;
 		
 		for(int id : allFilters)
@@ -464,17 +782,6 @@ void DataSet::upgradeEmptyValsFrom018To019(const Json::Value & emptyVals)
 	dbUpdate();
 }
 
-
-int DataSet::columnCount() const
-{
-	return _columns.size();
-}
-
-int DataSet::rowCount() const
-{
-	return _rowCount;
-}
-
 void DataSet::batchColumnHadChange(Column *col)
 {
 	_changedDuringBatch.insert(col);
@@ -484,13 +791,12 @@ void DataSet::setColumnCount(size_t colCount)
 {
 	db().transactionWriteBegin();
 
-	int curCount = columns().size();
+	int curCount = _columns.size();
 	
 	bool alterTableAfterwards = curCount == 0 && colCount > 0;
 
 	if(colCount > curCount)
-		for(size_t i=curCount; i<colCount; i++)
-			insertColumn(i, !alterTableAfterwards);
+		insertColumns(curCount, colCount-curCount, !alterTableAfterwards);
 
 	else if(colCount < curCount)
 		for(size_t i=curCount-1; i>=colCount; i--)
@@ -511,7 +817,7 @@ void DataSet::setRowCount(size_t rowCount, bool alsoLoadData)
 
 	if(!writeBatchedToDB() && alsoLoadData)
 	{
-		db().dataSetSetRowCount(_dataSetID, rowCount);
+		db().dataSetSetRowCount(_dataSetId, rowCount);
 		dbLoad(); //Make sure columns have the right data in them
 	}
 	else
@@ -522,83 +828,123 @@ void DataSet::setRowCount(size_t rowCount, bool alsoLoadData)
 			col->setRowCount(_rowCount);
 	}
 
-	_filter->reset();
+	_defaultFilter->reset();
+	
+	refresh();
 }
 
 void DataSet::incRevision()
 {
-	assert(_dataSetID != -1);
+	assert(_dataSetId != -1);
 
 	if(!writeBatchedToDB())
 	{
-		_revision = db().dataSetIncRevision(_dataSetID);
+		_revision = db().dataSetIncRevision(_dataSetId);
 		checkForChanges();
 	}
 }
 
-bool DataSet::checkForUpdates(stringvec * colsChanged, stringvec * colsRemoved, bool * newColumns, bool * rowCountChanged)
+bool DataSet::checkForUpdates(std::function<void(float)> progressCallback)
 {
 	JASPTIMER_SCOPE(DataSet::checkForUpdates);
 
-	if(_dataSetID == -1)
+	if(_dataSetId == -1)
 		return false;
 	
 	stringset prevCols;
 	for(Column * col : _columns)
 		prevCols.insert(col->name());
 	
-	size_t rowCountPrev = rowCount();
+	size_t		rowCountPrev = rowCount();
+	stringvec	colsChanged, 
+				colsRemoved;
+	bool		newColumns,
+				rowCountChanged;
 	
 		
-	if(_revision < db().dataSetGetRevision(_dataSetID))
+	if(_revision < db().dataSetGetRevision(_dataSetId))
 	{
-		dbLoad();
+		dbLoad(-1, progressCallback);
 		
-		if(newColumns)
-			(*newColumns) = prevCols.size() < _columns.size();
+		newColumns		= prevCols.size() < _columns.size();
+		rowCountChanged = rowCountPrev != rowCount();
 		
-		if(rowCountChanged)
-			(*rowCountChanged) = rowCountPrev != rowCount();
 		
-		if(colsChanged)
+		colsChanged.clear();
+		for(Column * col : _columns)
 		{
-			colsChanged->clear();
-			for(Column * col : _columns)
-			{
-				colsChanged->push_back(col->name());
-				prevCols.erase(col->name());
-			}
+			colsChanged.push_back(col->name());
+			prevCols.erase(col->name());
 		}
 		
-		if(colsRemoved)
-			(*colsRemoved) = stringvec(prevCols.begin(), prevCols.end());
+		colsRemoved = stringvec(prevCols.begin(), prevCols.end());
+		
+		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, newColumns, rowCountChanged);
+		
+		refresh();
 		
 		return true;
 	}
 	else
 	{
-		bool somethingChanged = _filter->checkForUpdates();
+		bool somethingChanged = _defaultFilter->checkForUpdates();
+		
+		stringset	dbFilterNames = db().dataSetFilterNames(_dataSetId);
+		FilterSet	destroyUs;
+		Filters		keepUs;
+		
+		for(Filter * f : _filters)
+			if(!dbFilterNames.count(f->name()))
+				destroyUs.insert(f);
+			else
+			{
+				keepUs.push_back(f);
+				
+				if(f != _defaultFilter && f->checkForUpdates())
+					somethingChanged = true;
+			}
+		
+		for(const std::string & fName : dbFilterNames)
+			if(!filter(fName))
+			{
+				Filter * missingFilter = new Filter(this, fName, false);
+				
+				keepUs.push_back(missingFilter);
+				somethingChanged = true;
+			}
 
 		for(Column * col : _columns)
 			if(col->checkForUpdates())
 			{
 				somethingChanged = true;
-
-				if(colsChanged)
-					colsChanged->push_back(col->name());
+				colsChanged.push_back(col->name());
 			}
 		
-		if(colsRemoved)
-			colsRemoved->clear();
+		colsRemoved		. clear();
+		newColumns		= false;
+		rowCountChanged = rowCountPrev != rowCount();
 		
-		if(newColumns)
-			(*newColumns) = false;
+		if(destroyUs.size() > 0)
+		{
+			somethingChanged = true;
 		
-		if(rowCountChanged)
-			(*rowCountChanged) = rowCountPrev != rowCount();
+			_filters = keepUs;
+		
+			for(Filter * f : destroyUs)
+				delete f;	
+		}
+		
+		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, newColumns, rowCountChanged);
+		
+		refresh();
 
-		return somethingChanged || (rowCountChanged && *rowCountChanged);
+		return somethingChanged || rowCountChanged;
 	}
+}
+
+void DataSet::runComputedColumn(QString columnName, QString code, columnType columnType)
+{
+	emit _workspace->runComputedColumn(id(), columnName, code, columnType);
 }
 
 const Columns & DataSet::computedColumns() const
@@ -628,7 +974,7 @@ void DataSet::loadOldComputedColumnsJson(const Json::Value &json)
 		Column * col = column(name);
 
 		if(!col && !name.empty())
-			col = newColumn(name);
+			col = createColumn(name);
 
 		if(!col)
 			continue;
@@ -669,7 +1015,7 @@ void DataSet::setEmptyValuesJson(const Json::Value &emptyValues, bool updateDB)
 		dbUpdate();
 }
 
-void DataSet::setWorkspaceEmptyValues(const stringset &values)
+void DataSet::setEmptyValuesFromStrings(const stringset &values)
 {
 	_emptyValues->setEmptyValues(values);
 	for(Column * column : _columns)
@@ -679,8 +1025,42 @@ void DataSet::setWorkspaceEmptyValues(const stringset &values)
 
 void DataSet::setDescription(const std::string &desc)
 {
-	_description = desc;
+	bool isChange	= _description != desc;
+	_description	= desc;
 	dbUpdate();
+	
+	if(isChange)
+		emit descriptionChanged();
+}
+
+void DataSet::refresh(bool doColumnsToo)	
+{ 
+	beginResetModel(); 
+	
+	
+	if(doColumnsToo)
+		for(Column * c : _columns)
+			c->refresh(false);
+	
+	emit descriptionChanged();
+	emit dataFileChanged();
+	emit databaseJsonChanged();
+	emit dataFileSynchChanged();
+	emit dataTimestampChanged();
+	emit columnsLabelFilteredCountChanged();
+	emit shownFilterChanged(this);
+	emit shownColumnChanged();
+	emit titleChanged();
+	
+	endResetModel(); 
+}
+
+void DataSet::runFilters()
+{
+	_defaultFilter->setInvalidated(true);
+	
+	for(Filter * f : _filters)
+		f->setInvalidated(true);
 }
 
 DatabaseInterface &DataSet::db()	
@@ -721,4 +1101,872 @@ Json::Value DataSet::jsonForCompare() const
 	//std::cerr << json.toStyledString() << std::endl;
 
 	return json;
+}
+
+int DataSet::columnsLabelFilteredCount() const
+{
+	int colsFiltered = 0;
+
+	for(Column * col : columns())
+		if(col->hasLabelFilter())
+			colsFiltered++;
+
+	return colsFiltered;
+}
+
+int DataSet::rowCount(const QModelIndex &) const
+{
+	return _rowCount;
+}
+
+int DataSet::columnCount(const QModelIndex &) const
+{
+	return _columns.size();
+}
+
+QVariant DataSet::data(const QModelIndex &index, int role) const
+{
+	if(!index.isValid())
+		return QVariant();
+	
+	
+	if(index.row() >= rowCount() || index.column() >= columnCount())
+		return QVariant(); // if there is no data then it doesn't matter what role we play
+	
+	JASPTIMER_SCOPE(DataSet::data);
+	
+	Column * column = columns()[index.column()];
+
+	switch(role)
+	{
+	case Qt::DisplayRole:									return tq(column->getDisplay(index.row(), true, true));
+	case int(dataPkgRoles::noSepaDisplay):					return tq(column->getDisplay(index.row(), false, false));
+	case int(dataPkgRoles::label):							return tq(column->getLabel(index.row(), false, true));
+	case int(dataPkgRoles::value):							return tq(column->getValue(index.row()));
+	case int(dataPkgRoles::name):							return tq(column->name());
+	case int(dataPkgRoles::title):							return tq(column->title());
+	case int(dataPkgRoles::filter):							return getRowFilter(index.row());
+	case int(dataPkgRoles::columnType):						return int(column->type());
+	case int(dataPkgRoles::description):					return tq(column->description());
+	case int(dataPkgRoles::inEasyFilter):					return getColumnInDragNDropShownFilter(column);
+	case int(dataPkgRoles::shadowDisplay):					return tq(column->getShadow(index.row()));
+	case int(dataPkgRoles::valuesDblList):					return column->getColumnValuesAsDoubleList();
+	case int(dataPkgRoles::nonFilteredNumericValuesCount):	return column->nonFilteredNumericsCount();
+	case int(dataPkgRoles::nonFilteredLevels):				return tq(column->nonFilteredLevels());
+	case int(dataPkgRoles::computedColumnType):				return int(column->codeType());
+	case int(dataPkgRoles::columnPkgIndex):					return index.column();
+	case int(dataPkgRoles::lines):
+	{
+		bool	iAmActive		= getRowFilter(index.row()),
+				belowMeIsActive = index.row() < column->rowCount() - 1	&& getRowFilter(index.row() + 1);
+
+		return getDataSetViewLines(
+			iAmActive,
+			iAmActive,
+			iAmActive && !belowMeIsActive,
+			iAmActive //&& index.column() == columnCount() - 1 //always draw left line and right line only if last col
+		);
+	}
+	}
+	
+	return QVariant();
+}
+
+bool DataSet::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+	JASPTIMER_SCOPE(DataSet::setData);
+		
+	if(!index.isValid() || index.column() < 0 || index.column() >= columnCount()) 
+		return false;
+
+	Column	* column	= static_cast<Column*>(columns()[index.column()]);
+	
+	if(role == Qt::DisplayRole || role == Qt::EditRole || role == int(dataPkgRoles::value) || role == int(dataPkgRoles::valueLabelPair) || role == int(dataPkgRoles::valuesStrList))
+	{				
+		bool				isPair	= role == int(dataPkgRoles::valueLabelPair),
+							isVals	= role == int(dataPkgRoles::valuesStrList);
+		QVariantList		listVar	= isPair || isVals ? value.toList()	: QVariantList{ value };
+		bool				aChange = false;
+		
+		if(!isVals)
+		{
+			const std::string	val		= fq(listVar[0].toString()),
+								label	= fq(isPair ? listVar[1].toString() : "");
+								aChange	= !isPair	
+										? column->setStringValue(index.row(), val == EmptyValues::displayString() ? "" : val)
+										: column->setValue(index.row(), val, label);
+		}
+		else //Its a list of values, for instance "intial values"
+		{
+			int r=0;
+			for(const QVariant & val : listVar)
+				if(column->setStringValue(index.row() + r++, fq(val.toString() == tq(EmptyValues::displayString()) ? "" : val.toString())))
+					aChange = true;
+		}
+		
+		if(aChange)
+		{
+			JASPTIMER_SCOPE(Column::setData reset model);
+
+			emit manualEditMade();
+			
+			column->labelsRemoveOrphans();
+			column->nonFilteredCountersReset();
+			column->labelsHandleAutoSort();
+
+			refresh();
+			handleColumnChanged(column);
+			handleLabelsReordered(column);
+			
+			//Probably the labelfilter thing and the constructor thing should 
+			if(column->hasLabelFilter())
+			{
+				emit labelFilterChanged();
+				runFilters();
+			}
+		}
+		
+		return true;
+	}
+	else
+	{
+		bool aChange = false;
+
+		switch(role)
+		{
+		case int(dataPkgRoles::description):
+			column->setDescription(value.toString().toStdString());
+			aChange = true;
+			break;
+
+		case int(dataPkgRoles::title):
+			column->setTitle(value.toString().toStdString());
+			aChange = true;
+			break;
+
+		case int(dataPkgRoles::columnType):
+			if(value.toInt() >= int(columnType::unknown) && value.toInt() <= int(columnType::scale))
+			{
+				columnType converted = static_cast<columnType>(value.toInt());
+				if(converted != column->type())
+				{
+					if(column->changeType(converted) == columnTypeChangeResult::generatedFromAnalysis)
+						emit showWarning(tr("Changing column type failed"), tr("The column '%1' is generated by an analysis and its type is fixed.").arg(tq(column->name())));
+					else
+						aChange = true;
+				}
+			}
+			break;
+		}
+
+		if(aChange)
+			emit manualEditMade();
+
+		return true;
+	}	
+}
+
+QVariant DataSet::headerData(int section, Qt::Orientation orientation, int role) const
+{
+	if (section < 0 || section >= (orientation == Qt::Horizontal ? columnCount() : rowCount()))
+			return QVariant();
+		
+	JASPTIMER_SCOPE(DataSet::headerData);
+	
+	if(orientation == Qt::Vertical)
+		switch(role)
+		{
+		default:
+			return QVariant();
+
+		case int(dataPkgRoles::maxRowHeaderString):
+			return QString::number(rowCount()) + "XXX";
+
+		case Qt::DisplayRole:
+			return QVariant(section + 1);
+			
+		case int(dataPkgRoles::filter):
+			return !(section >= 0 && shownFilter()->filtered().size() > 0) || shownFilter()->filtered()[section];
+		}
+	else
+	{
+		Column * col = columns()[section];
+				
+		switch(role)
+		{
+		case int(dataPkgRoles::maxColString):
+		{
+			//calculate some kind of maximum string to give views an expectation of the width needed for a column
+			bool		hasFilter	= col && (col->hasLabelFilter() || getColumnInDragNDropShownFilter(col));
+			QString		dummyText	= headerData(section, orientation, int(dataPkgRoles::maxColumnHeaderString)).toString() + (col->isComputed() ? "XXX" : "") + (hasFilter ? "XXX" : ""); //Bit of padding for hamburger, filtersymbol and columnIcon
+			qsizetype	colWidth	= getMaximumColumnWidthInCharacters(section);
+
+			while(colWidth > dummyText.length())
+				dummyText += "X";
+
+			return dummyText;
+		}
+		case int(dataPkgRoles::maxColumnHeaderString):			return headerData(section, orientation, Qt::DisplayRole).toString() + "XXX";
+		case int(dataPkgRoles::maxRowHeaderString):				return QString::number(rowCount())		+ "XXX";
+		case Qt::TextAlignmentRole:								return QVariant(Qt::AlignCenter);
+		case int(dataPkgRoles::filter):							return		!col ? false							: col->hasLabelFilter() || getColumnInDragNDropShownFilter(col);
+		case Qt::DisplayRole:									[[fallthrough]];
+		case int(dataPkgRoles::name):							return tq(	!col ? "?"								: col->name());
+		case int(dataPkgRoles::labelsHasFilter):				return		!col ? false							: col->hasLabelFilter();
+		case int(dataPkgRoles::columnIsComputed):				return		!col ? false							: col->isComputed() && col->codeType() != computedColumnType::analysisNotComputed;
+		case int(dataPkgRoles::computedColumnError):			return tq(	!col ? "?"								: col->error());
+		case int(dataPkgRoles::computedColumnIsInvalidated):	return		!col ? false							: col->invalidated();
+		case int(dataPkgRoles::columnType):						return int(	!col ? columnType::unknown				: col->type());
+		case int(dataPkgRoles::computedColumnType):				return int(	!col ? computedColumnType::notComputed	: col->codeType());
+		case int(dataPkgRoles::description):					return tq(	!col ? "?"								: col->description());
+		case int(dataPkgRoles::title):							return tq(	!col ? "?"								: col->title());
+		case int(dataPkgRoles::previewScale):
+		case int(dataPkgRoles::previewOrdinal):					
+		case int(dataPkgRoles::previewNominal):					
+		{
+			columnType colTypeWanted = 
+					role == int(dataPkgRoles::previewNominal) 
+					? columnType::nominal 
+					: role == int(dataPkgRoles::previewOrdinal)
+					? columnType::ordinal
+					: columnType::scale;
+			
+			stringvec preview = !col ? stringvec() : col->previewTransform(colTypeWanted);
+			
+			if(preview.size() != 4)
+				return QVariant();
+			
+			QString	levelsTotal		= tq(preview[0]),
+					levelsNums		= tq(preview[1]),
+					vals			= tq(preview[2]),
+					empties			= tq(preview[3]);
+			
+			if(colTypeWanted == columnType::scale)
+				return	tr("There are %1 total levels, of which %2 have a numeric value.\nAs a '%3' it looks like: %4\n%5")
+						.arg(levelsTotal)
+						.arg(levelsNums)
+						.arg(QColumnUtils::getTypeFriendly(colTypeWanted))
+						.arg(vals)
+						.arg(
+							empties == "" 
+							? "" 
+							: tr("Implicit missing values: %1").arg(empties)
+						);
+			else
+				return tr("There are %1 total levels.\nAs a '%2' it looks like: %3")
+					.arg(levelsTotal)
+					.arg(QColumnUtils::getTypeFriendly(colTypeWanted))
+					.arg(vals);
+		}
+		}
+	}
+	
+	return QVariant();
+}
+
+Qt::ItemFlags DataSet::flags(const QModelIndex &index) const
+{
+	bool	isEditable	= _workspace && _workspace->dataMode() && index.column() >= 0 && index.column() < columnCount() && !columns()[index.column()]->isComputed();
+
+	return Qt::ItemIsSelectable | Qt::ItemIsEnabled | (isEditable ? Qt::ItemIsEditable : Qt::NoItemFlags);
+}
+
+bool DataSet::insertRows(int row, int count, const QModelIndex &)
+{
+	if(row > rowCount())
+			row = rowCount();
+	
+	emit manualEditMade();
+	
+	beginInsertRows(QModelIndex(), row, row + count - 1);
+
+	stringvec changed;
+
+	beginBatchedToDB();
+	for(int c=0; c<columnCount(); c++)
+	{
+		changed.push_back(column(c)->name());
+
+		for(int r=row; r<row+count; r++)
+			column(c)->rowInsertEmptyVal(r);
+	}
+
+	setRowCount(rowCount() + count);
+	incRevision();
+	endBatchedToDB();
+	
+	endInsertRows();
+
+	strstrmap		changeNameColumns;
+	stringvec		missingColumns;
+
+	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
+
+	return true;
+}
+
+bool DataSet::removeRows(int row, int count, const QModelIndex &)
+{
+	if(row == -1)
+		return false;
+	
+	emit manualEditMade();
+	
+	beginRemoveRows(QModelIndex(), row, row + count - 1);
+
+	stringvec changed;
+
+	beginBatchedToDB();
+	
+	for(Column * column : columns())
+	{
+		changed.push_back(column->name());
+		
+		for(int r=row+count; r>row; r--)
+			column->rowDelete(r-1);
+	}
+
+	setRowCount(rowCount() - count);
+	incRevision();
+	endBatchedToDB();
+
+	strstrmap		changeNameColumns;
+	stringvec		missingColumns;
+
+	endRemoveRows();
+
+	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
+
+	return true;
+}
+
+bool DataSet::isColumnNameFree(const std::string & name) const
+{
+	return getColumnIndex(name) == -1;	
+}
+
+std::string DataSet::freeNewColumnName(size_t startAfterThis) const
+{
+	const QString nameBase = tr("Column %1");
+
+	while(true)
+	{
+		const std::string & newColName = fq(nameBase.arg(++startAfterThis));
+		if(isColumnNameFree(newColName))
+			return newColName;
+	}
+}
+
+bool DataSet::insertColumns(int column, int count, const QModelIndex &)
+{
+	if(column > columnCount())
+			column = columnCount(); //the column will be created if necessary but only if it is in a logical place. So the end of the vector
+	
+	emit manualEditMade();
+	
+	beginInsertColumns(QModelIndex(), column, column + count - 1);
+	
+	stringvec changed;
+
+	for(int c = column; c<column+count; c++)
+	{
+		const std::string & name = freeNewColumnName(c);
+		
+		DataSet::insertColumn(c);
+		DataSet::column(c)->setName(name);
+		DataSet::column(c)->setDefaultValues(columnType::scale);
+
+		changed.push_back(name);
+	}
+
+	endInsertColumns();
+
+	strstrmap		changeNameColumns;
+	stringvec		missingColumns;
+
+	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
+
+	_encoder->setCurrentNames(getColumnNames());
+
+	return true;
+}
+
+bool DataSet::removeColumns(int column, int count, const QModelIndex &)
+{
+	if(column == -1)
+		return false;
+
+	emit manualEditMade();
+	
+	beginRemoveColumns(QModelIndex(), column, column + count - 1);
+
+	stringvec	changed;
+	strstrmap	changeNameColumns;
+	stringvec	missingColumns;
+
+	for(int c = column + count; c>column; c--)
+	{
+		missingColumns.push_back(columns()[c - 1]->name());
+		DataSet::removeColumn(c - 1);
+	}
+
+	endRemoveColumns();
+
+	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), false, true);
+
+	_encoder->setCurrentNames(getColumnNames());
+
+	return true;
+}
+
+void DataSet::handleColumnChanged(const Column * column)
+{
+	emit datasetChanged(_dataSetId, tq(stringvec({column->name()})), {}, {}, false, false);
+	emit manualEditMade();
+}
+
+void DataSet::handleLabelsReordered(const Column *column)
+{
+	emit labelsReordered(tq(column->name()));
+}
+
+
+void DataSet::handleDataSetChanged( int						dataSetID,
+									QStringList				changedColumns,
+									QStringList				missingColumns,
+									QMap<QString, QString>	changeNameColumns,
+									bool					rowCountChanged,
+									bool					hasNewColumns)
+{
+	assert(_dataSetId == dataSetID);
+
+	std::string concatenatedMissings = fq(missingColumns.join(", "));
+
+	for(Column * col : computedColumns())
+	{
+		if(rowCountChanged)
+			col->invalidate();
+
+		for(const QString & changed : changedColumns)
+			if(col->dependsOn(fq(changed), false))
+				col->invalidate();
+
+		bool containsAChangedName = false;
+		for(const auto & changedNames : changeNameColumns.keys())
+			if(col->dependsOn(fq(changedNames), false))
+			{
+				containsAChangedName = true;
+				break;
+			}
+
+		if(containsAChangedName)
+		{
+			auto stdChangeNameCols = fq(changeNameColumns);
+			col->setRCode(ColumnEncoder::replaceColumnNamesInRScript(col->rCode(), stdChangeNameCols));
+			col->setConstructorJson(JsonUtilities::replaceColumnNamesInDragNDropFilterJSON(col->constructorJson(), stdChangeNameCols));
+			col->invalidate();
+		}
+
+		if(col->codeType() == computedColumnType::constructorCode)
+		{
+			if(col->setConstructorJson(JsonUtilities::removeColumnsFromDragNDropFilterJSON(col->constructorJson(), fq(missingColumns))))
+			{
+				//So some column was removed from the json
+
+				col->setRCode("stop('Certain columns where removed from the definition of this computed column.\nColumns that could`ve been here are: " + concatenatedMissings + "')");
+				col->invalidate();
+			}
+		}
+		else if(col->codeType() == computedColumnType::rCode &&	col->setRCode(ColumnEncoder::removeColumnNamesFromRScript(col->rCode(), fq(missingColumns))))
+				col->invalidate();
+
+	}
+
+	_encoder->setCurrentNames(	getColumnTypesMap());
+
+	for(Column * col : computedColumns())
+	{
+		col->findDependencies(); //columnNames might have changed right? so check it again
+	
+
+		if(col->iShouldBeSentAgain())
+			col->tryAndRunComputedColumn();
+	}
+
+	
+	
+}
+
+
+
+
+
+bool DataSet::getRowFilter(int row) const
+{
+	return bool(shownFilter()->filtered().size() == 0 || shownFilter()->filtered().at(row));
+}
+
+QVariant DataSet::getDataSetViewLines(bool up, bool left, bool down, bool right)
+{
+	return			(left ?		1 : 0) +
+					(right ?	2 : 0) +
+					(up ?		4 : 0) +
+					(down ?		8 : 0);
+}
+
+bool DataSet::getColumnInDragNDropShownFilter(int columnIndex) const
+{
+	if(columnIndex < 0 || columnIndex >= columnCount()) 
+		return false;
+	
+	return getColumnInDragNDropShownFilter(columns()[columnIndex]);
+}
+
+bool DataSet::getColumnInDragNDropShownFilter(Column * column) const
+{
+	return shownFilter()->columnsUsedInConstructor().count(column->name());
+}
+
+QString DataSet::descriptionQ() const
+{
+	return tq(description());
+}
+
+void DataSet::setDescriptionQ(const QString & newDescription)
+{
+	setDescription(fq(newDescription));
+}
+
+QString DataSet::dataFileQ() const
+{
+	return tq(dataFilePath());
+}
+
+void DataSet::setDataFileQ(const QString &newDataFile)
+{
+	setDataFile(fq(newDataFile));
+}
+
+void DataSet::setTitle(const QString &title)
+{
+	if(_title == fq(title))
+		return;
+	
+	_title = fq(title);
+	
+	emit titleChanged();
+	
+	dbUpdate();
+}
+
+bool DataSet::dataFileCanHaveLabels() const
+{
+	return !tq(dataFilePath()).endsWith(".csv");
+}
+
+void DataSet::resetAllFilters()
+{
+	for(Column * col : columns())
+		col->resetFilter();
+
+	resetFilterCounters();
+
+	emit allFiltersReset();
+	emit columnsLabelFilteredCountChanged();
+	//this is only used in conjunction with a reset so dont do: emit headerDataChanged(Qt::Horizontal, 0, columnCount());
+}
+
+void DataSet::resetFilterCounters()
+{
+	for(Column * col : columns())
+		col->nonFilteredCountersReset();
+}
+
+
+bool DataSet::setColumnTypes(stringset columnIndexes, columnType newColumnType)
+{
+	bool somethingChanged = false;
+
+	for(const std::string & columnIndex : columnIndexes)
+	{
+		Column *col = column(columnIndex);
+
+		if (col->type() == newColumnType)
+			continue;
+
+
+		//the only possible "fail" is when an analysis made the column and thus decides the type
+		//the user might bet
+		if(col->changeType(newColumnType) == columnTypeChangeResult::generatedFromAnalysis)
+		{
+			emit showWarning(tr("Changing column type failed"), tr("The column '%1' is generated by an analysis and its type is fixed.").arg(tq(col->name())));
+			continue;
+		}
+
+		somethingChanged = true;
+	}
+
+	if(somethingChanged)
+		refresh();
+
+	return somethingChanged;
+}
+
+void DataSet::filterByNameDone(int dataSetID, const QString &name, const QString &error)
+{
+	Filter * f = filter(fq(name));
+	
+	if(f && f->dbLoadResultAndError())
+	{
+		emit f->refreshAllAnalyses(f);
+		
+		if(shownFilter() == f)
+			refresh();
+	}
+}
+
+
+void DataSet::resetVariableTypes(int thresholdScale)
+{
+	for (Column * col : columns())
+	{
+		columnType guessedType = col->resetValues(thresholdScale);
+
+		if(guessedType != col->type() && col->changeType(guessedType) == columnTypeChangeResult::changed)
+			refresh();
+	}
+}
+
+void DataSet::emitColumnChanged(const QString & colName)
+{
+	emit datasetChanged(_dataSetId, {colName}, {}, {}, false, false);
+	
+	int colIndex = columnIndex(column(fq(colName)));
+	if(colIndex >= 0)
+		emit headerDataChanged(Qt::Horizontal, colIndex, colIndex);
+}
+
+void DataSet::pasteSpreadsheet(size_t row, size_t col, const std::vector<std::vector<QString>> & values, const std::vector<std::vector<QString>> &  labels, const intvec & coltypes, const QStringList & colNames, const std::vector<boolvec> & selected)
+{
+	JASPTIMER_SCOPE(DataSet::pasteSpreadsheet);
+
+	int		rowMax			= ( values.size() > 0 ? values[0].size() : 0), 
+			colMax			= values.size();
+	bool	rowCountChanged = int(row + rowMax) > rowCount()	,
+			colCountChanged = int(col + colMax) > columnCount()	;
+	
+	auto isSelected = [&selected](int row, int col)
+	{
+		return selected.size() == 0 || 	selected[col][row];
+	};
+
+	beginBatchedToDB();
+	
+	if(colCountChanged)
+		setColumnCount(std::max(size_t(columnCount()), colMax + col));
+	
+	if(rowCountChanged)
+		setRowCount(std::max(size_t(rowCount()), rowMax + row));
+	
+	stringvec changed;
+	strstrmap changeNameColumns;
+
+	for(int c=0; c<colMax; c++)
+	{
+		Column	*	dataColumn	= column(c + col);
+		columnType	desiredType	= coltypes.size() > c								? columnType(coltypes[c])	: dataColumn->type();
+					desiredType = desiredType == columnType::unknown				? columnType::scale			: desiredType;
+		std::string colName		= (colNames.size() > c && !colNames[c].isEmpty())	? fq(colNames[c])			: dataColumn->name();
+		
+		dataColumn->setType(desiredType);
+
+		bool aChange = false;
+		for(int r=0; r<rowMax; r++)
+			if(isSelected(r, c))
+				aChange = dataColumn->setStringValue(r+row, fq(values[c][r]), labels.size() <= c || labels[c].size() <= r ? "" : fq(labels[c][r])) || aChange;
+			
+		aChange = aChange || colName != dataColumn->name() || desiredType != dataColumn->type();
+		
+		if(colName != dataColumn->name())
+			changeNameColumns[dataColumn->name()] = colName;
+		
+		dataColumn->setName(colName);
+
+		if(aChange)
+		{
+			changed.push_back(colName);
+			dataColumn->nonFilteredCountersReset();
+		}
+	}
+
+	endBatchedToDB();
+	
+	stringvec		missingColumns;
+
+	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), rowCountChanged, colCountChanged);
+}
+
+
+void DataSet::columnsApply(intset columnIndexes, std::function<bool(Column * column, int col)> applyThis)
+{
+	QStringList changedCols;
+
+	for(int columnIndex : columnIndexes)
+	{
+		Column* dataColumn = column(columnIndex);
+	
+		if(dataColumn && applyThis(dataColumn, columnIndex))
+				changedCols << dataColumn->nameQ();
+	}
+	
+	if(changedCols.size() > 0)
+	{
+		refresh();
+		emit datasetChanged(_dataSetId, changedCols, {}, {}, false, false);
+	}
+}
+
+void DataSet::columnsApply(intset columnIndexes, std::function<bool(Column * column)> applyThis)
+{
+	columnsApply(columnIndexes, [&](Column * column, int){ return applyThis(column); });
+}
+
+void DataSet::columnsApply(stringset columnNames, std::function<bool(Column * column)> applyThis)
+{
+	intset columnIndexes;
+	
+	for(auto & n : columnNames)
+		columnIndexes.insert(getColumnIndex(n));
+	
+	columnsApply(columnIndexes, [&](Column * column, int){ return applyThis(column); });
+}
+
+void DataSet::columnsApply(stringset columnNames, std::function<bool(Column * column, int colIndex)> applyThis)
+{
+	intset columnIndexes;
+	
+	for(auto & n : columnNames)
+		columnIndexes.insert(getColumnIndex(n));
+	
+	columnsApply(columnIndexes, applyThis);
+}
+
+void DataSet::columnsReverseValues(stringset columnIndexes)
+{
+	columnsApply(columnIndexes, [&](Column * column) 
+	{ 
+		column->valuesReverse();
+		return true;
+	});
+}
+
+void DataSet::columnsSetAutoSortForColumns(std::map<std::string,bool> sortPerColumn)
+{
+	stringset cols;
+	for(auto & colSort : sortPerColumn)
+		cols.insert(colSort.first);
+	
+	columnsApply(cols, [&](Column * column, int colIdx) 
+	{ 
+		column->setAutoSortByValue(sortPerColumn[column->name()]);
+		
+		if(cols.size() == 1)
+			workspace()->setShownColumn(column);
+		
+		return true;
+	});
+}
+
+Column * DataSet::createComputedColumn(const std::string & name, columnType type, computedColumnType desiredType, int analysisId)
+{
+	Column	* newComputedColumn = createColumn(name, type);
+
+	newComputedColumn->setAnalysisId(analysisId);
+	newComputedColumn->setCodeType(desiredType);
+
+	refresh();
+
+	return newComputedColumn;
+}
+
+
+void DataSet::invalidateAllComputedColumns()
+{
+	for(Column * col : computedColumns())
+		if(	col->codeType() != computedColumnType::analysis	&& col->codeType() != computedColumnType::analysisNotComputed)
+			col->invalidate();
+	
+	for(Column * col : computedColumns())
+		if(	col->codeType() != computedColumnType::analysis				&&
+			col->codeType() != computedColumnType::analysisNotComputed	&&
+			col->iShouldBeSentAgain()
+		)
+			col->tryAndRunComputedColumn();
+}
+
+
+Column *DataSet::shownColumn() const
+{
+	return _shownColumn;
+}
+
+void DataSet::setShownColumn(Column *newShownColumn)
+{
+	if (_shownColumn == newShownColumn)
+		return;
+	
+	_workspace->setShownDataSet(this);
+	
+	_shownColumn = newShownColumn;
+	emit shownColumnChanged();
+}
+
+
+void DataSet::writeToOStream(std::ostream & out, bool includeComputed)
+{
+	std::vector<const Column*> cols;
+
+	//Add a UTF-8 BOM
+	out.put(0xEF);
+	out.put(0xBB);
+	out.put(0xBF);
+
+
+	for (Column		*	column : columns())
+		if(!column->isComputed() || includeComputed)
+			cols.push_back(column);
+	
+
+	for (size_t i = 0; i < cols.size(); i++)
+	{
+		const Column *	column	= cols[i];
+		std::string		name	= column->name();
+
+		if (stringUtils::escapeValue(name))	out << '"' << name << '"';
+		else								out << name;
+
+		if (i < cols.size()-1)	out << ",";
+		else					out << "\n";
+
+	}
+
+	size_t		rows = rowCount();
+	std::string value;
+
+	for (size_t r = 0; r < rows; r++)
+		for (size_t i = 0; i < cols.size(); i++)
+		{
+			const Column * column = cols[i];
+
+			value = column->getValue(r);
+			
+			if (value != "")
+			{
+				if (stringUtils::escapeValue(value))	out << '"' << value << '"';
+				else									out << value;
+			}
+
+			if (i < cols.size()-1)		out << ",";
+			else if (r != rows-1)		out << "\n";
+		}
 }

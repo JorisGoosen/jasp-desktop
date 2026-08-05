@@ -36,7 +36,7 @@ public:
 
 	QVariant					data(	const QModelIndex &index, int role = Qt::DisplayRole)	const	override;
 	Qt::ItemFlags				flags(	const QModelIndex &index)								const	override;
-	void						filterDoneHandler(const QString & name, const QString & error)			override;
+	void						filterDoneHandler(int dataSetID, const QString & name, const QString & error)			override;
 	const QString		&		filter()														const				{ return _tableTerms.filter;	}
 	const std::string	&		filterName()													const				{ return _filterName;			}
 	const QString		&		colName()														const				{ return _tableTerms.colName;	}

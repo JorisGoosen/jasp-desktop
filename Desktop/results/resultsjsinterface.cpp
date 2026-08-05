@@ -26,7 +26,7 @@
 #include <QPainter>
 #endif
 
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "gui/aboutmodel.h"
 #include "tempfiles.h"
 #include "utilities/appdirs.h"

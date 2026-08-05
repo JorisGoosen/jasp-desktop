@@ -1,11 +1,10 @@
+#include "qutils.h"
 #include "testinfo.h"
 #include "tempfiles.h"
 #include "columnutils.h"
 #include "processinfo.h"
 #include "testdebugdata.h"
-#include "utilities/qutils.h"
 #include "databaseinterface.h"
-#include "utilities/settings.h"
 #include "data/datasetpackage.h"
 #include "data/importers/csvimporter.h"
 
@@ -18,12 +17,11 @@ void TestDebugData::initTestCase()
 void TestDebugData::init()
 {
 	TempFiles::clearSessionDir();
-	Settings::informSettingsThatThisIsATest();
 	
 	_pkg		= new DataSetPackage(this);
 	_importer	= new CSVImporter();
 	
-	_importer->loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), [](int i){});
+	_importer->loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), _pkg->createDataSet(), [](int i){});
 
 	_data = _pkg->dataSet();
 	
@@ -118,9 +116,8 @@ void TestDebugData::testReverseNumericals()
 		std::cerr << labelsAfter1 << std::endl;
 	
 	QVERIFY2(hardcoded == labelsAfter1,		"Reversing values is not right!");
-	
-	
-	DataSet loadMe(_data->id());
+		
+	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 	
 }
@@ -195,7 +192,7 @@ void TestDebugData::testReverseLabels()
 	if(hardcoded != labelsAfter1)
 		std::cerr << labelsAfter1 << std::endl;
 	
-	DataSet loadMe(_data->id());
+	DataSet loadMe(nullptr, _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -248,7 +245,7 @@ void TestDebugData::testColumnStuff()
 	QVERIFY2(V1->title() == "Variable 1", "Rename failed to also change the title");
 
 	
-	DataSet loadMe(_data->id());
+	DataSet loadMe(nullptr, _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 	
 	
@@ -282,7 +279,7 @@ void TestDebugData::testEmptyValues()
 	contBinom->setHasCustomEmptyValues(false);
 	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 2,	"Not right amount of non-empty labels after disabling custom empty values!");
 	
-	_data->setWorkspaceEmptyValues({"1"});
+	_data->setEmptyValuesFromStrings({"1"});
 	QVERIFY2(contBinom->nonEmptyLevelsStrings().size() == 1,	"Not right amount of non-empty labels after adding one empty value to workspace!");
 	QVERIFY2(contBinom->nonEmptyLevelsStrings()[0] == "0",		"Not right non-empty label left after adding one empty value to workspace!");
 	
@@ -345,14 +342,13 @@ void TestDebugData::testChangeLabel()
 	
 	QVERIFY2(contBinom->hasLabels(),							"contBinom should have labels");
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(contBinom->labels()[0]), "A", int(DataSetPackage::specialRoles::label));
+	_data->setData(_data->index(0,0), "A", int(dataPkgRoles::label));
 	
 	QVERIFY2(contBinom->labels()[0]->labelDisplay() == "A",		"contBinom failed renaming first label to A");
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(contBinom->labels()[1]), "B", int(DataSetPackage::specialRoles::value));
+	_data->setData(_data->index(1,0), "B", int(dataPkgRoles::value));
 	
 	QVERIFY2(contBinom->labels()[1]->labelDisplay() == "B",		"contBinom failed renaming first value (and thus also label!) to B");
-	
 }
 
 void TestDebugData::testShadowDisplay()
@@ -373,10 +369,10 @@ void TestDebugData::testShadowDisplay()
 		std::string display = contNormal->getDisplay(row, false, false);
 		std::string shadow = contNormal->getShadow(row, false, false);
 		
-	QString shadMsg = QString("Row %1: Shadow should not be empty when display would be empty! (value='%2', display='%3', shadow='%4')")
+	QString shadMsg = QString("Row %1: Shadow should be empty when value is non-empty! (value='%2', display='%3', shadow='%4')")
 				.arg(row).arg(QString::fromStdString(value)).arg(QString::fromStdString(display)).arg(QString::fromStdString(shadow));
 		std::string shadMsgStr = shadMsg.toStdString();
-		QVERIFY2(!shadow.empty() || value.empty(), shadMsgStr.c_str());
+		QVERIFY2(value.empty() || shadow.empty(), shadMsgStr.c_str());
 	}
 	
 	Column * contWide = _data->column("contWide");
@@ -391,10 +387,10 @@ void TestDebugData::testShadowDisplay()
 	std::string disp5 = contWide->getDisplay(5, false, false);
 	std::string shad5 = contWide->getShadow(5, false, false);
 	
-	QString shad5Msg = QString("contWide row 5 shadow should not be empty (val='%1', disp='%2', shad='%3')")
+	QString shad5Msg = QString("contWide row 5 shadow should be empty when value is non-empty (val='%1', disp='%2', shad='%3')")
 				.arg(val5.c_str()).arg(disp5.c_str()).arg(shad5.c_str());
 		std::string shad5MsgStr = shad5Msg.toStdString();
-		QVERIFY2(!shad5.empty(), shad5MsgStr.c_str());
+		QVERIFY2(val5.empty() || shad5.empty(), shad5MsgStr.c_str());
 	
 	Column * contBinom = _data->column("contBinom");
 	
@@ -429,6 +425,8 @@ void TestDebugData::testShadowDisplay()
 	
 	QVERIFY2(!shadContGamma.empty(), shadContGammaMsg.toStdString().c_str());
 	
+	DataSet loadMe(_data->workspace(), _data->id());
+	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
 void TestDebugData::testValueEqualsDisplayStorage()
