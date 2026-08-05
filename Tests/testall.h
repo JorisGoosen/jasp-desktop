@@ -40,4 +40,5 @@ private slots:
 private:
 	DataSetPackage		*	_pkg		= nullptr;
 	Importer			*	_importer	= nullptr;
+	bool					_newPkgWithDataSet();
 };

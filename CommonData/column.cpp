@@ -2871,6 +2871,8 @@ void Column::deserializeLabelsForRevert(const Json::Value & labels)
 	
 	endBatchedLabelsDB();
 	
+	emit endResetModel();
+	
 	incRevision();
 }
 
@@ -3236,7 +3238,7 @@ bool Column::setLabelDisplay(int labelRow, const QString &newLabel)
 	bool				aChange		= false,
 						setManual	= false;
 
-	if(label->setLabel(fq(newLabel)))
+	if(label->setLabel(Label::processLabel(fq(newLabel), label->originalValueAsString())))
 	{
 		aChange = true;
 
@@ -3316,24 +3318,28 @@ bool Column::setLabelAllowFilter(int labelRow, bool newAllowValue)
 	Label			*	label = labelByIndexNonEmpty(labelRow);
 	bool	atLeastOneRemains = newAllowValue;
 
-	if(!atLeastOneRemains) //Do not let the user uncheck every single one because that is useless, the user wants to uncheck row so lets see if there is another one left after that.
-		for(size_t i=0; i< labels().size(); i++)
+	if(!atLeastOneRemains) //Do not let the user uncheck every single one because that is useless, the user wants to uncheck row so lets see if there is another one left after that. Empty-value labels do not count: they cannot be "kept filtered in".
+	{
+		if(!label->filterAllows())
+			return true; //The label is already disabled, nothing changes
+
+		for(Label * other : labels())
 		{
-			if(i != labelRow && labels()[i]->filterAllows())
+			if(other->isEmptyValue() || other == label)
+				continue;
+			if(other->filterAllows())
 			{
 				atLeastOneRemains = true;
 				break;
 			}
-			else if(i == labelRow && labels()[i]->filterAllows() == newAllowValue) //Did not change!
-				return true;
 		}
+	}
 
-	atLeastOneRemains = atLeastOneRemains || labelsNonEmptyCount() > labels().size();
+	atLeastOneRemains = atLeastOneRemains || (labelsNonEmptyCount() > labels().size());
 
 	if(atLeastOneRemains)
 	{
 		bool before = hasLabelFilter();
-		Label * label = labelByIndexNonEmpty(labelRow);
 		label->setFilterAllows(newAllowValue);
 
 		if(before != hasLabelFilter())
@@ -3385,14 +3391,17 @@ std::string	Column::generateLabelFilter() const
 
 boolvec Column::getFilterAllows() const
 {
+	//Must stay aligned with the non-empty labels (as used by setLabelAllowFilter and
+	//nonEmptyLevelsStrings): empty-value labels cannot be toggled and must not be included.
 	boolvec list;
 	list.reserve(labelsNonEmptyCount());
 
 	for (const Label * label : labels())
+	{
+		if(label->isEmptyValue())
+			continue;
 		list.push_back(label->filterAllows());
-
-	while(list.size() < labelsNonEmptyCount())
-		list.push_back(true);
+	}
 
 	return list;
 }

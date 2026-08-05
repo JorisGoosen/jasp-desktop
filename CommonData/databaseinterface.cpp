@@ -104,31 +104,12 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 	{
 		if(!tableHasColumn("DataSets", "showRSyntax"))
 			runStatements("ALTER TABLE DataSets  ADD COLUMN showRSyntax	INT;");
-
-		if(!tableHasColumn("Filters", "invalidated"))
-			runStatements("ALTER TABLE Filters  ADD COLUMN invalidated		INT;");
 	}
 
 	if(originalVersion < "0.96")	
 	{
 		if(!tableHasColumn("Columns", "hasLabels"))
 			runStatements("ALTER TABLE Columns  ADD COLUMN hasLabels		INT DEFAULT 0;");
-		
-		if(!tableExists("Workspace"))
-			runStatements("CREATE TABLE Workspace ( "
-				"id					INTEGER PRIMARY KEY,"
-				"showRSyntax			INT DEFAULT 0	"
-			");");
-		
-		if(tableHasColumn("DataSets", "showRSyntax"))
-		{
-			int showRSyntax = runStatementsId("SELECT showRSyntax FROM DataSets LIMIT 1;");
-			runStatements("UPDATE Workspace SET showRSyntax="+std::to_string(showRSyntax)+";");
-			runStatements("ALTER TABLE DataSets  DROP COLUMN showRSyntax;");
-		}
-		
-		if(!tableHasColumn("DataSets", "title"))
-			runStatements("ALTER TABLE DataSets  ADD COLUMN title		TEXT DEFAULT \"\";");
 	}
 	
 	if(originalVersion < "0.97.0")
@@ -144,6 +125,30 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 			runStatements("ALTER TABLE DataSets ADD COLUMN csvDelimiter INT DEFAULT 0;");
 	}
 
+	//Multi-dataset schema (Workspace table, DataSets.title and Filters.invalidated, together with
+	//moving showRSyntax from DataSets into the Workspace) was introduced after upstream/development
+	//(which is 0.98.1). Any file created before 0.99 predates it, so bring it up to the current schema.
+	if(originalVersion < "0.99")
+	{
+		if(!tableExists("Workspace"))
+			runStatements("CREATE TABLE Workspace ( "
+				"id					INTEGER PRIMARY KEY,"
+				"showRSyntax			INT DEFAULT 0	"
+			");");
+
+		if(!tableHasColumn("Filters", "invalidated"))
+			runStatements("ALTER TABLE Filters  ADD COLUMN invalidated		INT DEFAULT 1;");
+
+		if(!tableHasColumn("DataSets", "title"))
+			runStatements("ALTER TABLE DataSets  ADD COLUMN title		TEXT DEFAULT \"\";");
+
+		if(tableHasColumn("DataSets", "showRSyntax"))
+		{
+			int showRSyntax = runStatementsId("SELECT showRSyntax FROM DataSets LIMIT 1;");
+			runStatements("UPDATE Workspace SET showRSyntax="+std::to_string(showRSyntax)+";");
+			runStatements("ALTER TABLE DataSets  DROP COLUMN showRSyntax;");
+		}
+	}
 
 	transactionWriteEnd();
 }

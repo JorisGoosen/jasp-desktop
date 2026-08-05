@@ -46,6 +46,21 @@ void TestAll::cleanup()
 	_pkg = nullptr;
 }
 
+bool TestAll::_newPkgWithDataSet()
+{
+	delete _importer;
+	_importer = nullptr;
+	delete _pkg;
+	_pkg = nullptr;
+
+	_pkg = new DataSetPackage(this);
+
+	CSVImporter importer;
+	importer.loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), _pkg->createDataSet(), [](int){});
+
+	return _pkg->dataSet() != nullptr;
+}
+
 #define TO_STR2(x) #x
 #define TO_STR(x) TO_STR2(x)
 
@@ -199,6 +214,8 @@ void TestAll::testJaspRoundRobin()
 	std::string jaspFile	= TempFiles::createSpecific("testjasp", "temp.jasp");
 
 	std::cerr << "Storing jasp file temporarily to: " << jaspFile << std::endl;
+	// Create snapshot before exporting
+	JASPExporter::createSnapshot("testjasp_snapshot_");
 	JASPExporter().saveDataSet(jaspFile, [](int){});
 	
 	_pkg->reset();
@@ -385,6 +402,8 @@ void TestAll::testFilterLabels()
 
 void TestAll::testSyncerStartStopFileSyncing()
 {
+	QVERIFY(_newPkgWithDataSet());
+
 	DataSet * ds = _pkg->dataSet();
 	QVERIFY(ds);
 
@@ -411,6 +430,8 @@ void TestAll::testSyncerStartStopFileSyncing()
 
 void TestAll::testSyncerFileChangeEmitsSignal()
 {
+	QVERIFY(_newPkgWithDataSet());
+
 	DataSet * ds = _pkg->dataSet();
 	QVERIFY(ds);
 
@@ -451,6 +472,8 @@ void TestAll::testSyncerFileChangeEmitsSignal()
 
 void TestAll::testSyncerStartStopDatabaseSyncing()
 {
+	QVERIFY(_newPkgWithDataSet());
+
 	DataSet * ds = _pkg->dataSet();
 	QVERIFY(ds);
 
@@ -475,6 +498,8 @@ void TestAll::testSyncerStartStopDatabaseSyncing()
 
 void TestAll::testSyncerSyncNowWithoutDataSource()
 {
+	QVERIFY(_newPkgWithDataSet());
+
 	DataSet * ds = _pkg->dataSet();
 	QVERIFY(ds);
 
@@ -490,6 +515,8 @@ void TestAll::testSyncerSyncNowWithoutDataSource()
 
 void TestAll::testSyncerMultipleStartStop()
 {
+	QVERIFY(_newPkgWithDataSet());
+
 	DataSet * ds = _pkg->dataSet();
 	QVERIFY(ds);
 

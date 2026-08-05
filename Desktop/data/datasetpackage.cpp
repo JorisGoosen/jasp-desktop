@@ -28,6 +28,7 @@
 #include "utilities/messageforwarder.h"
 #include "databaseconnectioninfo.h"
 #include "filtermodel.h"
+#include "utilities/settings.h"
 #include <ranges>
 #include "variableinfo.h"
 #include "fileevent.h"
@@ -97,6 +98,10 @@ DataSet * DataSetPackage::createDataSet()
 		createWorkspace();
 	
 	DataSet * dataSet = workspace()->createDataSet();
+	
+	//A brand new DataSet should start out with the configured default workspace empty values
+	//(this also covers unittests, where there is no PreferencesModel).
+	setDefaultWorkspaceEmptyValues();
 		
 	return dataSet;
 }
@@ -424,7 +429,8 @@ void DataSetPackage::dbDelete()
 
 int DataSetPackage::thresholdScale()
 {
-	return PreferencesModel::prefs() ? PreferencesModel::prefs()->thresholdScale() : 5;
+	//In unittests there is no PreferencesModel, so fall back to the configured default (10) instead of a hardcoded value.
+	return PreferencesModel::prefs() ? PreferencesModel::prefs()->thresholdScale() : Settings::value(Settings::THRESHOLD_SCALE).toInt();
 }
 
 int DataSetPackage::orderByValueByDefault()
@@ -462,7 +468,19 @@ void DataSetPackage::setDataSetEmptyValues(const stringset &emptyValues, bool re
 
 void DataSetPackage::setDefaultWorkspaceEmptyValues()
 {
-	stringvec prefs = PreferencesModel::prefs() ? fq(PreferencesModel::prefs()->emptyValues()) : stringvec();
+	stringvec prefs;
+
+	if (PreferencesModel::prefs())
+		prefs = fq(PreferencesModel::prefs()->emptyValues());
+	else if (Settings::value(Settings::EMPTY_VALUES_LIST).isValid())
+	{
+		// In unittests there is no PreferencesModel, but we still want to apply the configured
+		// default empty values (Settings::value(EMPTY_VALUES_LIST) returns them in test mode too).
+		QStringList items = Settings::value(Settings::EMPTY_VALUES_LIST).toString().split("|");
+		std::set<QString> ordered(items.begin(), items.end());
+		prefs = fq(QStringList(ordered.begin(), ordered.end()));
+	}
+
 	setDataSetEmptyValues(stringset(prefs.begin(), prefs.end()));
 }
 
