@@ -14,6 +14,7 @@
 #include "data/importers/rdataimporter.h"
 #include "data/importers/readstatimporter.h"
 #include "utilities/settings.h"
+#include "utilities/desktopcommunicator.h"
 #include "datasetsyncer.h"
 #include "dataset.h"
 #include "workspace.h"
@@ -31,6 +32,9 @@ void TestAll::initTestCase()
 void TestAll::init()
 {
 	Settings::informSettingsThatThisIsATest();
+	//The CSV delimiter scratchpad (_knownCsvDelimiter) is a per-import value in production
+	//(reset by DataSetLoader); make sure a leftover value can never leak between tests.
+	DesktopCommunicator::singleton()->setKnownCsvDelimiter('\0');
 	//_pkg->reset(false);
 }
 
@@ -54,6 +58,9 @@ bool TestAll::_newPkgWithDataSet()
 	_pkg = nullptr;
 
 	_pkg = new DataSetPackage(this);
+
+	//Reset the per-import CSV delimiter scratchpad so it can't leak from a previous import.
+	DesktopCommunicator::singleton()->setKnownCsvDelimiter('\0');
 
 	CSVImporter importer;
 	importer.loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), _pkg->createDataSet(), [](int){});
@@ -113,6 +120,9 @@ void TestAll::testDataImport()
 	_importer = getImporter();
 
 	QVERIFY2(_importer, "Getting importer failed...");
+
+	//Reset the per-import CSV delimiter scratchpad so one file's delimiter can't leak into the next.
+	DesktopCommunicator::singleton()->setKnownCsvDelimiter('\0');
 
 	std::cerr << "Testing " << dataFileAbsolutePath << std::endl;
 	_importer->loadDataSet(fq(dataFileAbsolutePath), _pkg->createDataSet(), [](int i){});
