@@ -53,7 +53,18 @@ void JASPListControl::whenFormIsKnown(AnalysisForm * form)
 
 void JASPListControl::setUpModel()
 {
-	if (model() && form() && !_parentListView)	form()->addModel(model());
+	if (model())
+	{
+		if (form() && !_parentListView)	form()->addModel(model());
+
+		// The model needs the VariableInfo of the form to be able to resolve (live) column
+		// information such as the real column type. For static list controls (as opposed to
+		// dynamic row-components, which get it via whenFormIsKnown), this is the only place
+		// where it is wired up; without it, e.g. getVariableRealType() would always return
+		// 'unknown', wrongly making every column look like its type was manually changed.
+		if (form())
+			model()->setVarInfo(form()->varInfo());
+	}
 
 	emit modelChanged();
 }
@@ -259,6 +270,11 @@ JASPControl *JASPListControl::getRowControl(const QString &key, const QString &n
 columnType JASPListControl::getVariableType(const QString &name)
 {
 	return model() ? model()->getVariableType(name) : columnType::unknown;
+}
+
+columnType JASPListControl::getVariableRealType(const QString &name)
+{
+	return model() ? model()->getVariableRealType(name) : columnType::unknown;
 }
 
 int JASPListControl::count()
