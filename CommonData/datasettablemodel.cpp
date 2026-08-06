@@ -56,6 +56,7 @@ void DataSetTableModel::setShowInactive(bool showInactive)
 	if (_showInactive == showInactive)
 		return;
 
+	
 	_showInactive = showInactive;
 	emit showInactiveChanged(_showInactive);
 	invalidate();
@@ -150,10 +151,12 @@ void DataSetTableModel::setColumnFilter(const QString &newColumnFilter)
 	if (_columnFilter == newColumnFilter)
 		return;
 
+	beginFilterChange();
 	_columnFilter = newColumnFilter;
 	emit columnFilterChanged(_columnFilter);
-
-	invalidateFilter();
+	endFilterChange(QSortFilterProxyModel::Direction::Columns);
+	beginResetModel();
+	endResetModel();
 }
 
 
@@ -168,6 +171,8 @@ QStringList DataSetTableModel::currentTypeIcons() const
 
 void DataSetTableModel::toggleColType(int i, bool doubleClick)
 {
+	beginFilterChange();
+	
 	if(!doubleClick)
 	{
 		if(i>=0 && i<_colTypesShown.size())
@@ -179,5 +184,7 @@ void DataSetTableModel::toggleColType(int i, bool doubleClick)
 	
 	emit currentTypeIconsChanged();
 	
-	invalidateFilter();
+	endFilterChange(QSortFilterProxyModel::Direction::Columns);
+	beginResetModel();
+	endResetModel();
 }
