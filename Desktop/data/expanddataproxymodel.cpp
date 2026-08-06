@@ -159,9 +159,11 @@ int ExpandDataProxyModel::shownToRaw(int shownIndex, bool isRow) const
 	if (shownIndex <= 0)
 		shownIndex = 0;
 
-	// Past the shown region (virtual/expand area) -> the underlying raw table is appended to.
+	// Past the shown region (virtual/expand area): map to the raw slot the virtual cell will occupy
+	// once the table is grown to include it (shown index "shownCount + k" sits at raw tail + k).
 	if (shownIndex >= shownCount)
-		return isRow ? dataSetSourceModel()->rowCount() : dataSetSourceModel()->columnCount();
+		return (isRow ? dataSetSourceModel()->rowCount() : dataSetSourceModel()->columnCount())
+			+ (shownIndex - shownCount);
 
 	QModelIndex shownIdx	= isRow ? table->index(shownIndex, 0) : table->index(0, shownIndex);
 	QModelIndex raw			= table->mapToSource(shownIdx);
@@ -324,26 +326,45 @@ void ExpandDataProxyModel::insertColumn(int col, bool computed, bool R)
 
 void ExpandDataProxyModel::resize(int row, int col, bool onlyExpand, const QString& undoText)
 {
+	if (!sourceModel() || row < 0 || col < 0)
+		return;
+
+	UndoStack * stack = undoStack();
+
+	if (onlyExpand)
+	{
+		// Grow the table so the shown cell (row, col) exists. The distance to grow is computed in
+		// shown (filtered/compacted) space; the new rows/columns are appended to the raw table.
+		int colsToAdd = std::max(0, 1 + col - sourceModel()->columnCount()),
+			rowsToAdd = std::max(0, 1 + row - sourceModel()->rowCount());
+
+		if (colsToAdd == 0 && rowsToAdd == 0)
+			return;
+
+		stack->startMacro(undoText);
+		if (colsToAdd > 0)
+			stack->pushCommand(new InsertColumnsCommand(dataSetSourceModel(), dataSetSourceModel()->columnCount(), colsToAdd));
+		if (rowsToAdd > 0)
+			stack->pushCommand(new InsertRowsCommand(dataSetSourceModel(), dataSetSourceModel()->rowCount(), rowsToAdd));
+		if (!undoText.isEmpty())
+			stack->endMacro();
+		return;
+	}
+
+	// Shrink path (only used by the whole-dataset "Resize data to NxM" dialog): operate on the raw table.
 	DataSet * ds = dataSetSourceModel();
-	if (!ds || row < 0 || col < 0)
+	if (!ds)
 		return;
 
 	const int rawRows	= ds->rowCount(),
 			  rawCols	= ds->columnCount();
 
-	int targetRow = shownToRaw(row, true),
-		targetCol = shownToRaw(col, false);
+	int targetRow = std::max(0, std::min(row, rawRows - 1)),
+		targetCol = std::max(0, std::min(col, rawCols - 1));
 
-	if (onlyExpand)
-	{
-		if (targetCol < rawCols && targetRow < rawRows) return;
-	}
-	else
-	{
-		if (targetCol == rawCols - 1 && targetRow == rawRows - 1) return;
-	}
+	if (targetCol == rawCols - 1 && targetRow == rawRows - 1)
+		return;
 
-	UndoStack * stack = undoStack();
 	stack->startMacro(undoText);
 
 	if(targetCol >= rawCols)
@@ -352,7 +373,7 @@ void ExpandDataProxyModel::resize(int row, int col, bool onlyExpand, const QStri
 		if(colC > 0)
 			stack->pushCommand(new InsertColumnsCommand(ds, rawCols, colC));
 	}
-	else if (!onlyExpand && targetCol < (rawCols - 1))
+	else if (targetCol < (rawCols - 1))
 		stack->pushCommand(new RemoveColumnsCommand(ds, targetCol + 1, rawCols - targetCol - 1));
 
 	if(targetRow >= rawRows)
@@ -361,7 +382,7 @@ void ExpandDataProxyModel::resize(int row, int col, bool onlyExpand, const QStri
 		if(rowC > 0)
 			stack->pushCommand(new InsertRowsCommand(ds, rawRows, rowC));
 	}
-	else if (!onlyExpand && targetRow < (rawRows - 1))
+	else if (targetRow < (rawRows - 1))
 		stack->pushCommand(new RemoveRowsCommand(ds, targetRow + 1, rawRows - targetRow - 1));
 
 	if (!undoText.isEmpty())

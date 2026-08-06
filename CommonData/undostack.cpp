@@ -100,7 +100,7 @@ void InsertColumnsCommand::undo()
 
 void InsertColumnsCommand::redo()
 {
-	dataSet()->insertColumns(_col, _count);
+	dataSet()->insertColumns(_col, _count, QModelIndex());
 }
 
 InsertRowsCommand::InsertRowsCommand(DataSet * data, int row, int count)
