@@ -65,6 +65,15 @@ protected:
 
 private:
 	void						connectUndoStack();
+
+	// Convert a shown (filtered/compacted) index into the raw DataSet index for that dimension.
+	// Indexes past the shown region map to the end of the raw table (for appends).
+	int							shownToRaw(int shownIndex, bool isRow) const;
+	// Turn a contiguous run of shown indexes into a list of contiguous raw-index runs (collapsing gaps).
+	std::vector<std::pair<int,int>>	rawRunsFromShown(bool isRow, int shownStart, int shownCount) const;
+	// Remove only the shown rows/columns (as a macro of contiguous commands, high-index first).
+	void						removeRuns(bool isRows, const std::vector<std::pair<int,int>>& shownGroups);
+
 	QMetaObject::Connection		_undoChangedCon;
 };
 
