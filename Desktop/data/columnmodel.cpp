@@ -1,5 +1,4 @@
 #include "timers.h"
-#include "log.h"
 #include "qutils.h"
 #include "column.h"
 #include "dataenums.h"
@@ -565,15 +564,7 @@ void ColumnModel::setChosenColumnByName(const QString chosenNameQ, int colIndex)
 void ColumnModel::setChosenColumn(int columnIndex)
 {
 	QString name = emit columnNameForIndex(columnIndex);
-
-	{
-		auto * data = DataSetPackage::pkg() ? DataSetPackage::pkg()->dataSet() : nullptr;
-		Log::log() << "ColumnModel::setChosenColumn(columnIndex=" << columnIndex
-				   << ") -> name=\"" << name.toStdString()
-				   << "\", dataSetCols=" << (data ? int(data->columnCount()) : -1)
-				   << std::endl;
-	}
-
+	
 	if(name != "")
 	{
 		setChosenColumnByName(name);

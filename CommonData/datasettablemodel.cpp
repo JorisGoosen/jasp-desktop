@@ -111,13 +111,7 @@ bool DataSetTableModel::filterAcceptsColumn(int source_column, const QModelIndex
 
 QString DataSetTableModel::columnName(int column) const
 {
-  QModelIndex idx = index(0, column);
-  QString res = data(idx, int(dataPkgRoles::name)).toString();
-  Log::log() << "DataSetTableModel::columnName(column=" << column
-			 << ") colCount=" << columnCount()
-			 << " idxValid=" << idx.isValid()
-			 << " -> \"" << res.toStdString() << "\"\n" << std::flush;
-  return res;
+  return data(index(0, column), int(dataPkgRoles::name)).toString();
 }
 
 void DataSetTableModel::setColumnName(int col, QString name)
