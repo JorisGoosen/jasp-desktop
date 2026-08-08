@@ -54,6 +54,10 @@ FocusScope
 		
 		function onChosenColumnChanged(chosenColumn)
 		{
+			console.log("VariablesWindow::onChosenColumnChanged chosenColumn=", chosenColumn,
+						" visible=", columnModel.visible,
+						" columnNull=", columnModel.column === null,
+						" name=", columnModel.columnName)
 			if(columnModel.chosenColumn > -1 && columnModel.chosenColumn < dataSetModel.columnCount())
 				//to prevent the editText in the labelcolumn to get stuck and overwrite the next columns data... We have to remove activeFocus from it
 				columnInfoTop.focus = true //So we just put it somewhere

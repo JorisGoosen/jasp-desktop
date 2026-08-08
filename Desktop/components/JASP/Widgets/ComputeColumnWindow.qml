@@ -33,8 +33,16 @@ FocusScope
 	{
 		target: columnModel
 
+		function onChosenColumnChanged()
+		{
+			console.log("ComputeColumnWindow::onChosenColumnChanged columnNull=", columnModel.column === null,
+						" codeType=", columnModel.column ? columnModel.column.codeType : "N/A",
+						" visible=", computedColumnContainer.visible)
+		}
+
 		function onColumnChanged()
 		{
+			console.log("ComputeColumnWindow::onColumnChanged FIRED columnNull=", columnModel.column === null)
 			if(columnModel.column.codeType == computedColumnTypeRCode)
 				computeColumnEdit.text = columnModel.column.rCode;
 			else

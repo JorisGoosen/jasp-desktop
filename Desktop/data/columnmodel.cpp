@@ -1,4 +1,5 @@
 #include "timers.h"
+#include "log.h"
 #include "qutils.h"
 #include "column.h"
 #include "dataenums.h"
@@ -10,6 +11,8 @@
 
 ColumnModel::ColumnModel() : QIdentityProxyModel(DataSetPackage::pkg())
 {
+	Log::log() << "ColumnModel() this=" << this << std::endl;
+
 	connect(DataSetPackage::pkg(),	&DataSetPackage::filteredOutChanged,			this, &ColumnModel::filteredOutChangedHandler	);
 
 	connect(DataSetPackage::pkg(),	&DataSetPackage::allFiltersReset,				this, &ColumnModel::allFiltersReset				);
@@ -497,7 +500,7 @@ void ColumnModel::resetFilterAllows()
 
 void ColumnModel::setVisible(bool visible)
 {
-	//visible = visible && rowCount() > 0; //cannot show labels when there are no labels
+	Log::log() << "ColumnModel::setVisible " << _visible << " -> " << visible << "  this=" << this << "  _column=" << (void*)_column << std::endl;
 
 	if (_visible == visible)
 		return;
@@ -532,12 +535,22 @@ void ColumnModel::setChosenColumnByName(const QString chosenNameQ, int colIndex)
 	//If the user deletes the name the column ought to be removed because we cannot have columns without a name!
 	std::string deleteMe = column() && column()->name() == "" ? column()->name() : "";
 
+	DataSet * data = DataSetPackage::pkg()->dataSet();
+	Column * preLookup = _column;
+
+	Log::log() << "ColumnModel::setChosenColumnByName(name=\"" << chosenName
+			   << "\") _columnBefore=" << (void*)preLookup
+			   << " dataSet=" << (void*)data
+			   << std::endl;
+
 	emit beforeChangingColumn(chosenNameQ);
 
-	DataSet * data = DataSetPackage::pkg()->dataSet();
 	clearVirtual();
 	
 	Column * chosenColumn = data->column(chosenName);
+	
+	Log::log() << "  found=" << (void*)chosenColumn
+			   << " foundNameMatches=\"" << (chosenColumn ? chosenColumn->name() : std::string("(none)")) << "\"" << std::endl;
 	
 	_virtual = !chosenColumn;
 	emit isVirtualChanged();
@@ -555,6 +568,8 @@ void ColumnModel::setChosenColumnByName(const QString chosenNameQ, int colIndex)
 	
 	_columnIndex = colIndex != -1 || _virtual || !chosenColumn || !chosenColumn->data() ? colIndex : chosenColumn->data()->columnIndex(chosenColumn);
 
+	Log::log() << "  _column=" << (void*)_column << " _virtual=" << _virtual << " _columnIndex=" << _columnIndex << std::endl;
+
 	refresh();
 
 	if(deleteMe != "")
@@ -564,6 +579,12 @@ void ColumnModel::setChosenColumnByName(const QString chosenNameQ, int colIndex)
 void ColumnModel::setChosenColumn(int columnIndex)
 {
 	QString name = emit columnNameForIndex(columnIndex);
+
+	Log::log() << "ColumnModel::setChosenColumn(columnIndex=" << columnIndex
+			   << ") name=\"" << name.toStdString()
+			   << "\" current _column=" << (void*)_column
+			   << " current _virtual=" << _virtual
+			   << std::endl;
 	
 	if(name != "")
 	{
@@ -614,6 +635,14 @@ void ColumnModel::checkCurrentColumn(int dataSetId, QStringList, QStringList mis
 		return;
 	
 	QString colName = columnNameQ();
+
+	Log::log() << "ColumnModel::checkCurrentColumn dataSetId=" << dataSetId
+			   << " colName=\"" << colName.toStdString()
+			   << "\" missing=" << missingColumns.contains(colName)
+			   << " hasNewColumns=" << hasNewColumns
+			   << " _virtual=" << _virtual << " _columnIndex=" << _columnIndex
+			   << " _column=" << (void*)_column
+			   << std::endl;
 
 	if (missingColumns.contains(colName))
 	{
@@ -667,6 +696,7 @@ void ColumnModel::setRowWidth(double len)
 
 void ColumnModel::refresh()
 {
+	Log::log() << "ColumnModel::refresh() _column=" << (void*)_column << " _virtual=" << _virtual << " _columnIndex=" << _columnIndex << std::endl;
 	beginResetModel();
 	endResetModel();
 }
