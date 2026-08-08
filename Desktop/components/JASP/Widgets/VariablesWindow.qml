@@ -44,9 +44,9 @@ FocusScope
 		{
 			if (columnModel.visible && columnModel.chosenColumn >= 0)
 			{
-				columnModel.columnName			= (columnModel.compactMode ? tabInfo : columnInfoTop).columnNameValue
-				columnModel.columnTitle			= (columnModel.compactMode ? tabInfo : columnInfoTop).columnTitleValue
-				columnModel.columnDescription	= (columnModel.compactMode ? tabInfo : columnInfoTop).columnDescriptionValue
+				columnModel.setColumnNameQ(		(columnModel.compactMode ? tabInfo : columnInfoTop).columnNameValue)
+				columnModel.setColumnTitleQ(	(columnModel.compactMode ? tabInfo : columnInfoTop).columnTitleValue)
+				columnModel.setColumnDescriptionQ((columnModel.compactMode ? tabInfo : columnInfoTop).columnDescriptionValue)
 				columnModel.computedType		= (columnModel.compactMode ? tabInfo : columnInfoTop).columnComputedTypeValue
 				columnModel.currentColumnType	= (columnModel.compactMode ? tabInfo : columnInfoTop).columnTypeValue
 			}
@@ -54,10 +54,6 @@ FocusScope
 		
 		function onChosenColumnChanged(chosenColumn)
 		{
-			console.log("VariablesWindow::onChosenColumnChanged chosenColumn=", chosenColumn,
-						" visible=", columnModel.visible,
-						" columnNull=", columnModel.column === null,
-						" name=", columnModel.columnName)
 			if(columnModel.chosenColumn > -1 && columnModel.chosenColumn < dataSetModel.columnCount())
 				//to prevent the editText in the labelcolumn to get stuck and overwrite the next columns data... We have to remove activeFocus from it
 				columnInfoTop.focus = true //So we just put it somewhere

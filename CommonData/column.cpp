@@ -359,8 +359,20 @@ void Column::setComputeFilter(const std::string &filter)
 	db().columnSetComputeFilter(_id, _computeFilter);
 	incRevision();
 	
+	emit computeFilterChanged();
+
 	refresh();
 	data()->refresh(false);
+}
+
+QString Column::computeFilterQ() const
+{
+	return tq(computeFilter());
+}
+
+void Column::setComputeFilterQ(const QString & filter)
+{
+	setComputeFilter(fq(filter));
 }
 
 void Column::setType(columnType colType)
@@ -507,6 +519,8 @@ void Column::setAutoSortByValue(bool sort)
 	
 	db().columnSetAutoSort(_id, _autoSortByValue);
 	
+	emit autoSortByValueChanged();
+
 	labelsHandleAutoSort();
 	
 	return;	

@@ -5,6 +5,8 @@ import QtQuick.Controls as QTC
 
 FocusScope
 {
+	property bool autoSorted:	columnModel.column ? autoSorted : false
+
 	Rectangle
 	{
 		color:			jaspTheme.uiBackground
@@ -667,7 +669,7 @@ FocusScope
 				iconSource:		jaspTheme.iconPath +  "addition-sign-small.svg"
 				onClicked:		
 				{ 
-					if(!columnModel.hasLabels)
+					if(!columnModel.column.hasLabels)
 						return;
 					
 					if(newLevelValueInput.text == "" && newLevelLabelInput.text == "")
@@ -745,7 +747,7 @@ FocusScope
 					height:			buttonColumnVariablesWindow.buttonHeight
 					implicitHeight: buttonColumnVariablesWindow.buttonHeight
 					width:			height
-					color:			enabled && columnModel.autoSort ? jaspTheme.jaspBlue : defaultColor
+					color:			enabled && autoSorted ? jaspTheme.jaspBlue : defaultColor
 				}
 				
 				RoundedButton
@@ -766,12 +768,12 @@ FocusScope
 					iconSource:		jaspTheme.iconPath + "arrow-reverse.png"
 					onClicked:		{ forceActiveFocus(); columnModel.reverse(); }
 	
-					toolTip:		!columnModel.autoSort ? qsTr("Reverse order of all labels") : qsTr("Turn automatically ordering off to reverse order of all labels")
+					toolTip:		!autoSorted ? qsTr("Reverse order of all labels") : qsTr("Turn automatically ordering off to reverse order of all labels")
 	
 					height:			buttonColumnVariablesWindow.buttonHeight
 					implicitHeight: buttonColumnVariablesWindow.buttonHeight
 					width:			height
-					enabled:		!columnModel.autoSort && columnModel.column.rowCount > 1
+					enabled:		!autoSorted && columnModel.column.rowCount > 1
 				}
 	
 				RoundedButton
@@ -779,12 +781,12 @@ FocusScope
 					iconSource:		jaspTheme.iconPath + "arrow-up.png"
 	
 					onClicked:		{ forceActiveFocus(); columnModel.moveSelectionUp(); levelsTableView.selectedRow--; }
-					toolTip:		!columnModel.autoSort ? qsTr("Move selected labels up") : qsTr("Turn automatically ordering off to move labels up manually")
+					toolTip:		!autoSorted ? qsTr("Move selected labels up") : qsTr("Turn automatically ordering off to move labels up manually")
 	
 					height:			buttonColumnVariablesWindow.buttonHeight
 					implicitHeight: buttonColumnVariablesWindow.buttonHeight
 					width:			height
-					enabled:		!columnModel.autoSort && levelsTableView.selectedRow > 0
+					enabled:		!autoSorted && levelsTableView.selectedRow > 0
 				}
 	
 				RoundedButton
@@ -792,12 +794,12 @@ FocusScope
 					iconSource:		jaspTheme.iconPath + "arrow-down.png"
 	
 					onClicked:		{ forceActiveFocus(); columnModel.moveSelectionDown(); levelsTableView.selectedRow++; }
-					toolTip:		!columnModel.autoSort ? qsTr("Move selected labels down") : qsTr("Turn automatically ordering off to move labels down manually")
+					toolTip:		!autoSorted ? qsTr("Move selected labels down") : qsTr("Turn automatically ordering off to move labels down manually")
 	
 					height:			buttonColumnVariablesWindow.buttonHeight
 					implicitHeight: buttonColumnVariablesWindow.buttonHeight
 					width:			height
-					enabled:		!columnModel.autoSort && levelsTableView.selectedRow >= 0 && levelsTableView.selectedRow < columnModel.rowCount() - 1
+					enabled:		!autoSorted && levelsTableView.selectedRow >= 0 && levelsTableView.selectedRow < columnModel.rowCount() - 1
 				}
 	
 				RoundedButton

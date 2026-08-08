@@ -45,6 +45,9 @@ class Column : public DataSetBaseNode
 	
 	Q_PROPERTY(QString				name				READ nameQ					WRITE setNameQ					NOTIFY nameChanged				)
 	Q_PROPERTY(QString				title				READ titleQ					WRITE setTitleQ					NOTIFY titleChanged				)
+	Q_PROPERTY(QString				description			READ descriptionQ			WRITE setDescriptionQ			NOTIFY descriptionChanged		)
+	Q_PROPERTY(QString				computeFilter		READ computeFilterQ			WRITE setComputeFilterQ			NOTIFY computeFilterChanged		)
+	Q_PROPERTY(bool					autoSortByValue		READ autoSortByValue								NOTIFY autoSortByValueChanged	)
 	Q_PROPERTY(QString				error				READ errorQ					WRITE setErrorQ					NOTIFY errorChanged				)
 	Q_PROPERTY(QString				rcode				READ rCodeQ					WRITE setRCodeQ					NOTIFY rCodeChanged				)
 	Q_PROPERTY(columnType			colType				READ type					WRITE setType					NOTIFY columnTypeChanged		)
@@ -108,6 +111,7 @@ public:
 			void					setDescription(		const std::string & description		);
 			void					setDescriptionQ(	const QString	  & description		);
 			void					setComputeFilter(	const std::string & filter = ""		);
+			void					setComputeFilterQ(	const QString		& filter			);
 			bool					setConstructorJson(	const Json::Value & constructorJson	);
 			bool					setConstructorJson(	const std::string & constructorJson	);
 			bool					setConstructorJsonQ(const QString	  & constructorJson	);
@@ -159,6 +163,7 @@ Q_INVOKABLE	bool					isComputedRCode()		const	{ return _codeType != computedColu
 			const std::string	&	rCode()					const	{ return _rCode;			}
 			const std::string	&	description()			const	{ return _description;		}
 			const std::string		computeFilter()			const	{ return _computeFilter.empty() ? "DEFAULT_FILTER" : _computeFilter;		}
+			QString					computeFilterQ()		const;	
 				  std::string		rCodeStripped()			const	{ return stringUtils::stripRComments(_rCode);	}
 				  std::string		constructorJsonStr()	const	{ return _constructorJson.toStyledString();	}
 				  QString			constructorJsonQ()		const;
@@ -334,6 +339,8 @@ signals:
 			void					codeTypeChanged();
 			void					columnTypeChanged();
 			void					errorChanged();
+			void					computeFilterChanged();
+			void					autoSortByValueChanged();
 			
 			
 

@@ -35,17 +35,9 @@ FocusScope
 
 		function onChosenColumnChanged()
 		{
-			console.log("ComputeColumnWindow::onChosenColumnChanged columnNull=", columnModel.column === null,
-						" codeType=", columnModel.column ? columnModel.column.codeType : "N/A",
-						" visible=", computedColumnContainer.visible)
-		}
-
-		function onColumnChanged()
-		{
-			console.log("ComputeColumnWindow::onColumnChanged FIRED columnNull=", columnModel.column === null)
-			if(columnModel.column.codeType == computedColumnTypeRCode)
+			if(columnModel.column && columnModel.column.codeType == computedColumnTypeRCode)
 				computeColumnEdit.text = columnModel.column.rCode;
-			else
+			else if(columnModel.column)
 				computedColumnConstructor.initializeFromJSON(columnModel.column.constructorJson);
 		}
 	}
@@ -76,7 +68,7 @@ FocusScope
 
 	function askIfChangedOrClose()
 	{
-		if(columnModel.isComputed && columnModel.computedTypeEditable && computedColumnContainer.changed)	
+		if(columnModel.column && columnModel.column.isComputed && columnModel.computedTypeEditable && computedColumnContainer.changed)	
 			saveDialog.open()
 	}
 
@@ -346,10 +338,10 @@ FocusScope
 				id:					computeFilterDropDown
 				values:				filterModel.filterDropDownList
 				startValue:			""
-				currentValue:		columnModel.computeFilter
+				currentValue:		columnModel.column.computeFilter
 				onValueChanged:		{
 					computedColumnContainer.applyComputedColumn()
-					columnModel.computeFilter = currentValue
+					columnModel.setComputeFilterQ(currentValue)
 					
 				}
 				anchors.right:		helpButton.left
