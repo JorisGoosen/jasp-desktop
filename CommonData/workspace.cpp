@@ -59,6 +59,9 @@ QVariant Workspace::data(const QModelIndex &index, int role) const
 	case int(dataPkgRoles::name):							return cur->name();//tq(cur->db().dataSetName(cur->id()));
 	case int(dataPkgRoles::title):							return cur->title();
 	case int(dataPkgRoles::description):					return cur->descriptionQ();
+	case int(dataPkgRoles::id):								return cur->id();
+	case int(dataPkgRoles::computedColumnType):			return int(cur->codeType());
+	case int(dataPkgRoles::columnIsComputed):				return cur->isComputed();
 	}
 	
 	return QVariant();
@@ -389,6 +392,51 @@ DataSet *Workspace::createComputedDataSet(const QString & name, int defaultInput
 		newSet->setRCode(fq(rCode));
 
 	return newSet;
+}
+
+QStringList Workspace::dataSetNames() const
+{
+	QStringList names;
+
+	for(const auto & idData : _dataSets)
+		names.push_back(idData.second->name());
+
+	return names;
+}
+
+void Workspace::setDataSetComputed(const QString & name, bool computed)
+{
+	DataSet * ds = dataSetByName(fq(name));
+
+	if(!ds || computed == ds->isComputed())
+		return;
+
+	if(ds != shownDataSet())
+		setShownDataSet(ds);
+
+	if(computed)
+	{
+		ds->setCodeType(computedColumnType::rCode);
+
+		if(ds->defaultInputDataSetId() < 0)
+			for(const auto & idData : _dataSets)
+				if(idData.second != ds)
+				{
+					ds->setDefaultInputDataSetId(idData.second->id());
+					break;
+				}
+	}
+	else
+		ds->setCodeType(computedColumnType::notComputed);
+
+	DataSets sets = dataSets();
+
+	for(int i = 0; i < sets.size(); ++i)
+		if(sets[i] == ds)
+		{
+			emit dataChanged(index(i, 0), index(i, 0), { int(dataPkgRoles::columnIsComputed), int(dataPkgRoles::computedColumnType), int(dataPkgRoles::id) });
+			break;
+		}
 }
 
 void Workspace::refresh()

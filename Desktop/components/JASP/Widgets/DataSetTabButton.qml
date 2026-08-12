@@ -15,6 +15,8 @@ Item
 	
 	property alias	text:			theButton.text
 	property alias	iconSource:		theButton.iconSource
+	property string	name:			""
+	property string	description:	""
 	property bool	buttonActive:	false
 	property bool	showTextField:	false
 	property alias	theButton:		theButton

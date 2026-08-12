@@ -66,6 +66,10 @@ public slots:
 			DataSet				*	createComputedDataSet(const std::string & name, int defaultInputDataSetId, computedColumnType desiredType = computedColumnType::rCode);
 			Q_INVOKABLE DataSet				*	createComputedDataSet(const QString & name, int defaultInputDataSetId, const QString & rCode);
 			Q_INVOKABLE int						shownDataSetId() const	{ return shownDataSet() ? shownDataSet()->id() : -1; }
+			Q_INVOKABLE int						dataSetIdByName(const QString & name) const		{ DataSet * ds = dataSetByName(fq(name)); return ds ? ds->id() : -1; }
+			Q_INVOKABLE QString					dataSetNameById(int id) const				{ DataSet * ds = dataSetById(id); return ds ? ds->name() : QString(); }
+			Q_INVOKABLE QStringList				dataSetNames() const;
+			Q_INVOKABLE void					setDataSetComputed(const QString & name, bool computed);
 			void					setShownDataSet(QString	  name);
 			void					setShownDataSet(DataSet * dataSet);
 			void					setShownDataSet(int		  dataSetId);
