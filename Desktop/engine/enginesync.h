@@ -69,6 +69,7 @@ public slots:
 	void		sendFilterByName(	int dataSetId, const QString & name,				const QString & module);
 	void		sendRCode(			int dataSetId, const QString & rCode,				int requestId,					bool whiteListedVersion, QString module);
 	void		computeColumn(		int dataSetId, const QString & columnName,			const QString & computeCode,	columnType columnType);
+	void		computeDataSet(		int dataSetId, const QString & computeCode,			int defaultInputDataSetId);
 	void		pauseEngines(bool  unloadData = false);
 	void		stopEngines();
 	void		resumeEngines();
@@ -112,6 +113,7 @@ private:
 	//These process functions can request a new engine to be started:
 	stringset	processRCodeQueue();
 	bool		processComputedColumnQueue();
+	bool		processComputedDataSetQueue();
     bool		processDynamicModules();
 	stringset	processAnalysisRequests();	///< Returns modules that still need an engine
 	
@@ -176,6 +178,7 @@ private:
 
 	std::queue<RScriptStore*>			_waitingScripts;
 	std::queue<RComputeColumnStore*>	_waitingCompCols;
+	std::queue<RComputeDataSetStore*>	_waitingCompDataSets;
 	std::map<std::string,
 		EngineRepresentation * >		_moduleEngines;					///< An engine per module active. Engines will be started and closed as needed.
 	std::set<EngineRepresentation*>		_engines,						///< All analysis/utility/module engines, excepting _rCmder

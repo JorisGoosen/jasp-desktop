@@ -52,4 +52,15 @@ struct RComputeColumnStore : public RScriptStore
 	columnType	_columnType;
 };
 
+///
+/// For when a whole computed dataset must be (re)computed
+struct RComputeDataSetStore : public RScriptStore
+{
+	RComputeDataSetStore(int dataSetId, QString computeCode, int defaultInputDataSetId) 
+		: RScriptStore(dataSetId, -1, computeCode, "", engineState::computeDataSet), _defaultInputDataSetId(defaultInputDataSetId)
+	{ }
+
+	int			_defaultInputDataSetId;
+};
+
 #endif // RSCRIPTSTORE_H

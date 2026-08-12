@@ -131,6 +131,7 @@ void rbridge_init(DataBridge * dataBridge, sendFuncDef sendToDesktopFunction, po
 		rbridge_getColumnAnalysisId,
 		rbridge_getColumnOriginalIndex,
 		rbridge_setColumnDataAndType,
+		rbridge_setDataSetData,
 		rbridge_dataSetRowCount,
 		rbridge_encodeColumnName,
 		rbridge_decodeColumnName,
@@ -652,6 +653,24 @@ extern "C" bool STDCALL rbridge_setColumnDataAndType(const char* columnName, con
 	return data_bridge->setColumnDataAndType(colName, nominals, columnType(_columnType), computed);
 }
 
+extern "C" bool STDCALL rbridge_setDataSetData(const char* datasetName, const char ** columnNames, const int * columnTypes, const char *** columnData, const size_t * columnLengths, size_t colCount)
+{
+	std::vector<std::string>							names(columnNames, columnNames + colCount);
+	std::vector<columnType>								types;
+	std::vector<std::vector<std::string>>				data;
+
+	types.reserve(colCount);
+	data.reserve(colCount);
+
+	for(size_t i=0; i<colCount; i++)
+	{
+		types.push_back(columnType(columnTypes[i]));
+		data.emplace_back(columnData[i], columnData[i] + columnLengths[i]);
+	}
+
+	return data_bridge->setDataSet(datasetName, names, types, data);
+}
+
 extern "C" int	STDCALL rbridge_dataSetRowCount()
 {
 	return data_bridge->dataSetRowCount();
@@ -903,6 +922,41 @@ std::string rbridge_evalRComputedColumn(const std::string &rCode, const std::str
 
 	computedColumnFilter = "";
 	
+	return result;
+}
+
+std::string rbridge_evalRComputedDataSet(const std::string & rCode, const std::string & outputDataSetName)
+{
+	rbridge_dataSet = data_bridge->provideAndUpdateDataSet();
+
+	if(!rbridge_dataSet)
+		return "null";
+
+	computedColumnFilter = "DEFAULT_FILTER";
+
+	rbridge_dataSet->showFilter(computedColumnFilter);
+
+	int rowCount	= rbridge_dataSet->shownFilter()->filteredRowCount();
+
+	jaspRCPP_resetErrorMsg();
+
+	std::string rCode64(rbridge_encodeColumnNamesInScript(rCode));
+
+	try							{ R_FunctionWhiteList::scriptIsSafe(rCode64); }
+	catch(filterException & e)	{ jaspRCPP_setErrorMsg(e.what()); return std::string("R code is not safe because of: ") + e.what();	}
+
+	rbridge_setupRCodeEnv(rowCount);
+
+	//The user code is expected to produce a data.frame (kept in .jaspResult), which is then written
+	//into the output (computed) dataset by name.
+	std::string setDataSetCode = ".setDataSet('" + outputDataSetName + "', .jaspResult)";
+	std::string result = jaspRCPP_evalComputedDataSet(rCode64.c_str(), setDataSetCode.c_str());
+	jaspRCPP_runScript("detach(data)");	//afterwards we make sure it is detached to avoid superfluous messages and possible clobbering of analyses
+
+	jaspRCPP_setErrorMsg(ColumnEncoder::columnEncoder()->decodeAll(jaspRCPP_getLastErrorMsg()).c_str());
+
+	computedColumnFilter = "";
+
 	return result;
 }
 

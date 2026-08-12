@@ -295,6 +295,15 @@ DataSet *Workspace::dataSetById(int id) const
 	return nullptr;
 }
 
+DataSet *Workspace::dataSetByName(const std::string & name) const
+{
+	for(auto & idData : _dataSets)
+		if(idData.second->name().toStdString() == name)
+			return idData.second;
+
+	return nullptr;
+}
+
 Filter *Workspace::filterById(int id) const
 {
 	for(auto & idDataSet : _dataSets)
@@ -355,6 +364,33 @@ Column *Workspace::createComputedColumn(const std::string &name, int dataSetId, 
 	return nullptr;
 }
 
+DataSet *Workspace::createComputedDataSet(const std::string &name, int defaultInputDataSetId, computedColumnType desiredType)
+{
+	DataSet * newSet = createDataSet();
+
+	if(!newSet)
+		return nullptr;
+
+	newSet->setTitle(tq(name));
+	newSet->setCodeType(desiredType);
+	newSet->setDefaultInputDataSetId(defaultInputDataSetId);
+	newSet->invalidate();
+
+	setShownDataSet(newSet);
+
+	return newSet;
+}
+
+DataSet *Workspace::createComputedDataSet(const QString & name, int defaultInputDataSetId, const QString & rCode)
+{
+	DataSet * newSet = createComputedDataSet(fq(name), defaultInputDataSetId, computedColumnType::rCode);
+
+	if(newSet)
+		newSet->setRCode(fq(rCode));
+
+	return newSet;
+}
+
 void Workspace::refresh()
 {
 	thread_local int refreshDepth = 0;
@@ -382,6 +418,37 @@ void Workspace::initializeComputedColumns()
 	for(auto & idDataSet : _dataSets)
 		for(Column * col : idDataSet.second->columns())
 			col->checkForDependentColumnsToBeSent();
+}
+
+void Workspace::initializeComputedDatasets()
+{
+	for(auto & idDataSet : _dataSets)
+		if(idDataSet.second->isComputed())
+			idDataSet.second->checkForDependentDatasetsToBeSent();
+}
+
+void Workspace::computedDataSetSucceeded(int dataSetId, QString warning, bool dataChanged)
+{
+	DataSet * dataSet = dataSetById(dataSetId);
+
+	if(!dataSet)
+		return;
+
+	dataSet->checkForUpdates();
+	dataSet->setError(warning.isEmpty() ? std::string() : fq(warning));
+
+	//A failed computation leaves the dataset invalidated so it stays marked as needing a (re)run;
+	//only a successful computation validates it and lets the datasets depending on it proceed.
+	if(!warning.isEmpty())
+		return;
+
+	dataSet->validate();
+	dataSet->checkForDependentDatasetsToBeSent();
+
+	//The whole dataset changed: the reload in checkForUpdates() above already emitted datasetChanged,
+	//and every filter of it must be recomputed so that analyses using them pick up the new data.
+	for(Filter * f : dataSet->filters())
+		f->setInvalidated(true);
 }
 
 void Workspace::updateComputedColumnDependenciesForAnalysis(int analysisId, const stringset & usedVariables)

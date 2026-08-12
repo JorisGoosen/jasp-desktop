@@ -274,6 +274,7 @@ bool Engine::receiveMessages(int timeout)
 			case engineState::filterByName:			receiveFilterByNameMessage(jsonRequest);	break;
 			case engineState::rCode:				receiveRCodeMessage(jsonRequest);			break;
 			case engineState::computeColumn:		receiveComputeColumnMessage(jsonRequest);	break;
+			case engineState::computeDataSet:		receiveComputeDataSetMessage(jsonRequest);	break;
 			case engineState::pauseRequested:		pauseEngine(jsonRequest);					break;
 			case engineState::resuming:				resumeEngine(jsonRequest);					break;
 			case engineState::moduleUninstallRequest:
@@ -540,6 +541,20 @@ void Engine::receiveComputeColumnMessage(const Json::Value & jsonRequest)
 	runComputeColumn(dataSetId, computeColumnName, computeColumnCode, computeColumnType);
 }
 
+void Engine::receiveComputeDataSetMessage(const Json::Value & jsonRequest)
+{
+	if(_engineState != engineState::idle)
+		Log::log() << "Unexpected compute dataset message, current state is not idle (" << engineStateToString(_engineState) << ")";
+
+	_engineState = engineState::computeDataSet;
+
+	std::string	computeCode				= jsonRequest.get("computeCode", "").asString();
+	int			dataSetId				= jsonRequest.get("dataSetId", -1).asInt();
+	int			defaultInputDataSetId	= jsonRequest.get("defaultInputDataSetId", -1).asInt();
+
+	runComputeDataSet(dataSetId, computeCode, defaultInputDataSetId);
+}
+
 void Engine::runComputeColumn(int dataSetId, const std::string & computeColumnName, const std::string & computeColumnCode, columnType computeColumnType)
 {
 	Log::log() << "Engine::runComputeColumn()" << std::endl;
@@ -585,6 +600,46 @@ void Engine::runComputeColumn(int dataSetId, const std::string & computeColumnNa
 
 	sendString(computeColumnResponse);
 	
+	_engineState = engineState::idle;
+}
+
+void Engine::runComputeDataSet(int dataSetId, const std::string & computeCode, int defaultInputDataSetId)
+{
+	Log::log() << "Engine::runComputeDataSet()" << std::endl;
+
+	Json::Value computeDataSetResponse		= Json::objectValue;
+	computeDataSetResponse["typeRequest"]	= engineStateToString(engineState::computeDataSet);
+
+	//The "shown" dataset during a computed-dataset run is the input that the R code reads from;
+	//the output (the computed dataset itself) is written to by name via .setDataSet.
+	int inputId = defaultInputDataSetId != -1 ? defaultInputDataSetId : dataSetId;
+
+	if(provideAndUpdateDataSet(inputId))
+	{
+		try
+		{
+			DataSet	*	output		= _workspace->dataSetById(dataSetId);
+			std::string	outputName	= output ? output->name().toStdString() : "";
+
+			std::string computeDataSetResult = rbridge_evalRComputedDataSet(computeCode, outputName);
+
+			computeDataSetResponse["result"]	= computeDataSetResult;
+			computeDataSetResponse["error"]		= jaspRCPP_getLastErrorMsg();
+		}
+		catch(std::exception & e)
+		{
+			computeDataSetResponse["result"]	= "fail";
+			computeDataSetResponse["error"]		= e.what();
+		}
+	}
+	else
+	{
+		computeDataSetResponse["result"]		= "fail";
+		computeDataSetResponse["error"]		= "No DataSet loaded in engine!";
+	}
+
+	sendString(computeDataSetResponse);
+
 	_engineState = engineState::idle;
 }
 

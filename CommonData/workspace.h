@@ -48,6 +48,7 @@ public:
 			DataSet				*	shownDataSet()	const;
 			DataSets				dataSets()		const;
 			DataSet				*	dataSetById(int id) const;
+			DataSet				*	dataSetByName(const std::string & name) const;
 			Filter				*	filterById(int id) const;
 			
 			Column				*	shownColumn() const;
@@ -62,6 +63,9 @@ public slots:
 			void					refresh();
 			DataSet				*	createDataSet();
 			Column				*	createComputedColumn(const std::string & name, int dataSetId, int analysisId = -1, columnType type = columnType::unknown, computedColumnType desiredType = computedColumnType::analysis);
+			DataSet				*	createComputedDataSet(const std::string & name, int defaultInputDataSetId, computedColumnType desiredType = computedColumnType::rCode);
+			Q_INVOKABLE DataSet				*	createComputedDataSet(const QString & name, int defaultInputDataSetId, const QString & rCode);
+			Q_INVOKABLE int						shownDataSetId() const	{ return shownDataSet() ? shownDataSet()->id() : -1; }
 			void					setShownDataSet(QString	  name);
 			void					setShownDataSet(DataSet * dataSet);
 			void					setShownDataSet(int		  dataSetId);
@@ -71,6 +75,8 @@ public slots:
 			void					refreshAllCompCols(Filter * f);
 			void					updateComputedColumnDependenciesForAnalysis(int analysisId, const stringset & usedVariables);
 			void					computedColumnSucceeded(int dataSetId, QString columnName, QString warning, bool dataChanged);
+			void					computedDataSetSucceeded(int dataSetId, QString warning, bool dataChanged);
+			void					initializeComputedDatasets();
 			
 signals:
 			void					filterByNameDone(int dataSetID, const QString & name, const QString & error);
@@ -99,6 +105,7 @@ signals:
 			void					columnsLabelFilteredCountChanged();
 			void					refreshAllAnalyses(Filter * f);
 			void					runComputedColumn(int dataSetid, QString columnName, QString code, enum columnType columnType);
+			void					runComputedDataSet(int dataSetid, QString code, int defaultInputDataSetId);
 			void					sendFilter(			int dataSetID, const QString & generatedFilter, const QString & filter);
 			void					sendFilterByName(	int dataSetID, const QString & name, const QString & module = "*");
 			void					filtersCountChanged();

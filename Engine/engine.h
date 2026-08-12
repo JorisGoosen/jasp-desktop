@@ -59,6 +59,7 @@ private:
 	void 					receiveFilterByNameMessage(		const Json::Value & jsonRequest);
 	void					receiveAnalysisMessage(			const Json::Value & jsonRequest);
 	void					receiveComputeColumnMessage(	const Json::Value & jsonRequest);
+	void					receiveComputeDataSetMessage(	const Json::Value & jsonRequest);
 	void					receiveModuleRequestMessage(	const Json::Value & jsonRequest);
 	void					receiveLogCfg(					const Json::Value & jsonRequest);
 	void					receiveSettings(				const Json::Value & jsonRequest);
@@ -66,6 +67,7 @@ private:
 
 	void					runAnalysis();
 	void					runComputeColumn(	int dataSet,		const std::string & computeColumnName,	const std::string & computeColumnCode,	columnType computeColumnType	);
+	void					runComputeDataSet(	int dataSet,		const std::string & computeCode,			int defaultInputDataSetId			);
 	void					runFilter(			int dataSet,		const std::string & filter,				const std::string & generatedFilter,	int filterRequestId				);
 	void 					runFilterByName(	const std::string & name, int dataSet);
 	void					runRCode(			int dataSet,		const std::string & rCode,				int rCodeRequestId,						bool whiteListed				);

@@ -304,6 +304,19 @@ FocusScope
 					visible:		!dataTableView.expandDataSet
 				}
 
+				JaspControls.RectangularButton
+				{
+					id:				addDataSetButton
+					x:				addColumnButton.x + addColumnButton.width + 2
+					y:				-1
+					width:			visible ? height + 2 : 0
+					toolTip:		qsTr("Add computed dataset")
+					iconSource:		jaspTheme.iconPath + "/data-button-new.svg"
+					onClicked:		createComputeDataSetDialog.open()
+					border.width:	1
+					visible:		!dataTableView.expandDataSet
+				}
+
 
 		}
 

@@ -135,6 +135,7 @@ void DataSetPackage::loadWorkspace(std::function<void(float)> progressCallback)
 	}
 
 	workspace()->initializeComputedColumns();
+	workspace()->initializeComputedDatasets();
 
 	refresh();
 	
@@ -176,6 +177,7 @@ void DataSetPackage::connectWorkspace()
 	Workspace		::connect(workspace(),	&Workspace::dataSetSynchingStart,				this,			&DataSetPackage::beginLoadingData					);	
 	Workspace		::connect(workspace(),	&Workspace::dataSetSynchingDone,				this,			&DataSetPackage::endLoadingData						);	
 	Workspace		::connect(workspace(),	&Workspace::runComputedColumn,					this,			&DataSetPackage::runComputedColumn					);	
+	Workspace		::connect(workspace(),	&Workspace::runComputedDataSet,					this,			&DataSetPackage::runComputedDataSet					);	
 	Workspace		::connect(workspace(),	&Workspace::checkForDependentAnalyses,			this,			&DataSetPackage::checkForDependentAnalyses			);	
 	Workspace		::connect(workspace(),	&Workspace::emptyValuesChanged,					this,			&DataSetPackage::workspaceEmptyValuesChanged		);	
 	

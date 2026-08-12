@@ -64,6 +64,7 @@ extern "C" {
 	const char *				STDCALL rbridge_createColumn			(const char * columnName, bool computed);
 	bool						STDCALL rbridge_deleteColumn			(const char * columnName);
 	bool						STDCALL rbridge_setColumnDataAndType	(const char* columnName, const char **	nominalData,	size_t length,	int columnType, bool computed);
+	bool						STDCALL rbridge_setDataSetData		(const char* datasetName, const char ** columnNames, const int * columnTypes, const char *** columnData, const size_t * columnLengths, size_t colCount);
 	int							STDCALL rbridge_dataSetRowCount();
 	const char *				STDCALL rbridge_encodeColumnName(		const char * in);
 	const char *				STDCALL rbridge_decodeColumnName(		const char * in);
@@ -102,5 +103,6 @@ extern "C" {
 	std::string			rbridge_encodeColumnNamesInScript(		const std::string & filterCode);
 	std::string			rbridge_evalRCodeWhiteListed(			const std::string & rCode, bool setWd);
 	std::string			rbridge_evalRComputedColumn(			const std::string & rCode, const std::string & setColumnCode, const std::string & filterName);
+	std::string			rbridge_evalRComputedDataSet(			const std::string & rCode, const std::string & outputDataSetName);
 	void				rbridge_setLANG(						const std::string & lang);
 #endif // RBRIDGE_H

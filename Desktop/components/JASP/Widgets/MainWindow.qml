@@ -273,6 +273,7 @@ Window
 		}
 
 		CreateComputeColumnDialog	{ id: createComputeDialog	}
+		CreateComputeDataSetDialog	{ id: createComputeDataSetDialog	}
 		ModuleInstaller				{ id: moduleInstallerDialog	}
 		ResizeDataDialog			{ id: resizeDataDialog		}
 		RenameColumnDialog			{ id: renameColumnDialog	}
