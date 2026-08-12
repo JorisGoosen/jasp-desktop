@@ -49,7 +49,7 @@ class Column : public DataSetBaseNode
 	Q_PROPERTY(QString				computeFilter		READ computeFilterQ			WRITE setComputeFilterQ			NOTIFY computeFilterChanged		)
 	Q_PROPERTY(bool					autoSortByValue		READ autoSortByValue								NOTIFY autoSortByValueChanged	)
 	Q_PROPERTY(QString				error				READ errorQ					WRITE setErrorQ					NOTIFY errorChanged				)
-	Q_PROPERTY(QString				rcode				READ rCodeQ					WRITE setRCodeQ					NOTIFY rCodeChanged				)
+	Q_PROPERTY(QString				rCode				READ rCodeQ					WRITE setRCodeQ					NOTIFY rCodeChanged				)
 	Q_PROPERTY(columnType			colType				READ type					WRITE setType					NOTIFY columnTypeChanged		)
 	Q_PROPERTY(computedColumnType	codeType			READ codeType				WRITE setCodeType				NOTIFY codeTypeChanged			)
 	Q_PROPERTY(bool					hasLabels			READ hasLabels				WRITE setHasLabels				NOTIFY hasLabelsChanged			)

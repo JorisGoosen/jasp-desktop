@@ -100,6 +100,9 @@ public:
 	Q_INVOKABLE void undo()				{ if (undoStack()) undoStack()->undo(); }
 	Q_INVOKABLE void redo()				{ if (undoStack()) undoStack()->redo(); }
 	
+	Q_INVOKABLE bool isColumnNameFree(		const QString & name);
+	Q_INVOKABLE void createComputedColumn(	const QString & name, int columnType, bool useJsonConstructor);
+	
 	UndoStack *	undoStack();
 
 	double rowWidth()			const	{ return _rowWidth;			}

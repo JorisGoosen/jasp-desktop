@@ -13,6 +13,7 @@
 /// Keeps track of the state of a single Engine process (JASPEngine)
 /// Tracks it through knowing the state, aka is it running an analysis, a filter or something else
 /// Also handles pausing, resuming, stopping and restarting them
+class DataSet;
 class EngineRepresentation : public QObject
 {
 	Q_OBJECT
@@ -153,7 +154,7 @@ signals:
 	void			filterByNameDone(				int dataSetID, QString name, QString error);
 	void			filterDone(																int requestID);
 	void			processFilterErrorMsg(			const QString & error,					int requestId = -1);
-	void			computeColumnSucceeded(			QString columnName, QString warning, bool dataChanged);
+		void			computeColumnSucceeded(			int dataSetId, QString columnName, QString warning, bool dataChanged);
 	
 	void			rCodeReturned(					const QString & result, int requestId, bool hasError	);
 	void			rCodeReturnedLog(				const QString & log, bool hasError						);
@@ -193,7 +194,7 @@ private:
 	void			sendPauseEngine();
 	void			sendStopEngine();
 	void			setSlaveProcess(QProcess * slaveProcess);
-	void			checkForComputedColumns(const Json::Value & results);
+	void			checkForComputedColumns(DataSet * dataSet, const Json::Value & results);
 	void			handleEngineCrash();
 	void			abortAnalysisInProgress(bool restartAfterwards);
 	void			addSettingsToJson(Json::Value & msg);

@@ -1,4 +1,3 @@
-//
 // Copyright (C) 2013-2026 University of Amsterdam
 //
 // This program is free software: you can redistribute it and/or modify
@@ -276,6 +275,12 @@ void DataSet::endBatchedToDB(std::function<void(float)> progressCallback, Column
 			db().dataSetBatchedValuesUpdate(this, columns, [&progressCallback](float f){ progressCallback(0.75 + (f * 0.25));});
 		else
 			progressCallback(1);
+
+		//Column names/types have (just) been (re)loaded into this DataSet, so make sure the encoder
+		//(used for computed-column dependency resolution) is up to date with them.
+		_encoder->setCurrentNames(getColumnNames());
+		ColumnEncoder::setCurrentColumnNames(getColumnNames());
+
 		incRevision(); //Should trigger reload at engine end
 	}
 }

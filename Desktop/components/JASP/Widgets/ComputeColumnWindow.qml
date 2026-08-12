@@ -281,7 +281,7 @@ FocusScope
 				id:						computeColumnError
 				color:					jaspTheme.red
 				readOnly:				true
-				text:					columnModel.column.compute
+				text:					columnModel.column.error
 
 				selectByMouse:			true
 				onActiveFocusChanged:	if(!activeFocus) deselect()
@@ -306,7 +306,7 @@ FocusScope
 			JaspControls.RectangularButton
 			{
 				id:				showGeneratedRCode
-				visible:		!computedColumnsInterface.computeColumnUsesRCode
+				visible:		columnModel.column.codeType != computedColumnTypeRCode
 				width:			visible ? implicitWidth : 0
 
 				toolTip:		qsTr("Show generated R code")
@@ -374,7 +374,14 @@ FocusScope
 			}
 			onDiscard:
 			{
-				computedColumnsInterface.refreshProperties()	
+				//Revert any unsaved edits back to whatever is stored on the column.
+				if(columnModel.column)
+				{
+					if(columnModel.column.codeType == computedColumnTypeRCode)
+						computeColumnEdit.text = columnModel.column.rCode;
+					else
+						computedColumnConstructor.initializeFromJSON(columnModel.column.constructorJson);
+				}
 			}
 		}
 	}

@@ -195,6 +195,10 @@ void Workspace::setShownDataSet(DataSet *dataSet)
 	_shownDataSet = dataSet;
 	
 	UndoStack::setCurrent(_shownDataSet->undoStack());
+
+	//Column-name encoding/decoding (and thus computed-column dependency resolution) is driven by
+	//the static ColumnEncoder, so make sure it reflects the currently shown dataset's columns.
+	ColumnEncoder::setCurrentColumnNames(_shownDataSet->getColumnNames());
 	
 	connect(_shownDataSet, &DataSet::shownColumnChanged, this, &Workspace::shownColumnChanged, Qt::UniqueConnection);
 	connect(_shownDataSet, &DataSet::shownFilterChanged, this, &Workspace::shownFilterChanged, Qt::UniqueConnection);
@@ -386,4 +390,36 @@ void Workspace::updateComputedColumnDependenciesForAnalysis(int analysisId, cons
 		for(Column * col : dataSet->columns())
 			if(col->isComputedByAnalysis(analysisId))
 				col->setDependsOn(usedVariables);
+}
+
+void Workspace::computedColumnSucceeded(int dataSetId, QString columnNameQ, QString warning, bool dataChanged)
+{
+	DataSet * dataSet = dataSetById(dataSetId);
+
+	if(!dataSet)
+		return;
+
+	std::string	columnName	= fq(columnNameQ);
+	Column	*	column		= dataSet->column(columnName);
+
+	if(!column)
+		return;
+
+	//The engine wrote the freshly computed values to the shared database, so pick those up.
+	column->checkForUpdates();
+	column->setError(warning.isEmpty() ? std::string() : fq(warning));
+
+	//A failed computation leaves the column invalidated so it stays marked as needing a (re)run;
+	//only a successful computation validates the column and lets the columns depending on it proceed.
+	if(!warning.isEmpty())
+		return;
+
+	column->validate();
+	column->checkForDependentColumnsToBeSent();
+
+	//Any filter that uses this computed column needs to be recomputed as well, otherwise it will
+	//silently keep the (now outdated) result for the whole dataset it belongs to.
+	for(Filter * f : dataSet->filters())
+		if(f->columnUsed(columnNameQ))
+			f->setInvalidated(true);
 }

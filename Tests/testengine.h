@@ -18,10 +18,11 @@ class TestEngine: public QObject
 private slots:
     void    init();
 	void	cleanup();
-	void    testFilters();
-	void    initTestCase();
-	void    testComputedColumns();
-	void    testVariableInfoPerFilter();
+    void    testFilters();
+    void    initTestCase();
+    void    testComputedColumns();
+	void    testComputedColumnCascade();
+    void    testVariableInfoPerFilter();
 
 private:
 	EngineSync				*	_engines	= nullptr;

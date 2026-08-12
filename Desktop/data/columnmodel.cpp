@@ -849,3 +849,28 @@ void ColumnModel::setHasLabels(bool newHasLabels)
 	if(column())
 		undoStack()->pushCommand(new SetColumnPropertyCommand(column(), newHasLabels, SetColumnPropertyCommand::ColumnProperty::HasLabels));
 }
+
+bool ColumnModel::isColumnNameFree(const QString & name)
+{
+	DataSet * dataSet = DataSetPackage::pkg()->dataSet();
+
+	return dataSet && !dataSet->column(fq(name));
+}
+
+void ColumnModel::createComputedColumn(const QString & name, int colType, bool useJsonConstructor)
+{
+	DataSet * dataSet = DataSetPackage::pkg()->dataSet();
+
+	if(!dataSet || !isColumnNameFree(name))
+		return;
+
+	Column * column = Workspace::singleton()->createComputedColumn(
+		fq(name),
+		dataSet->id(),
+		-1,
+		columnType(colType),
+		useJsonConstructor ? computedColumnType::constructorCode : computedColumnType::rCode);
+
+	if(column)
+		openComputedColumn(name);
+}

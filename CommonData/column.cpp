@@ -560,6 +560,8 @@ bool Column::setRCode(const std::string & rCode)
 	
 	emit rCodeChanged();
 	
+	checkForDependentColumnsToBeSent(true);
+	
 	return true;
 }
 
@@ -2720,7 +2722,7 @@ void Column::checkForDependentColumnsToBeSent(bool refreshMe)
 		if(	col->codeType() != computedColumnType::analysis				&&
 			col->codeType() != computedColumnType::analysisNotComputed	&&
 			col->iShouldBeSentAgain() )
-			tryAndRunComputedColumn();
+			col->tryAndRunComputedColumn();
 
 	emit data()->workspace()->checkForDependentAnalyses(this);
 }

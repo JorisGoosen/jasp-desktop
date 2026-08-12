@@ -50,9 +50,9 @@ Popup
 				if(!isNaN(nameEdit.text)) //Its a number!
 					nameEdit.text = 'V' + nameEdit.text
 
-				if(computedColumnsInterface.isColumnNameFree(nameEdit.text))
+				if(columnModel.isColumnNameFree(nameEdit.text))
 				{
-					computedColumnsInterface.createComputedColumn(nameEdit.text, computeColumnIconFocusScope.selectedColumnType, popupCreateComputedColumn.computeTypeIsJson)
+					columnModel.createComputedColumn(nameEdit.text, computeColumnIconFocusScope.selectedColumnType, popupCreateComputedColumn.computeTypeIsJson)
 					focus = true
 					popupCreateComputedColumn.close()
 				}
