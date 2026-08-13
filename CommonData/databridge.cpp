@@ -108,6 +108,10 @@ DataSet * DataBridge::provideAndUpdateDataSet(int dataSetId, std::function<void(
 	if(_workspace->shownDataSet())
 	{
 		DataSet * ds = _workspace->shownDataSet();
+		//Column-name encoding for the R bridge is scoped to the *current request's* shown dataset.
+		//Every rbridge_* entry runs provideAndUpdateDataSet() first, and DataSet::setShownDataSet()
+		//(desktop) / this re-point (engine) keep the indirection authoritative. Also see the
+		//EngineBridgeCallbacks/DataSet guard in ColumnEncoder::setCurrentEncoder / ~DataSet.
 		ColumnEncoder::setCurrentEncoder(&ds->encoder());
 		ds->encoder().setCurrentNames(ds->getColumnTypesMap());
 	}

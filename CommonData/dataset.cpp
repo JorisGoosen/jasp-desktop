@@ -1199,13 +1199,13 @@ const DatabaseInterface &DataSet::db() const
 stringset DataSet::findUsedColumnNames(std::string searchThis)
 {
 	stringset columnsFound, columnsWithTypeFound;
-	ColumnEncoder::columnEncoder()->encodeRScript(searchThis, &columnsWithTypeFound);
+	encoder().encodeRScript(searchThis, &columnsWithTypeFound);
 	
 	//The found columns now also include the type, but we dont really care about that right now.
 	//Instead we'll make use of the encode->decode not being symmetrical (for the results to be less ugly) and dropping the type
 	
 	for(const std::string & colPlusType : columnsWithTypeFound)
-		columnsFound.insert(ColumnEncoder::columnEncoder()->decode(ColumnEncoder::columnEncoder()->encode(colPlusType)));
+		columnsFound.insert(encoder().decode(encoder().encode(colPlusType)));
 	
 	return columnsFound;
 }
