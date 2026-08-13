@@ -409,16 +409,6 @@ DataSet *Workspace::createComputedDataSet(const std::string &name, int defaultIn
 	return newSet;
 }
 
-DataSet *Workspace::createComputedDataSet(const QString & name, int defaultInputDataSetId, const QString & rCode)
-{
-	DataSet * newSet = createComputedDataSet(fq(name), defaultInputDataSetId, computedColumnType::rCode);
-
-	if(newSet)
-		newSet->setRCode(fq(rCode));
-
-	return newSet;
-}
-
 QStringList Workspace::dataSetNames() const
 {
 	QStringList names;
@@ -466,23 +456,27 @@ void Workspace::setDataSetComputed(const QString & name, bool computed)
 
 void Workspace::refresh()
 {
+	//Skip nested/re-entrant refreshes entirely (e.g. a dataset refresh emitting a signal that
+	//triggers Workspace::refresh again): doing beginResetModel/endResetModel while a reset is
+	//already in progress is undefined behaviour in Qt.
 	thread_local int refreshDepth = 0;
-	
+	if(refreshDepth != 0)
+		return;
+
+	refreshDepth = 1;
 	beginResetModel();
-	
-	if(refreshDepth++ == 0)
-	{
-		for(auto & idData : _dataSets)
-			idData.second->refresh();
-		
-		emit dataModeChanged(dataMode());
-		emit showRSyntaxChanged(showRSyntax());
-		emit shownDataSetChanged(shownDataSet());
-		emit shownColumnChanged();
-		emit shownFilterChanged();
-	}
-	refreshDepth--;
+
+	for(auto & idData : _dataSets)
+		idData.second->refresh();
+
+	emit dataModeChanged(dataMode());
+	emit showRSyntaxChanged(showRSyntax());
+	emit shownDataSetChanged(shownDataSet());
+	emit shownColumnChanged();
+	emit shownFilterChanged();
 	endResetModel();
+
+	refreshDepth = 0;
 }
 
 

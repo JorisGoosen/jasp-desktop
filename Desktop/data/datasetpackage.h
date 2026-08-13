@@ -32,9 +32,9 @@
 class EngineSync;
 
 ///
-/// DataSetPackage is a utility class that should probably have been called Workspace
+/// DataSetPackage is the Desktop-side wrapper around a Workspace (the multi-dataset model in CommonData).
 ///
-/// It handles loading and creation of DataSet(Q) which handles interaction with the database via itself and the other DataSetBaseNodes
+/// It handles loading and creation of DataSets, which handle interaction with the database via themselves and the other DataSetBaseNodes
 /// 
 class DataSetPackage : public QObject
 {

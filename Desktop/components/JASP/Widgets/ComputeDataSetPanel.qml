@@ -13,7 +13,6 @@ Rectangle
 
 	readonly property var		workspace:			dataSetPackage.workspace
 	readonly property var		shownDataSet:		workspace.shownDataSet
-	readonly property bool		shownComputed:		shownDataSet && shownDataSet.codeType === computedColumnTypeRCode
 	readonly property string	currentInputName:	shownDataSet ? workspace.dataSetNameById(shownDataSet.defaultInputDataSetId) : ""
 
 	property bool				expanded:			true

@@ -254,21 +254,12 @@ void DataSet::beginBatchedToDB()
 void DataSet::endBatchedToDB(std::function<void(float)> progressCallback, Columns columns)
 {
 	if(columns.size() == 0)
-		columns = _columns;//_changedDuringBatch.size() ? Columns(_changedDuringBatch.begin(), _changedDuringBatch.end()) : _columns;
-	
+		columns = _columns;
+
 	assert(columns.size() != _columns.size() || _writeBatchedToDBDepth);
-	
+
 	if(_writeBatchedToDBDepth > 0)
-	{
-		//lets also write the labels now if they werent yet:
-		//db().labelsWrite(columns, [&progressCallback](float f){ progressCallback(f * 0.75);});
-		//
-		//for(Column * col : columns)
-		//	if(col->batchedLabelDepth())
-		//		col->endBatchedLabelsDB(false);
-	
 		_writeBatchedToDBDepth--;
-	}
 	
 	if(_writeBatchedToDBDepth == 0)
 	{
@@ -1075,11 +1066,9 @@ void DataSet::checkForDependentDatasetsToBeSent(bool refreshMe)
 			ds->tryAndRunComputedDataset();
 }
 
-const Columns & DataSet::computedColumns() const
+Columns DataSet::computedColumns() const
 {
-	static Columns computedColumns;
-
-	computedColumns.clear();
+	Columns computedColumns;
 
 	for(Column * column : _columns)
 		if(column->isComputed())

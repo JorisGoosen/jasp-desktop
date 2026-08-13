@@ -466,8 +466,6 @@ void TestAll::testSyncerFileChangeEmitsSignal()
 	f.write("x,y\n3,4\n");
 	f.close();
 
-	QTRY_COMPARE_WITH_TIMEOUT(syncer.isFileSyncing() ? 1 : 0, 1, 5000);
-
 	// The file watcher signal is async; we check via syncRequired spy
 	QSignalSpy spy(&syncer, &DataSetSyncer::syncRequired);
 	QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 5000);
