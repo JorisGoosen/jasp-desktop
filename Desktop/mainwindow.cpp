@@ -496,8 +496,13 @@ void MainWindow::makeConnections()
 	connect(_package,				&DataSetPackage::shownDataSetChanged,				_datasetTableModel,		&DataSetTableModel::handleDataSetChange						);
 	connect(_package,				&DataSetPackage::shownDataSetChanged,				this,					&MainWindow::updateShownFilterInQmlContext					);
 	connect(_package,				&DataSetPackage::shownDataSetChanged,				this, [&](DataSet * ds) {
+		if(_shownDataSetSyncReqConn)
+		{
+			QObject::disconnect(_shownDataSetSyncReqConn);
+			_shownDataSetSyncReqConn = QMetaObject::Connection();
+		}
 		if(ds)
-			connect(ds, &DataSet::syncRequired, _fileMenu, &FileMenu::handleSyncRequired);
+			_shownDataSetSyncReqConn = connect(ds, &DataSet::syncRequired, _fileMenu, &FileMenu::handleSyncRequired);
 	});
 	connect(_package,				&DataSetPackage::shownFilterChanged,				this,					&MainWindow::updateShownFilterInQmlContext					);
 	connect(_package,				&DataSetPackage::shownFilterChanged,				_filterModel,			&FilterModel::filterChanged,								Qt::QueuedConnection);

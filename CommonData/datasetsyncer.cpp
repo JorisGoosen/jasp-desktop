@@ -159,11 +159,12 @@ void DataSetSyncer::doSync()
 	}
 
 	emit syncRequired(id, locator, extension, dbJson);
-
-	_isSyncing = false;
 }
 
 void DataSetSyncer::setSyncingResult(bool success)
 {
+	//The re-entrancy guard is only released on *real* completion (or an explicit abort),
+	//not when the request is launched, so overlapping syncs can't start while one is in flight.
+	_isSyncing = false;
 	emit syncingFinished(_dataSet ? _dataSet->id() : -1, success);
 }

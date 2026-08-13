@@ -574,7 +574,17 @@ const char*	STDCALL jaspRCPP_evalComputedColumn(const char *rCode, const char * 
 			rEnvironment[".calcedVals"]	=	NULL;
 		}
 
-		staticResult = jaspRCPP_parseEvalStringReturn(setColumnCode,	false, false);
+		//Only write results into the column when the user code actually produced values; otherwise the
+		//setter would replace good computed data with an empty/NA column on an R error.
+		Rcpp::RObject calcedVals = rEnvironment[".calcedVals"];
+		if (Rf_isNull(calcedVals))
+		{
+			if (lastErrorMessage.empty())
+				jaspRCPP_setErrorMsg("The computed-column R code produced no results, the column was left unchanged.");
+			staticResult = NullString;
+		}
+		else
+			staticResult = jaspRCPP_parseEvalStringReturn(setColumnCode,	false, false);
 
 		rEnvironment[".calcedVals"]	=	NULL;
 
@@ -1020,7 +1030,17 @@ const char*	STDCALL jaspRCPP_evalComputedDataSet(const char *rCode, const char *
 			rEnvironment[".jaspResult"]	=	NULL;
 		}
 
-		staticResult = jaspRCPP_parseEvalStringReturn(setDataSetCode,	false, false);
+		//Do not run setDataSetCode (which replaces the whole output dataset) when the user code
+		//errored or produced nothing: it would wipe previously-good computed data with an empty frame.
+		Rcpp::RObject jaspResult = rEnvironment[".jaspResult"];
+		if (Rf_isNull(jaspResult))
+		{
+			if (lastErrorMessage.empty())
+				jaspRCPP_setErrorMsg("The computed-dataset R code produced no result (NULL), the output dataset was left unchanged.");
+			staticResult = NullString;
+		}
+		else
+			staticResult = jaspRCPP_parseEvalStringReturn(setDataSetCode,	false, false);
 
 		rEnvironment[".jaspResult"]	=	NULL;
 	}

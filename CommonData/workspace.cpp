@@ -207,9 +207,11 @@ void Workspace::setShownDataSet(DataSet *dataSet)
 	
 	UndoStack::setCurrent(_shownDataSet->undoStack());
 
-	//Column-name encoding/decoding (and thus computed-column dependency resolution) is driven by
-	//the static ColumnEncoder, so make sure it reflects the currently shown dataset's columns.
-	ColumnEncoder::setCurrentColumnNames(_shownDataSet->getColumnNames());
+	//Column-name encoding/decoding (and thus computed-column dependency resolution) is driven by the
+	//static ColumnEncoder, so make sure it reflects the currently shown dataset's columns. We must NOT
+	//re-point the static encoder at the dataset's own encoder here: on the Desktop the dataset can be
+	//destroyed (e.g. switching/loading another file), which would leave the static encoder dangling.
+	ColumnEncoder::setCurrentColumnNames(_shownDataSet->getColumnTypesMap());
 	
 	connect(_shownDataSet, &DataSet::shownColumnChanged, this, &Workspace::shownColumnChanged, Qt::UniqueConnection);
 	connect(_shownDataSet, &DataSet::shownFilterChanged, this, &Workspace::shownFilterChanged, Qt::UniqueConnection);
@@ -232,8 +234,19 @@ void Workspace::deleteShownDataSet()
 {
 	if(!_shownDataSet)
 		return;
-	
-	_dataSets.erase(_shownDataSet->id());
+
+	const int deletedId = _shownDataSet->id();
+
+	//Computed datasets that used the deleted dataset as their input would otherwise keep a dangling
+	//defaultInputDataSetId and attempt to run against a dataset that no longer exists. Clear + re-invalidate them.
+	for (const auto & idDataSet : _dataSets)
+	{
+		DataSet * ds = idDataSet.second;
+		if (ds != _shownDataSet && ds->isComputed() && ds->defaultInputDataSetId() == deletedId)
+			ds->setDefaultInputDataSetId(-1);
+	}
+
+	_dataSets.erase(deletedId);
 	_shownDataSet->dbDelete();
 	UndoStack::setCurrent(nullptr);
 	delete _shownDataSet;

@@ -188,9 +188,10 @@ void DataSetPackage::connectShownDataSetSyncer()
 {
 	if(_syncingDataSet)
 	{
-		DataSetSyncer & oldSyncer = _syncingDataSet->syncer();
-		DataSetSyncer::disconnect(&oldSyncer, &DataSetSyncer::syncingStarted,	this,	&DataSetPackage::setSyncing);
-		DataSetSyncer::disconnect(&oldSyncer, &DataSetSyncer::syncingFinished,	this,	&DataSetPackage::setSyncing);
+		QObject::disconnect(_syncingStartedConn);
+		QObject::disconnect(_syncingFinishedConn);
+		_syncingStartedConn = QMetaObject::Connection();
+		_syncingFinishedConn = QMetaObject::Connection();
 		_syncingDataSet = nullptr;
 	}
 
@@ -203,8 +204,8 @@ void DataSetPackage::connectShownDataSetSyncer()
 
 	_syncingDataSet = shown;
 	DataSetSyncer & syncer = shown->syncer();
-	connect(&syncer, &DataSetSyncer::syncingStarted,	this, [this](int){ setSyncing(true);  });
-	connect(&syncer, &DataSetSyncer::syncingFinished,	this, [this](int, bool){ setSyncing(false); });
+	_syncingStartedConn  = connect(&syncer, &DataSetSyncer::syncingStarted,	this, [this](int){ setSyncing(true);  });
+	_syncingFinishedConn = connect(&syncer, &DataSetSyncer::syncingFinished,	this, [this](int, bool){ setSyncing(false); });
 }
 
 void DataSetPackage::setSyncing(bool syncing)
@@ -422,8 +423,16 @@ void DataSetPackage::restartEngines()
 void DataSetPackage::dbDelete()
 {
 	JASPTIMER_SCOPE(DataSetPackage::dbDelete);
-	if(dataSet() && dataSet()->id() != -1)
-		dataSet()->dbDelete();
+
+	if(!workspace())
+		return;
+
+	//In a multi-dataset workspace we must delete *all* datasets from the database, not only the shown
+	//one — otherwise the remaining datasets are left orphaned in the DB and resurrect on next load.
+	DataSets sets = workspace()->dataSets();
+	for (DataSet * ds : sets)
+		if (ds && ds->id() != -1)
+			ds->dbDelete();
 }
 
 int DataSetPackage::thresholdScale()

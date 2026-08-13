@@ -190,7 +190,7 @@ signals:
 				void				workspaceChanged();
 				void				runComputedColumn(int dataSetId, QString columnName, QString code, columnType columnType);
 				void				runComputedDataSet(int dataSetId, QString code, int defaultInputDataSetId);
-				void				filterByNameDone(int dataSetID, const QString &name, const QString &error);
+				void				filterByNameDone(int dataSetId, const QString &name, const QString &error);
 				void				manualEditsChanged();
 				void				checkForDependentAnalyses(Column * column);
 				
@@ -243,6 +243,8 @@ private:
 								_jaspVersion;
 	QTimer						_autoSaveTimer;
 	DataSet				*		_syncingDataSet			= nullptr; //the dataset whose syncer we are currently connected to
+	QMetaObject::Connection		_syncingStartedConn,
+								_syncingFinishedConn; //connections bound to _syncingDataSet's syncer (disconnected on dataset switch)
 	bool						_syncing				= false;
 };
 

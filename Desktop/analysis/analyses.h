@@ -127,7 +127,7 @@ public slots:
 	void selectAnalysisAtRow(int row);
 	void unselectAnalysis();
 	void rCodeReturned(QString result, int requestId, bool hasError);
-	void filterByNameDone(int dataSetID, QString name, QString error);
+	void filterByNameDone(int dataSetId, QString name, QString error);
 	void setCurrentFormHeight(double currentFormHeight);
 	void setVisible(bool visible);
 	void setMoving(bool moving);

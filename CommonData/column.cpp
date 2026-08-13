@@ -3346,7 +3346,7 @@ bool Column::setLabelAllowFilter(int labelRow, bool newAllowValue)
 	if(!atLeastOneRemains) //Do not let the user uncheck every single one because that is useless, the user wants to uncheck row so lets see if there is another one left after that. Empty-value labels do not count: they cannot be "kept filtered in".
 	{
 		if(!label->filterAllows())
-			return true; //The label is already disabled, nothing changes
+			return false; //The label is already disabled, nothing changes
 
 		for(Label * other : labels())
 		{

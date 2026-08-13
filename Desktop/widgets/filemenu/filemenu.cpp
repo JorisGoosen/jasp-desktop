@@ -397,8 +397,19 @@ void FileMenu::setSyncFile(FileEvent *event)
 void FileMenu::handleSyncRequired(int dataSetId, const QString &locator, const QString &extension, const QString &databaseJson)
 {
 	Q_UNUSED(extension)
+
+	//If we bail out of launching a real sync we must still finish the syncer's lifecycle,
+	//otherwise the UI overlay stays on and the re-entrancy guard blocks all future syncs.
+	auto abortSync = [dataSetId]() {
+		if (DataSet * ds = Workspace::singleton() ? Workspace::singleton()->dataSetById(dataSetId) : nullptr)
+			ds->syncer().setSyncingResult(false);
+	};
+
 	if (locator.isEmpty())
+	{
+		abortSync();
 		return;
+	}
 
 	if (checkSyncFileExists(locator))
 	{
@@ -414,6 +425,8 @@ void FileMenu::handleSyncRequired(int dataSetId, const QString &locator, const Q
 
 		dataSetIORequestHandler(event);
 	}
+	else
+		abortSync();
 }
 
 void FileMenu::analysesExportResults()

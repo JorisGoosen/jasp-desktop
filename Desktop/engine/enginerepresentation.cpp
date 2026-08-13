@@ -402,7 +402,13 @@ void EngineRepresentation::processFilterReply(Json::Value & json)
 
 	int requestId = json.get("requestId", -1).asInt();
 
-	emit filterDone(requestId);
+	//The engine signals a failed filter run by including an "error" field; surface it rather than
+	//treating the run as a success (the old code emitted processFilterErrorMsg for this).
+	const std::string & error = json.get("error", "").asString();
+	if(!error.empty())
+		emit processFilterErrorMsg(tq(error), requestId);
+	else
+		emit filterDone(requestId);
 
 	if(requestId == _lastRequestId)
 		Workspace::singleton()->checkForUpdates();
@@ -420,7 +426,7 @@ void EngineRepresentation::processFilterByNameReply(Json::Value &json)
 
 	std::string name	= json.get("name",			"???").asString(),
 				error	= json.get("errorMessage", "").asString();
-	int			dataSet = json["dataSetID"].asInt();
+	int			dataSet = json.get("dataSetId", -1).asInt();
 
 	
 	Workspace::singleton()->checkForUpdates();
@@ -451,6 +457,7 @@ void EngineRepresentation::runScriptOnProcess(RScriptStore * scriptStore)
 		json["requestId"]		= scriptStore->requestId;
 		json["whiteListed"]		= scriptStore->whiteListedVersion;
 		json["returnLog"]		= scriptStore->returnLog;
+		json["dataSetId"]		= scriptStore->dataSetId;
 
 		_lastRequestId			= scriptStore->requestId;
 
@@ -879,6 +886,7 @@ bool EngineRepresentation::busyWithData() const
 	{
 	case engineState::analysis:
 	case engineState::computeColumn:
+	case engineState::computeDataSet:
 	case engineState::filter:
 	case engineState::rCode:
 		return true;
