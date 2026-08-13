@@ -76,6 +76,11 @@ DataSet::~DataSet()
 {
 	JASPTIMER_SCOPE(DataSet::~DataSet);
 
+	//If this dataset's encoder is the one currently active (shown), make sure the indirection doesn't
+	//keep pointing at it once it's freed. Otherwise later encode/decode would dereference freed memory.
+	if(ColumnEncoder::currentEncoder() == _encoder)
+		ColumnEncoder::setCurrentEncoder(nullptr);
+
 	delete _syncer;
 	_syncer = nullptr;
 	delete _encoder;
@@ -268,10 +273,9 @@ void DataSet::endBatchedToDB(std::function<void(float)> progressCallback, Column
 		else
 			progressCallback(1);
 
-		//Column names/types have (just) been (re)loaded into this DataSet, so make sure the encoder
-		//(used for computed-column dependency resolution) is up to date with them.
+		//Column names/types have (just) been (re)loaded into this DataSet, so keep our own encoder in
+		//sync; when this dataset is the shown/current one it is what the encoder indirection points at.
 		_encoder->setCurrentNames(getColumnNames());
-		ColumnEncoder::setCurrentColumnNames(getColumnNames());
 
 		incRevision(); //Should trigger reload at engine end
 	}

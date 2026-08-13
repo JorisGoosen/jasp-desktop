@@ -1787,7 +1787,7 @@ void MainWindow::dataSetIORequestHandler(FileEvent *event)
 		_loader->io(event);
 		showProgress();
 	}
-else if (event->operation() == FileEvent::FileSyncData)
+	else if (event->operation() == FileEvent::FileSyncData)
 	{
 		if (!_package->hasDataSet())
 			return;

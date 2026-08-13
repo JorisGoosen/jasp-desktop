@@ -66,13 +66,6 @@ DataSetPackage::DataSetPackage(QObject * parent) : QObject(parent)
 DataSetPackage::~DataSetPackage() 
 { 
 	_singleton = nullptr; 
-
-	//DataSetPackage is the single owner of the DatabaseInterface; Workspace::db() merely refers to it
-	//via DatabaseInterface::singleton(). Deleting it here (and only here) gives the DB one clear owner.
-	delete _workspace;
-	_workspace = nullptr;
-	delete _db;
-	_db = nullptr;
 }
 
 
@@ -211,8 +204,6 @@ bool DataSetPackage::isThisTheSameThreadAsEngineSync()
 
 void DataSetPackage::reset(bool newDataSet)
 {
-	Log::log() << "DataSetPackage::reset()" << std::endl;
-	
 	emit chooseColumn(-1); //Unselect any column in ColumnModel
 	
 	deleteWorkspace();

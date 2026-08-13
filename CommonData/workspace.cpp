@@ -210,11 +210,12 @@ void Workspace::setShownDataSet(DataSet *dataSet)
 	
 	UndoStack::setCurrent(_shownDataSet->undoStack());
 
-	//Column-name encoding/decoding (and thus computed-column dependency resolution) is driven by the
-	//static ColumnEncoder, so make sure it reflects the currently shown dataset's columns. We must NOT
-	//re-point the static encoder at the dataset's own encoder here: on the Desktop the dataset can be
-	//destroyed (e.g. switching/loading another file), which would leave the static encoder dangling.
-	ColumnEncoder::setCurrentColumnNames(_shownDataSet->getColumnTypesMap());
+	//Column-name encoding/decoding (and computed-column dependency resolution) must reflect the
+	//currently shown dataset's columns. Point the current-encoder indirection at the dataset's own
+	//encoder (not a process-global whose names we mutate). ~DataSet clears the indirection if the
+	//dataset is destroyed while current, so re-pointing is safe across dataset switches.
+	ColumnEncoder::setCurrentEncoder(&_shownDataSet->encoder());
+	_shownDataSet->encoder().setCurrentNames(_shownDataSet->getColumnTypesMap());
 	
 	connect(_shownDataSet, &DataSet::shownColumnChanged, this, &Workspace::shownColumnChanged, Qt::UniqueConnection);
 	connect(_shownDataSet, &DataSet::shownFilterChanged, this, &Workspace::shownFilterChanged, Qt::UniqueConnection);
