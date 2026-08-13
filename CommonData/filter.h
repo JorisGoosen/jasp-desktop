@@ -88,7 +88,6 @@ public:
 	void						incRevision() override;
 	bool						checkForUpdates();
 			
-	static bool					filterNameIsFree(const std::string & filterName);
 	bool						columnUsed(const QString & name) const;
 
 	static	const QString	&	defaultRFilter();

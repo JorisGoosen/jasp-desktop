@@ -106,12 +106,6 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 			runStatements("ALTER TABLE DataSets  ADD COLUMN showRSyntax	INT;");
 	}
 
-	if(originalVersion < "0.96")	
-	{
-		if(!tableHasColumn("Columns", "hasLabels"))
-			runStatements("ALTER TABLE Columns  ADD COLUMN hasLabels		INT DEFAULT 0;");
-	}
-	
 	if(originalVersion < "0.97.0")
 	{
 		if(!tableHasColumn("Columns", "hasLabels"))
@@ -146,9 +140,10 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 		{
 			int showRSyntax = runStatementsId("SELECT showRSyntax FROM DataSets LIMIT 1;");
 			//Make sure a Workspace row exists, otherwise the UPDATE below would silently touch nothing
-			//and the preserved showRSyntax value would be lost.
+			//and the preserved showRSyntax value would be lost. runStatementsId reports -1 when there
+			//are no rows; treat that as the "not stored" default instead of persisting -1.
 			runStatements("INSERT OR REPLACE INTO Workspace (id) VALUES (1);");
-			runStatements("UPDATE Workspace SET showRSyntax="+std::to_string(showRSyntax)+";");
+			runStatements("UPDATE Workspace SET showRSyntax="+std::to_string(showRSyntax > 0 ? showRSyntax : 0)+";");
 			runStatements("ALTER TABLE DataSets  DROP COLUMN showRSyntax;");
 		}
 	}
@@ -204,13 +199,28 @@ int DatabaseInterface::dataSetInsert(const std::string & dataFilePath, long data
 	};
 
 	transactionWriteBegin();
-	int id = runStatementsId("INSERT INTO DataSets (dataFilePath, dataFileTimestamp, description, databaseJson, emptyValuesJson, dataFileSynch, csvDelimiter) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id;", prepare);
-	
-	if(tableExists(dataSetName(id)))
-		throw std::runtime_error("Table '" + dataSetName(id) + "' already exists!");
-	else
-		Log::log() << "Creating table " << dataSetName(id) << std::endl;
-	runStatements("CREATE TABLE " + dataSetName(id) + " (rowNumber INTEGER PRIMARY KEY);"); // Can be overwritten through dataSetCreateTable
+	int id = -1;
+	try
+	{
+		id = runStatementsId("INSERT INTO DataSets (dataFilePath, dataFileTimestamp, description, databaseJson, emptyValuesJson, dataFileSynch, csvDelimiter) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id;", prepare);
+
+		if(tableExists(dataSetName(id)))
+			throw std::runtime_error("Table '" + dataSetName(id) + "' already exists!");
+		else
+			Log::log() << "Creating table " << dataSetName(id) << std::endl;
+		runStatements("CREATE TABLE " + dataSetName(id) + " (rowNumber INTEGER PRIMARY KEY);"); // Can be overwritten through dataSetCreateTable
+	}
+	catch(const std::exception &)
+	{
+		//A failure here must not leave the write transaction open (->_transactionWriteDepth leak) nor an
+		//orphan DataSets row behind. Clean up the partial row/table, unwind the transaction, and rethrow.
+		if(id > 0)
+		{
+			try { dataSetDelete(id); } catch(...) {}
+		}
+		transactionWriteEnd();
+		throw;
+	}
 	transactionWriteEnd();
 
 	return id;
@@ -529,7 +539,7 @@ void DatabaseInterface::filterLoad(int filterIndex, std::string & rFilter, std::
 		constructorR	= _wrap_sqlite3_column_text(stmt, 3);
 		revision		= sqlite3_column_int(		stmt, 4);
 		name			= _wrap_sqlite3_column_text(stmt, 5);
-		revision		= sqlite3_column_int(		stmt, 6);
+		invalidated		= sqlite3_column_int(		stmt, 6);
 	};
 
 	runStatements("SELECT rFilter, generatedFilter, constructorJson, constructorR, revision, name, invalidated FROM Filters WHERE id = ?;", prepare, processRow);
@@ -2179,7 +2189,7 @@ void DatabaseInterface::workspaceUpdate(bool showRSyntax)
 {
 	std::function<void(sqlite3_stmt *stmt)>  prepare = [&](sqlite3_stmt *stmt)
 	{
-		sqlite3_bind_int(stmt,	0, showRSyntax);
+		sqlite3_bind_int(stmt,	1, showRSyntax);
 		
 	};
 

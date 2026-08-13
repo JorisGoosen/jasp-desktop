@@ -174,8 +174,12 @@ void Engine::beIdle(bool newlyIdle)
 			idleStartTime = -1;
 		}
 
-		if(lastCheckTime != -1 && lastCheckTime + 15 < Utils::currentSeconds())
+		if(lastCheckTime != -1 && lastCheckTime + 15 < Utils::currentSeconds() && _engineState == engineState::idle)
 		{
+			//Re-entrancy guard: only do the background reload while the engine is truly idle. beIdle()
+			//is normally only reached from the idle case, but this defends against any future caller
+			//invoking it while a request is mid-flight (loadingData/analysis/...), which would otherwise
+			//reload the shared DB underneath an in-progress, desktop-orchestrated operation.
 			_engineState = engineState::loadingData;
 			sendEngineLoadingData();
 			
@@ -301,7 +305,7 @@ void Engine::receiveFilterMessage(const Json::Value & jsonRequest)
 	int filterRequestId			= jsonRequest.get("requestId", -1).asInt();
 	int dataSetId				= jsonRequest.get("dataSetId", -1).asInt();
 
-	runFilter(dataSetId, filter, generatedFilter, filterRequestId);
+	runDefaultFilter(dataSetId, filter, generatedFilter, filterRequestId);
 }
 
 void Engine::receiveFilterByNameMessage(const Json::Value & jsonRequest)
@@ -360,7 +364,7 @@ void Engine::runFilterByName(const std::string & name, int dataSetId)
 	_engineState = engineState::idle;
 }
 
-void Engine::runFilter(int dataSetId, const std::string & filter, const std::string & generatedFilter, int filterRequestId)
+void Engine::runDefaultFilter(int dataSetId, const std::string & filter, const std::string & generatedFilter, int filterRequestId)
 {
 	DataSet		*	dataSet				= provideAndUpdateDataSet(dataSetId);
 
@@ -377,7 +381,7 @@ void Engine::runFilter(int dataSetId, const std::string & filter, const std::str
 		boolvec			filterResult		= rbridge_applyFilter(strippedFilter, generatedFilter);
 		std::string		RPossibleWarning	= jaspRCPP_getLastErrorMsg();
 
-        Log::log() << "Engine::runFilter ran:\n\t" << strippedFilter << "\n\tRPossibleWarning='" << RPossibleWarning << "'\n\t\tfor revision " << dataSet->defaultFilter()->revision() << std::endl;
+        Log::log() << "Engine::runDefaultFilter ran:\n\t" << strippedFilter << "\n\tRPossibleWarning='" << RPossibleWarning << "'\n\t\tfor revision " << dataSet->defaultFilter()->revision() << std::endl;
 
 		dataSet->db().transactionWriteBegin();
 		dataSet->defaultFilter()->setRFilter(filter);

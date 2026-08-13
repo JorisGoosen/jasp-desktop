@@ -394,6 +394,9 @@ stringset Filter::columnsUsedInRFilter() const
 
 bool Filter::filterNameIsFree(DataSet * dataSet, const std::string &filterName)
 {
+	if(!dataSet)
+		return true;
+
 	return -1 == DatabaseInterface::singleton()->filterGetId(dataSet->id(), filterName);
 }
 

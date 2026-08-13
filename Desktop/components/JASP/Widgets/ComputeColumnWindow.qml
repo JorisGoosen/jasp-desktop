@@ -10,9 +10,10 @@ FocusScope
 {
 	id:				computedColumnContainer
 
-	property bool	changed:					columnModel.column.codeType == computedColumnTypeRCode ? computeColumnEdit.changed : computedColumnConstructor.somethingChanged
+	property bool	isRCode:					columnModel.column && columnModel.column.codeType == computedColumnTypeRCode
+	property bool	changed:					isRCode ? computeColumnEdit.changed : computedColumnConstructor.somethingChanged
 	property int	minimumHeightTextBoxes:		50 * preferencesModel.uiScale
-	property real	desiredMinimumHeight:		computeColumnButtons.height + computeColumnErrorScroll.height + (columnModel.column.codeType == computedColumnTypeRCode ? computeColumnEditRectangle.desiredMinimumHeight : computedColumnConstructor.desiredMinimumHeight)
+	property real	desiredMinimumHeight:		computeColumnButtons.height + computeColumnErrorScroll.height + (isRCode ? computeColumnEditRectangle.desiredMinimumHeight : computedColumnConstructor.desiredMinimumHeight)
 
 	Connections
 	{
@@ -54,7 +55,10 @@ FocusScope
 
 	function applyComputedColumn()
 	{
-		if(columnModel.column.codeType == computedColumnTypeRCode)
+		if(!columnModel.column)
+			return
+
+		if(isRCode)
 			columnModel.column.rCode = computeColumnEdit.text
 		else
 		{
@@ -112,7 +116,7 @@ FocusScope
 
 				property real desiredMinimumHeight: computedColumnContainer.minimumHeightTextBoxes
 
-				visible: columnModel.column.codeType == computedColumnTypeRCode
+				visible: isRCode
 
 				anchors.fill: parent
 
@@ -176,7 +180,7 @@ FocusScope
 				id:						computedColumnConstructor
 				anchors.fill:			parent
                 anchors.leftMargin:     1
-				visible:				!columnModel.column.codeType == computedColumnTypeRCode
+				visible:				!isRCode
 				
 				showGeneratedRCode:		false
 				KeyNavigation.tab:		applyComputedColumnButton
@@ -306,7 +310,7 @@ FocusScope
 			JaspControls.RectangularButton
 			{
 				id:				showGeneratedRCode
-				visible:		columnModel.column.codeType != computedColumnTypeRCode
+				visible:		!isRCode
 				width:			visible ? implicitWidth : 0
 
 				toolTip:		qsTr("Show generated R code")

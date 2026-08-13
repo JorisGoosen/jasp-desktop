@@ -52,8 +52,11 @@ bool DatabaseConnectionInfo::connect() const
 {
 	QString			dbTypeString	= DbTypeToQString(_dbType);
 	//Log::log() << "dbTypeString is '" << dbTypeString << "'" << std::endl;
-	
-	QSqlDatabase	db				= QSqlDatabase::addDatabase(dbTypeString);
+
+	if(_connectionName.isEmpty())
+		_connectionName = QString("JASP_%1_%2").arg(dbTypeString).arg(reinterpret_cast<quintptr>(this));
+
+	QSqlDatabase	db				= QSqlDatabase::addDatabase(dbTypeString, _connectionName);
 
 	if(_database.size())	db.setDatabaseName(	_database);
 	if(_hostname.size())	db.setHostName(		_hostname);
@@ -66,25 +69,26 @@ bool DatabaseConnectionInfo::connect() const
 
 bool DatabaseConnectionInfo::connected() const
 {
-	return QSqlDatabase::database().isOpen();
+	return _connectionName.size() && QSqlDatabase::database(_connectionName).isOpen();
 }
 
 void DatabaseConnectionInfo::close() const
 {
-	QSqlDatabase::database().close();
+	if(_connectionName.size())
+		QSqlDatabase::database(_connectionName).close();
 }
 
 QString DatabaseConnectionInfo::lastError() const
 {
-	return QSqlDatabase::database().lastError().text();
+	return _connectionName.size() ? QSqlDatabase::database(_connectionName).lastError().text() : QString();
 }
 
 QSqlQuery DatabaseConnectionInfo::runQuery() const
 {
-	if(!QSqlDatabase::database().isOpen())
+	if(!connected())
 		throw std::runtime_error(fq(tr("JASP thinks it's connected to the database but the QSqlDatabase isn't opened...")));
 	
-	QSqlQuery query;
+	QSqlQuery query(QSqlDatabase::database(_connectionName));
 	query.setForwardOnly(true);
 
 	if(!query.exec(_query))

@@ -188,7 +188,10 @@ void RSyntaxHighlighterQuick::setVarInfo(VariableInfo *newVarInfo)
 {
 	if(_highlighter)
 	{
-		_highlighter->setVarInfo(_varInfo);
+		if(_highlighter->varInfo() == newVarInfo)
+			return;
+
+		_highlighter->setVarInfo(newVarInfo);
 		return;
 	}
 	

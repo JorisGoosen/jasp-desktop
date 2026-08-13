@@ -740,14 +740,16 @@ void EngineRepresentation::checkForComputedColumns(DataSet * dataSet, const Json
 			//successful compute: pick the values back up from the DB, validate the column and let the
 			//columns depending on it proceed.
 			std::string		columnName	= results["columnName"].asString();
-			bool			dataChanged	= results["dataChanged"].asBool(),
-							removed 	= results["removed"].asBool();
+			bool			dataChanged	= results["dataChanged"].asBool();
 
 			//The analysis reports the encoded column name; translate it to the real one.
 			std::string	decoded = columnName;
 			try { decoded = dataSet->encoder().decode(columnName); } catch(...) {}
 
-			if(dataSet->column(decoded) && !removed)
+			//The R side is responsible for deleting the DB row (and bumping revision) when a column is
+			//removed, and for bumping revision when its type changes. checkDataSetForUpdates() below then
+			//picks both up from the shared database, so no explicit removed/typeChanged event is needed.
+			if(dataSet->column(decoded))
 				Workspace::singleton()->computedColumnSucceeded(dataSet->id(), tq(decoded), "", dataChanged);
 
 			emit checkDataSetForUpdates();

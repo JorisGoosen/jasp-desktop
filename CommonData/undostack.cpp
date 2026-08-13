@@ -24,7 +24,10 @@ void UndoStack::pushCommand(UndoModelCommand *command)
 void UndoStack::startMacro(const QString &text)
 {
 	if (_parentCommand)
+	{
 		Log::log() << "Macro started though last one is not finished!" << std::endl; //I think this should be an assert...
+		delete _parentCommand; //Which it never was, so instead of leaking the unfinished macro we drop it here.
+	}
 	
 	_parentCommand = new UndoModelCommand();
 	
