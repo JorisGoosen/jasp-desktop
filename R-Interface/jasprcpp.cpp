@@ -1033,10 +1033,12 @@ const char*	STDCALL jaspRCPP_evalComputedDataSet(const char *rCode, const char *
 		//Do not run setDataSetCode (which replaces the whole output dataset) when the user code
 		//errored or produced nothing: it would wipe previously-good computed data with an empty frame.
 		Rcpp::RObject jaspResult = rEnvironment[".jaspResult"];
-		if (Rf_isNull(jaspResult))
+		//An empty (0-column) data.frame is not NULL but would still wipe the output; treat it as no result.
+		bool isEmptyFrame = Rcpp::is<Rcpp::DataFrame>(jaspResult) && Rf_ncols(jaspResult) == 0;
+		if (Rf_isNull(jaspResult) || isEmptyFrame)
 		{
 			if (lastErrorMessage.empty())
-				jaspRCPP_setErrorMsg("The computed-dataset R code produced no result (NULL), the output dataset was left unchanged.");
+				jaspRCPP_setErrorMsg("The computed-dataset R code produced no result (NULL/empty data.frame), the output dataset was left unchanged.");
 			staticResult = NullString;
 		}
 		else

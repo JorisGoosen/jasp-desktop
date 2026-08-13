@@ -145,7 +145,7 @@ public:
 			int						id()					const	{ return _id;				}
 			int						analysisId()			const	{ return _analysisId;		}
 Q_INVOKABLE	bool					isComputed()			const	{ return _codeType != computedColumnType::notComputed && _codeType != computedColumnType::analysisNotComputed;	}
-Q_INVOKABLE	bool					isComputedRCode()		const	{ return _codeType != computedColumnType::rCode;	}
+Q_INVOKABLE	bool					isComputedRCode()		const	{ return _codeType == computedColumnType::rCode;	}
 			dropLevelsType			dropLevels()			const	{ return _dropLevels;		}
 			bool					shouldDropLevels()		const	{ return _dropLevels != dropLevelsType::keep; }
 			bool					invalidated()			const	{ return _invalidated;		}

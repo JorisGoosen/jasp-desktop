@@ -29,6 +29,7 @@ private slots:
 	void	testSyncerStartStopDatabaseSyncing();
 	void	testSyncerSyncNowWithoutDataSource();
 	void	testSyncerMultipleStartStop();
+	void	testSyncerReleasesSyncGuardOnCompletion();
 
 	// DataExporter tests
 	void	testDataExporterShownDataSetOnly();

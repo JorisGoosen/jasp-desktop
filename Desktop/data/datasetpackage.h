@@ -50,7 +50,6 @@ class DataSetPackage : public QObject
 	Q_PROPERTY(bool			manualEdits				READ manualEdits				WRITE setManualEdits			NOTIFY manualEditsChanged			) ///< Did the user change something in the data in such a way that external synching should be disabled if enabled?
 	Q_PROPERTY(DataSet *	dataSet					READ dataSet													NOTIFY shownDataSetChanged			) 
 	Q_PROPERTY(Workspace *	workspace				READ workspace													NOTIFY workspaceChanged				)
-	Q_PROPERTY(bool			syncing					READ syncing													NOTIFY syncingChanged				) ///< The currently shown dataset is (re)syncing with its data file/database
 public:
 	
 	static DataSetPackage *	pkg() { return _singleton; }
@@ -86,7 +85,6 @@ public:
 				QString				name()								const;
 				QString				folder()							const	{ return _folder;						}
 				bool				dataMode()							const;
-				bool				syncing()							const	{ return _syncing;							}
 				
 				
 				bool				isReady()							const	{ return _analysesHTMLReady;			}
@@ -144,7 +142,6 @@ public:
 				
 				bool				manualEdits() const;
 				void				setManualEdits(bool newManualEdits);
-				void				setSyncing(		bool syncing);
 				
 signals:
 				void				datasetChanged(	int						dataSetID,
@@ -165,7 +162,6 @@ signals:
 				bool				enginesInitializingSignal();
 				void				filteredOutChanged(int column);
 				bool				checkDoSync();
-				void				syncingChanged();
 				void				nameChanged();
 				void				folderChanged();
 				void				windowTitleChanged();
@@ -183,6 +179,8 @@ signals:
 				void				makeAnAutoSave();
 				void				shownDataSetChanged(DataSet * dataSet);
 				void				shownFilterChanged();
+				void				dataSetCreated(int dataSetId);
+				void				dataSetRemoved(int dataSetId);
 				void				sendFilter(			int dataSetID, const QString & generatedFilter, const QString & filter);
 				void				sendFilterByName(	int dataSetID, const QString & name, const QString & module);
 				void				filtersCountChanged();
@@ -214,7 +212,6 @@ private:
 				void				columnsApply(int dataSetId, stringset	columnNames, std::function<bool (Column *)>			applyThis);
 				void				columnsApply(int dataSetId, intset		columnIndxs, std::function<bool (Column *, int)>	applyThis);
 				void				columnsApply(int dataSetId, stringset	columnNames, std::function<bool (Column *, int)>	applyThis);
-				void				connectShownDataSetSyncer();
 
 private:
 	static DataSetPackage	*	_singleton;
@@ -242,10 +239,6 @@ private:
 	Version						_archiveVersion,
 								_jaspVersion;
 	QTimer						_autoSaveTimer;
-	DataSet				*		_syncingDataSet			= nullptr; //the dataset whose syncer we are currently connected to
-	QMetaObject::Connection		_syncingStartedConn,
-								_syncingFinishedConn; //connections bound to _syncingDataSet's syncer (disconnected on dataset switch)
-	bool						_syncing				= false;
 };
 
 #endif // FILEPACKAGE_H

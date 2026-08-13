@@ -318,7 +318,7 @@ void Engine::receiveFilterByNameMessage(const Json::Value & jsonRequest)
 
 void Engine::runFilterByName(const std::string & name, int dataSetId)
 {
-	provideAndUpdateDataSet();
+	provideAndUpdateDataSet(dataSetId);
 	
 	if(!_workspace || !_workspace->dataSetById(dataSetId) || !_workspace->dataSetById(dataSetId)->showFilter(name))
 	{
@@ -753,7 +753,7 @@ void Engine::receiveAnalysisMessage(const Json::Value & jsonRequest)
 		_analysisName			= jsonRequest.get("name",				Json::nullValue).asString();
 		_analysisTitle			= jsonRequest.get("title",				Json::nullValue).asString();
 		_analysisFilter			= jsonRequest.get("filter",				"DEFAULT_FILTER").asString();
-		_analysisDataSetId		= jsonRequest["dataSetId"].asInt();
+		_analysisDataSetId		= jsonRequest.get("dataSetId",			-1).asInt();
 		_analysisDataKey		= jsonRequest.get("dataKey",			Json::nullValue).toStyledString();
 		_analysisResultsMeta	= jsonRequest.get("resultsMeta",		Json::nullValue).toStyledString();
 		_analysisStateKey		= jsonRequest.get("stateKey",			Json::nullValue).toStyledString();

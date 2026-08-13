@@ -66,6 +66,13 @@ DataSetPackage::DataSetPackage(QObject * parent) : QObject(parent)
 DataSetPackage::~DataSetPackage() 
 { 
 	_singleton = nullptr; 
+
+	//DataSetPackage is the single owner of the DatabaseInterface; Workspace::db() merely refers to it
+	//via DatabaseInterface::singleton(). Deleting it here (and only here) gives the DB one clear owner.
+	delete _workspace;
+	_workspace = nullptr;
+	delete _db;
+	_db = nullptr;
 }
 
 
@@ -144,12 +151,11 @@ void DataSetPackage::deleteWorkspace(bool dbDeletePlease)
 		dbDelete();
 	delete _workspace;
 	_workspace = nullptr;
-	
-	if(dbDeletePlease)
-	{
-		emit shownDataSetChanged(nullptr); //This can trigger models to read from DataSet and if we dont want dbDelete we most likely dont want this either
-		emit workspaceChanged();
-	}
+
+	//Always notify so QML can re-point its 'workspace' context (to null) instead of keeping a
+	//dangling pointer to the just-deleted Workspace.
+	emit shownDataSetChanged(nullptr);
+	emit workspaceChanged();
 }
 
 void DataSetPackage::connectWorkspace()
@@ -168,53 +174,21 @@ void DataSetPackage::connectWorkspace()
 	Workspace		::connect(workspace(),	&Workspace::shownFilterChanged,					this,			&DataSetPackage::shownFilterChanged					);
 	Workspace		::connect(workspace(),	&Workspace::refreshAllAnalyses,					this,			&DataSetPackage::refreshAllAnalyses					);
 	Workspace		::connect(workspace(),	&Workspace::shownDataSetChanged,				this,			&DataSetPackage::shownDataSetChanged				);	
+	Workspace		::connect(workspace(),	&Workspace::dataSetCreated,						this,			&DataSetPackage::dataSetCreated					);	
+	Workspace		::connect(workspace(),	&Workspace::dataSetRemoved,						this,			&DataSetPackage::dataSetRemoved					);	
+	//A manual edit by the user (in the data grid / paste) means external-file syncing should be disabled.
+	Workspace		::connect(workspace(),	&Workspace::manualEditMade,						this,			[this]{ setManualEdits(true); }					);
 	Workspace		::connect(workspace(),	&Workspace::runComputedColumn,					this,			&DataSetPackage::runComputedColumn					);	
 	Workspace		::connect(workspace(),	&Workspace::runComputedDataSet,					this,			&DataSetPackage::runComputedDataSet					);	
 	Workspace		::connect(workspace(),	&Workspace::checkForDependentAnalyses,			this,			&DataSetPackage::checkForDependentAnalyses			);	
 	Workspace		::connect(workspace(),	&Workspace::emptyValuesChanged,					this,			&DataSetPackage::workspaceEmptyValuesChanged		);	
-	Workspace		::connect(workspace(),	&Workspace::shownDataSetChanged,				this,			&DataSetPackage::connectShownDataSetSyncer			);
-	
 
 	DataSetPackage	::connect(this,			&DataSetPackage::filterByNameDone,				workspace(),	&Workspace::filterByNameDone						);
 	DataSetPackage	::connect(this,			&DataSetPackage::createDataSetBlockingQueued,	workspace(),	&Workspace::createDataSet,							Qt::BlockingQueuedConnection);
 	
 	
-	connectShownDataSetSyncer();
 	emit shownDataSetChanged(nullptr);
 	emit shownFilterChanged();
-}
-
-void DataSetPackage::connectShownDataSetSyncer()
-{
-	if(_syncingDataSet)
-	{
-		QObject::disconnect(_syncingStartedConn);
-		QObject::disconnect(_syncingFinishedConn);
-		_syncingStartedConn = QMetaObject::Connection();
-		_syncingFinishedConn = QMetaObject::Connection();
-		_syncingDataSet = nullptr;
-	}
-
-	DataSet * shown = workspace() ? workspace()->shownDataSet() : nullptr;
-	if(!shown)
-	{
-		setSyncing(false);
-		return;
-	}
-
-	_syncingDataSet = shown;
-	DataSetSyncer & syncer = shown->syncer();
-	_syncingStartedConn  = connect(&syncer, &DataSetSyncer::syncingStarted,	this, [this](int){ setSyncing(true);  });
-	_syncingFinishedConn = connect(&syncer, &DataSetSyncer::syncingFinished,	this, [this](int, bool){ setSyncing(false); });
-}
-
-void DataSetPackage::setSyncing(bool syncing)
-{
-	if(_syncing == syncing)
-		return;
-
-	_syncing = syncing;
-	emit syncingChanged();
 }
 
 

@@ -392,7 +392,6 @@ private:
                                     _hadFatalError			= false,
                                      _aiChatVisible           = false,
 									_chatWindowActive		= false;
-	QMetaObject::Connection			_shownDataSetSyncReqConn; //binds shown dataset's syncRequired -> FileMenu; disconnected on switch
 	QFont							_defaultFont;
 	QPointer<QWindow>				_chatWindow				= nullptr;
 	QTimer					*		_progressBarTimer		= nullptr;

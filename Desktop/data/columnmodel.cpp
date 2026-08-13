@@ -183,6 +183,14 @@ int ColumnModel::rowsTotal() const
 	return rowCount();	
 }
 
+int ColumnModel::rowCount(const QModelIndex &parent) const
+{
+	//The label-editor (and rowsTotal) present the column's *labels*, not its data rows. A (scale)
+	//column's data lives in _dbls but only its non-empty labels are editable here, so the number of
+	//rows a view should show is the number of labels, not the underlying row count.
+	return parent.isValid() ? 0 : (column() ? int(column()->labelsNonEmptyCount()) : 0);
+}
+
 QString ColumnModel::dropLevels() const
 {
 	return dropLevelsTypeToQString(_virtual || !column() || column()->dropLevels() == dropLevelsType::noChoice ? dropLevelsType::drop : column()->dropLevels());

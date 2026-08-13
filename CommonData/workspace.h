@@ -82,6 +82,8 @@ public slots:
 			void					initializeComputedDatasets();
 			
 signals:
+			void					dataSetCreated(int dataSetId);
+			void					dataSetRemoved(int dataSetId);
 			void					filterByNameDone(int dataSetId, const QString & name, const QString & error);
 			void					dataModeChanged(bool dataMode);
 			void					showRSyntaxChanged(bool showIt);

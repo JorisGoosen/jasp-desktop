@@ -663,6 +663,44 @@ void TestAll::testSyncerExportModifyReimport()
 	QVERIFY(exportedContent.contains("4,5,6"));
 }
 
+void TestAll::testSyncerReleasesSyncGuardOnCompletion()
+{
+	QVERIFY(_newPkgWithDataSet());
+
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+
+	DataSetSyncer & syncer = ds->syncer();
+
+	// A DB-backed dataset that wants to sync. The re-entrancy guard must be released on *completion*
+	// (setSyncingResult), so a subsequent sync can run. If the guard were never released, every
+	// later sync would be swallowed — the exact wedge this refactor fixes.
+	Json::Value dbJson;
+	dbJson["dbType"] = "NOTCHOSEN";
+	dbJson["interval"] = 1;
+
+	syncer.startDatabaseSyncing(dbJson, false);
+	QVERIFY(syncer.isDatabaseSyncing());
+
+	QSignalSpy startedSpy(&syncer, &DataSetSyncer::syncingStarted);
+	QSignalSpy finishedSpy(&syncer, &DataSetSyncer::syncingFinished);
+
+	// Trigger sync #1 and complete it.
+	syncer.syncNow();
+	QTRY_COMPARE_WITH_TIMEOUT(startedSpy.count(), 1, 1000);
+	syncer.setSyncingResult(true);
+	QCOMPARE(finishedSpy.count(), 1);
+
+	// Trigger sync #2; because the guard was released, it must start again rather than early-return.
+	syncer.syncNow();
+	QTRY_COMPARE_WITH_TIMEOUT(startedSpy.count(), 2, 1000);
+	syncer.setSyncingResult(false);
+	QCOMPARE(finishedSpy.count(), 2);
+
+	syncer.stopDatabaseSyncing();
+}
+
+
 void TestAll::testSyncerExportModifyReimportChangesDetected()
 {
 	_pkg = new DataSetPackage(this);

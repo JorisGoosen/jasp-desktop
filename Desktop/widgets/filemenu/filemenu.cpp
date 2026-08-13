@@ -310,12 +310,6 @@ void FileMenu::dataSetIOCompleted(FileEvent *event)
 			_OSF->setProcessing(false);
 		}
 	}
-	else if (event->operation() == FileEvent::FileSyncData)
-	{
-		if (event->isSuccessful())		setCurrentDataFile(event->dataFilePath());
-		else
-			Log::log() << "Sync failed: " << event->getLastError().toStdString() << std::endl;
-	}
 	else if (event->operation() == FileEvent::FileClose)
 	{
 		_computer->clearFileName();
@@ -392,41 +386,6 @@ void FileMenu::setSyncFile(FileEvent *event)
 {
 	if (event->isSuccessful())
 		setCurrentDataFile(event->path());
-}
-
-void FileMenu::handleSyncRequired(int dataSetId, const QString &locator, const QString &extension, const QString &databaseJson)
-{
-	Q_UNUSED(extension)
-
-	//If we bail out of launching a real sync we must still finish the syncer's lifecycle,
-	//otherwise the UI overlay stays on and the re-entrancy guard blocks all future syncs.
-	auto abortSync = [dataSetId]() {
-		if (DataSet * ds = Workspace::singleton() ? Workspace::singleton()->dataSetById(dataSetId) : nullptr)
-			ds->syncer().setSyncingResult(false);
-	};
-
-	if (locator.isEmpty())
-	{
-		abortSync();
-		return;
-	}
-
-	if (checkSyncFileExists(locator))
-	{
-		FileEvent *event = new FileEvent(this, FileEvent::FileSyncData);
-		event->setSyncDataSetId(dataSetId);
-		event->setPath(locator);
-		if(!databaseJson.isEmpty())
-		{
-			Json::Value db;
-			Json::Reader().parse(databaseJson.toStdString(), db);
-			event->setDatabase(db);
-		}
-
-		dataSetIORequestHandler(event);
-	}
-	else
-		abortSync();
 }
 
 void FileMenu::analysesExportResults()

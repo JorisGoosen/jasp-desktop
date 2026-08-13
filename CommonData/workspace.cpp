@@ -102,6 +102,7 @@ void Workspace::dbLoad(std::function<void(float)> progressCallback, Version doUp
 		_dataSets[id] = new DataSet(this, 0);
 		_dataSets[id]->dbLoad(id, progressCallbackPerData, doUpgradeFrom);
 		numLoaded++;
+		emit dataSetCreated(id);
 		
 		if(!_shownDataSet)
 			setShownDataSet(_dataSets[id]);
@@ -149,6 +150,7 @@ bool Workspace::checkForUpdates(std::function<void(float)> progressCallback)
 		{
 			_dataSets[id] = new DataSet(this, id);
 			aChange = true;
+			emit dataSetCreated(id);
 			
 			if(!_shownDataSet)
 				setShownDataSet(_dataSets[id]); //Full setter so encoder/undoStack/varInfo stay consistent
@@ -166,6 +168,7 @@ bool Workspace::checkForUpdates(std::function<void(float)> progressCallback)
 			_shownDataSet = nullptr;
 		delete _dataSets[id];
 		_dataSets.erase(id);
+		emit dataSetRemoved(id);
 		aChange = true;
 	}
 	
@@ -247,6 +250,7 @@ void Workspace::deleteShownDataSet()
 	}
 
 	_dataSets.erase(deletedId);
+	emit dataSetRemoved(deletedId);
 	_shownDataSet->dbDelete();
 	UndoStack::setCurrent(nullptr);
 	delete _shownDataSet;
@@ -379,6 +383,7 @@ DataSet * Workspace::createDataSet()
 
 	_dataSets[newSet->id()] = newSet;
 
+	emit dataSetCreated(newSet->id());
 	emit filtersCountChanged(); //Triggers filterDropDownListChanged in filtermodel
 
 	return newSet;
@@ -471,10 +476,13 @@ void Workspace::refresh()
 
 	emit dataModeChanged(dataMode());
 	emit showRSyntaxChanged(showRSyntax());
+	endResetModel();
+
+	//Emit the "shown" signals only after the reset is complete: these connect into QML/other models
+	//that may re-query the Workspace model, which is not allowed while a reset is still active.
 	emit shownDataSetChanged(shownDataSet());
 	emit shownColumnChanged();
 	emit shownFilterChanged();
-	endResetModel();
 
 	refreshDepth = 0;
 }
@@ -534,6 +542,8 @@ void Workspace::computedColumnSucceeded(int dataSetId, QString columnNameQ, QStr
 		return;
 
 	std::string	columnName	= fq(columnNameQ);
+	//The engine may report the encoded name; translate it defensively so the lookup works either way.
+	try { columnName = dataSet->encoder().decode(columnName); } catch(...) {}
 	Column	*	column		= dataSet->column(columnName);
 
 	if(!column)

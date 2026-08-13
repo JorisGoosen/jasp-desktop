@@ -344,7 +344,7 @@ void DataSet::columnsReorder(stringvec order)
 void DataSet::columnRefreshed(Column *column)
 {
 	int idx = columnIndex(column);
-	emit dataChanged(index(0, idx), index(rowCount(), idx), roleNames().keys());
+	emit dataChanged(index(0, idx), index(qMax(rowCount() - 1, 0), idx), roleNames().keys());
 }
 
 Column *DataSet::column(const std::string &name)
@@ -1159,6 +1159,10 @@ void DataSet::refresh(bool doColumnsToo)
 		for(Column * c : _columns)
 			c->refresh(false);
 	
+	endResetModel(); 
+
+	//Emit these after the reset completes: they connect into models that may re-query this DataSet,
+	//which must not happen while a reset is still in progress.
 	emit descriptionChanged();
 	emit dataFileChanged();
 	emit databaseJsonChanged();
@@ -1168,8 +1172,6 @@ void DataSet::refresh(bool doColumnsToo)
 	emit shownFilterChanged(this);
 	emit shownColumnChanged();
 	emit titleChanged();
-	
-	endResetModel(); 
 }
 
 void DataSet::runFilters()
