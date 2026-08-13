@@ -111,8 +111,6 @@ void Importer::loadDataSet(const std::string &locator, DataSet * dataSet, std::f
 	_progressCallback=progressCallback;
 	
 
-	DataSetPackage::pkg()->beginLoadingData();
-
 	_synching = false;
 
 	JASPTIMER_RESUME(Importer::loadDataSet loadFile);
@@ -176,8 +174,6 @@ void Importer::loadDataSet(const std::string &locator, DataSet * dataSet, std::f
 		dataSet->endBatchedToDB([&](float f){ progressCallback(75 + f * 25); });
 	}
 	JASPTIMER_STOP(Importer::loadDataSet createDataSetAndLoad);
-	
-	DataSetPackage::pkg()->endLoadingData();
 	
 	_importDataSet->clearColumns();
 	delete _importDataSet;

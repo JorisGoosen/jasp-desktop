@@ -114,10 +114,6 @@ signals:
 			void					sendFilterByName(	int dataSetID, const QString & name, const QString & module = "*");
 			void					filtersCountChanged();
 void					enableModified();
-			void					dataSetSynchingStart(DataSet *);
-			void					dataSetSynchingDone(DataSet * );
-			void					synchingStart();
-			void					synchingDone();
 			void					shownColumnChanged();
 			void					checkForDependentAnalyses(Column * column);
 			void					showAnalysis(			int			analysisId);

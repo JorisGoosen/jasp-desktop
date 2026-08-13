@@ -2569,18 +2569,6 @@ isItReallyALabel:
 	_dbCreator = std::this_thread::get_id();
 }
 
-void DatabaseInterface::doWalCheckPoint()
-{
-	/*int sizeWalLogInFrames, totalNumberOfFramesCheckpointed;
-	
-	sqlite3_wal_checkpoint_v2(_db(), NULL, SQLITE_CHECKPOINT_RESTART, &sizeWalLogInFrames, &totalNumberOfFramesCheckpointed);
-	
-	if(sizeWalLogInFrames || totalNumberOfFramesCheckpointed)
-	{
-		Log::log() << "DatabaseInterface::doWalCheckPoint: sizeWalLogInFrames=" << sizeWalLogInFrames << " and totalNumberOfFramesCheckpointed=" << totalNumberOfFramesCheckpointed << std::endl;
-	}*/
-}
-
 void DatabaseInterface::preloadInterfaceForThread()
 {
 	//Load the interface by asking for it

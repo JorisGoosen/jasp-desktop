@@ -214,7 +214,6 @@ int			dataSetInsert(							const std::string & dataFilePath = "", long dataFileT
 	void		transactionReadEnd();							///< runs COMMIT and ends the transaction. Tracks whether nested and only does BEGIN+COMMIT at lowest depth
 	
 	//Miscellaneous
-	void		doWalCheckPoint();
 	void		truncateAllTables();
 	bool		tableHasColumn(const std::string & tableName, const std::string & columnName);
 	bool		tableExists(const std::string & name);

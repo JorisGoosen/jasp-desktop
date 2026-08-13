@@ -57,13 +57,7 @@ DataSetPackage::DataSetPackage(QObject * parent) : QObject(parent)
 	connect(PreferencesModel::prefs(), &PreferencesModel::autoSaveAtAllChanged,			this, &DataSetPackage::handleAutoSavePrefChange);
 	connect(PreferencesModel::prefs(), &PreferencesModel::autoSaveIntervalSecChanged,	this, &DataSetPackage::handleAutoSavePrefChange);
 
-	connect(&_doWalCheckPointTimer,		&QTimer::timeout, this, &DataSetPackage::doWalCheckPoint);
 	connect(&_autoSaveTimer,			&QTimer::timeout, this, &DataSetPackage::handleAutoSave);
-	
-	_doWalCheckPointTimer	.setInterval(5*60*1000);
-	_doWalCheckPointTimer	.setSingleShot(false);
-	_doWalCheckPointTimer	.start();
-	
 	
 	_autoSaveTimer			.setSingleShot(false);
 	handleAutoSavePrefChange();
@@ -174,8 +168,6 @@ void DataSetPackage::connectWorkspace()
 	Workspace		::connect(workspace(),	&Workspace::shownFilterChanged,					this,			&DataSetPackage::shownFilterChanged					);
 	Workspace		::connect(workspace(),	&Workspace::refreshAllAnalyses,					this,			&DataSetPackage::refreshAllAnalyses					);
 	Workspace		::connect(workspace(),	&Workspace::shownDataSetChanged,				this,			&DataSetPackage::shownDataSetChanged				);	
-	Workspace		::connect(workspace(),	&Workspace::dataSetSynchingStart,				this,			&DataSetPackage::beginLoadingData					);	
-	Workspace		::connect(workspace(),	&Workspace::dataSetSynchingDone,				this,			&DataSetPackage::endLoadingData						);	
 	Workspace		::connect(workspace(),	&Workspace::runComputedColumn,					this,			&DataSetPackage::runComputedColumn					);	
 	Workspace		::connect(workspace(),	&Workspace::runComputedDataSet,					this,			&DataSetPackage::runComputedDataSet					);	
 	Workspace		::connect(workspace(),	&Workspace::checkForDependentAnalyses,			this,			&DataSetPackage::checkForDependentAnalyses			);	
@@ -212,8 +204,6 @@ void DataSetPackage::reset(bool newDataSet)
 {
 	Log::log() << "DataSetPackage::reset()" << std::endl;
 	
-	beginLoadingData();
-
 	emit chooseColumn(-1); //Unselect any column in ColumnModel
 	
 	deleteWorkspace();
@@ -233,8 +223,6 @@ void DataSetPackage::reset(bool newDataSet)
 	setLoaded(false);
 	setModified(false);
 	setCurrentFile("");
-
-	endLoadingData();
 }
 
 ///This function assumes there should afterwards be only 1 DataSet!
@@ -356,13 +344,6 @@ void DataSetPackage::handleAutoSavePrefChange()
 }
 
 
-void DataSetPackage::doWalCheckPoint()
-{
-	if(DatabaseInterface::singleton())
-		DatabaseInterface::singleton()->doWalCheckPoint();
-}
-
-
 void DataSetPackage::refreshColumn(QString columnName)
 {
 	if(dataSet())
@@ -390,13 +371,6 @@ void DataSetPackage::refresh()
 
 
 
-void DataSetPackage::beginLoadingData(bool)
-{
-	JASPTIMER_SCOPE(DataSetPackage::beginLoadingData);
-
-	doWalCheckPoint();
-}
-
 void DataSetPackage::stopEngines()
 {
 	if(EngineSync::singleton()) //During testing this may be false
@@ -410,17 +384,6 @@ void DataSetPackage::restartEngines()
 }
 
 
-
-void DataSetPackage::endLoadingData(bool)
-{
-	JASPTIMER_SCOPE(DataSetPackage::endLoadingData);
-
-	Log::log() << "DataSetPackage::endLoadingData" << std::endl;
-	
-	doWalCheckPoint();
-	
-	refresh();
-}
 
 void DataSetPackage::dbDelete()
 {

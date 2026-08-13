@@ -12,9 +12,6 @@ Workspace::Workspace(QObject *parent)
 {
 	assert(!_singleton);
 	_singleton = this;
-	
-	connect(this, &Workspace::dataSetSynchingStart, this, &Workspace::synchingStart);
-	connect(this, &Workspace::dataSetSynchingDone,	this, &Workspace::synchingDone);
 }
 
 Workspace::~Workspace()

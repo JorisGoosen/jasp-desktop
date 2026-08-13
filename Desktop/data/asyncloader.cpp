@@ -125,8 +125,6 @@ void AsyncLoader::saveTask(FileEvent *event)
 			delay += sleepTime;
 		}
 		
-		DataSetPackage::pkg()->doWalCheckPoint();
-
 		Exporter *exporter = event->exporter();
 		if (exporter)	exporter->saveDataSet(fq(tempPath), boost::bind(&AsyncLoader::progressHandler, this, _1));
 		else			throw LoaderException("No Exporter found!");
