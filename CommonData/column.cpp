@@ -1493,9 +1493,7 @@ std::string Column::_getLabelDisplayStringByValue(int key, bool ignoreEmptyValue
 
 std::string Column::getDisplay(size_t row, bool fancyEmptyValue, bool sepas) const
 {
-	if(!_hasLabels)
-		getValue(row, fancyEmptyValue, false, sepas);
-	
+	//Note: for a scale column without labels getValue is computed exactly once here.
 	return _type == columnType::scale	
 		?	getValue(row, fancyEmptyValue, false, sepas)
 		:	getLabel(row, fancyEmptyValue, false, sepas);
@@ -1685,6 +1683,9 @@ stringvec Column::dataAsRLevels(intvec & values, const boolvec & filter)
 
 	//We ignore emptyvalues and depending on whether filter is usable (length is data length) we filter out rows we dont need
 	const bool 	useFilter 	= filter.size() == rowCount();
+
+	if(filter.size() != 0 && !useFilter)
+		Log::log() << "Column::dataAsRLevels(" << name() << ") received a filter of size " << filter.size() << " but the data has " << rowCount() << " rows; ignoring the filter." << std::endl;
 
 	if(_hasLabels)
 	{
@@ -2568,8 +2569,24 @@ void Column::addLabelManually(QString value, QString label)
 void Column::deleteLabelManually(int labelIndex)
 {
 	assert(_hasLabels);
-	
-	labelsRemove(labelIndex);
+
+	//labelIndex is a non-empty-label index (as used by the label model); resolve it to the
+	//actual Label before removing, otherwise empty-value labels make the raw _labels index wrong.
+	Label * label = labelByIndexNonEmpty(labelIndex);
+	if(!label)
+		return;
+
+	int intsId = label->intsId();
+
+	labelsRemoveByIntsId({intsId}, false);
+
+	for(size_t i=0; i<_ints.size(); i++)
+		if(_ints[i] == intsId)
+			_ints[i] = EmptyValues::missingValueInteger;
+
+	db().columnSetValues(_id, _ints);
+	nonFilteredCountersReset();
+	_dbUpdateLabelOrder();
 	incRevision();
 	
 	refresh();
@@ -2900,7 +2917,7 @@ void Column::deserialize(const Json::Value &json)
 	std::string name	= json["name"].asString(),
 				title	= json["title"].asString();
 
-	setName(getUniqueName(name));
+	setName(name); //setName already de-duplicates against sibling columns, so no need to call getUniqueName upfront
 
 	// If title was equal to name, then they should still stay the same if the name is changed to be unique.
 	setTitle(								name == title ? _name : title);
@@ -2946,29 +2963,21 @@ void Column::deserialize(const Json::Value &json)
 
 std::string Column::getUniqueName(const std::string &name) const
 {
-	std::string result	= name;
-	int	suffix			= 1;
-	bool foundSameName	= false;
+	stringset existing;
+	for(Column * col : _data->columns())
+		if(col != this)
+			existing.insert(col->name());
 
+	if(!existing.count(name))
+		return name;
+
+	int		suffix	= 1;
+	std::string result;
 	do
 	{
-		foundSameName	= false;
-		for(Column * col : _data->columns())
-		{
-			if (col != this && col->name() == result)
-			{
-				foundSameName = true;
-				break;
-			}
-		}
-
-		if (foundSameName)
-		{
-			suffix++;
-			result = name + " " + std::to_string(suffix);
-		}
-
-	} while (foundSameName);
+		suffix++;
+		result = name + " " + std::to_string(suffix);
+	} while(existing.count(result));
 
 	return result;
 }
@@ -3394,13 +3403,29 @@ std::string	Column::generateLabelFilter() const
 	bool				bePositive		= pos <= filterAllows.size() - pos;
 	std::stringstream	out;
 
+	auto rEscape = [](const std::string & s)
+	{
+		std::string escaped;
+		escaped.reserve(s.size());
+		for(char c : s)
+		{
+			if(c == '\\' || c == '"')
+				escaped.push_back('\\');
+			escaped.push_back(c);
+		}
+		return escaped;
+	};
+
 	for(size_t row=0; row<filterAllows.size(); row++)
 		if(filterAllows[row] == bePositive)
 			out << (cnt++ > 0 ? (bePositive ? " | " : " & ") : "")
 				<< name()
 				<< ".nominal"	//Also make sure we use .nominal because otherwise we might be comparing to the value instead...
 				<< (bePositive ? " == \"" : " != \"")
-				<< labels[row] << "\"";
+				<< rEscape(labels[row]) << "\"";
+
+	if(cnt == 0)
+		return bePositive ? "(FALSE)" : "(TRUE)";
 
 	return "(" + out.str() + ")";
 }

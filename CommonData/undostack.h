@@ -259,6 +259,7 @@ private:
     void					_moveLabels(bool up);
 
     QStringList				_labels;
+	QStringList				_originalValues; //unique-ish handles to re-locate labels after reordering
     bool					_up			= false;
 };
 

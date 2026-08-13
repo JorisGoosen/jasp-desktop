@@ -154,7 +154,7 @@ bool Workspace::checkForUpdates(std::function<void(float)> progressCallback)
 			aChange = true;
 			
 			if(!_shownDataSet)
-				_shownDataSet = _dataSets[id];
+				setShownDataSet(_dataSets[id]); //Full setter so encoder/undoStack/varInfo stay consistent
 			numChecked++;
 			progressCallback(numChecked / d);
 		}
@@ -165,9 +165,20 @@ bool Workspace::checkForUpdates(std::function<void(float)> progressCallback)
 	
 	for(int id : missing)
 	{
+		if(_shownDataSet == _dataSets[id])
+			_shownDataSet = nullptr;
 		delete _dataSets[id];
 		_dataSets.erase(id);
 		aChange = true;
+	}
+	
+	//Never leave even a dangling pointer to a deleted (previously shown) dataset.
+	if(!_shownDataSet)
+	{
+		if(_dataSets.empty())
+			_varInfo->setProvider(nullptr);
+		else
+			setShownDataSet(_dataSets.begin()->second);
 	}
 	
 	bool prev = _showRSyntax;
@@ -241,7 +252,11 @@ void Workspace::deleteShownDataSet()
 	}
 	
 	if(newShown)	setShownDataSet(newShown);
-	else			refresh();
+	else
+	{
+		_varInfo->setProvider(nullptr); //No dataset left: don't leave the provider pointing at a destroyed filter
+		refresh();
+	}
 }
 
 void Workspace::showFilter(int id)

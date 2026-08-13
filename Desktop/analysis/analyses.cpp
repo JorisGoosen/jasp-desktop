@@ -1285,8 +1285,14 @@ void Analyses::registerRpcHandlers()
 				return JaspRpcDispatcher::errorResult(
 					"Dataset not found for dataSetId: " + std::to_string(params["dataSetId"].asInt()));
 			}
-			if (ds->defaultFilter())
-				a->setFilterId(ds->defaultFilter()->id());
+			if (Filter * f = ds->defaultFilter() ? ds->defaultFilter() : ds->shownFilter())
+				a->setFilterId(f->id());
+			else
+			{
+				delete a;
+				return JaspRpcDispatcher::errorResult(
+					"Dataset has no filter to bind analysis to (dataSetId: " + std::to_string(params["dataSetId"].asInt()) + ")");
+			}
 		}
 
 		// Mark AI-created analyses in the title

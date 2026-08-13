@@ -619,7 +619,9 @@ void Engine::runComputeDataSet(int dataSetId, const std::string & computeCode, i
 		try
 		{
 			DataSet	*	output		= _workspace->dataSetById(dataSetId);
-			std::string	outputName	= output ? output->name().toStdString() : "";
+			if(!output)
+				throw std::runtime_error("Computed dataset (id " + std::to_string(dataSetId) + ") not found in engine's workspace; aborting compute. The output dataset must be synced before it can be filled.");
+			std::string	outputName	= output->name().toStdString();
 
 			std::string computeDataSetResult = rbridge_evalRComputedDataSet(computeCode, outputName);
 

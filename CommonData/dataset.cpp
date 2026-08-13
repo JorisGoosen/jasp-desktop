@@ -115,7 +115,8 @@ void DataSet::deleteShownFilter()
 		emit filterRemoved(_shownFilter);
 		
 		delete _shownFilter;
-		_shownFilter = _filters[std::max(indexWas, _filters.size()-1)];
+		// Showing the filter that took the removed one's place (if within range), else the last remaining, else the default (no filter).
+		_shownFilter = _filters.empty() ? _defaultFilter : _filters[std::min(indexWas, _filters.size() - 1)];
 		emit shownFilterChanged(this);
 		incRevision();
 		refresh();		
@@ -204,7 +205,7 @@ Filter *DataSet::filter(int id)
 		if(f->id() == id)
 			return f;
 	
-	return _defaultFilter->id() == id ? _defaultFilter : nullptr;
+	return _defaultFilter && _defaultFilter->id() == id ? _defaultFilter : nullptr;
 }
 
 void DataSet::registerFilter(Filter *f)
@@ -235,7 +236,7 @@ void DataSet::dbDelete()
 	}
 	
 	_columns.clear();
-	
+	_shownColumn	= nullptr; //children are freed above; don't leave a dangling reference
 
 	db().dataSetDelete(_dataSetId);
 	
@@ -1732,7 +1733,12 @@ void DataSet::handleDataSetChanged( int						dataSetID,
 
 bool DataSet::getRowFilter(int row) const
 {
-	return bool(shownFilter()->filtered().size() == 0 || shownFilter()->filtered().at(row));
+	const Filter * filter = shownFilter();
+	if(!filter)
+		return true;
+
+	const std::vector<bool> & filtered = filter->filtered();
+	return filtered.empty() || (row >= 0 && static_cast<size_t>(row) < filtered.size() && filtered[row]);
 }
 
 QVariant DataSet::getDataSetViewLines(bool up, bool left, bool down, bool right)
