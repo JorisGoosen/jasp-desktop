@@ -1995,6 +1995,19 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 		if(!event->path().endsWith(".pdf") && _preferences->currentThemeName() != "lightTheme")
 			_resultsJsInterface->setThemeCss(_preferences->currentThemeName());
 	}
+	else if (event->operation() == FileEvent::FileSyncData)
+		notifyDataSetSyncCompleted(event);
+}
+
+
+void MainWindow::notifyDataSetSyncCompleted(FileEvent *event)
+{
+	if(!_package || !_package->workspace())
+		return;
+
+	DataSet * ds = _package->workspace()->dataSetById(event->syncDataSetId());
+	if(ds)
+		ds->syncer().setSyncingResult(event->isSuccessful());
 }
 
 

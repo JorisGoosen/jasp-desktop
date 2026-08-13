@@ -162,3 +162,8 @@ void DataSetSyncer::doSync()
 
 	_isSyncing = false;
 }
+
+void DataSetSyncer::setSyncingResult(bool success)
+{
+	emit syncingFinished(_dataSet ? _dataSet->id() : -1, success);
+}

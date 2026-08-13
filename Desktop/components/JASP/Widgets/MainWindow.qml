@@ -212,6 +212,36 @@ Window
 			}
 		}
 
+		//Semi-transparent overlay shown while the dataset is re-syncing with its data file/database
+		Item
+		{
+			id:				syncingOverlay
+			z:				1
+			visible:		dataSetPackage.syncing && !mainWindow.welcomePageVisible
+
+			anchors
+			{
+				top:	ribbon.bottom
+				left:	parent.left
+				right:	parent.right
+				bottom:	parent.bottom
+			}
+
+			Rectangle
+			{
+				anchors.fill:	parent
+				color:			jaspTheme.white
+				opacity:		0.6
+			}
+
+			LoadingIndicator
+			{
+				anchors.centerIn:	parent
+				width:				64
+				height:				64
+			}
+		}
+
 
 
 		MouseArea

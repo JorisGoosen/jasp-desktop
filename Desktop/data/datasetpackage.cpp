@@ -172,14 +172,48 @@ void DataSetPackage::connectWorkspace()
 	Workspace		::connect(workspace(),	&Workspace::runComputedDataSet,					this,			&DataSetPackage::runComputedDataSet					);	
 	Workspace		::connect(workspace(),	&Workspace::checkForDependentAnalyses,			this,			&DataSetPackage::checkForDependentAnalyses			);	
 	Workspace		::connect(workspace(),	&Workspace::emptyValuesChanged,					this,			&DataSetPackage::workspaceEmptyValuesChanged		);	
+	Workspace		::connect(workspace(),	&Workspace::shownDataSetChanged,				this,			&DataSetPackage::connectShownDataSetSyncer			);
 	
 
 	DataSetPackage	::connect(this,			&DataSetPackage::filterByNameDone,				workspace(),	&Workspace::filterByNameDone						);
 	DataSetPackage	::connect(this,			&DataSetPackage::createDataSetBlockingQueued,	workspace(),	&Workspace::createDataSet,							Qt::BlockingQueuedConnection);
 	
 	
+	connectShownDataSetSyncer();
 	emit shownDataSetChanged(nullptr);
 	emit shownFilterChanged();
+}
+
+void DataSetPackage::connectShownDataSetSyncer()
+{
+	if(_syncingDataSet)
+	{
+		DataSetSyncer & oldSyncer = _syncingDataSet->syncer();
+		DataSetSyncer::disconnect(&oldSyncer, &DataSetSyncer::syncingStarted,	this,	&DataSetPackage::setSyncing);
+		DataSetSyncer::disconnect(&oldSyncer, &DataSetSyncer::syncingFinished,	this,	&DataSetPackage::setSyncing);
+		_syncingDataSet = nullptr;
+	}
+
+	DataSet * shown = workspace() ? workspace()->shownDataSet() : nullptr;
+	if(!shown)
+	{
+		setSyncing(false);
+		return;
+	}
+
+	_syncingDataSet = shown;
+	DataSetSyncer & syncer = shown->syncer();
+	connect(&syncer, &DataSetSyncer::syncingStarted,	this, [this](int){ setSyncing(true);  });
+	connect(&syncer, &DataSetSyncer::syncingFinished,	this, [this](int, bool){ setSyncing(false); });
+}
+
+void DataSetPackage::setSyncing(bool syncing)
+{
+	if(_syncing == syncing)
+		return;
+
+	_syncing = syncing;
+	emit syncingChanged();
 }
 
 
