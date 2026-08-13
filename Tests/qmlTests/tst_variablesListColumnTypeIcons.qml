@@ -10,6 +10,8 @@ TestCase
 
 	property alias form: jaspForm
 
+	property var favVarsOriginalType0: null
+
 	SignalSpy
 	{
 		id:				spyLoader
@@ -58,6 +60,7 @@ TestCase
 		// should show the transformed icon, while the others keep their real-type icon.
 		// The first column (TestDoubles) is scale (1); setting it to ordinal (2) differs
 		// from its real type, so it should become "transformed". See Common/columntype.h.
+		favVarsOriginalType0 = allVars.getVariableRealType(names[0])
 		allVars.setVariableType(0, 2)
 		wait(200)
 
@@ -72,8 +75,17 @@ TestCase
 				compare(vType !== vReal, true,
 						"The variable whose type was changed ('" + vName + "') should show the transformed icon")
 			else
-				compare(vType, vReal,
-						"Variable '" + vName + "' was not changed, so it should show its real-type icon")
+compare(vType, vReal,
+					"Variable '" + vName + "' was not changed, so it should show its real-type icon")
 		}
+	}
+
+	function cleanup()
+	{
+		// Restore the shared quicktest dataset: the positive control changed column 0's type, which
+		// is the same DataSetProvider dataset used by every tst_*.qml file in this JASPQuickTest run.
+		// Leaving it changed leaks the ordinal type into later tests.
+		if (favVarsOriginalType0 !== null)
+			allVars.setVariableType(0, favVarsOriginalType0)
 	}
 }

@@ -768,5 +768,53 @@ void TestAll::testSyncerExportModifyReimportChangesDetected()
 	QVERIFY(lines[3].contains("9"));
 }
 
+void TestAll::testFilterRevisionInvalidatedRoundTrip()
+{
+	//Regression test: filterLoad used to assign `revision` twice (overwriting it with the
+	//`invalidated` column) and never loaded `invalidated`. Save a filter and check every
+	//field round-trips, especially revision vs invalidated.
+	QVERIFY(_newPkgWithDataSet());
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+	DatabaseInterface & dbi = ds->db();
+	const int dataSetId = ds->id();
+	QVERIFY(dataSetId > 0);
+
+	const std::string originalRFilter		= "filterResult <- x > 1";
+	const std::string originalGenerated		= "generated <- TRUE";
+	const std::string originalConstructor	= "{\"formulas\":[]}";
+	const std::string originalConstructorR	= "constrR <- 1 + 1";
+	const std::string originalName			= "roundtripFilter";
+
+	const int filterId = dbi.filterInsert(dataSetId, originalRFilter, originalGenerated, originalConstructor, originalConstructorR, originalName);
+	QVERIFY2(filterId > 0, "filterInsert should return a valid filter id");
+
+	//Update with a marked-invalidated flag; make sure it round-trips.
+	const std::string updatedRFilter		= "filterResult <- x > 2";
+	const std::string updatedGenerated		= "generated <- FALSE";
+	const std::string updatedConstructor	= "{\"formulas\":[1]}";
+	const std::string updatedConstructorR	= "constrR <- 2 + 2";
+	const std::string updatedName			= "roundtripFilterRenamed";
+	const bool		updatedInvalidated		= true;
+
+	dbi.filterUpdate(filterId, updatedRFilter, updatedGenerated, updatedConstructor, updatedConstructorR, updatedName, updatedInvalidated);
+
+	std::string rFilter, generatedFilter, constructorJson, constructorR, name;
+	int		revision		= -1;
+	bool	invalidated		= false;
+
+	dbi.filterLoad(filterId, rFilter, generatedFilter, constructorJson, constructorR, revision, name, invalidated);
+
+	QCOMPARE(QString::fromStdString(rFilter),			QString::fromStdString(updatedRFilter));
+	QCOMPARE(QString::fromStdString(generatedFilter),	QString::fromStdString(updatedGenerated));
+	QCOMPARE(QString::fromStdString(constructorJson),	QString::fromStdString(updatedConstructor));
+	QCOMPARE(QString::fromStdString(constructorR),		QString::fromStdString(updatedConstructorR));
+	QCOMPARE(QString::fromStdString(name),				QString::fromStdString(updatedName));
+	QCOMPARE(invalidated, updatedInvalidated);
+	QVERIFY2(revision >= 0, "revision must stay an integer revision, not the invalidated flag");
+
+	dbi.filterDelete(filterId);
+}
+
 
 QTEST_MAIN(TestAll)

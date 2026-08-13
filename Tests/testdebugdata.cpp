@@ -5,6 +5,7 @@
 #include "processinfo.h"
 #include "testdebugdata.h"
 #include "databaseinterface.h"
+#include "utilities/settings.h"
 #include "data/datasetpackage.h"
 #include "data/importers/csvimporter.h"
 
@@ -21,6 +22,7 @@ void TestDebugData::initTestCase()
 
 void TestDebugData::init()
 {
+	Settings::informSettingsThatThisIsATest(); //For deterministic Settings behaviour, as in TestAll.
 	TempFiles::clearSessionDir();
 	
 	_pkg		= new DataSetPackage(this);

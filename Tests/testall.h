@@ -34,6 +34,9 @@ private slots:
 	// DataExporter tests
 	void	testDataExporterShownDataSetOnly();
 
+	// DatabaseInterface regressions
+	void	testFilterRevisionInvalidatedRoundTrip();
+
 	// Sync + export integration tests
 	void	testSyncerExportModifyReimport();
 	void	testSyncerExportModifyReimportChangesDetected();
