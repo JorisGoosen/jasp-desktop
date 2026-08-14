@@ -812,17 +812,15 @@ bool EngineSync::processComputedColumnQueue()
 
 bool EngineSync::processComputedDataSetQueue()
 {
-	//NOTE (multi-dataset consistency): computed datasets are dispatched to *any* idle utility engine,
-	//so a chained family (B depends on computed A) can land on two engines at once. B's rows are only
-	//visible once engine-A has flushed A's setDataSet result to the shared SQLite AND B's
-	//provideAndUpdateDataSet() has reloaded it. Today the producer's setValues/incRevision writes
-	//synchronously to SQLite, so single-engine dev runs self-heal, but under load B can read A's stale
-	//rows. If we ever want to harden this: pin a dependency family to one engine, and/or force a DB
-	//persist of the producer before dispatching a dependent.
+	//Computed datasets whose input is another computed dataset are held until the producer has
+	//finished writing to the shared SQLite; this mirrors the dependency ordering already done for
+	//computed columns within a single dataset (see iShouldBeSentAgain / checkForDependents). Also
+	//prefer dispatching a dependent to the same engine that processed its input.
 	bool needEngine = false;
 	try
 	{
 		std::queue<RComputeDataSetStore*>	newWaiting;
+		std::set<int>						dispatchedThisPass;
 
 		while(_waitingCompDataSets.size() > 0)
 		{
@@ -831,17 +829,34 @@ bool EngineSync::processComputedDataSetQueue()
 			needEngine = true;
 			bool foundOne = false;
 
-			for(auto * engine : _engines)
-				if(engine->idle()  && engine->runsUtility())
-				{
-					engine->runScriptOnProcess(waiting);
+			//Don't dispatch a computed dataset whose input is a computed dataset still being computed
+			//or that was dispatched this same pass — the producer may not have flushed its output yet.
+			bool holdForDependency = false;
+			int inputId = waiting->_defaultInputDataSetId;
+			if(inputId >= 0)
+			{
+				for(auto * engine : _engines)
+					if(engine->isComputingDataSet(inputId))
+					{
+						holdForDependency = true;
+						break;
+					}
+				if(!holdForDependency)
+					holdForDependency = dispatchedThisPass.count(inputId) > 0;
+			}
 
-					delete waiting;
-					_waitingCompDataSets.pop();
-					foundOne = true;
-					needEngine = false;
-					break;
-				}
+			if(!holdForDependency)
+				for(auto * engine : _engines)
+					if(engine->idle()  && engine->runsUtility())
+					{
+						engine->runScriptOnProcess(waiting);
+						dispatchedThisPass.insert(waiting->dataSetId);
+						delete waiting;
+						_waitingCompDataSets.pop();
+						foundOne = true;
+						needEngine = false;
+						break;
+					}
 
 			if(!foundOne)
 			{
