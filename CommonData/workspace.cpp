@@ -541,11 +541,12 @@ void Workspace::refresh()
 		~RefreshGuard()                             { _inRefresh = false; }
 	};
 
-	static bool inRefresh = false;
-	if (inRefresh)
+	//instance flag (see _inRefresh in workspace.h), not static, so it cannot suppress refreshes
+	//across separate Workspace instances.
+	if (_inRefresh)
 		return;
 
-	RefreshGuard guard(inRefresh);
+	RefreshGuard guard(_inRefresh);
 	beginResetModel();
 
 	for(auto & idData : _dataSets)

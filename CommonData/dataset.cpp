@@ -512,7 +512,7 @@ void DataSet::setDataFileAndTimeStamp(const std::string &dataFilePath, long time
 	bool isChange		= _dataFilePath	!= dataFilePath || _dataFileTimestamp	!= timestamp;
 	_dataFileTimestamp	= timestamp;		
 	_dataFilePath		= dataFilePath;
-	dbUpdate(); 
+	if(isChange) dbUpdate(); 
 	
 	if(isChange)
 	{
@@ -525,7 +525,7 @@ void DataSet::setDataFile(const std::string &dataFilePath)
 { 
 	bool isChange	= _dataFilePath	!= dataFilePath;
 	_dataFilePath	= dataFilePath;
-	dbUpdate(); 
+	if(isChange) dbUpdate(); 
 	
 	if(isChange)
 		emit dataFileChanged();
@@ -535,7 +535,7 @@ void DataSet::setDataTimestamp(long timestamp)
 { 
 	bool isChange		= _dataFileTimestamp	!= timestamp;
 	_dataFileTimestamp	= timestamp;		
-	dbUpdate(); 
+	if(isChange) dbUpdate(); 
 	
 	if(isChange)
 		emit dataTimestampChanged();
@@ -546,7 +546,7 @@ void DataSet::setDatabaseJson(const Json::Value & databaseJson)
 
 	bool isChange	= _database	!= databaseJson;
 	_database	= databaseJson;
-	dbUpdate(); 
+	if(isChange) dbUpdate(); 
 	
 	if(isChange)
 		emit databaseJsonChanged(); 
@@ -556,7 +556,7 @@ void DataSet::setDataFileSynch(bool synchronizing)
 { 
 	bool isChange	= _dataFileSynch	!= synchronizing;
 	_dataFileSynch	= synchronizing;	
-	dbUpdate(); 
+	if(isChange) dbUpdate(); 
 	
 	if(isChange)
 		emit dataFileChanged();

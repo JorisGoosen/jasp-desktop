@@ -863,16 +863,16 @@ void DatabaseInterface::dataSetBatchedValuesLoad(DataSet *data, std::function<vo
 	//Set up some functions and such for concurrent loading:
 	std::mutex	progressMutex;
 	size_t 		totalRows	= data->rowCount(), // for progressbar
-				progressRow = 0;
+				progressRow = 0,
+				lastRow		= 0;
 	
 	
-	std::function<void(float)> localProgressBar = [&progressMutex, &progressRow, &totalRows, &progressCallback](int rows)
+	std::function<void(float)> localProgressBar = [&progressMutex, &progressRow, &totalRows, &lastRow, &progressCallback](int rows)
 	{
 		progressMutex.lock();
 		progressRow += rows;
 		
 		const size_t rowPercent = std::max(1, int(totalRows) / 100);
-		static size_t lastRow = 0;
 		
 		if(progressRow - lastRow > rowPercent || progressRow >= totalRows - 1)
 		{
@@ -999,21 +999,21 @@ void DatabaseInterface::dataSetBatchedLabelsLoad(DataSet *data, std::function<vo
 	//Set up some functions and such for concurrent loading:
 	std::mutex	progressMutex;
 	size_t 		totalCols	= data->columnCount(), // for progressbar
-				progressCol = 0;
+				progressCol = 0,
+				lastCol		= 0;
 	
 	
-	std::function<void(float)> localProgressBar = [&progressMutex, &progressCol, &totalCols, &progressCallback](int rows)
+	std::function<void(float)> localProgressBar = [&progressMutex, &progressCol, &totalCols, &lastCol, &progressCallback](int rows)
 	{
 		progressMutex.lock();
 		progressCol += rows;
 		
 		const size_t rowPercent = std::max(1, int(totalCols) / 100);
-		static size_t lastRow = 0;
 		
-		if(progressCol - lastRow > rowPercent || progressCol >= totalCols - 1)
+		if(progressCol - lastCol > rowPercent || progressCol >= totalCols - 1)
 		{
 			progressCallback(float(progressCol) / float(totalCols));
-			lastRow = progressCol;
+			lastCol = progressCol;
 		}
 		progressMutex.unlock();
 	};
