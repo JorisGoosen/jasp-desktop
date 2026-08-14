@@ -91,7 +91,7 @@ public:
 			
 	const	std::string &	dataFilePath()			const { return _dataFilePath;			}
 			bool			dataFileCanHaveLabels() const;
-			int				dataFileTimestamp()		const { return _dataFileTimestamp;		}
+			qint64			dataFileTimestamp()		const { return _dataFileTimestamp;		}
 	const	Json::Value &	databaseJson()			const { return _database;				}
 			bool			writeBatchedToDB()		const { return _writeBatchedToDBDepth;		}
 			bool			filterExists(const std::string & name) { return filter(name); }

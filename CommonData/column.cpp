@@ -900,11 +900,13 @@ columnType Column::setValues(size_t rows, const std::function<std::string(size_t
 	dbUpdateValues();
 
 	//Now determine what the most logical columntype would be given the current values AND empty values!
+	//The outer condition already restricts to ints.size() <= thresholdScale, so the previous trailing
+	//'return scale' inside this block was unreachable; columns with more distinct ints fall through to
+	//the onlyDoubles->scale branch below anyway. Keep nominal(2)/ordinal(<=threshold) here explicitly.
 	if(onlyInts && ints.size() <= thresholdScale && ints.size() > 0)
 	{
 		if(ints.size() == 2)				return columnType::nominal;
-		if(ints.size() <= thresholdScale)	return columnType::ordinal;
-		return columnType::scale;
+		return columnType::ordinal;
 	}
 	
 	if(onlyDoubles)

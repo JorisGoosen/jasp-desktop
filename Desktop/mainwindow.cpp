@@ -1894,7 +1894,7 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 					QString dataFilePath = QString::fromStdString(_package->dataSet()->dataFilePath());
 					if (QFileInfo::exists(dataFilePath))
 					{
-						uint currentDataFileTimestamp = QFileInfo(dataFilePath).lastModified().toSecsSinceEpoch();
+						qint64 currentDataFileTimestamp = QFileInfo(dataFilePath).lastModified().toSecsSinceEpoch();
 						if (currentDataFileTimestamp > _package->dataSet()->dataFileTimestamp())
 						{
 							setCheckAutomaticSync(true);
