@@ -52,30 +52,23 @@ AsyncLoader::AsyncLoader(QObject *parent) :
 	connect(this, &AsyncLoader::beginSave, this, &AsyncLoader::saveTask, Qt::QueuedConnection);
 }
 
-void AsyncLoader::onSyncRequired(int dataSetId, const QString & locator, const QString & extension, const QString & databaseJson)
+void AsyncLoader::onSyncRequired(int dataSetId, DataSet * dataSet, const QString & locator, const QString & extension, const QString & databaseJson)
 {
-	//Owns the per-dataset sync lifecycle on behalf of the (data) syncer. This is invoked from the
-	//main thread via a queued connection; the actual reload runs on our worker thread through the
-	//normal FileEvent/loadTask mechanism below.
-	if(locator.isEmpty())
+	//Owns the per-dataset sync lifecycle on behalf of the (data) syncer. The DataSet pointer is
+	//carried across the queued hand-off so this slot (which runs on our worker thread) never has to
+	//read the GUI-owned workspace map. The id is kept for the syncCompleted completion routing.
+	//
+	//Every exit path releases the syncer's re-entrancy guard (via syncCompleted) so _isSyncing is
+	//cleared exactly once for whichever dataset syncs.
+	if(locator.isEmpty() || !dataSet)
 	{
-		emit syncCompleted(dataSetId, false); //Nothing sensible to sync; release the syncer guard we set on the request launch.
-		return;
-	}
-
-	DataSet * dataSet = DataSetPackage::pkg() && DataSetPackage::pkg()->workspace()
-			? DataSetPackage::pkg()->workspace()->dataSetById(dataSetId)
-			: nullptr;
-
-	//If the dataset is gone (e.g. destroyed during the queued hand-off) there is nothing to sync.
-	if(!dataSet)
-	{
-		emit syncCompleted(dataSetId, false);
+		emit syncCompleted(dataSetId, false); //Nothing sensible to sync; release the syncer guard.
 		return;
 	}
 
 	FileEvent * event = new FileEvent(this, FileEvent::FileSyncData);
 	event->setSyncDataSetId(dataSetId);
+	event->setSyncDataSet(dataSet);
 	event->setPath(locator);
 	if(!databaseJson.isEmpty())
 	{
@@ -278,10 +271,13 @@ void AsyncLoader::loadPackage(QString id)
 
 			if (_currentEvent->operation() == FileEvent::FileSyncData)
 			{
-				syncTargetDataSet = pkg->workspace()->dataSetById(_currentEvent->syncDataSetId());
+				syncTargetDataSet = _currentEvent->syncDataSet(); //QPointer; null if the dataset was destroyed meanwhile
 				if(!syncTargetDataSet)
 				{
 					_currentEvent->setComplete(false, "No dataset found for sync");
+
+					//Release the syncer guard exactly once, like every other exit of this branch.
+					emit syncCompleted(_currentEvent->syncDataSetId(), false);
 					return;
 				}
 				_loader.syncPackage(path, extension, syncTargetDataSet, boost::bind(&AsyncLoader::progressHandler, this, _1));

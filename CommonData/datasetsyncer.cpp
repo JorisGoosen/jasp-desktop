@@ -163,7 +163,7 @@ void DataSetSyncer::doSync()
 		extension	= QFileInfo(locator).suffix();
 	}
 
-	emit syncRequired(id, locator, extension, dbJson);
+	emit syncRequired(_dataSet->id(), _dataSet, locator, extension, dbJson);
 }
 
 void DataSetSyncer::setSyncingResult(bool success)

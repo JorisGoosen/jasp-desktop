@@ -21,6 +21,7 @@
 #include "exporters/dataexporter.h"
 #include "exporters/resultexporter.h"
 #include "exporters/jaspexporter.h"
+#include "dataset.h"
 
 #include <QTimer>
 #include "fileevent.h"
@@ -30,6 +31,13 @@
 #include "exporters/jaspexporter.h"
 #include "exporters/resultexporter.h"
 
+
+void FileEvent::setSyncDataSet(DataSet * ds)			{ _syncDataSet = ds; }
+
+DataSet * FileEvent::syncDataSet() const
+{
+	return _syncDataSet ? static_cast<DataSet*>(_syncDataSet.data()) : nullptr;
+}
 
 FileEvent::FileEvent(QObject *parent, FileEvent::FileMode fileMode)
 	: QObject(parent), _operation(fileMode)

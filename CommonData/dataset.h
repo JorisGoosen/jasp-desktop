@@ -267,7 +267,7 @@ signals:
 void			filterRemoved(Filter * f);
 			void			synchronizeStart(DataSet *);
 			void			synchronizeDo(DataSet *);
-			void			syncRequired(int dataSetId, QString locator, QString extension, QString databaseJson);
+			void			syncRequired(int dataSetId, DataSet * dataSet, QString locator, QString extension, QString databaseJson);
 			void			labelChanged(		const Column * column, QString originalLabel, QString newLabel);
 			QString			askPassword(	QString title, QString message);
 			bool			showYesNo(		QString title, QString message);
