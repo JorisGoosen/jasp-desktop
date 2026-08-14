@@ -67,18 +67,6 @@ void Filter::connectionCreation()
 	connect(_data,	&DataSet::labelsReordered,				infoSignaller(),	&VarInfoSignaller::labelsReordered			);
 	connect(this,	&Filter::modelReset,					infoSignaller(),	&VarInfoSignaller::refresh					);
 	
-	void	refresh();
-	void	variableNamesChanged(		QMap<QString, QString> changedNames);
-	void	filterChanged();
-	void	labelsChanged(				QString columnName, QMap<QString, QString> changedLabels);
-	void	variablesChanged(			QStringList changedColumns);
-	void	dataSetChanged();
-	void	rowCountChanged();
-	void	variableCountChanged();
-	void	labelsReordered(		QString columnName);
-	void	variableTypeChanged(	QString variableName, columnType variableType);
-	void	dataAvailableChanged();
-	
 	connect(data(),			&DataSet::columnTypeChanged,				infoSignaller(),	[&](QString name){ infoSignaller()->variableTypeChanged(name, data()->column(name)->type()); });
 	connect(data(),			&DataSet::labelChanged,						infoSignaller(),	&VarInfoSignaller::labelChanged			);
 	connect(data(),			&DataSet::labelsReordered,					infoSignaller(),	&VarInfoSignaller::labelsReordered		);

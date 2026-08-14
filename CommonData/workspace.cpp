@@ -533,11 +533,19 @@ void Workspace::refresh()
 	//Skip nested/re-entrant refreshes entirely (e.g. a dataset refresh emitting a signal that
 	//triggers Workspace::refresh again): doing beginResetModel/endResetModel while a reset is
 	//already in progress is undefined behaviour in Qt.
-	thread_local int refreshDepth = 0;
-	if(refreshDepth != 0)
+	//RAII guard (unlike a plain counter) so the flag is cleared even if a signal handler throws.
+	struct RefreshGuard
+	{
+		bool &	_inRefresh;
+		explicit RefreshGuard(bool & inRefresh) : _inRefresh(inRefresh) { _inRefresh = true; }
+		~RefreshGuard()                             { _inRefresh = false; }
+	};
+
+	static bool inRefresh = false;
+	if (inRefresh)
 		return;
 
-	refreshDepth = 1;
+	RefreshGuard guard(inRefresh);
 	beginResetModel();
 
 	for(auto & idData : _dataSets)
@@ -552,8 +560,6 @@ void Workspace::refresh()
 	emit shownDataSetChanged(shownDataSet());
 	emit shownColumnChanged();
 	emit shownFilterChanged();
-
-	refreshDepth = 0;
 }
 
 
