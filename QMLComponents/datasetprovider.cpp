@@ -118,9 +118,9 @@ void DataSetProvider::loadDataSet(const std::map<std::string, stringvec > & data
 
 	dataSet()->endBatchedToDB([](float f) {});
 
-	DataSet * ds = dataSet();
-	ColumnEncoder::setCurrentEncoder(&ds->encoder());
-	ds->encoder().setCurrentNames(ds->getColumnTypesMap());
+	//The desktop must not rely on the process-global ColumnEncoder (that is only meaningful inside the
+	//engine's request context); consumers get the dataset's own encoder via provider->columnEncoder().
+	dataSet()->encoder().setCurrentNames(dataSet()->getColumnTypesMap());
 
 }
 
@@ -144,9 +144,7 @@ void DataSetProvider::loadDatabase(const Version & jaspVersion)
 		_workspace->createDataSet();
 		dataSet()->dbLoad(1, [](float p) {}, jaspVersion);
 
-		DataSet * ds = dataSet();
-		ColumnEncoder::setCurrentEncoder(&ds->encoder());
-		ds->encoder().setCurrentNames(ds->getColumnTypesMap());
+		dataSet()->encoder().setCurrentNames(dataSet()->getColumnTypesMap());
 	}
 	catch (...)
 	{

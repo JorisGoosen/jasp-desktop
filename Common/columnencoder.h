@@ -50,6 +50,10 @@ public:
 								ColumnEncoder(const std::map<std::string, std::string> & decodeDifferently);
 								~ColumnEncoder();
 	static ColumnEncoder	*	columnEncoder();
+	/// Like columnEncoder() but never consults/repopulates the process-global current-encoder
+	/// indirection (_currentEncoder). Used by the desktop so it never depends on the global,
+	/// which is only meaningful in the engine's request context.
+	static ColumnEncoder	*	fallbackEncoder();
 	static ColumnEncoder	*	currentEncoder();
 	static void					setCurrentEncoder(ColumnEncoder * encoder);
 

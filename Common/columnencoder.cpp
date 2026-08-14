@@ -57,6 +57,14 @@ ColumnEncoder * ColumnEncoder::currentEncoder()
 	return _currentEncoder;
 }
 
+ColumnEncoder * ColumnEncoder::fallbackEncoder()
+{
+	if(!_columnEncoder)
+		_columnEncoder = new ColumnEncoder();
+
+	return _columnEncoder;
+}
+
 void ColumnEncoder::setCurrentEncoder(ColumnEncoder * encoder)
 {
 	if(_currentEncoder && _currentEncoder != encoder)
