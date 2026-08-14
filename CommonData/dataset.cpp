@@ -1059,15 +1059,30 @@ bool DataSet::setError(const std::string & error)
 	return true;
 }
 
-void DataSet::setDefaultInputDataSetId(int defaultInputDataSetId)
+bool DataSet::setDefaultInputDataSetId(int defaultInputDataSetId)
 {
 	if(defaultInputDataSetId == _defaultInputDataSetId)
-		return;
+		return true;
+
+	//Refuse to introduce a cycle (A <- B <- A) between computed datasets: a computed dataset must
+	//not depend on an input that (transitively) depends on it, or the recompute cascade would livelock.
+	if(_workspace && defaultInputDataSetId >= 0)
+	{
+		DataSet * target = _workspace->dataSetById(defaultInputDataSetId);
+		if (target && _workspace->wouldCreateComputedDataSetLoop(this, target))
+		{
+			setError("The dataset chosen as input for this computed dataset would create a loop between the computed datasets.");
+			dbUpdateComputedDatasetStuff();
+			return false;
+		}
+	}
 
 	_defaultInputDataSetId = defaultInputDataSetId;
 	invalidate();
 	dbUpdateComputedDatasetStuff();
 	emit defaultInputDataSetChanged();
+
+	return true;
 }
 
 bool DataSet::tryAndRunComputedDataset()
@@ -1087,6 +1102,18 @@ void DataSet::checkForDependentDatasetsToBeSent(bool refreshMe)
 	for(DataSet * ds : _workspace->dataSets())
 		if(ds->isComputed() && ((ds == this && refreshMe) || ds->defaultInputDataSetId() == id()))
 			ds->invalidate();
+
+	//Anti-livelock guard: if the computed-dataset dependency graph somehow contains a cycle (e.g.
+	//restored from an old file), do not keep requesting computations; mark the participants with an
+	//error instead so the user breaks the circle.
+	std::string loopError;
+	if (_workspace->computedDataSetsHaveLoop(loopError))
+	{
+		for (DataSet * ds : _workspace->dataSets())
+			if (ds->isComputed() && ds->invalidated())
+				ds->setError(loopError);
+		return;
+	}
 
 	for(DataSet * ds : _workspace->dataSets())
 		if(ds->isComputed() && ds->iShouldBeSentAgain())

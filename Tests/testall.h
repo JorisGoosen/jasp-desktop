@@ -41,6 +41,10 @@ private slots:
 	// Filter cache-length regression: the engine result must be authoritative for the whole dataset.
 	void	testFilterSetFilterVectorResizesToResult();
 
+	// Computed-dataset cycle prevention: a computed dataset must not depend on a dataset that
+	// (transitively) depends on it, or the recompute cascade would livelock.
+	void	testComputedDataSetCycleDetection();
+
 	// Sync + export integration tests
 	void	testSyncerExportModifyReimport();
 	void	testSyncerExportModifyReimportChangesDetected();

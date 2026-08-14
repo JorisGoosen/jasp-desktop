@@ -429,10 +429,63 @@ QStringList Workspace::dataSetNames() const
 	return names;
 }
 
+bool Workspace::wouldCreateComputedDataSetLoop(DataSet * me, DataSet * target) const
+{
+	std::set<int> visited;
+	DataSet * cur = target;
+	while (cur)
+	{
+		if (cur == me)
+			return true;
+
+		if (!visited.insert(cur->id()).second)
+			return false; //Reached a node we have seen; not a loop involving me.
+
+		if (!cur->isComputed() || cur->defaultInputDataSetId() < 0)
+			return false;
+
+		cur = dataSetById(cur->defaultInputDataSetId());
+	}
+
+	return false;
+}
+
+bool Workspace::computedDataSetsHaveLoop(std::string & errorMessage) const
+{
+	std::set<int> globalVisited;
+
+	for (const auto & idData : _dataSets)
+	{
+		DataSet * ds = idData.second;
+		if (!ds->isComputed() || globalVisited.count(ds->id()))
+			continue;
+
+		std::set<int> chain;
+		DataSet * cur = ds;
+
+		while (cur && cur->isComputed())
+		{
+			if (!chain.insert(cur->id()).second)
+			{
+				errorMessage = "A loop was found between your computed datasets and their input datasets. Change one of the input selections to break the circle.";
+				return true;
+			}
+
+			if (cur->defaultInputDataSetId() < 0)
+				break;
+
+			cur = dataSetById(cur->defaultInputDataSetId());
+		}
+
+		globalVisited.insert(chain.begin(), chain.end());
+	}
+
+	return false;
+}
+
 void Workspace::setDataSetComputed(const QString & name, bool computed)
 {
 	DataSet * ds = dataSetByName(fq(name));
-
 	if(!ds || computed == ds->isComputed())
 		return;
 
@@ -444,12 +497,23 @@ void Workspace::setDataSetComputed(const QString & name, bool computed)
 		ds->setCodeType(computedColumnType::rCode);
 
 		if(ds->defaultInputDataSetId() < 0)
+		{
+			//Pick the first other dataset that does not close a loop (e.g. another computed dataset
+			//that (in)directly depends on this one must not be chosen, or we would create A <- B <- A).
+			DataSet * candidate = nullptr;
 			for(const auto & idData : _dataSets)
-				if(idData.second != ds)
+				if(idData.second != ds && !wouldCreateComputedDataSetLoop(ds, idData.second))
 				{
-					ds->setDefaultInputDataSetId(idData.second->id());
+					candidate = idData.second;
 					break;
 				}
+
+			if(candidate)
+				ds->setDefaultInputDataSetId(candidate->id());
+		}
+
+		if(ds->defaultInputDataSetId() >= 0 && wouldCreateComputedDataSetLoop(ds, ds->defaultInputDataSet()))
+			ds->setError("The dataset chosen as input for this computed dataset would create a loop between the computed datasets.");
 	}
 	else
 		ds->setCodeType(computedColumnType::notComputed);
@@ -521,6 +585,17 @@ void Workspace::computedDataSetSucceeded(int dataSetId, QString warning, bool da
 	//only a successful computation validates it and lets the datasets depending on it proceed.
 	if(!warning.isEmpty())
 		return;
+
+	//Never cascade into a cycle (A <- B <- A): if the computed-dataset graph has a loop, do not keep
+	//recomputing; surface the error and leave the datasets invalidated so the user fixes the inputs.
+	std::string loopError;
+	if (computedDataSetsHaveLoop(loopError))
+	{
+		for (const auto & idData : _dataSets)
+			if (idData.second->isComputed() && idData.second->invalidated())
+				idData.second->setError(loopError);
+		return;
+	}
 
 	dataSet->validate();
 	dataSet->checkForDependentDatasetsToBeSent();
