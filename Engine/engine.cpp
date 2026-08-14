@@ -193,7 +193,8 @@ void Engine::beIdle(bool newlyIdle)
 			});
 			
 			_engineState = engineState::idle;
-			sendEngineResumed();
+			sendEngineResumed(true); //A background reload did push loading-progress to ~1.0; signal it so
+			                          //the desktop resets its loading bar (justReloadedData=true) instead of staying stuck.
 			lastCheckTime = Utils::currentSeconds();
 		}
 	}
@@ -479,7 +480,8 @@ void Engine::runRCode(int dataSetId, const std::string & rCode, int rCodeRequest
 
 void Engine::runRCodeCommander(int dataSetId, std::string rCode)
 {
-    bool thereIsSomeData = provideAndUpdateDataSet(dataSetId) && provideAndUpdateDataSet(dataSetId)->rowCount();
+    DataSet * thereIsSomeDataDs = provideAndUpdateDataSet(dataSetId);
+    bool thereIsSomeData = thereIsSomeDataDs && thereIsSomeDataDs->rowCount();
 
 
 	static const std::string rCmdDataName = "data", rCmdFiltered = "filteredData";
@@ -839,8 +841,10 @@ void Engine::runAnalysis()
 
 	_analysisColsTypes = ColumnEncoder::encodeColumnNamesinOptions(encodedAnalysisOptions, _analysisPreloadData);
 
-	if(dataset && !_analysisFilter.empty())
-		dataset->showFilter(_analysisFilter);
+	if(dataset && !_analysisFilter.empty() && dataset->filter(_analysisFilter))
+		dataset->showFilter(_analysisFilter); //Only show a filter that actually exists: showFilter(name)
+		                                        //creates a new filter for an unknown name, which would
+		                                        //silently fabricate one from a stale analysis request.
 	
 	_analysisResultsString = rbridge_runModuleCall(_analysisName, _analysisTitle, _dynamicModuleCall, _analysisDataKey,
 								encodedAnalysisOptions.toStyledString(), _analysisStateKey, _analysisId, _analysisRevision, 

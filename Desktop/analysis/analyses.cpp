@@ -133,7 +133,7 @@ Analysis* Analyses::create(Modules::AnalysisEntry * analysisEntry, const Json::V
 	return create(Json::nullValue, analysisEntry, _nextId++, Analysis::Empty, true, "", "", options);
 }
 
-Analysis* Analyses::create(const Json::Value & analysisData, Modules::AnalysisEntry * analysisEntry, size_t id, Analysis::Status status, bool notifyAll, const std::string & title, const Version & optionsVersion, const Json::Value & options, std::string filterName)
+Analysis* Analyses::create(const Json::Value & analysisData, Modules::AnalysisEntry * analysisEntry, size_t id, Analysis::Status status, bool notifyAll, const std::string & title, const Version & optionsVersion, const Json::Value & options)
 {
 	Analysis *analysis = new Analysis(id, analysisEntry, title, optionsVersion, options);
 

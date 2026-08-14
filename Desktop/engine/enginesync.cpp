@@ -568,9 +568,15 @@ void EngineSync::sendFilterByName(int dataSetId, const QString & name, const QSt
 	if(copyQueue.size() > 0)
 		for(RScriptStore * script = copyQueue.front(); copyQueue.size() > 0; script = copyQueue.front(), copyQueue.pop())
 		{
+			//Only deduplicate against actual filter-by-name requests (the queue also holds plain R
+			//scripts) and match the dataSetId too: in a multi-dataset workspace two datasets can each
+			//have a filter with the same name, and collapsing them would never deliver one dataset's reply.
+			if(script->typeScript != engineState::filterByName)
+				continue;
+
 			auto * waiting = static_cast<RFilterByNameStore*>(script);
-			
-			if(waiting && waiting->name == name && waiting->module == module)
+
+			if(waiting->name == name && waiting->module == module && waiting->dataSetId == dataSetId)
 				return;
 		}
 					
@@ -806,6 +812,13 @@ bool EngineSync::processComputedColumnQueue()
 
 bool EngineSync::processComputedDataSetQueue()
 {
+	//NOTE (multi-dataset consistency): computed datasets are dispatched to *any* idle utility engine,
+	//so a chained family (B depends on computed A) can land on two engines at once. B's rows are only
+	//visible once engine-A has flushed A's setDataSet result to the shared SQLite AND B's
+	//provideAndUpdateDataSet() has reloaded it. Today the producer's setValues/incRevision writes
+	//synchronously to SQLite, so single-engine dev runs self-heal, but under load B can read A's stale
+	//rows. If we ever want to harden this: pin a dependency family to one engine, and/or force a DB
+	//persist of the producer before dispatching a dependent.
 	bool needEngine = false;
 	try
 	{
