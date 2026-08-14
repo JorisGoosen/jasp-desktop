@@ -985,14 +985,25 @@ bool Column::overwriteDataAndType(stringvec colData, columnType colType, bool co
 	
 const Filter * shown = data()->shownFilter();
 	assert(shown && shown->name() == computeFilter());
-	//If shownFilter is unexpectedly null (e.g. during teardown) fall back to treating all rows as
-	//unfiltered rather than dereferencing null.
-	const boolvec & filtered = shown ? shown->filtered() : boolvec(static_cast<size_t>(rowCount()), true);
+
+	boolvec		fallbackFilter;
+	const boolvec * filtered = nullptr;
+	if(shown)
+		filtered = &shown->filtered();
+	else
+	{
+		//If shownFilter is unexpectedly null (e.g. during teardown) fall back to treating all rows as
+		//unfiltered rather than dereferencing null. Materialize the fallback as a real vector so no
+		//reference dangles once the temporary it used to point at went out of scope.
+		fallbackFilter = boolvec(static_cast<size_t>(rowCount()), true);
+		filtered = &fallbackFilter;
+	}
+
 	stringvec		newData;
-				newData	 . reserve(filtered.size());
+				newData	 . reserve(filtered->size());
 					
-	for(size_t iFilter=0, iData=0; iFilter < filtered.size() && iData < colData.size(); iFilter++)
-		newData.push_back(filtered[iFilter] ? colData[iData++] : "");
+	for(size_t iFilter=0, iData=0; iFilter < filtered->size() && iData < colData.size(); iFilter++)
+		newData.push_back((*filtered)[iFilter] ? colData[iData++] : "");
 					
 	colData = newData;
 	
@@ -1445,8 +1456,11 @@ const stringvec & Column::nonFilteredLevels()
 		else
 		{
 			intvec intVals;
-			const boolvec & filtered = data()->shownFilter() ? data()->shownFilter()->filtered() : boolvec(static_cast<size_t>(data()->rowCount()), true);
-			_nonFilteredLevels = dataAsRLevels(intVals, filtered);
+			const Filter * shownFilter = data()->shownFilter();
+			if(shownFilter)
+				_nonFilteredLevels = dataAsRLevels(intVals, shownFilter->filtered());
+			else //No shown filter (teardown): treat every row as unfiltered, bound to a real vector.
+				_nonFilteredLevels = dataAsRLevels(intVals, boolvec(static_cast<size_t>(data()->rowCount()), true));
 		}
 	}
 
@@ -2978,8 +2992,7 @@ std::string Column::getUniqueName(const std::string &name) const
 	std::string result;
 	do
 	{
-		suffix++;
-		result = name + " " + std::to_string(suffix);
+		result = name + " " + std::to_string(suffix++);
 	} while(existing.count(result));
 
 	return result;

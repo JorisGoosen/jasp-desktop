@@ -2,6 +2,7 @@
 #include "qutils.h"
 #include "column.h"
 #include "dataenums.h"
+#include "dataset.h"
 #include "jasptheme.h"
 #include "columnmodel.h"
 #include "columnutils.h"
@@ -10,7 +11,7 @@
 
 ColumnModel::ColumnModel() : QIdentityProxyModel(DataSetPackage::pkg())
 {
-	connect(DataSetPackage::pkg(),	&DataSetPackage::filteredOutChanged,			this, &ColumnModel::filteredOutChangedHandler	);
+	connect(DataSetPackage::pkg(),	&DataSetPackage::shownFilterChanged,		this, &ColumnModel::refreshFilteredOut				);
 
 	connect(DataSetPackage::pkg(),	&DataSetPackage::allFiltersReset,				this, &ColumnModel::allFiltersReset				);
 	
@@ -486,12 +487,14 @@ QVariant ColumnModel::data(	const QModelIndex & index, int role) const
 	return QIdentityProxyModel::data(index, role > 0 ? role : int(dataPkgRoles::label));
 }
 
-void ColumnModel::filteredOutChangedHandler(int c)
+void ColumnModel::refreshFilteredOut()
 {
-	JASPTIMER_SCOPE(ColumnModel::filteredOutChangedHandler);
+	JASPTIMER_SCOPE(ColumnModel::refreshFilteredOut);
 
-	if(c == chosenColumn())
-		emit filteredOutChanged();
+	//Re-query the chosen column's label-filter state so QML's `filteredOut` reacts to label-filter
+	//changes while the chosen column itself stays unchanged (previously only re-emitted on selection).
+	emit filteredOutChanged();
+	emit columnIsFilteredChanged();
 }
 
 int ColumnModel::filteredOut() const
@@ -567,8 +570,8 @@ void ColumnModel::setChosenColumnByName(const QString chosenNameQ, int colIndex)
 	refresh();
 	notifyColumnChanged();
 
-	if(deleteMe != "")
-		chosenColumn->data()->removeColumn(deleteMe);
+	if(deleteMe != "" && data)
+		data->removeColumn(deleteMe);
 }
 
 void ColumnModel::setChosenColumn(int columnIndex)
@@ -647,7 +650,29 @@ void ColumnModel::checkCurrentColumn(int dataSetId, QStringList, QStringList mis
 
 void ColumnModel::shownDataSetChangedHandler(DataSet * newDataSet)
 {
-	if(!newDataSet || !column())
+	if(!newDataSet)
+	{
+		//Teardown (deleteWorkspace/connectWorkspace between datasets) left _column pointing at a
+		//just-destroyed dataset's column: clear it so the Variables/label editor doesn't dereference
+		//freed memory, and drop any per-column connections to the old column.
+		if(_column)
+		{
+			disconnect(_column, nullptr, this, nullptr);
+			setSourceModel(nullptr);
+			_column = nullptr;
+			_virtual = true;
+			emit isVirtualChanged();
+			emit filteredOutChanged();
+			emit columnIsFilteredChanged();
+		}
+		return;
+	}
+
+	//Label-level filtering toggles don't fire datasetChanged, so hook the shown dataset's dedicated
+	//signal to keep `filteredOut`/`columnIsFiltered` reactive while the chosen column is unchanged.
+	connect(newDataSet, &DataSet::labelFilterChanged, this, &ColumnModel::refreshFilteredOut, Qt::UniqueConnection);
+
+	if(!column())
 		return;
 
 	QString currentName = columnNameQ();

@@ -882,7 +882,7 @@ bool DataSet::checkForUpdates(std::function<void(float)> progressCallback)
 		
 		colsRemoved = stringvec(prevCols.begin(), prevCols.end());
 		
-		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, newColumns, rowCountChanged);
+		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, rowCountChanged, newColumns);
 		
 		refresh();
 		
@@ -960,7 +960,7 @@ bool DataSet::checkForUpdates(std::function<void(float)> progressCallback)
 				delete f;
 		}
 		
-		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, newColumns, rowCountChanged);
+		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, rowCountChanged, newColumns);
 		
 		refresh();
 
@@ -1055,6 +1055,11 @@ bool DataSet::setError(const std::string & error)
 
 	_error = error;
 	dbUpdateComputedDatasetStuff();
+
+	//dbUpdateComputedDatasetStuff() snapshots oldError *after* we already changed _error, so it can't
+	//detect this change itself: emit explicitly (mirrors Column::setError) so QML's `error` binding
+	//gets notified that a computed dataset failed.
+	emit errorChanged();
 
 	return true;
 }
@@ -1657,7 +1662,7 @@ bool DataSet::insertColumns(int column, int count, const QModelIndex &)
 	strstrmap		changeNameColumns;
 	stringvec		missingColumns;
 
-	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
+	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), false, true);
 
 	_encoder->setCurrentNames(getColumnNames());
 
@@ -1685,7 +1690,7 @@ bool DataSet::removeColumns(int column, int count, const QModelIndex &)
 
 	endRemoveColumns();
 
-	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), false, true);
+	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), false, false);
 
 	_encoder->setCurrentNames(getColumnNames());
 
