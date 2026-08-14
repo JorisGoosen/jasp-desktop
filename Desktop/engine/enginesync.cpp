@@ -539,23 +539,26 @@ void EngineSync::process()
 int EngineSync::sendFilter(int dataSetId, const QString & generatedFilter, const QString & filter)
 {
 	JASPTIMER_SCOPE(EngineSync::sendFilter);
-	
-	bool filterTheSame = _waitingFilter && (_waitingFilter->generatedfilter == generatedFilter && _waitingFilter->script == filter);
 
-	if(!filterTheSame)
+	//Only the latest request per (dataSetId, script) needs to be kept: drop a pending filter that the
+	//new one supersedes so the queue cannot grow unboundedly while engines are busy.
+	for (auto it = _waitingFilters.begin(); it != _waitingFilters.end();)
 	{
-		delete _waitingFilter;
-	
-		_waitingFilter = new RFilterStore(dataSetId, generatedFilter, filter, ++_filterCurrentRequestID);
-		Log::log() << "waiting filter with requestid: " << _filterCurrentRequestID << " is now:\n" << generatedFilter.toStdString() << "\n" << filter.toStdString() << std::endl;
-	}
-	else
-	{
-		_waitingFilter->requestId = ++_filterCurrentRequestID;
-		Log::log() << "waiting filter requestid increased to " << _filterCurrentRequestID << std::endl;
+		RFilterStore * w = *it;
+		if (w->dataSetId == dataSetId && w->generatedfilter == generatedFilter && w->script == filter)
+		{
+			delete w;
+			it = _waitingFilters.erase(it);
+		}
+		else
+			++it;
 	}
 
-	return _filterCurrentRequestID;
+	int requestId = ++_waitingFilterRequestIDCounter;
+	_waitingFilters.emplace_back(new RFilterStore(dataSetId, generatedFilter, filter, requestId));
+	Log::log() << "waiting filter with requestid: " << requestId << " is now:\n" << generatedFilter.toStdString() << "\n" << filter.toStdString() << std::endl;
+
+	return requestId;
 }
 
 void EngineSync::sendFilterByName(int dataSetId, const QString & name, const QString & module)
@@ -621,7 +624,7 @@ void EngineSync::computeDataSet(int dataSetId, const QString & computeCode, int 
 
 void EngineSync::processFilterScript()
 {
-	if (!_waitingFilter)
+	if(_waitingFilters.empty())
 		return;
 
 	JASPTIMER_SCOPE(EngineSync::processFilterScript);
@@ -643,8 +646,12 @@ void EngineSync::processFilterScript()
 			for (auto *engine : _engines)
 				if (engine->idle()  && engine->runsUtility())
 				{
-					engine->runScriptOnProcess(_waitingFilter);
-					_waitingFilter = nullptr;
+					RFilterStore * w = _waitingFilters.front();
+					_waitingFilters.pop_front();
+
+					_dispatchedFilterRequestID = w->requestId;
+					engine->runScriptOnProcess(w); //Copies synchronously; safe to free below.
+					delete w; //runScriptOnProcess no longer owns the store (and the old single-var path leaked it)
 					return;
 				}
 
@@ -654,7 +661,7 @@ void EngineSync::processFilterScript()
 
 void EngineSync::filterDone(int requestID)
 {
-	if(requestID != _filterCurrentRequestID)
+	if(requestID != _dispatchedFilterRequestID)
 		return;
 
 	Log::log() << "Filter with request " << requestID << " done! Starting timer for allowing analyses to run later" << std::endl;
@@ -1392,8 +1399,10 @@ void EngineSync::cleanRestart()
 		_waitingCompCols.pop();
 	}
 
-	delete _waitingFilter;
-	_waitingFilter = nullptr;
+	for (RFilterStore * f : _waitingFilters)
+		delete f;
+	_waitingFilters.clear();
+	_dispatchedFilterRequestID = -1;
 	_filterRunning = false;
 	
 
