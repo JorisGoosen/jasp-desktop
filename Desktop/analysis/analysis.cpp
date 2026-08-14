@@ -1338,6 +1338,10 @@ std::string Analysis::qmlFormPath(bool addFileProtocol, bool ignoreReadyForUse) 
 
 bool Analysis::isColumnFreeOrMine(const QString & columnName) const
 {
+	//An analysis without a filter/dataset is not "mine": treat every column as free.
+	if(!_filter || !_filter->data())
+		return true;
+
 	Column * col = _filter->data()->column(columnName);
 	
 	return !col || col->analysisId() == id();
