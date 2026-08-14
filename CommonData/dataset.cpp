@@ -44,6 +44,11 @@ DataSet::DataSet(Workspace * workspace, int id)
 	if(id == -1)			dbCreate();
 	else if(id > 0)			dbLoad(id);
 	
+	//Make the encoder prefix globally unique (carries the dataset id) so ALL datasets loaded into the
+	//engine can coexist without encoded-name collisions. Must happen after dbCreate/dbLoad set the id.
+	_encoder->_encodePrefix = "JASPColumn_" + std::to_string(_dataSetId) + "_";
+	_encoder->setCurrentNames(getColumnTypesMap()); //regenerate all encoded names with the new prefix
+	
 	_undoStack = new UndoStack(this);
 	
 	connect(this,			&DataSet::datasetChanged,			this,		&DataSet::handleDataSetChanged			);
