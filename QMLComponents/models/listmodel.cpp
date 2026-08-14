@@ -316,7 +316,7 @@ void ListModel::setVariableType(int ind, columnType type)
 
 	Term newTerm = term;
 	newTerm.setType(type);
-	sourceVariableTypeChanged(newTerm);
+	sourceVariableTypeChanged(newTerm.components()[0], newTerm.type());
 }
 
 columnType ListModel::getVariableType(const QString& value) const
@@ -690,9 +690,11 @@ void ListModel::sourceVariableNamesChanged(QMap<QString, QString> map)
 		emit variableNamesChanged(changedNamesMap);
 }
 
-bool ListModel::sourceVariableTypeChanged(Term sourceTerm)
+bool ListModel::sourceVariableTypeChanged(QString columnName, columnType colType)
 {
 	bool change = false;
+	Term sourceTerm(columnName, colType);
+
 	for (int i = 0; i < _terms.size(); i++)
 	{
 		Term& term = _terms.at(i);
@@ -715,7 +717,7 @@ bool ListModel::sourceVariableTypeChanged(Term sourceTerm)
 			QModelIndex ind = index(i, 0);
 
 			emit dataChanged(ind, ind, {ListModel::ColumnTypeRole, ListModel::ColumnTypeIconRole, ListModel::ColumnTypeDisabledIconRole, ListModel::ColumnPreviewRole});
-			emit variableTypeChanged(term);
+			emit variableTypeChanged(columnName, colType);
 
 			change = true;
 		}
