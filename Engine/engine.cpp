@@ -327,7 +327,7 @@ void Engine::runFilterByName(const std::string & name, int dataSetId)
 	
 	if(!_workspace || !_workspace->dataSetById(dataSetId) || !_workspace->dataSetById(dataSetId)->showFilter(name))
 	{
-		sendFilterByNameDone(name, dataSetId, "No workspace (" + std::to_string(reinterpret_cast<uint64_t>(_workspace)) + " or filter in it found)!");
+		sendFilterByNameDone(name, dataSetId, "No workspace or filter in it found!");
 		_engineState = engineState::idle;
 		
 		return;

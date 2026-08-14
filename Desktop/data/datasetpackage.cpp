@@ -177,7 +177,6 @@ void DataSetPackage::connectWorkspace()
 	Workspace		::connect(workspace(),	&Workspace::emptyValuesChanged,					this,			&DataSetPackage::workspaceEmptyValuesChanged		);	
 
 	DataSetPackage	::connect(this,			&DataSetPackage::filterByNameDone,				workspace(),	&Workspace::filterByNameDone						);
-	DataSetPackage	::connect(this,			&DataSetPackage::createDataSetBlockingQueued,	workspace(),	&Workspace::createDataSet,							Qt::BlockingQueuedConnection);
 	
 	
 	emit shownDataSetChanged(nullptr);
@@ -327,7 +326,8 @@ void DataSetPackage::languageChangeDone()
 {
 	_waitingForLanguageChange = false; //Dont accept changes while the interface changes
 
-	dataSet()->refresh();
+	if(dataSet())
+		dataSet()->refresh();
 }
 
 void DataSetPackage::handleAutoSavePrefChange()
@@ -346,7 +346,7 @@ void DataSetPackage::handleAutoSavePrefChange()
 
 void DataSetPackage::refreshColumn(QString columnName)
 {
-	if(dataSet())
+	if(dataSet() && dataSet()->column(columnName))
 	{
 		dataSet()->column(columnName)->refresh();
 		refresh(); //Hopefully trigger sortfilterproxymodel model reconstruction
@@ -356,7 +356,8 @@ void DataSetPackage::refreshColumn(QString columnName)
 
 void DataSetPackage::columnWasOverwritten(const std::string & columnName, const std::string &)
 {
-	dataSet()->emitColumnChanged(tq(columnName));
+	if(dataSet())
+		dataSet()->emitColumnChanged(tq(columnName));
 }
 
 
@@ -392,8 +393,10 @@ void DataSetPackage::dbDelete()
 	if(!workspace())
 		return;
 
-	//In a multi-dataset workspace we must delete *all* datasets from the database, not only the shown
-	//one — otherwise the remaining datasets are left orphaned in the DB and resurrect on next load.
+	//NOTE (deliberate semantics): this is a FULL teardown (New / close file), so it permanently purges
+	//*every* dataset from SQLite, not only the shown one. Callers must pair this with a full
+	//Analyses/UI reset so nothing keeps a reference to the purged datasets. Single-dataset deletion is
+	//a different operation and does NOT go through here (see Workspace::deleteShownDataSet).
 	DataSets sets = workspace()->dataSets();
 	for (DataSet * ds : sets)
 		if (ds && ds->id() != -1)

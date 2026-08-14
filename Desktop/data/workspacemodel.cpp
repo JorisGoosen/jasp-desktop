@@ -46,12 +46,14 @@ QString WorkspaceModel::description() const
 void WorkspaceModel::setDescription(const QString &desc)
 {
 	if (desc == description()) return;
+	if(!DataSetPackage::pkg()->dataSet()) return;
 
 	UndoStack::singleton()->pushCommand(new SetWorkspacePropertyCommand(DataSetPackage::pkg()->dataSet(), desc, SetWorkspacePropertyCommand::WorkspaceProperty::Description));
 }
 
 void WorkspaceModel::removeEmptyValue(const QString &value)
 {
+	if(!DataSetPackage::pkg()->dataSet()) return;
 	QStringList values = tql(DataSetPackage::pkg()->dataSet()->emptyValuesAsStrings());
 
 	if (values.removeAll(value) > 0)
@@ -60,6 +62,7 @@ void WorkspaceModel::removeEmptyValue(const QString &value)
 
 void WorkspaceModel::addEmptyValue(const QString &value)
 {
+	if(!DataSetPackage::pkg()->dataSet()) return;
 	QStringList values = tql(DataSetPackage::pkg()->dataSet()->emptyValuesAsStrings());
 
 	if (!values.contains(value))
@@ -71,6 +74,7 @@ void WorkspaceModel::addEmptyValue(const QString &value)
 
 void WorkspaceModel::resetEmptyValues()
 {
+	if(!DataSetPackage::pkg()->dataSet() || !PreferencesModel::prefs()) return;
 	QStringList defaultValues = PreferencesModel::prefs()->emptyValues();
 
 	if (defaultValues != emptyValues())

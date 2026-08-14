@@ -28,18 +28,27 @@ bool FilterModel::isJustGeneratedFilter() const
 
 void FilterModel::applyConstructorJson(QString newConstructorJson)
 {
+	if(!filter())
+		return;
+
 	if (newConstructorJson != filter()->constructorJson())
 		UndoStack::singleton()->pushCommand(new SetJsonFilterCommand(filter(), newConstructorJson));
 }
 
 void FilterModel::applyRFilter(QString newRFilter)
 {
+	if(!filter())
+		return;
+
 	if (newRFilter != filter()->rFilter())
 		UndoStack::singleton()->pushCommand(new SetRFilterCommand(filter(), newRFilter));
 }
 
 void FilterModel::resetRFilter()
 {
+	if(!filter())
+		return;
+
 	if (filter()->defaultRFilter() != filter()->rFilter())
 		UndoStack::singleton()->pushCommand(new SetRFilterCommand(filter(), filter()->defaultRFilter()));
 }
@@ -56,12 +65,13 @@ void FilterModel::processFilterResult(QString name)
 		return;
 	}
 	
-	Filter * f = DataSetPackage::pkg()->dataSet()->filter(fq(name));
+	Filter * f = DataSetPackage::pkg()->dataSet() ? DataSetPackage::pkg()->dataSet()->filter(fq(name)) : nullptr;
 	
-	if(!f)
+	if(!f && DataSetPackage::pkg()->dataSet())
 		f = DataSetPackage::pkg()->dataSet()->createFilter(fq(name), false);
 	
-	f->checkFilterResults();
+	if(f)
+		f->checkFilterResults();
 	
 }
 
@@ -91,6 +101,9 @@ void FilterModel::onFilterChanged()
 
 void FilterModel::computeColumnSucceeded(QString columnName, QString, bool dataChanged)
 {
+	if(!filter())
+		return;
+
 	if(dataChanged && filter()->columnUsed(columnName))
 		filter()->setInvalidated(true);
 }
@@ -208,7 +221,8 @@ void FilterModel::renameCurrentFilter(const QString &newName)
 
 void FilterModel::deleteCurrentFilter()
 {
-	DataSetPackage::pkg()->dataSet()->deleteShownFilter();
+	if(DataSetPackage::pkg()->dataSet())
+		DataSetPackage::pkg()->dataSet()->deleteShownFilter();
 	emit filterChanged();
 	emit filterDropDownListChanged();
 }
