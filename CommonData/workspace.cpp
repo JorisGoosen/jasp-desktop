@@ -242,12 +242,17 @@ void Workspace::deleteShownDataSet()
 	const int deletedId = _shownDataSet->id();
 
 	//Computed datasets that used the deleted dataset as their input would otherwise keep a dangling
-	//defaultInputDataSetId and attempt to run against a dataset that no longer exists. Clear + re-invalidate them.
+	//defaultInputDataSetId and attempt to run against a dataset that no longer exists. Clear the input
+	//and surface an error so the user knows why the computed dataset can no longer be produced instead
+	//of silently recomputing against the dataset's own (empty) data.
 	for (const auto & idDataSet : _dataSets)
 	{
 		DataSet * ds = idDataSet.second;
 		if (ds != _shownDataSet && ds->isComputed() && ds->defaultInputDataSetId() == deletedId)
+		{
 			ds->setDefaultInputDataSetId(-1);
+			ds->setError("The dataset used as input for this computed dataset was removed.");
+		}
 	}
 
 	_dataSets.erase(deletedId);

@@ -285,8 +285,6 @@ void AsyncLoader::loadPackage(QString id)
 					return;
 				}
 				_loader.syncPackage(path, extension, syncTargetDataSet, boost::bind(&AsyncLoader::progressHandler, this, _1));
-
-				_currentEvent->setComplete();
 			}
 			else
 				_loader.loadPackage(path, extension, boost::bind(&AsyncLoader::progressHandler, this, _1));
@@ -324,6 +322,9 @@ void AsyncLoader::loadPackage(QString id)
 			}
 			_currentEvent->setComplete();
 
+			//Sync completion is delivered through AsyncLoader::syncCompleted (slot on the GUI thread via a
+			//QueuedConnection), which covers success here and failure in the catch blocks below, so the
+			//syncer's re-entrancy guard (_isSyncing) is released exactly once.
 			if(syncTargetDataSet)
 				emit syncCompleted(_currentEvent->syncDataSetId(), _currentEvent->isSuccessful());
 
@@ -334,7 +335,13 @@ void AsyncLoader::loadPackage(QString id)
 		{
 			Log::log() << "Loader Exception in loadPackage: " << e.what() << std::endl;
 
-			DataSetPackage::pkg()->deleteWorkspace(false); //Make sure we dont keep failed stuff in memory
+			//For a sync we only reload one existing dataset; a (transient) failure must not destroy the
+			//whole workspace. Release the syncer's re-entrancy guard via syncCompleted so later syncs can
+			//still run; the dataset stays alive on the GUI thread.
+			if (_currentEvent->operation() == FileEvent::FileSyncData)
+				emit syncCompleted(_currentEvent->syncDataSetId(), false);
+			else
+				DataSetPackage::pkg()->deleteWorkspace(false); //Make sure we dont keep failed stuff in memory
 
 			if (dataNode != nullptr)
 				_odm->deleteActionDataNode(id);
@@ -344,7 +351,10 @@ void AsyncLoader::loadPackage(QString id)
 		{
 			Log::log() << "Exception in loadPackage: " << e.what() << std::endl;
 
-			DataSetPackage::pkg()->deleteWorkspace(true); //Make sure we dont keep failed stuff in memory
+			if (_currentEvent->operation() == FileEvent::FileSyncData)
+				emit syncCompleted(_currentEvent->syncDataSetId(), false);
+			else
+				DataSetPackage::pkg()->deleteWorkspace(true); //Make sure we dont keep failed stuff in memory
 
 			if (dataNode != nullptr)
 				_odm->deleteActionDataNode(id);

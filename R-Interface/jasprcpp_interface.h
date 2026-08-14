@@ -118,7 +118,6 @@ struct RBridgeCallBacks {
 	GetColumnAnalysisId				dataSetGetColumnAnalysisId,
 									dataSetGetColumnOriginalIndex;
 	SetColumnDataAndType			dataSetColumnAsDataAndType;
-	SetDataSet						dataSetSetDataSet;
 	DataSetRowCount					dataSetRowCount;
 	EnDecodeDef						encoder,
 									decoder,
@@ -129,6 +128,9 @@ struct RBridgeCallBacks {
 									shouldDecode;
 	getColNames						columnNames;
 	RequestStringRBridge			computedColumnFilter;
+	//New callbacks MUST be appended here (at the END): this struct is shared across the engine and
+	//the R-Interface DLL and read by offset, so inserting anywhere else breaks mismatched halves.
+	SetDataSet						dataSetSetDataSet;
 };
 
 typedef void			(*sendFuncDef)			(const char *);

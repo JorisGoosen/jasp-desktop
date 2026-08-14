@@ -289,7 +289,6 @@ private slots:
 
 	void dataSetIORequestHandler(FileEvent *event);
 	void dataSetIOCompleted(FileEvent *event);
-	void notifyDataSetSyncCompleted(FileEvent *event);
 	void populateUIfromDataSet();
 	void startDataEditorEventCompleted(FileEvent *event);
 	void analysisAdded(Analysis *analysis);

@@ -376,7 +376,8 @@ void TestEngine::testVariableInfoPerFilter()
 	int rowCount		 = ds->rowCount();
 	int half			 = rowCount / 2;
 	
-	ds->defaultFilter()->setFilterVector(boolvec(true, rowCount));
+	//NB: vector<bool>(count, value) — use the full row-count, every row passes.
+	ds->defaultFilter()->setFilterVector(boolvec(rowCount, true));
 	QCOMPARE(ds->defaultFilter()->filteredRowCount(), rowCount);
 
 	Filter * filterEven = ds->createFilter("filterEven", true);

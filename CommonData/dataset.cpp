@@ -930,11 +930,34 @@ bool DataSet::checkForUpdates(std::function<void(float)> progressCallback)
 		if(destroyUs.size() > 0)
 		{
 			somethingChanged = true;
-		
+
+			Filter * newShownFilter = nullptr;
+
+			//If the shown filter is among the pruned (its DB row vanished), pick a surviving replacement
+			//BEFORE deleting, mirroring deleteShownFilter(), so we never leave a dangling _shownFilter.
+			if(_shownFilter && _shownFilter != _defaultFilter && destroyUs.count(_shownFilter))
+			{
+				size_t indexWas = 0;
+				for(size_t i=0; i<_filters.size(); i++)
+					if(_filters[i] == _shownFilter)
+					{
+						indexWas = i;
+						break;
+					}
+
+				newShownFilter = keepUs.empty() ? _defaultFilter : keepUs[std::min(indexWas, keepUs.size() - 1)];
+			}
+
 			_filters = keepUs;
-		
+
+			if(newShownFilter)
+			{
+				_shownFilter = newShownFilter;
+				emit shownFilterChanged(this);
+			}
+
 			for(Filter * f : destroyUs)
-				delete f;	
+				delete f;
 		}
 		
 		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, newColumns, rowCountChanged);
@@ -1844,6 +1867,11 @@ bool DataSet::setColumnTypes(stringset columnIndexes, columnType newColumnType)
 
 void DataSet::filterByNameDone(int dataSetID, const QString &name, const QString &error)
 {
+	//Every DataSet is connected to the shared Workspace::filterByNameDone; only act on completions
+	//that target this dataset, otherwise a same-named filter in another dataset would be reloaded.
+	if(dataSetID != id())
+		return;
+
 	Filter * f = filter(fq(name));
 	
 	if(f && f->dbLoadResultAndError())
