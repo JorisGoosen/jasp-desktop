@@ -1084,8 +1084,18 @@ bool DataSet::setDefaultInputDataSetId(int defaultInputDataSetId)
 
 	_defaultInputDataSetId = defaultInputDataSetId;
 	invalidate();
+
+	//Clear any previously surfaced input-loop error: picking a valid input must not leave the earlier
+	//"would create a loop" error persisting.
 	dbUpdateComputedDatasetStuff();
+	if(!_error.empty())
+		setError("");
+
 	emit defaultInputDataSetChanged();
+
+	//Changing only the *input* must still trigger a recompute (setRCode no-ops when the code text is
+	//unchanged, so input-only edits used to leave the computed dataset stuck invalidated).
+	checkForDependentDatasetsToBeSent(true);
 
 	return true;
 }

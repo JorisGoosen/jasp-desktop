@@ -625,7 +625,18 @@ void Engine::runComputeDataSet(int dataSetId, const std::string & computeCode, i
 
 	//The "shown" dataset during a computed-dataset run is the input that the R code reads from;
 	//the output (the computed dataset itself) is written to by name via .setDataSet.
-	int inputId = defaultInputDataSetId != -1 ? defaultInputDataSetId : dataSetId;
+	//A computed dataset that evaluates R code must read from an *input* dataset; without one
+	//(-1) it must not silently compute from its own (previous) output as though it were its input.
+	if(defaultInputDataSetId == -1)
+	{
+		computeDataSetResponse["result"]	= "fail";
+		computeDataSetResponse["error"]		= "This computed dataset has no input dataset selected; choose an input dataset before computing it.";
+		sendString(computeDataSetResponse);
+		_engineState = engineState::idle;
+		return;
+	}
+
+	int inputId = defaultInputDataSetId;
 
 	if(provideAndUpdateDataSet(inputId))
 	{
