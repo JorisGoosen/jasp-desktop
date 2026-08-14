@@ -18,6 +18,7 @@
 #include "datasetsyncer.h"
 #include "dataset.h"
 #include "workspace.h"
+#include "undostack.h"
 
 #include <QSignalSpy>
 #include <QFile>
@@ -836,6 +837,34 @@ void TestAll::testComputedDataSetCycleDetection()
 	QVERIFY(!ws->computedDataSetsHaveLoop(err));
 }
 
+void TestAll::testUndoColumnDropLevels()
+{
+	QVERIFY(_newPkgWithDataSet());
+
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+	Column * col = ds->column("contNormal");
+	QVERIFY(col);
+
+	UndoStack::setCurrent(ds->undoStack());
+
+	col->setDropLevels(dropLevelsType::drop);
+	QCOMPARE(col->dropLevels(), dropLevelsType::drop);
+
+	//Regression: the old value used to be stored as an int (0/1/2) while undo/redo restore it via
+	//dropLevelsTypeFromQString (which needs the enum name) -> undo threw missingEnumVal.
+	ds->undoStack()->pushCommand(new SetColumnPropertyCommand(col,
+		dropLevelsTypeToQString(dropLevelsType::keep),
+		SetColumnPropertyCommand::ColumnProperty::DropLevels));
+
+	QCOMPARE(col->dropLevels(), dropLevelsType::keep); //push() redoes the command
+
+	ds->undoStack()->undo();
+	QCOMPARE(col->dropLevels(), dropLevelsType::drop);
+
+	ds->undoStack()->redo();
+	QCOMPARE(col->dropLevels(), dropLevelsType::keep);
+}
 
 void TestAll::testSyncerExportModifyReimportChangesDetected()
 {

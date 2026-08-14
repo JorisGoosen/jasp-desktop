@@ -45,6 +45,10 @@ private slots:
 	// (transitively) depends on it, or the recompute cascade would livelock.
 	void	testComputedDataSetCycleDetection();
 
+	// Undo regression: the drop-levels command stores its old value as the enum name so undo/redo
+	// (which restore via dropLevelsTypeFromQString) do not throw missingEnumVal.
+	void	testUndoColumnDropLevels();
+
 	// Sync + export integration tests
 	void	testSyncerExportModifyReimport();
 	void	testSyncerExportModifyReimportChangesDetected();
