@@ -383,7 +383,8 @@ void TestDebugData::testShadowDisplay()
 	QString shadMsg = QString("Row %1: Shadow should be empty when value is non-empty! (value='%2', display='%3', shadow='%4')")
 				.arg(row).arg(QString::fromStdString(value)).arg(QString::fromStdString(display)).arg(QString::fromStdString(shadow));
 		std::string shadMsgStr = shadMsg.toStdString();
-		QVERIFY2(value.empty() || shadow.empty(), shadMsgStr.c_str());
+		if(!value.empty())
+			QVERIFY2(shadow.empty(), shadMsgStr.c_str()); //Non-empty value must not show a ghost/shadow.
 	}
 	
 	Column * contWide = _data->column("contWide");
@@ -401,7 +402,8 @@ void TestDebugData::testShadowDisplay()
 	QString shad5Msg = QString("contWide row 5 shadow should be empty when value is non-empty (val='%1', disp='%2', shad='%3')")
 				.arg(val5.c_str()).arg(disp5.c_str()).arg(shad5.c_str());
 		std::string shad5MsgStr = shad5Msg.toStdString();
-		QVERIFY2(val5.empty() || shad5.empty(), shad5MsgStr.c_str());
+		if(!val5.empty())
+			QVERIFY2(shad5.empty(), shad5MsgStr.c_str()); //Non-empty value must not show a ghost/shadow.
 	
 	Column * contBinom = _data->column("contBinom");
 	
@@ -434,7 +436,8 @@ void TestDebugData::testShadowDisplay()
 	QString shadContGammaMsg = QString("contGamma row 0 shadow should be empty when value is numeric and non-missing (val='%1', disp='%2', shad='%3')")
 				.arg(valContGamma.c_str()).arg(dispContGamma.c_str()).arg(shadContGamma.c_str());
 	
-	QVERIFY2(valContGamma.empty() || shadContGamma.empty(), shadContGammaMsg.toStdString().c_str());
+	if(!valContGamma.empty())
+		QVERIFY2(shadContGamma.empty(), shadContGammaMsg.toStdString().c_str()); //Non-empty numeric value must not show a ghost/shadow.
 	
 	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
