@@ -141,6 +141,11 @@ void Analysis::filterRemoved(Filter * f)
 	}
 }
 
+DataSet * Analysis::dataSet() const
+{
+	return _filterDataSet;
+}
+
 Analysis::~Analysis()
 {
 	setRefreshBlocked(true);
