@@ -2,6 +2,7 @@
 #define ANALYSISBASE_H
 
 #include <QObject>
+#include <QPointer>
 #include <json/json.h>
 #include "controls/jaspcontrol.h"
 #include "appinfo.h"
@@ -117,8 +118,12 @@ protected:
 	QQuickItem	*	_parentItem			= nullptr;
 	QString			_qmlError;
 	bool			_isAnnotated		= false;
-	Filter		*	_filter				= nullptr;
-	DataSet		*	_filterDataSet		= nullptr;
+	//Guarded pointers: a Filter/DataSet is owned by a DataSet/Workspace that may be destroyed (e.g.
+	//multi-dataset teardown) while the analysis lives on; the guard auto-nulls on destruction so the
+	//analysis never dereferences freed memory. _filterDataSet also derives from the (possibly null)
+	//_filter instead of being tracked separately on dataset teardown.
+	QPointer<Filter>				_filter				;
+	QPointer<DataSet>				_filterDataSet		;
 
 private:
 	Json::Value		_boundValues		= Json::objectValue,
