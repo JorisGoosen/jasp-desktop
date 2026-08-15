@@ -3,6 +3,7 @@
 
 #include "utils.h"
 #include <QUndoStack>
+#include <QPointer>
 #include <json/json.h>
 #include "columntype.h"
 #include <QAbstractItemModel>
@@ -127,7 +128,7 @@ public:
 	void redo()					override;
 
 private:
-	Filter				*	_filter;
+	QPointer<Filter>			_filter;
 	QString					_oldJsonValue,
 							_newJsonValue;
 };
@@ -141,7 +142,7 @@ public:
 	void redo()					override;
 
 private:
-	Filter				*	_filter;
+	QPointer<Filter>			_filter;
 	QString					_oldRFilter,
 							_newRFilter;
 };

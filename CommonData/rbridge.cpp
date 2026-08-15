@@ -682,6 +682,11 @@ void rbridge_memoryCleaning()
 	jaspRCPP_purgeGlobalEnvironment();
 }
 
+void rbridge_clearDataSet()
+{
+	rbridge_dataSet = nullptr;
+}
+
 void freeRBridgeColumns()
 {
 	if(datasetStatic == nullptr)
@@ -925,14 +930,14 @@ std::string rbridge_evalRComputedColumn(const std::string &rCode, const std::str
 	return result;
 }
 
-std::string rbridge_evalRComputedDataSet(const std::string & rCode, const std::string & outputDataSetName)
+std::string rbridge_evalRComputedDataSet(const std::string & rCode, const std::string & outputDataSetName, const std::string & filterToUse)
 {
 	rbridge_dataSet = data_bridge->provideAndUpdateDataSet();
 
 	if(!rbridge_dataSet)
 		return "null";
 
-	computedColumnFilter = "DEFAULT_FILTER";
+	computedColumnFilter = filterToUse.empty() ? DEFAULT_FILTER_NAME : filterToUse;
 
 	rbridge_dataSet->showFilter(computedColumnFilter);
 

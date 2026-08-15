@@ -112,6 +112,11 @@ void DataSetSyncer::syncNow()
 
 void DataSetSyncer::fileChanged(const QString & path)
 {
+	//Manual edits disable file synching (DataSet::setDataFileSynch(false)); honour that here so a
+	//stale file watcher doesn't overwrite the user's edits on the next external modification.
+	if(!_dataSet->dataFileSynch())
+		return;
+
 	QFileInfo fi(path);
 	if(!fi.exists())
 	{

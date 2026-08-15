@@ -20,7 +20,7 @@ id					INTEGER PRIMARY KEY,
 	rCode				TEXT NULL, 
 	invalidated			INT NULL,
 	error				TEXT NULL, 
-	defaultInputDataSet	INT NULL
+	defaultInputFilter	INT NULL
 );
 
 CREATE TABLE Filters ( 

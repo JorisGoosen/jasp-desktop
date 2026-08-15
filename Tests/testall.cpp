@@ -822,20 +822,20 @@ void TestAll::testComputedDataSetCycleDetection()
 	QVERIFY(!ws->computedDataSetsHaveLoop(err));
 
 	//A valid chain c -> b -> a is accepted and is not a loop.
-	QVERIFY(c->setDefaultInputDataSetId(b->id()));
-	QVERIFY(b->setDefaultInputDataSetId(a->id()));
-	QCOMPARE(c->defaultInputDataSetId(), b->id());
-	QCOMPARE(b->defaultInputDataSetId(), a->id());
+	QVERIFY(c->setDefaultInputFilterId(b->defaultFilter()->id()));
+	QVERIFY(b->setDefaultInputFilterId(a->defaultFilter()->id()));
+	QCOMPARE(c->defaultInputFilterId(), b->defaultFilter()->id());
+	QCOMPARE(b->defaultInputFilterId(), a->defaultFilter()->id());
 	QVERIFY(!ws->computedDataSetsHaveLoop(err));
 
 	//A depending on C would close the chain into a loop (A <- C <- B <- A) and must be refused,
 	//leaving A without an input (the value is unchanged).
-	QVERIFY(!a->setDefaultInputDataSetId(c->id()));
-	QCOMPARE(a->defaultInputDataSetId(), -1);
+	QVERIFY(!a->setDefaultInputFilterId(c->defaultFilter()->id()));
+	QCOMPARE(a->defaultInputFilterId(), -1);
 
 	//Likewise A depending on B while B depends on A is a loop and must be refused.
-	QVERIFY(!a->setDefaultInputDataSetId(b->id()));
-	QCOMPARE(a->defaultInputDataSetId(), -1);
+	QVERIFY(!a->setDefaultInputFilterId(b->defaultFilter()->id()));
+	QCOMPARE(a->defaultInputFilterId(), -1);
 
 	QVERIFY(!ws->computedDataSetsHaveLoop(err));
 }

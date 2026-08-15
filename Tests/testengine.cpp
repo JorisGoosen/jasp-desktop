@@ -247,7 +247,7 @@ void TestEngine::testComputedDataSet()
 
 	QVERIFY2(spy.isValid(),	"Spy is broken!");
 
-	DataSet * computed = Workspace::singleton()->createComputedDataSet("computedOut", _data->id());
+	DataSet * computed = Workspace::singleton()->createComputedDataSet("computedOut", _data->defaultFilter()->id());
 
 	QVERIFY2(computed,						"Could not create computed dataset!");
 	QVERIFY2(computed->isComputed(),		"Computed dataset should be marked as computed!");
@@ -287,7 +287,7 @@ void TestEngine::testComputedDataSet()
 
 	//A second computed dataset that uses the first one as its input must wait for it to be valid,
 	//then cascade.
-	DataSet * computed2 = Workspace::singleton()->createComputedDataSet("computedOut2", computed->id());
+	DataSet * computed2 = Workspace::singleton()->createComputedDataSet("computedOut2", computed->defaultFilter()->id());
 
 	QVERIFY2(computed2,						"Could not create dependent computed dataset!");
 	computed2->setRCode("data.frame(z = x * 2)");

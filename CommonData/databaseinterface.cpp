@@ -158,8 +158,8 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 		runStatements("ALTER TABLE DataSets  ADD COLUMN invalidated		INT NULL;");
 	if(!tableHasColumn("DataSets", "error"))
 		runStatements("ALTER TABLE DataSets  ADD COLUMN error				TEXT NULL;");
-	if(!tableHasColumn("DataSets", "defaultInputDataSet"))
-		runStatements("ALTER TABLE DataSets  ADD COLUMN defaultInputDataSet INT NULL;");
+	if(!tableHasColumn("DataSets", "defaultInputFilter"))
+		runStatements("ALTER TABLE DataSets  ADD COLUMN defaultInputFilter INT NULL;");
 
 	transactionWriteEnd();
 }
@@ -278,11 +278,11 @@ void DatabaseInterface::dataSetLoad(int dataSetId, std::string & title, std::str
 runStatements("SELECT dataFilePath, title, dataFileTimestamp, description, databaseJson, emptyValuesJson, revision, dataFileSynch, csvDelimiter FROM DataSets WHERE id = ?;", prepare, processRow);
 }
 
-void DatabaseInterface::dataSetSetComputedInfo(int dataSetId, bool invalidated, computedColumnType codeType, const std::string & rCode, const std::string & error, int defaultInputDataSet)
+void DatabaseInterface::dataSetSetComputedInfo(int dataSetId, bool invalidated, computedColumnType codeType, const std::string & rCode, const std::string & error, int defaultInputFilter)
 {
 	JASPTIMER_SCOPE(DatabaseInterface::dataSetSetComputedInfo);
 
-	runStatements("UPDATE DataSets SET invalidated=?, codeType=?, rCode=?, error=?, defaultInputDataSet=? WHERE id=?;", [&](sqlite3_stmt * stmt)
+	runStatements("UPDATE DataSets SET invalidated=?, codeType=?, rCode=?, error=?, defaultInputFilter=? WHERE id=?;", [&](sqlite3_stmt * stmt)
 	{
 		std::string codeT = computedColumnTypeToString(codeType);
 
@@ -290,12 +290,12 @@ void DatabaseInterface::dataSetSetComputedInfo(int dataSetId, bool invalidated, 
 		sqlite3_bind_text(stmt, 2, codeT.c_str(),		codeT.length(),		SQLITE_TRANSIENT);
 		sqlite3_bind_text(stmt, 3, rCode.c_str(),		rCode.length(),		SQLITE_TRANSIENT);
 		sqlite3_bind_text(stmt, 4, error.c_str(),		error.length(),		SQLITE_TRANSIENT);
-		sqlite3_bind_int(stmt,  5, defaultInputDataSet);
+		sqlite3_bind_int(stmt,  5, defaultInputFilter);
 		sqlite3_bind_int(stmt,  6, dataSetId);
 	});
 }
 
-void DatabaseInterface::dataSetGetComputedInfo(int dataSetId, bool & invalidated, computedColumnType & codeType, std::string & rCode, std::string & error, int & defaultInputDataSet)
+void DatabaseInterface::dataSetGetComputedInfo(int dataSetId, bool & invalidated, computedColumnType & codeType, std::string & rCode, std::string & error, int & defaultInputFilter)
 {
 	JASPTIMER_SCOPE(DatabaseInterface::dataSetGetComputedInfo);
 
@@ -314,7 +314,7 @@ void DatabaseInterface::dataSetGetComputedInfo(int dataSetId, bool & invalidated
 		std::string codeTypeStr			= _wrap_sqlite3_column_text(stmt,	1);
 					rCode				= _wrap_sqlite3_column_text(stmt,	2);
 					error				= _wrap_sqlite3_column_text(stmt,	3);
-					defaultInputDataSet	= sqlite3_column_int(		stmt,	4);
+					defaultInputFilter	= sqlite3_column_int(		stmt,	4);
 
 		codeType = computedColumnType::notComputed;
 		if (!codeTypeStr.empty())
@@ -324,7 +324,7 @@ void DatabaseInterface::dataSetGetComputedInfo(int dataSetId, bool & invalidated
 		}
 	};
 
-	runStatements("SELECT invalidated, codeType, rCode, error, defaultInputDataSet FROM DataSets WHERE id = ?;", prepare, processRow);
+	runStatements("SELECT invalidated, codeType, rCode, error, defaultInputFilter FROM DataSets WHERE id = ?;", prepare, processRow);
 }
 
 int DatabaseInterface::dataSetColCount(int dataSetId)

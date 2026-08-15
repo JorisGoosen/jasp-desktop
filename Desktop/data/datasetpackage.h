@@ -186,7 +186,7 @@ signals:
 				void				filtersCountChanged();
 				void				workspaceChanged();
 				void				runComputedColumn(int dataSetId, QString columnName, QString code, columnType columnType);
-				void				runComputedDataSet(int dataSetId, QString code, int defaultInputDataSetId);
+				void				runComputedDataSet(int dataSetId, QString code, int defaultInputFilterId);
 				void				filterByNameDone(int dataSetId, const QString &name, const QString &error);
 				void				manualEditsChanged();
 				void				checkForDependentAnalyses(Column * column);

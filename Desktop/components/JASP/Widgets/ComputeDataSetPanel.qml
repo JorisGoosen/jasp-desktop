@@ -13,10 +13,10 @@ Rectangle
 
 	readonly property var		workspace:			dataSetPackage.workspace
 	readonly property var		shownDataSet:		workspace.shownDataSet
-	readonly property string	currentInputName:	shownDataSet ? workspace.dataSetNameById(shownDataSet.defaultInputDataSetId) : ""
+	readonly property int		currentInputFilterId:	shownDataSet ? shownDataSet.defaultInputFilterId : -1
 
 	property bool				expanded:			true
-	property var				inputNames:			[]
+	property var				inputFilters:		[]
 
 	property real				headerHeight:		30 * preferencesModel.uiScale
 	property real				contentHeight:		220 * preferencesModel.uiScale
@@ -29,13 +29,7 @@ Rectangle
 
 	function refreshInputNames()
 	{
-		var all		= workspace.dataSetNames()
-		var shown	= workspace.shownDataSet ? workspace.shownDataSet.name : ""
-		var filtered	= []
-		for(var i = 0; i < all.length; i++)
-			if(all[i] !== shown)
-				filtered.push(all[i])
-		inputNames = filtered
+		inputFilters = workspace.inputFilterDropDownList(workspace.shownDataSetId())
 	}
 
 	function syncFromShown()
@@ -44,7 +38,7 @@ Rectangle
 		if(shownDataSet)
 		{
 			codeEdit.text = shownDataSet.rCode
-			inputDropDown.currentValue = currentInputName
+			inputDropDown.currentValue = currentInputFilterId >= 0 ? String(currentInputFilterId) : ""
 		}
 	}
 
@@ -123,7 +117,7 @@ Rectangle
 
 			Text
 			{
-				text:			qsTr("Input dataset")
+				text:			qsTr("Input filter")
 				font:			jaspTheme.font
 				color:			jaspTheme.textEnabled
 			}
@@ -132,13 +126,17 @@ Rectangle
 			{
 				id:				inputDropDown
 				Layout.fillWidth: true
-				values:			root.inputNames
+				values:			root.inputFilters
 				startValue:		""
-				currentValue:	root.currentInputName
+				currentValue:	root.currentInputFilterId >= 0 ? String(root.currentInputFilterId) : ""
 				onValueChanged:
 				{
 					if(shownDataSet && inputDropDown.currentValue.length > 0)
-						shownDataSet.defaultInputDataSetId = workspace.dataSetIdByName(inputDropDown.currentValue)
+					{
+						var filterId = parseInt(inputDropDown.currentValue)
+						if(!isNaN(filterId) && filterId >= 0)
+							shownDataSet.defaultInputFilterId = filterId
+					}
 				}
 			}
 		}

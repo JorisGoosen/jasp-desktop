@@ -240,17 +240,17 @@ void Workspace::deleteShownDataSet()
 
 	const int deletedId = _shownDataSet->id();
 
-	//Computed datasets that used the deleted dataset as their input would otherwise keep a dangling
-	//defaultInputDataSetId and attempt to run against a dataset that no longer exists. Clear the input
-	//and surface an error so the user knows why the computed dataset can no longer be produced instead
-	//of silently recomputing against the dataset's own (empty) data.
+	//Computed datasets that used a filter of the deleted dataset as their input would otherwise keep a
+	//dangling defaultInputFilterId and attempt to run against a dataset that no longer exists. Clear the
+	//input and surface an error so the user knows why the computed dataset can no longer be produced
+	//instead of silently recomputing against the dataset's own (empty) data.
 	for (const auto & idDataSet : _dataSets)
 	{
 		DataSet * ds = idDataSet.second;
-		if (ds != _shownDataSet && ds->isComputed() && ds->defaultInputDataSetId() == deletedId)
+		if (ds != _shownDataSet && ds->isComputed() && ds->defaultInputDataSet() && ds->defaultInputDataSet()->id() == deletedId)
 		{
-			ds->setDefaultInputDataSetId(-1);
-			ds->setError("The dataset used as input for this computed dataset was removed.");
+			ds->setDefaultInputFilterId(-1);
+			ds->setError("The filter used as input for this computed dataset belonged to a dataset that was removed.");
 		}
 	}
 
@@ -402,7 +402,7 @@ Column *Workspace::createComputedColumn(const std::string &name, int dataSetId, 
 	return nullptr;
 }
 
-DataSet *Workspace::createComputedDataSet(const std::string &name, int defaultInputDataSetId, computedColumnType desiredType)
+DataSet *Workspace::createComputedDataSet(const std::string &name, int defaultInputFilterId, computedColumnType desiredType)
 {
 	DataSet * newSet = createDataSet();
 
@@ -411,7 +411,7 @@ DataSet *Workspace::createComputedDataSet(const std::string &name, int defaultIn
 
 	newSet->setTitle(tq(name));
 	newSet->setCodeType(desiredType);
-	newSet->setDefaultInputDataSetId(defaultInputDataSetId);
+	newSet->setDefaultInputFilterId(defaultInputFilterId);
 	newSet->invalidate();
 
 	setShownDataSet(newSet);
@@ -429,6 +429,34 @@ QStringList Workspace::dataSetNames() const
 	return names;
 }
 
+QVariantList Workspace::inputFilterDropDownList(int excludeDataSetId) const
+{
+	typedef QMap<QString, QVariant> localMap;
+
+	QVariantList out;
+
+	for(const auto & idData : _dataSets)
+	{
+		DataSet * dataSet = idData.second;
+
+		//A computed dataset must not offer its own filters as input (that would be reading from its
+		//own output, and setDefaultInputFilterId would reject it anyway as a loop).
+		if(dataSet->id() == excludeDataSetId)
+			continue;
+
+		out.append(localMap{std::make_pair("value", tq("-")), std::make_pair("label", dataSet->title() + ":")});
+
+		if(dataSet->defaultFilter())
+			out.append(localMap{std::make_pair("value", tq(std::to_string(dataSet->defaultFilter()->id()))), std::make_pair("label", dataSet->defaultFilter()->title())});
+
+		for(const Filter * f : dataSet->filters())
+			if(f != dataSet->defaultFilter())
+				out.append(localMap{std::make_pair("value", tq(std::to_string(f->id()))), std::make_pair("label", f->title())});
+	}
+
+	return out;
+}
+
 bool Workspace::wouldCreateComputedDataSetLoop(DataSet * me, DataSet * target) const
 {
 	std::set<int> visited;
@@ -441,10 +469,10 @@ bool Workspace::wouldCreateComputedDataSetLoop(DataSet * me, DataSet * target) c
 		if (!visited.insert(cur->id()).second)
 			return false; //Reached a node we have seen; not a loop involving me.
 
-		if (!cur->isComputed() || cur->defaultInputDataSetId() < 0)
+		if (!cur->isComputed() || !cur->defaultInputDataSet())
 			return false;
 
-		cur = dataSetById(cur->defaultInputDataSetId());
+		cur = cur->defaultInputDataSet();
 	}
 
 	return false;
@@ -471,10 +499,10 @@ bool Workspace::computedDataSetsHaveLoop(std::string & errorMessage) const
 				return true;
 			}
 
-			if (cur->defaultInputDataSetId() < 0)
+			if (!cur->defaultInputDataSet())
 				break;
 
-			cur = dataSetById(cur->defaultInputDataSetId());
+			cur = cur->defaultInputDataSet();
 		}
 
 		globalVisited.insert(chain.begin(), chain.end());
@@ -496,10 +524,11 @@ void Workspace::setDataSetComputed(const QString & name, bool computed)
 	{
 		ds->setCodeType(computedColumnType::rCode);
 
-		if(ds->defaultInputDataSetId() < 0)
+		if(!ds->defaultInputDataSet())
 		{
-			//Pick the first other dataset that does not close a loop (e.g. another computed dataset
-			//that (in)directly depends on this one must not be chosen, or we would create A <- B <- A).
+			//Pick the first other dataset whose default filter does not close a loop (e.g. another
+			//computed dataset that (in)directly depends on this one must not be chosen, or we would
+			//create A <- B <- A).
 			DataSet * candidate = nullptr;
 			for(const auto & idData : _dataSets)
 				if(idData.second != ds && !wouldCreateComputedDataSetLoop(ds, idData.second))
@@ -508,12 +537,12 @@ void Workspace::setDataSetComputed(const QString & name, bool computed)
 					break;
 				}
 
-			if(candidate)
-				ds->setDefaultInputDataSetId(candidate->id());
+			if(candidate && candidate->defaultFilter())
+				ds->setDefaultInputFilterId(candidate->defaultFilter()->id());
 		}
 
-		if(ds->defaultInputDataSetId() >= 0 && wouldCreateComputedDataSetLoop(ds, ds->defaultInputDataSet()))
-			ds->setError("The dataset chosen as input for this computed dataset would create a loop between the computed datasets.");
+		if(ds->defaultInputDataSet() && wouldCreateComputedDataSetLoop(ds, ds->defaultInputDataSet()))
+			ds->setError("The filter chosen as input for this computed dataset would create a loop between the computed datasets.");
 	}
 	else
 		ds->setCodeType(computedColumnType::notComputed);

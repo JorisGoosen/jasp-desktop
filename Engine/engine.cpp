@@ -564,9 +564,9 @@ void Engine::receiveComputeDataSetMessage(const Json::Value & jsonRequest)
 
 	std::string	computeCode				= jsonRequest.get("computeCode", "").asString();
 	int			dataSetId				= jsonRequest.get("dataSetId", -1).asInt();
-	int			defaultInputDataSetId	= jsonRequest.get("defaultInputDataSetId", -1).asInt();
+	int			defaultInputFilterId	= jsonRequest.get("defaultInputFilterId", -1).asInt();
 
-	runComputeDataSet(dataSetId, computeCode, defaultInputDataSetId);
+	runComputeDataSet(dataSetId, computeCode, defaultInputFilterId);
 }
 
 void Engine::runComputeColumn(int dataSetId, const std::string & computeColumnName, const std::string & computeColumnCode, columnType computeColumnType)
@@ -618,7 +618,7 @@ void Engine::runComputeColumn(int dataSetId, const std::string & computeColumnNa
 	_engineState = engineState::idle;
 }
 
-void Engine::runComputeDataSet(int dataSetId, const std::string & computeCode, int defaultInputDataSetId)
+void Engine::runComputeDataSet(int dataSetId, const std::string & computeCode, int defaultInputFilterId)
 {
 	Log::log() << "Engine::runComputeDataSet()" << std::endl;
 
@@ -627,18 +627,28 @@ void Engine::runComputeDataSet(int dataSetId, const std::string & computeCode, i
 
 	//The "shown" dataset during a computed-dataset run is the input that the R code reads from;
 	//the output (the computed dataset itself) is written to by name via .setDataSet.
-	//A computed dataset that evaluates R code must read from an *input* dataset; without one
+	//A computed dataset that evaluates R code must read from an *input* filter; without one
 	//(-1) it must not silently compute from its own (previous) output as though it were its input.
-	if(defaultInputDataSetId == -1)
+	if(defaultInputFilterId == -1)
 	{
 		computeDataSetResponse["result"]	= "fail";
-		computeDataSetResponse["error"]		= "This computed dataset has no input dataset selected; choose an input dataset before computing it.";
+		computeDataSetResponse["error"]		= "This computed dataset has no input filter selected; choose an input filter before computing it.";
 		sendString(computeDataSetResponse);
 		_engineState = engineState::idle;
 		return;
 	}
 
-	int inputId = defaultInputDataSetId;
+	Filter * inputFilter = _workspace ? _workspace->filterById(defaultInputFilterId) : nullptr;
+	if(!inputFilter)
+	{
+		computeDataSetResponse["result"]	= "fail";
+		computeDataSetResponse["error"]		= "The input filter (id " + std::to_string(defaultInputFilterId) + ") could not be found in the engine's workspace.";
+		sendString(computeDataSetResponse);
+		_engineState = engineState::idle;
+		return;
+	}
+
+	int inputId = inputFilter->data()->id();
 
 	if(provideAndUpdateDataSet(inputId))
 	{
@@ -649,7 +659,7 @@ void Engine::runComputeDataSet(int dataSetId, const std::string & computeCode, i
 				throw std::runtime_error("Computed dataset (id " + std::to_string(dataSetId) + ") not found in engine's workspace; aborting compute. The output dataset must be synced before it can be filled.");
 			std::string	outputName	= output->name().toStdString();
 
-			std::string computeDataSetResult = rbridge_evalRComputedDataSet(computeCode, outputName);
+			std::string computeDataSetResult = rbridge_evalRComputedDataSet(computeCode, outputName, inputFilter->name());
 
 			computeDataSetResponse["result"]	= computeDataSetResult;
 			computeDataSetResponse["error"]		= jaspRCPP_getLastErrorMsg();
@@ -1054,6 +1064,7 @@ void Engine::pauseEngine(const Json::Value & json)
 	freeRBridgeColumns();
 	if(json.get("unloadData", false).asBool())
 	{
+		rbridge_clearDataSet(); //Don't leave rbridge_dataSet pointing into the workspace we are about to free.
 		delete _workspace;
 		_workspace = nullptr;
 	}

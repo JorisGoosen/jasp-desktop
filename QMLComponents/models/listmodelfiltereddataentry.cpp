@@ -26,12 +26,18 @@ ListModelFilteredDataEntry::ListModelFilteredDataEntry(TableViewBase * parent)
 	while(!Filter::filterNameIsFree(_tableView->form()->analysisObj()->dataSet(), _filterName));
 	
 	assert(parent->form());
-	connect(parent->form()->filter()->varInfo(),	&VariableInfo::dataSetChanged,					this, &ListModelFilteredDataEntry::dataSetChangedHandler, Qt::UniqueConnection);
-	
-	connect(parent->form(), &AnalysisForm::filterChanged, this, [&](Filter * f)
+
+	//Connect to the (analysis) filter's varInfo so dataSet changes re-run the filter. Guard against
+	//form()->filter() being null before the analysis is set up, and (re)connect whenever it changes.
+	auto connectFilterVarInfo = [this, parent]()
 	{
-		connect(parent->form()->filter()->varInfo(),	&VariableInfo::dataSetChanged,				this, &ListModelFilteredDataEntry::dataSetChangedHandler, Qt::UniqueConnection);
-	});
+		if(parent->form()->filter())
+			connect(parent->form()->filter()->varInfo(), &VariableInfo::dataSetChanged, this, &ListModelFilteredDataEntry::dataSetChangedHandler, Qt::UniqueConnection);
+	};
+
+	connectFilterVarInfo();
+
+	connect(parent->form(), &AnalysisForm::filterChanged, this, connectFilterVarInfo);
 }
 
 ListModelFilteredDataEntry::~ListModelFilteredDataEntry()

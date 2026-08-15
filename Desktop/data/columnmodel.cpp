@@ -550,6 +550,11 @@ void ColumnModel::setChosenColumnByName(const QString chosenNameQ, int colIndex)
 	clearVirtual();
 	
 	Column * chosenColumn = data->column(chosenName);
+
+	//Drop any per-column connections to the *previous* column before switching to the new one,
+	//otherwise the old column (still alive in the dataset) keeps firing into this model.
+	if(_column && _column != chosenColumn)
+		disconnect(_column, nullptr, this, nullptr);
 	
 	_virtual = !chosenColumn;
 	emit isVirtualChanged();
@@ -650,6 +655,13 @@ void ColumnModel::checkCurrentColumn(int dataSetId, QStringList, QStringList mis
 
 void ColumnModel::shownDataSetChangedHandler(DataSet * newDataSet)
 {
+	//Only ever connect one shown dataset's labelFilterChanged; switching datasets must not leave the
+	//previous (now background) dataset still firing refreshFilteredOut into this model.
+	if(_shownDataSet && _shownDataSet != newDataSet)
+		disconnect(_shownDataSet, &DataSet::labelFilterChanged, this, &ColumnModel::refreshFilteredOut);
+
+	_shownDataSet = newDataSet;
+
 	if(!newDataSet)
 	{
 		//Teardown (deleteWorkspace/connectWorkspace between datasets) left _column pointing at a

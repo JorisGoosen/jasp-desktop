@@ -636,11 +636,15 @@ SetJsonFilterCommand::SetJsonFilterCommand(Filter * filter, const QString& newJs
 
 void SetJsonFilterCommand::undo()
 {
-	_filter->setConstructorJsonQ(_oldJsonValue);
+	if(_filter)
+		_filter->setConstructorJsonQ(_oldJsonValue);
 }
 
 void SetJsonFilterCommand::redo()
 {
+	if(!_filter)
+		return;
+
 	_oldJsonValue = _filter->constructorJsonQ();
 	_filter->setConstructorJsonQ(_newJsonValue);
 }
@@ -653,11 +657,15 @@ SetRFilterCommand::SetRFilterCommand(Filter * filter, const QString& newRFilter)
 
 void SetRFilterCommand::undo()
 {
-	_filter->setRFilterQ(_oldRFilter);
+	if(_filter)
+		_filter->setRFilterQ(_oldRFilter);
 }
 
 void SetRFilterCommand::redo()
 {
+	if(!_filter)
+		return;
+
 	_oldRFilter = _filter->rFilterQ();
 	_filter->setRFilterQ(_newRFilter);
 }

@@ -608,7 +608,7 @@ void EngineSync::computeColumn(int dataSetId, const QString & columnName, const 
 	_waitingCompCols.push(new RComputeColumnStore(dataSetId, columnName, computeCode, colType));
 }
 
-void EngineSync::computeDataSet(int dataSetId, const QString & computeCode, int defaultInputDataSetId)
+void EngineSync::computeDataSet(int dataSetId, const QString & computeCode, int defaultInputFilterId)
 {
 	//first we remove the previously sent requests for this same dataset!
 	std::queue<RComputeDataSetStore*> copiedWaiting(_waitingCompDataSets);
@@ -625,7 +625,7 @@ void EngineSync::computeDataSet(int dataSetId, const QString & computeCode, int 
 			delete cur; //superseded by the new request for the same dataset
 	}
 
-	_waitingCompDataSets.push(new RComputeDataSetStore(dataSetId, computeCode, defaultInputDataSetId));
+	_waitingCompDataSets.push(new RComputeDataSetStore(dataSetId, computeCode, defaultInputFilterId));
 }
 
 void EngineSync::processFilterScript()
@@ -832,17 +832,23 @@ bool EngineSync::processComputedDataSetQueue()
 			//Don't dispatch a computed dataset whose input is a computed dataset still being computed
 			//or that was dispatched this same pass — the producer may not have flushed its output yet.
 			bool holdForDependency = false;
-			int inputId = waiting->_defaultInputDataSetId;
-			if(inputId >= 0)
+			int inputFilterId = waiting->_defaultInputFilterId;
+			if(inputFilterId >= 0 && Workspace::singleton())
 			{
-				for(auto * engine : _engines)
-					if(engine->isComputingDataSet(inputId))
-					{
-						holdForDependency = true;
-						break;
-					}
-				if(!holdForDependency)
-					holdForDependency = dispatchedThisPass.count(inputId) > 0;
+				Filter * inputFilter = Workspace::singleton()->filterById(inputFilterId);
+				if(inputFilter)
+				{
+					int inputId = inputFilter->data()->id();
+
+					for(auto * engine : _engines)
+						if(engine->isComputingDataSet(inputId))
+						{
+							holdForDependency = true;
+							break;
+						}
+					if(!holdForDependency)
+						holdForDependency = dispatchedThisPass.count(inputId) > 0;
+				}
 			}
 
 			if(!holdForDependency)
