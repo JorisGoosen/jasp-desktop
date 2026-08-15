@@ -1126,6 +1126,7 @@ bool DataSet::tryAndRunComputedDataset()
 
 void DataSet::checkForDependentDatasetsToBeSent(bool refreshMe)
 {
+	//Invalidate this (if refreshMe) and every computed dataset that reads from this one.
 	for(DataSet * ds : _workspace->dataSets())
 		if(ds->isComputed() && ((ds == this && refreshMe) || ds->defaultInputDataSet() == this))
 			ds->invalidate();
@@ -1142,9 +1143,14 @@ void DataSet::checkForDependentDatasetsToBeSent(bool refreshMe)
 		return;
 	}
 
+	//Re-dispatch only the datasets that were invalidated above (plus dependents). Crucially, this must
+	//NOT re-dispatch `this` when refreshMe is false: handleDataSetChanged() (which runs on any data
+	//reload, including the reload right after a successful compute) calls this with refreshMe=false and
+	//`this` still invalidated at that moment; re-dispatching it there would recompute it forever.
 	for(DataSet * ds : _workspace->dataSets())
-		if(ds->isComputed() && ds->iShouldBeSentAgain())
-			ds->tryAndRunComputedDataset();
+		if(ds->isComputed() && ((ds == this && refreshMe) || ds->defaultInputDataSet() == this))
+			if(ds->iShouldBeSentAgain())
+				ds->tryAndRunComputedDataset();
 }
 
 Columns DataSet::computedColumns() const

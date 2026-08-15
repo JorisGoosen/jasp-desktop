@@ -613,8 +613,8 @@ void Workspace::initializeComputedColumns()
 void Workspace::initializeComputedDatasets()
 {
 	for(auto & idDataSet : _dataSets)
-		if(idDataSet.second->isComputed())
-			idDataSet.second->checkForDependentDatasetsToBeSent();
+		if(idDataSet.second->isComputed() && idDataSet.second->iShouldBeSentAgain())
+			idDataSet.second->tryAndRunComputedDataset();
 }
 
 void Workspace::computedDataSetSucceeded(int dataSetId, QString warning, bool dataChanged)

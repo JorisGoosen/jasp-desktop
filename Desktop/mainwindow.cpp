@@ -1160,12 +1160,16 @@ void MainWindow::showNewData()
 
 void MainWindow::addNewDataSet()
 {
-	_package->workspace()->setShownDataSet(_package->createDataSet());
-	
-	_package->workspace()->shownDataSet()->setColumnCount(1);
-	_package->workspace()->shownDataSet()->setRowCount(1, false);
-	_package->workspace()->shownDataSet()->column(0)->initFromLookups(_package->workspace()->shownDataSet()->freeNewColumnName(0), 1, [](size_t){return "";}, [](size_t){return "";}, "", columnType::scale, {}, PreferencesModel::prefs()->thresholdScale(), PreferencesModel::prefs()->orderByValueByDefault());
-	
+	//createDataSet() (re)creates the workspace if it is null (e.g. right after a reset on a fresh
+	//JASP), so obtain the new DataSet first and never dereference workspace() before it exists.
+	DataSet * newSet = _package->createDataSet();
+
+	_package->workspace()->setShownDataSet(newSet);
+
+	newSet->setColumnCount(1);
+	newSet->setRowCount(1, false);
+	newSet->column(0)->initFromLookups(newSet->freeNewColumnName(0), 1, [](size_t){return "";}, [](size_t){return "";}, "", columnType::scale, {}, PreferencesModel::prefs()->thresholdScale(), PreferencesModel::prefs()->orderByValueByDefault());
+
 }
 
 void MainWindow::open(const Json::Value & dbJson)

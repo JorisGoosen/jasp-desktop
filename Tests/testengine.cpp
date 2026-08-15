@@ -318,6 +318,20 @@ void TestEngine::testComputedDataSet()
 	QVERIFY2(!computed2->invalidated(),	"Dependent computed dataset should be validated after its input ran");
 	QVERIFY2(computed2->column("z"),		"Dependent computed dataset should have the produced column z");
 
+	//Regression guard against the infinite-recompute loop: once every computed dataset is validated,
+	//no further compute requests may be dispatched. Drain the spy, let the event loop settle, and
+	//assert that no new computeDataSetSucceeded arrives — a dataset that kept recomputing would keep
+	//emitting here and this comparison would fail.
+	while(spy.count() > 0)
+		spy.takeFirst();
+
+	QElapsedTimer	settleTimer;
+	settleTimer.start();
+	while(settleTimer.elapsed() < 2000)
+		QCoreApplication::processEvents();
+
+	QCOMPARE(spy.count(), 0);
+
 	disconnect(DataSetPackage::pkg(), &DataSetPackage::runComputedDataSet, _engines, &EngineSync::computeDataSet);
 }
 
