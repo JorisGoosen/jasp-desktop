@@ -12,6 +12,13 @@ Workspace::Workspace(QObject *parent)
 {
 	assert(!_singleton);
 	_singleton = this;
+
+	//The input-filter list (for the shown computed dataset) depends on the set of datasets, their
+	//filters, and which dataset is shown; forward all of those so QML's `values` binding stays reactive.
+	connect(this, &Workspace::dataSetCreated,			this, &Workspace::inputFilterDropDownListChanged);
+	connect(this, &Workspace::dataSetRemoved,			this, &Workspace::inputFilterDropDownListChanged);
+	connect(this, &Workspace::shownDataSetChanged,		this, &Workspace::inputFilterDropDownListChanged);
+	connect(this, &Workspace::filtersCountChanged,		this, &Workspace::inputFilterDropDownListChanged);
 }
 
 Workspace::~Workspace()
@@ -429,9 +436,14 @@ QStringList Workspace::dataSetNames() const
 	return names;
 }
 
-QVariantList Workspace::inputFilterDropDownList(int excludeDataSetId) const
+QVariantList Workspace::inputFilterDropDownList() const
 {
 	typedef QMap<QString, QVariant> localMap;
+
+	//The filters available as *input* for the currently-shown computed dataset: every dataset's
+	//filters except the shown dataset's own. A computed dataset must not read from its own output,
+	//and setDefaultInputFilterId would refuse it as a loop anyway, so hide it here too.
+	const int excludeDataSetId = _shownDataSet ? _shownDataSet->id() : -1;
 
 	QVariantList out;
 
@@ -439,8 +451,6 @@ QVariantList Workspace::inputFilterDropDownList(int excludeDataSetId) const
 	{
 		DataSet * dataSet = idData.second;
 
-		//A computed dataset must not offer its own filters as input (that would be reading from its
-		//own output, and setDefaultInputFilterId would reject it anyway as a loop).
 		if(dataSet->id() == excludeDataSetId)
 			continue;
 

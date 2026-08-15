@@ -13,10 +13,8 @@ Rectangle
 
 	readonly property var		workspace:			dataSetPackage.workspace
 	readonly property var		shownDataSet:		workspace.shownDataSet
-	readonly property int		currentInputFilterId:	shownDataSet ? shownDataSet.defaultInputFilterId : -1
 
 	property bool				expanded:			true
-	property var				inputFilters:		[]
 
 	property real				headerHeight:		30 * preferencesModel.uiScale
 	property real				contentHeight:		220 * preferencesModel.uiScale
@@ -27,19 +25,10 @@ Rectangle
 	border.color:				jaspTheme.grayLighter
 	border.width:				1
 
-	function refreshInputNames()
-	{
-		inputFilters = workspace.inputFilterDropDownList(workspace.shownDataSetId())
-	}
-
 	function syncFromShown()
 	{
-		refreshInputNames()
 		if(shownDataSet)
-		{
 			codeEdit.text = shownDataSet.rCode
-			inputDropDown.currentValue = currentInputFilterId >= 0 ? String(currentInputFilterId) : ""
-		}
 	}
 
 	function applyComputedDataSet()
@@ -126,9 +115,9 @@ Rectangle
 			{
 				id:				inputDropDown
 				Layout.fillWidth: true
-				values:			root.inputFilters
+				values:			workspace.inputFilterDropDownList
 				startValue:		""
-				currentValue:	root.currentInputFilterId >= 0 ? String(root.currentInputFilterId) : ""
+				currentValue:	shownDataSet && shownDataSet.defaultInputFilterId >= 0 ? String(shownDataSet.defaultInputFilterId) : ""
 				onValueChanged:
 				{
 					if(shownDataSet && inputDropDown.currentValue.length > 0)

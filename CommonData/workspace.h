@@ -16,6 +16,7 @@ class Workspace : public DataSetBaseNode
 	Q_PROPERTY(Column		*	shownColumn			READ shownColumn		WRITE setShownColumn		NOTIFY shownColumnChanged	)
 	Q_PROPERTY(Filter		*	shownFilter			READ shownFilter		WRITE setShownFilter		NOTIFY shownFilterChanged	)
 	Q_PROPERTY(VariableInfo *	varInfo				READ varInfo										CONSTANT					)
+	Q_PROPERTY(QVariantList	inputFilterDropDownList READ inputFilterDropDownList						NOTIFY inputFilterDropDownListChanged	)
 	
 	// Emit signals also in refresh
 	
@@ -73,9 +74,8 @@ public slots:
 			Q_INVOKABLE int						shownDataSetId() const	{ return shownDataSet() ? shownDataSet()->id() : -1; }
 			Q_INVOKABLE int						dataSetIdByName(const QString & name) const		{ DataSet * ds = dataSetByName(fq(name)); return ds ? ds->id() : -1; }
 			Q_INVOKABLE QString					dataSetNameById(int id) const				{ DataSet * ds = dataSetById(id); return ds ? ds->name() : QString(); }
-			Q_INVOKABLE QString					filterTitleById(int id) const				{ Filter * f = filterById(id); return f ? f->title() : QString(); }
 			Q_INVOKABLE QStringList				dataSetNames() const;
-			Q_INVOKABLE QVariantList				inputFilterDropDownList(int excludeDataSetId) const;
+			QVariantList						inputFilterDropDownList() const;
 			Q_INVOKABLE void					setDataSetComputed(const QString & name, bool computed);
 			void					setShownDataSet(QString	  name);
 			void					setShownDataSet(DataSet * dataSet);
@@ -127,6 +127,7 @@ void					enableModified();
 			void					checkForDependentAnalyses(Column * column);
 			void					showAnalysis(			int			analysisId);
 			void					emptyValuesChanged();
+			void					inputFilterDropDownListChanged();
 			
 	
 			
