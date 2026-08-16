@@ -486,7 +486,7 @@ std::string Analysis::statusToString(Status status)
 
 Json::Value Analysis::loadPlotlyJsonInResults(Json::Value  results) const
 {
-	auto loadFile = [](const std::string & tempFileRelativePath)
+	auto loadFile = [this](const std::string & tempFileRelativePath)
 	{
 		QFile plotlyJsonFile(tq(TempFiles::sessionDirName() + "/" + tempFileRelativePath));
 
@@ -497,7 +497,10 @@ Json::Value Analysis::loadPlotlyJsonInResults(Json::Value  results) const
 
 			jsonReader.parse(plotlyJsonFile.readAll().toStdString(),plotlyJson, false);
 
-			ColumnEncoder::decodeJson(plotlyJson);
+			//Decode against this analysis' own dataset encoder: the process-global encoder is only
+			//populated in the engine, so the static ColumnEncoder::decodeJson would be a no-op here.
+			if(DataSet * ds = dataSet())
+				ds->encoder().decodeJson(plotlyJson);
 
 			return plotlyJson;
 		}

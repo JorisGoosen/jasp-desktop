@@ -204,6 +204,7 @@ void Filter::setFilterValueNoDB(size_t row, bool val)
 void Filter::setRowCount(size_t rows)
 {
 	_filtered.resize(rows);
+	calculateFilteredRowCount();
 }
 
 bool Filter::dbLoadResultAndError()
@@ -416,6 +417,7 @@ void Filter::reset()
 
 	incRevision();
 	_filtered = boolvec(_data->rowCount(), true);
+	calculateFilteredRowCount();
 }
 
 DatabaseInterface		& Filter::db()			{ return *DatabaseInterface::singleton(); }

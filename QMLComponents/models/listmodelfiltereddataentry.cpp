@@ -19,11 +19,12 @@ ListModelFilteredDataEntry::ListModelFilteredDataEntry(TableViewBase * parent)
 	connect(_tableView,				SIGNAL(extraColSignal(QString)),				this, SLOT(setExtraCol(QString))							);
 
 	static int counter = 0;
+	DataSet * dataSet = _tableView->form()->analysisObj() ? _tableView->form()->analysisObj()->dataSet() : nullptr;
 	do
 	{
 		_filterName = "ListModelFilteredDataEntry_" + std::to_string(counter++);
 	}
-	while(!Filter::filterNameIsFree(_tableView->form()->analysisObj()->dataSet(), _filterName));
+	while(!Filter::filterNameIsFree(dataSet, _filterName));
 	
 	assert(parent->form());
 
@@ -43,9 +44,7 @@ ListModelFilteredDataEntry::ListModelFilteredDataEntry(TableViewBase * parent)
 ListModelFilteredDataEntry::~ListModelFilteredDataEntry()
 {
 	if(_filter)
-		_filter->dbDelete();
-	delete _filter;
-	_filter = nullptr;
+		_filter->data()->removeFilter(_filter);
 }
 
 void ListModelFilteredDataEntry::dataSetChangedHandler()

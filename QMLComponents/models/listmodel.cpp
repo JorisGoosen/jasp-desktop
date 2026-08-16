@@ -316,6 +316,10 @@ void ListModel::setVariableType(int ind, columnType type)
 
 	Term newTerm = term;
 	newTerm.setType(type);
+
+	if(newTerm.components().isEmpty())
+		return;
+
 	sourceVariableTypeChanged(newTerm.components()[0], newTerm.type());
 }
 

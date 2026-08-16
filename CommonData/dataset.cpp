@@ -44,11 +44,6 @@ DataSet::DataSet(Workspace * workspace, int id)
 	if(id == -1)			dbCreate();
 	else if(id > 0)			dbLoad(id);
 	
-	//Make the encoder prefix globally unique (carries the dataset id) so ALL datasets loaded into the
-	//engine can coexist without encoded-name collisions. Must happen after dbCreate/dbLoad set the id.
-	_encoder->_encodePrefix = "JASPColumn_" + std::to_string(_dataSetId) + "_";
-	_encoder->setCurrentNames(getColumnTypesMap()); //regenerate all encoded names with the new prefix
-	
 	_undoStack = new UndoStack(this);
 	
 	connect(this,			&DataSet::datasetChanged,			this,		&DataSet::handleDataSetChanged			);
@@ -108,29 +103,7 @@ DataSet::~DataSet()
 void DataSet::deleteShownFilter()
 {
 	if(_shownFilter != _defaultFilter)
-	{
-		_shownFilter->dbDelete();
-		
-		Filters newList;
-		
-		size_t indexWas = 0;
-		for(size_t i=0; i<_filters.size(); i++)
-			if(_filters[i] != _shownFilter)
-				newList.push_back(_filters[i]);
-			else
-				indexWas = i;
-			
-		_filters = newList;
-		
-		emit filterRemoved(_shownFilter);
-		
-		delete _shownFilter;
-		// Showing the filter that took the removed one's place (if within range), else the last remaining, else the default (no filter).
-		_shownFilter = _filters.empty() ? _defaultFilter : _filters[std::min(indexWas, _filters.size() - 1)];
-		emit shownFilterChanged(this);
-		incRevision();
-		refresh();		
-	}
+		removeFilter(_shownFilter);
 }
 
 void DataSet::addFilter()
@@ -222,6 +195,53 @@ void DataSet::registerFilter(Filter *f)
 {
 	_filters.push_back(f);
 	emit filtersCountChanged();
+}
+
+void DataSet::removeFilter(Filter *f)
+{
+	if(!f || f == _defaultFilter)
+		return;
+
+	const int removedId = f->id();
+
+	f->dbDelete();
+
+	//Computed datasets that used this filter as their input would otherwise keep a dangling
+	//defaultInputFilterId. Clear it and surface an error so the user knows why the computed dataset
+	//can no longer be produced.
+	if(removedId > 0 && _workspace)
+		for(DataSet * ds : _workspace->dataSets())
+			if(ds != this && ds->isComputed() && ds->defaultInputFilterId() == removedId)
+			{
+				ds->setDefaultInputFilterId(-1);
+				ds->setError("The filter used as input for this computed dataset was removed.");
+			}
+
+	//If the removed filter is the shown one, pick a surviving replacement so _shownFilter never dangles.
+	bool wasShown = _shownFilter == f;
+	size_t indexWas = 0;
+
+	Filters newList;
+	for(size_t i=0; i<_filters.size(); i++)
+		if(_filters[i] != f)
+			newList.push_back(_filters[i]);
+		else
+			indexWas = i;
+
+	_filters = newList;
+
+	emit filterRemoved(f);
+	emit filtersCountChanged();
+
+	if(wasShown)
+	{
+		_shownFilter = _filters.empty() ? _defaultFilter : _filters[std::min(indexWas, _filters.size() - 1)];
+		emit shownFilterChanged(this);
+		incRevision();
+		refresh();
+	}
+
+	delete f;
 }
 
 void DataSet::dbDelete()
@@ -512,6 +532,15 @@ std::map<std::string,columnType> DataSet::getColumnTypesMap()
 	return theMap;
 }
 
+void DataSet::setupEncoderPrefix()
+{
+	//Make the encoder prefix globally unique (carries the dataset id) so ALL datasets loaded into the
+	//engine can coexist without encoded-name collisions. Must run after the id has been finalized
+	//(dbCreate/dbLoad), which is why it is called at the end of those, not in the constructor.
+	_encoder->_encodePrefix = "JASPColumn_" + std::to_string(_dataSetId) + "_";
+	_encoder->setCurrentNames(getColumnTypesMap()); //regenerate all encoded names with the new prefix
+}
+
 void DataSet::setDataFileAndTimeStamp(const std::string &dataFilePath, long timestamp)
 {
 	bool isChange		= _dataFilePath	!= dataFilePath || _dataFileTimestamp	!= timestamp;
@@ -564,7 +593,7 @@ void DataSet::setDataFileSynch(bool synchronizing)
 	if(isChange) dbUpdate(); 
 	
 	if(isChange)
-		emit dataFileChanged();
+		emit dataFileSynchChanged();
 }
 
 void DataSet::synchronize()
@@ -618,6 +647,8 @@ _dataSetId		= db().dataSetInsert(_dataFilePath, _dataFileTimestamp, _description
 	db().transactionWriteEnd();
 
 	_rowCount		= 0;
+
+	setupEncoderPrefix();
 }
 
 void DataSet::dbUpdate()
@@ -712,25 +743,25 @@ void DataSet::dbLoad(int id, std::function<void(float)> progressCallback, Versio
 		
 		//Now we will recreate the dataset, but because Audit can make special Filters we need to handle that here now, otherwise they dissappear		
 		intset allFilters = db().dataSetGetFilters(_dataSetId);
-		std::set<Filter*> notDefaultFilters;
+		Filters	loadedFilters;
 		
 		for(int id : allFilters)
 		{
 			const std::string & fName = db().filterGetName(id);
 			
 			if(fName != DEFAULT_FILTER_NAME)
-				notDefaultFilters.insert(new Filter(this, fName, false));
+				loadedFilters.push_back(new Filter(this, fName, false)); //registers itself into _filters
 		}
 		
 		db().dataSetCreateTable(this);
 		db().dataSetBatchedValuesUpdate(this, _columns, [&](float p){ progressCallback(0.8 + (p * 0.2)); });
 		
-		for(Filter * f : notDefaultFilters)
-		{
+		//Persist the (recreated) filter data; the Filter objects stay owned by this DataSet.
+		for(Filter * f : loadedFilters)
 			f->dbUpdate(true);
-			delete f;
-		}
 	}
+
+	setupEncoderPrefix();
 }
 
 
@@ -962,7 +993,10 @@ bool DataSet::checkForUpdates(std::function<void(float)> progressCallback)
 			}
 
 			for(Filter * f : destroyUs)
+			{
+				emit filterRemoved(f);
 				delete f;
+			}
 		}
 		
 		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, rowCountChanged, newColumns);

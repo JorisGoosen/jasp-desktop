@@ -826,7 +826,6 @@ bool EngineSync::processComputedDataSetQueue()
 		{
 			RComputeDataSetStore * waiting = _waitingCompDataSets.front();
 
-			needEngine = true;
 			bool foundOne = false;
 
 			//Don't dispatch a computed dataset whose input is a computed dataset still being computed
@@ -852,6 +851,7 @@ bool EngineSync::processComputedDataSetQueue()
 			}
 
 			if(!holdForDependency)
+			{
 				for(auto * engine : _engines)
 					if(engine->idle()  && engine->runsUtility())
 					{
@@ -860,9 +860,14 @@ bool EngineSync::processComputedDataSetQueue()
 						delete waiting;
 						_waitingCompDataSets.pop();
 						foundOne = true;
-						needEngine = false;
 						break;
 					}
+
+				//Only report "need another engine" when we actually tried to dispatch and found none
+				//idle; a dataset held for its producer must not count as insufficient engines.
+				if(!foundOne)
+					needEngine = true;
+			}
 
 			if(!foundOne)
 			{

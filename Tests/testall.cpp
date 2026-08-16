@@ -729,26 +729,32 @@ void TestAll::testSyncerRetriesFileChangeMissedDuringSync()
 	QSignalSpy startedSpy(&syncer, &DataSetSyncer::syncingStarted);
 	QSignalSpy syncRequiredSpy(&syncer, &DataSetSyncer::syncRequired);
 
+	//Deterministic trigger helper: instead of waiting for the OS file watcher (and second-resolution
+	//mtimes) we invoke the same slot the watcher is connected to, after resetting the stored timestamp
+	//so the mtime filter inside fileChanged always passes. The watcher/mtime path is covered end-to-end
+	//by testSyncerFileChangeEmitsSignal; here we only exercise the missed-change replay logic.
+	auto changeFile = [&](const char * contents)
+	{
+		QVERIFY(f.open(QIODevice::WriteOnly));
+		f.write(contents);
+		f.close();
+		ds->setDataFileAndTimeStamp(fq(testFilePath), 0);
+		QVERIFY(QMetaObject::invokeMethod(&syncer, "fileChanged", Q_ARG(QString, testFilePath)));
+	};
+
 	// 1) Trigger a sync that stays in-flight (the guard is held until setSyncingResult).
-	QTest::qSleep(1100); //advance the file mtime past second resolution
-	QVERIFY(f.open(QIODevice::WriteOnly));
-	f.write("x,y\n3,4\n");
-	f.close();
-	QTRY_COMPARE_WITH_TIMEOUT(startedSpy.count(), 1, 5000);
+	changeFile("x,y\n3,4\n");
+	QCOMPARE(startedSpy.count(), 1);
 	QCOMPARE(syncRequiredSpy.count(), 1);
 
 	// 2) A change arrives while the sync is still in-flight: it must be remembered, not dropped, and
 	//    must NOT start a new sync yet (the guard is still held).
-	QTest::qSleep(1100);
-	QVERIFY(f.open(QIODevice::WriteOnly));
-	f.write("x,y\n5,6\n");
-	f.close();
-	QTest::qWait(300); //let the file watcher deliver; still no new sync while in-flight
+	changeFile("x,y\n5,6\n");
 	QCOMPARE(startedSpy.count(), 1);
 
 	// 3) Completing the in-flight sync must release the guard AND replay the missed change.
 	syncer.setSyncingResult(true);
-	QTRY_COMPARE_WITH_TIMEOUT(startedSpy.count(), 2, 5000);
+	QCOMPARE(startedSpy.count(), 2);
 	QCOMPARE(syncRequiredSpy.count(), 2);
 
 	syncer.stopFileSyncing();
@@ -867,6 +873,76 @@ void TestAll::testUndoColumnDropLevels()
 
 	ds->undoStack()->redo();
 	QCOMPARE(col->dropLevels(), dropLevelsType::keep);
+}
+
+void TestAll::testEncoderPrefixPerDataset()
+{
+	QVERIFY(_newPkgWithDataSet());
+
+	DataSet * a = _pkg->dataSet();
+	QVERIFY(a);
+	QVERIFY(a->columnCount() > 0);
+
+	const std::string colName	= a->column(0)->name();
+	const std::string prefixA	= "JASPColumn_" + std::to_string(a->id()) + "_";
+	const std::string encodedA	= a->encoder().encode(colName);
+
+	QVERIFY2(encodedA.find(prefixA) == 0,	qPrintable("Encoder prefix must carry the dataset id"));
+	QVERIFY2(encodedA.find("-1") == std::string::npos,	qPrintable("Encoder prefix must not be the -1 sentinel"));
+
+	//Reload from the DB (the .jasp restore path): the prefix must still carry the id, not -1.
+	DataSet loadMe(nullptr, a->id());
+	QCOMPARE(loadMe.id(), a->id());
+	const std::string encodedReload = loadMe.encoder().encode(colName);
+	QVERIFY2(encodedReload.find(prefixA) == 0,	qPrintable("Reloaded dataset must keep the id-based prefix"));
+	QCOMPARE(encodedReload, encodedA);
+
+	//A second dataset with a colliding column name must get a distinct prefix.
+	CSVImporter importer;
+	DataSet * b = _pkg->workspace()->createDataSet();
+	QVERIFY(b);
+	importer.loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), b, [](int){});
+	QVERIFY(b->id() != a->id());
+
+	const std::string prefixB	= "JASPColumn_" + std::to_string(b->id()) + "_";
+	const std::string encodedB	= b->encoder().encode(b->column(0)->name());
+	QVERIFY2(encodedB.find(prefixB) == 0,	qPrintable("Second dataset must get its own id-based prefix"));
+	QVERIFY(encodedB != encodedA);
+
+	//Instance-level JSON decode must work against the dataset's own encoder (the static
+	//ColumnEncoder::decodeJson is a no-op on the desktop: the global current-encoder indirection is
+	//only set inside the engine).
+	Json::Value json;
+	json["axis"] = encodedA;
+	a->encoder().decodeJson(json);
+	QCOMPARE(json["axis"].asString(), colName);
+}
+
+void TestAll::testFilterRemoveFilter()
+{
+	QVERIFY(_newPkgWithDataSet());
+
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+
+	const size_t before = ds->filters().size();
+
+	Filter * f = ds->createFilter("testRemoveMe", true);
+	QVERIFY(f);
+	QCOMPARE(ds->filters().size(), before + 1);
+	QVERIFY(ds->filter("testRemoveMe") == f);
+
+	ds->runFilters(); //must be safe while the filter is present
+
+	//The default filter is not removable and must be a no-op.
+	ds->removeFilter(ds->defaultFilter());
+	QCOMPARE(ds->filters().size(), before + 1);
+
+	ds->removeFilter(f);
+	QCOMPARE(ds->filters().size(), before);
+	QVERIFY(ds->filter("testRemoveMe") == nullptr);
+
+	ds->runFilters(); //must still be safe after removal (the dangling-pointer regression would crash here)
 }
 
 void TestAll::testSyncerExportModifyReimportChangesDetected()

@@ -169,6 +169,7 @@ public:
 			size_t			getMaximumColumnWidthInCharacters(size_t columnIndex) const;
 			stringvec		getColumnNames();
 			colTypeMap		getColumnTypesMap();
+			void			setupEncoderPrefix();
 			
 
 			void			setDataFile(		const std::string & dataFilePath);
@@ -295,6 +296,7 @@ public slots:
 public:
 			Filter		*	createFilter(const std::string & name, bool createIfMissing = true) { return new Filter(this, name, createIfMissing); }
 			void			registerFilter(Filter * f);
+			void			removeFilter(Filter * f);
 			
 private:
 			void			upgradeEmptyValsFrom018To019(const Json::Value & emptyVals);

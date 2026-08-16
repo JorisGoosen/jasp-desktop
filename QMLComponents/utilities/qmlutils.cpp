@@ -45,27 +45,41 @@ QmlUtils::QmlUtils(QObject *parent) : QObject(parent)
 
 }
 
+static ColumnEncoder * currentDatasetEncoder()
+{
+	//The process-global current-encoder indirection is only populated inside the engine, so the
+	//desktop must en/decode against the shown dataset's own encoder instead.
+	Workspace * ws = Workspace::singleton();
+	DataSet * ds = ws ? ws->shownDataSet() : nullptr;
+
+	return ds ? &ds->encoder() : nullptr;
+}
+
 QString QmlUtils::encodeAllColumnNames(const QString & str)
 {
-	return tq(ColumnEncoder::encodeAll(fq(str)));
+	ColumnEncoder * encoder = currentDatasetEncoder();
+	return encoder ? tq(encoder->encodeAll(fq(str))) : str;
 }
 
 QString QmlUtils::decodeAllColumnNames(const QString & str)
 {
-	return tq(ColumnEncoder::decodeAll(fq(str)));
+	ColumnEncoder * encoder = currentDatasetEncoder();
+	return encoder ? tq(encoder->decodeAll(fq(str))) : str;
 }
 
 QJSValue	QmlUtils::encodeJson(const QJSValue	& val, QQuickItem * caller)
 {
 	Json::Value v(fqj(val));
-	ColumnEncoder::encodeJson(v);
+	if(ColumnEncoder * encoder = currentDatasetEncoder())
+		encoder->encodeJson(v);
 	return tqj(v, caller);
 }
 
 QJSValue	QmlUtils::decodeJson(const QJSValue	& val, QQuickItem * caller)
 {
 	Json::Value v(fqj(val));
-	ColumnEncoder::decodeJson(v);
+	if(ColumnEncoder * encoder = currentDatasetEncoder())
+		encoder->decodeJson(v);
 	return tqj(v, caller);
 }
 

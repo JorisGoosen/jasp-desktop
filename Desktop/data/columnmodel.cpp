@@ -542,7 +542,7 @@ void ColumnModel::setChosenColumnByName(const QString chosenNameQ, int colIndex)
 	// Always set the chosen column even if it is the same one: the ColumnModel might be not reset correctly when the dataset is closed.
 
 	//If the user deletes the name the column ought to be removed because we cannot have columns without a name!
-	std::string deleteMe = column() && column()->name() == "" ? column()->name() : "";
+	Column * deleteMe = column() && column()->name() == "" ? column() : nullptr;
 
 	emit beforeChangingColumn(chosenNameQ);
 
@@ -575,8 +575,12 @@ void ColumnModel::setChosenColumnByName(const QString chosenNameQ, int colIndex)
 	refresh();
 	notifyColumnChanged();
 
-	if(deleteMe != "" && data)
-		data->removeColumn(deleteMe);
+	if(deleteMe && data)
+	{
+		const int doomedIdx = data->columnIndex(deleteMe);
+		if(doomedIdx >= 0)
+			data->removeColumn(doomedIdx);
+	}
 }
 
 void ColumnModel::setChosenColumn(int columnIndex)

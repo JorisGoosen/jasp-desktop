@@ -126,7 +126,9 @@ void EngineRepresentation::handleEngineCrash()
 		break;
 
 	case engineState::filter:
-		emit processFilterErrorMsg(tr("The engine crashed while trying to run the filter..."), _lastRequestId);
+		//No filter-specific message: runtime filter errors are persisted by the engine and surface
+		//through the DB revision round-trip (Filter::checkForUpdates -> dbLoadResultAndError), and the
+		//generic engine-crash UI already informs the user here.
 		break;
 
 	case engineState::computeColumn:
@@ -407,13 +409,11 @@ void EngineRepresentation::processFilterReply(Json::Value & json)
 	if(requestId != _lastRequestId)
 		return;
 
-	//The engine signals a failed filter run by including an "error" field; surface it rather than
-	//treating the run as a success (the old code emitted processFilterErrorMsg for this).
-	const std::string & error = json.get("error", "").asString();
-	if(!error.empty())
-		emit processFilterErrorMsg(tq(error), requestId);
-	else
-		emit filterDone(requestId);
+	//Emit filterDone unconditionally so the scheduler always resets _filterRunning, even when the
+	//engine signalled a failed filter run through the "error" field (otherwise a failed filter would
+	//wedge the engine scheduler forever). The error itself is persisted by the engine in the filter's
+	//DB row and surfaces to the UI through the normal checkForUpdates round-trip below.
+	emit filterDone(requestId);
 
 	Workspace::singleton()->checkForUpdates();
 }
