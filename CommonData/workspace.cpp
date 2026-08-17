@@ -645,11 +645,6 @@ void Workspace::computedDataSetSucceeded(int dataSetId, QString warning, bool da
 
 	dataSet->validate();
 	dataSet->checkForDependentDatasetsToBeSent();
-
-	//The whole dataset changed: the reload in checkForUpdates() above already emitted datasetChanged,
-	//and every filter of it must be recomputed so that analyses using them pick up the new data.
-	for(Filter * f : dataSet->filters())
-		f->setInvalidated(true);
 }
 
 void Workspace::updateComputedColumnDependenciesForAnalysis(int analysisId, const stringset & usedVariables)

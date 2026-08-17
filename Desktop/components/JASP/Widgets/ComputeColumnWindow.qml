@@ -142,7 +142,7 @@ FocusScope
 					color:					jaspTheme.textEnabled
 
 					property bool changedSinceLastApply:	text !== computedColumnContainer.lastAppliedcomputeColumn
-					property bool changed:					text !== columnModel.column.rCode
+					property bool changed:					columnModel.column && text !== columnModel.column.rCode
 					
 					KeyNavigation.tab:		applyComputedColumnButton
 
@@ -285,7 +285,7 @@ FocusScope
 				id:						computeColumnError
 				color:					jaspTheme.red
 				readOnly:				true
-				text:					columnModel.column.error
+				text:					!columnModel.column ? "" : columnModel.column.error
 
 				selectByMouse:			true
 				onActiveFocusChanged:	if(!activeFocus) deselect()
