@@ -22,6 +22,7 @@
 #include "exporters/resultexporter.h"
 #include "exporters/jaspexporter.h"
 #include "dataset.h"
+#include "log.h"
 
 #include <QTimer>
 #include "fileevent.h"
@@ -32,11 +33,17 @@
 #include "exporters/resultexporter.h"
 
 
-void FileEvent::setSyncDataSet(DataSet * ds)			{ _syncDataSet = ds; }
+void FileEvent::setSyncDataSet(DataSet * ds)			
+{ 
+	_syncDataSet = ds; 
+	Log::log() << "[FileEvent::setSyncDataSet] Set syncDataSet to: " << (ds ? QString::number(ds->id()) : "NULL") << std::endl; 
+}
 
 DataSet * FileEvent::syncDataSet() const
 {
-	return _syncDataSet ? static_cast<DataSet*>(_syncDataSet.data()) : nullptr;
+	DataSet * result = _syncDataSet ? static_cast<DataSet*>(_syncDataSet.data()) : nullptr;
+	Log::log() << "[FileEvent::syncDataSet] Returning: " << (result ? QString::number(result->id()) : "NULL") << std::endl;
+	return result;
 }
 
 FileEvent::FileEvent(QObject *parent, FileEvent::FileMode fileMode)
@@ -66,6 +73,7 @@ void FileEvent::setDataFilePath(const QString & path)
 void FileEvent::setDatabase(const Json::Value & dbInfo)
 {
 	_database = dbInfo;
+	Log::log() << "[FileEvent::setDatabase] Database set" << std::endl;
 }
 
 bool FileEvent::setPath(const QString & path)
@@ -113,6 +121,8 @@ void FileEvent::setComplete(bool success, const QString & message, bool cancelle
 	_success	= success;
 	_message	= message;
 	_cancelled	= cancelled;
+
+	Log::log() << "[FileEvent::setComplete] operation=" << _operation << ", success=" << success << ", message=" << message.toStdString() << std::endl;
 
 	emit completed(this);
 }

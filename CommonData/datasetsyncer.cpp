@@ -112,10 +112,15 @@ void DataSetSyncer::syncNow()
 
 void DataSetSyncer::fileChanged(const QString & path)
 {
+	Log::log() << "[DataSetSyncer::fileChanged] START: path=" << path.toStdString() << ", dataFileSynch=" << _dataSet->dataFileSynch() << std::endl;
+
 	//Manual edits disable file synching (DataSet::setDataFileSynch(false)); honour that here so a
 	//stale file watcher doesn't overwrite the user's edits on the next external modification.
 	if(!_dataSet->dataFileSynch())
+	{
+		Log::log() << "[DataSetSyncer::fileChanged] dataFileSynch is false, returning early" << std::endl;
 		return;
+	}
 
 	QFileInfo fi(path);
 	if(!fi.exists())
@@ -126,8 +131,12 @@ void DataSetSyncer::fileChanged(const QString & path)
 
 	long newTimestamp = fi.lastModified().toSecsSinceEpoch();
 	if(newTimestamp <= _dataSet->dataFileTimestamp())
+	{
+		Log::log() << "[DataSetSyncer::fileChanged] newTimestamp=" << newTimestamp << " <= oldTimestamp=" << _dataSet->dataFileTimestamp() << ", returning early" << std::endl;
 		return;
+	}
 
+	Log::log() << "[DataSetSyncer::fileChanged] newTimestamp=" << newTimestamp << " > oldTimestamp=" << _dataSet->dataFileTimestamp() << ", updating" << std::endl;
 	_dataSet->setDataFile(path.toStdString(), newTimestamp);
 
 	if(_isSyncing)
@@ -135,7 +144,11 @@ void DataSetSyncer::fileChanged(const QString & path)
 		//once the in-flight sync completes (setSyncingResult), otherwise the change would be lost.
 		_isPendingFileSync = true;
 	else
+	{
+		Log::log() << "[DataSetSyncer::fileChanged] Calling doSync()" << std::endl;
 		doSync();
+		Log::log() << "[DataSetSyncer::fileChanged] doSync() returned" << std::endl;
+	}
 }
 
 void DataSetSyncer::databaseSyncIntervalPassed()
@@ -145,46 +158,69 @@ void DataSetSyncer::databaseSyncIntervalPassed()
 
 void DataSetSyncer::doSync()
 {
+	Log::log() << "[DataSetSyncer::doSync] START: _dataSet=" << (_dataSet ? QString::number(_dataSet->id()) : "NULL") << ", _isSyncing=" << _isSyncing << std::endl;
+
 	if(!_dataSet || _isSyncing)
+	{
+		Log::log() << "[DataSetSyncer::doSync] No dataset or already syncing, returning" << std::endl;
 		return;
+	}
 
 	_isSyncing = true;
 	int id = _dataSet->id();
+	Log::log() << "[DataSetSyncer::doSync] Emitting syncingStarted for datasetId=" << id << std::endl;
 	emit syncingStarted(id);
 
-	QString locator;
-	QString extension;
-	QString dbJson;
+  QString locator;
+  QString extension;
+  QString dbJson;
 
-	if(_databaseJson != Json::nullValue)
-	{
-		locator		= QString::fromStdString(_dataSet->dataFilePath());
-		extension	= "DATABASE";
-		dbJson		= QString::fromStdString(_databaseJson.toStyledString());
-	}
-	else
-	{
-		locator		= QString::fromStdString(_dataSet->dataFilePath());
-		extension	= QFileInfo(locator).suffix();
-	}
+  Log::log() << "[DataSetSyncer::doSync] Building sync parameters" << std::endl;
 
-	emit syncRequired(_dataSet->id(), _dataSet, locator, extension, dbJson);
+  if(_databaseJson != Json::nullValue)
+  {
+    Log::log() << "[DataSetSyncer::doSync] Database sync detected" << std::endl;
+    locator		= QString::fromStdString(_dataSet->dataFilePath());
+    extension	= "DATABASE";
+    dbJson		= QString::fromStdString(_databaseJson.toStyledString());
+  }
+  else
+  {
+    Log::log() << "[DataSetSyncer::doSync] File sync detected" << std::endl;
+    locator		= QString::fromStdString(_dataSet->dataFilePath());
+    extension	= QFileInfo(locator).suffix();
+  }
+
+  Log::log() << "[DataSetSyncer::doSync] Emitting syncRequired: datasetId=" << _dataSet->id() << ", locator=" << locator.toStdString() << ", extension=" << extension.toStdString() << std::endl;
+  emit syncRequired(_dataSet->id(), _dataSet, locator, extension, dbJson);
+  Log::log() << "[DataSetSyncer::doSync] syncRequired emitted" << std::endl;
 }
 
 void DataSetSyncer::setSyncingResult(bool success)
 {
+	Log::log() << "[DataSetSyncer::setSyncingResult] START: success=" << success << ", _isSyncing=" << _isSyncing << ", _isPendingFileSync=" << _isPendingFileSync << std::endl;
+
 	//The re-entrancy guard is only released on *real* completion (or an explicit abort),
 	//not when the request is launched, so overlapping syncs can't start while one is in flight.
 	_isSyncing = false;
+
+	Log::log() << "[DataSetSyncer::setSyncingResult] _isSyncing set to false" << std::endl;
 
 	//Pick up any file change that was dropped during the just-finished sync. fileChanged already
 	//bumped the dataset timestamp when it was seen, so re-running it would be a no-op; a direct
 	//doSync() re-issues the (now-current) file/database state so the change is not lost.
 	if(_isPendingFileSync)
 	{
+		Log::log() << "[DataSetSyncer::setSyncingResult] _isPendingFileSync is true, calling doSync()" << std::endl;
 		_isPendingFileSync = false;
 		doSync();
 	}
+	else
+	{
+		Log::log() << "[DataSetSyncer::setSyncingResult] _isPendingFileSync is false" << std::endl;
+	}
 
+	Log::log() << "[DataSetSyncer::setSyncingResult] Emitting syncingFinished: datasetId=" << (_dataSet ? QString::number(_dataSet->id()) : "-1") << ", success=" << success << std::endl;
 	emit syncingFinished(_dataSet ? _dataSet->id() : -1, success);
+	Log::log() << "[DataSetSyncer::setSyncingResult] END" << std::endl;
 }

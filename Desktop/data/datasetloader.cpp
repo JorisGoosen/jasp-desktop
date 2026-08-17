@@ -96,14 +96,26 @@ void DataSetLoader::loadPackage(const string &locator, const string &extension, 
 
 void DataSetLoader::syncPackage(const string &locator, const string &extension, DataSet * dataSet, std::function<void(int)> progress)
 {
+	Log::log() << "[DataSetLoader::syncPackage] START: locator=" << locator << ", extension=" << extension << ", dataSetId=" << (dataSet ? dataSet->id() : -1) << std::endl;
+
 	Importer* importer = getImporter(locator, extension);
 
 	if (importer)
 	{
+		Log::log() << "[DataSetLoader::syncPackage] Importer found, calling importer->syncDataSet()" << std::endl;
 		if (dataSet)
+		{
+			Log::log() << "[DataSetLoader::syncPackage] dataSet->csvDelimiter()=" << dataSet->csvDelimiter() << std::endl;
 			DesktopCommunicator::singleton()->setKnownCsvDelimiter(dataSet->csvDelimiter());
+		}
 		importer->syncDataSet(locator, dataSet, progress);
 		DesktopCommunicator::singleton()->setKnownCsvDelimiter('\0');
 		delete importer;
+		Log::log() << "[DataSetLoader::syncPackage] importer->syncDataSet() returned" << std::endl;
 	}
+	else
+	{
+		Log::log() << "[DataSetLoader::syncPackage] No importer found for extension=" << extension << std::endl;
+	}
+	Log::log() << "[DataSetLoader::syncPackage] END" << std::endl;
 }

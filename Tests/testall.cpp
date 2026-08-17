@@ -19,6 +19,7 @@
 #include "dataset.h"
 #include "workspace.h"
 #include "undostack.h"
+#include "data/asyncloader.h"
 
 #include <QSignalSpy>
 #include <QFile>
@@ -1058,6 +1059,59 @@ void TestAll::testFilterRevisionInvalidatedRoundTrip()
 	QVERIFY2(revision >= 0, "revision must stay an integer revision, not the invalidated flag");
 
 	dbi.filterDelete(filterId);
+}
+
+void TestAll::testFileSyncerFullAsyncFlow()
+{
+	//Test the complete FileEvent + AsyncLoader sync flow
+	QVERIFY(_newPkgWithDataSet());
+
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+
+	//Create a test CSV file
+	QTemporaryDir tempDir;
+	QVERIFY(tempDir.isValid());
+	QString testFilePath = tempDir.filePath("async_sync.csv");
+	{
+		QFile f(testFilePath);
+		QVERIFY(f.open(QIODevice::WriteOnly));
+		f.write("a,b,c\n1,2,3\n");
+		f.close();
+	}
+
+	//Set the data file and timestamp so the sync has something to compare against
+	ds->setDataFileAndTimeStamp(testFilePath.toStdString(), 0);
+
+	//Create an AsyncLoader on heap so it lives during async operations
+	AsyncLoader * loader = new AsyncLoader(this);
+	QSignalSpy syncCompletedSpy(loader, &AsyncLoader::syncCompleted);
+
+	//Connect DataSet::syncRequired to AsyncLoader::onSyncRequired (like MainWindow does)
+	connect(ds, &DataSet::syncRequired, loader, &AsyncLoader::onSyncRequired, Qt::QueuedConnection);
+
+	//Trigger sync
+	DataSetSyncer & syncer = ds->syncer();
+	syncer.startFileSyncing(testFilePath);
+	QVERIFY(syncer.isFileSyncing());
+
+	//Update timestamp so fileChanged will pass the timestamp check when syncer.syncNow() is called
+	ds->setDataFileAndTimeStamp(testFilePath.toStdString(), 0);
+
+	//Trigger syncNow which will call fileChanged -> doSync -> emit syncRequired
+	syncer.syncNow();
+
+	//Wait for syncCompleted to be emitted by AsyncLoader (via syncRequired -> onSyncRequired -> loadPackage -> syncCompleted)
+	QTRY_COMPARE_WITH_TIMEOUT(syncCompletedSpy.count(), 1, 3000);
+
+	//Verify sync completed successfully
+	QVERIFY(syncer.isFileSyncing()); //Still syncing because we haven't called stop
+	QVERIFY(ds->dataFileSynch());
+
+	syncer.stopFileSyncing();
+
+	//Cleanup
+	delete loader;
 }
 
 

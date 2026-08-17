@@ -61,6 +61,9 @@ private slots:
 	void	testSyncerExportModifyReimport();
 	void	testSyncerExportModifyReimportChangesDetected();
 
+	// AsyncLoader FileEvent sync flow test
+	void	testFileSyncerFullAsyncFlow();
+
 private:
 	DataSetPackage		*	_pkg		= nullptr;
 	Importer			*	_importer	= nullptr;
