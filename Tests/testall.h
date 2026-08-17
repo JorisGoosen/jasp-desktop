@@ -64,8 +64,12 @@ private slots:
 	// AsyncLoader FileEvent sync flow test
 	void	testFileSyncerFullAsyncFlow();
 
+	// SQLite database sync test
+	void	testSyncerDatabaseSyncFromSQLite();
+
 private:
 	DataSetPackage		*	_pkg		= nullptr;
 	Importer			*	_importer	= nullptr;
 	bool					_newPkgWithDataSet();
+	bool					_checkDoSyncFake();
 };
