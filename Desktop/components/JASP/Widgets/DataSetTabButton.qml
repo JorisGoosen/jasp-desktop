@@ -20,6 +20,7 @@ Item
 	property bool	buttonActive:	false
 	property bool	showTextField:	false
 	property alias	theButton:		theButton
+	property bool   isComputed:		false;
 
 	signal clicked();
 	signal doubleClicked();
@@ -63,6 +64,8 @@ Item
 				bottomMargin:	parent.implicitHeight
 			}
 		}
+		
+		toolTip:		description
 	}
 	
 	Component
@@ -71,6 +74,15 @@ Item
 		
 		RowLayout
 		{
+			CheckBox
+			{
+				id:					computedToggle
+				checked:			root.isComputed
+				onCheckedChanged:	dataSetPackage.workspace.setDataSetComputed(root.name, checked)
+
+				ToolTip.text:		qsTr("Computed dataset")
+				ToolTip.visible:	hovered
+			}
 			
 			TextInput
 			{
@@ -92,6 +104,8 @@ Item
 				onClicked:			dataSetPackage.workspace.deleteShownDataSet()
 				toolTip:			qsTr("Delete dataset")
 			}
+			
+			
 		}
 	}
 }

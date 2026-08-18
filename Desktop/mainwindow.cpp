@@ -397,7 +397,7 @@ const QString MainWindow::contactText() const
 		"</ul>\n"
 		"There you will be in direct contact with the JASP software developers.\n"
 		"\n"
-		"You can find out more about JASP Services BV at <a href=\"%3\">our website</a>."
+		"You can find out more about JASP Services BV at <a href=\"%4\">our website</a>."
 	)
 	.replace("&", "&amp;").replace(", ", ",&nbsp;").replace("\n", "<br>")
 	.arg(	contactUrlFeatures()
@@ -531,7 +531,7 @@ void MainWindow::makeConnections()
 	connect(_package,				&DataSetPackage::shownFilterChanged,				_filterModel,			&FilterModel::filterChanged,								Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::filtersCountChanged,				_filterModel,			&FilterModel::filterDropDownListChanged						);
 	connect(_package,				&DataSetPackage::runComputedColumn,					_engineSync,			&EngineSync::computeColumn,									Qt::QueuedConnection);
-	connect(_package,				&DataSetPackage::runComputedDataSet,					_engineSync,			&EngineSync::computeDataSet,								Qt::QueuedConnection);
+	connect(_package,				&DataSetPackage::runComputedDataSet,				_engineSync,			&EngineSync::computeDataSet,								Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::checkForDependentAnalyses,			_analyses,				&Analyses::checkForDependentAnalyses);
 	connect(_package,				&DataSetPackage::workspaceEmptyValuesChanged,		_datasetTableModel,		&DataSetTableModel::emptyValuesChanged			);
 
