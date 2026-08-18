@@ -492,7 +492,7 @@ QVariant ColumnModel::headerData(int section, Qt::Orientation orientation, int r
 	if(role == int(dataPkgRoles::columnWidthFallback))
 		return rowWidth();
 	
-	return sourceModel()->headerData(section, orientation, role);
+	return !sourceModel() ? false : sourceModel()->headerData(section, orientation, role);
 }
 
 void ColumnModel::refreshFilteredOut()

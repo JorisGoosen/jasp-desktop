@@ -29,24 +29,26 @@ class FilterModel : public QObject
 public:
 	explicit					FilterModel(QObject * parent = nullptr);
 
-				Filter		*	filter()				const;
+				Filter		*	filter()									const;
 
-				QVariantList	filterDropDownList();
-				QVariantList	filterDropDownAnalysisList();
-				QVariantList	computeFilterDropDownList();
-				bool			hasFilter() const;
+
+				QVariantList	filterDropDownList()						const;
+				QVariantList	filterDropDownAnalysisList()				const;
+				QVariantList	computeFilterDropDownList()					const;
+				bool			hasFilter()									const;
+
 
 	Q_INVOKABLE bool			isJustGeneratedFilter()						const;
 				bool			filterVisible()								const;
 				void			setFilterVisible(bool newFilterVisible);
 				
-				bool			showEasyFilter() const;
+				bool			showEasyFilter()							const;
 				void			setShowEasyFilter(bool newShowEasyFilter);
 				void			reset();
 				
-				QString			currentFilter() const;
-				int				currentFilterId() const;
-				QString			currentFilterTitle() const;
+				QString			currentFilter()								const;
+				int				currentFilterId()							const;
+				QString			currentFilterTitle()						const;
 				void			setCurrentFilterId(int id);
 	Q_INVOKABLE void			renameCurrentFilter(const QString & newName);
 	Q_INVOKABLE void			deleteCurrentFilter();

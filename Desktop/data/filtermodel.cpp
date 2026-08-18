@@ -95,7 +95,7 @@ QVariantList FilterModel::filterDropDownList() const
 	
 	if(DataSetPackage::pkg()->workspace())
 	{
-		out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", "---")});
+		//out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", "---")});
 		
 		for(DataSet * dataSet : DataSetPackage::pkg()->workspace()->dataSets())
 		{
