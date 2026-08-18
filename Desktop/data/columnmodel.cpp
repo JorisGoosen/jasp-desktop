@@ -11,13 +11,13 @@
 
 ColumnModel::ColumnModel() : QIdentityProxyModel(DataSetPackage::pkg())
 {
-	connect(DataSetPackage::pkg(),	&DataSetPackage::shownFilterChanged,		this, &ColumnModel::refreshFilteredOut				);
+	connect(DataSetPackage::pkg(),	&DataSetPackage::shownFilterChanged,			this, &ColumnModel::refreshFilteredOut				);
 
 	connect(DataSetPackage::pkg(),	&DataSetPackage::allFiltersReset,				this, &ColumnModel::allFiltersReset				);
 	
-connect(DataSetPackage::pkg(),	&DataSetPackage::datasetChanged,				this, &ColumnModel::checkCurrentColumn			);
+	connect(DataSetPackage::pkg(),	&DataSetPackage::datasetChanged,				this, &ColumnModel::checkCurrentColumn			);
 	connect(DataSetPackage::pkg(),	&DataSetPackage::workspaceEmptyValuesChanged,	this, &ColumnModel::emptyValuesChanged			);
-	connect(DataSetPackage::pkg(),	&DataSetPackage::chooseColumn,				this, &ColumnModel::setChosenColumn				);
+	connect(DataSetPackage::pkg(),	&DataSetPackage::chooseColumn,					this, &ColumnModel::setChosenColumn				);
 	connect(DataSetPackage::pkg(),	&DataSetPackage::shownDataSetChanged,			this, &ColumnModel::shownDataSetChangedHandler	);
 }
 
@@ -487,6 +487,14 @@ QVariant ColumnModel::data(	const QModelIndex & index, int role) const
 	return QIdentityProxyModel::data(index, role > 0 ? role : int(dataPkgRoles::label));
 }
 
+QVariant ColumnModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+	if(role == int(dataPkgRoles::columnWidthFallback))
+		return rowWidth();
+	
+	return sourceModel()->headerData(section, orientation, role);
+}
+
 void ColumnModel::refreshFilteredOut()
 {
 	JASPTIMER_SCOPE(ColumnModel::refreshFilteredOut);
@@ -731,6 +739,7 @@ void ColumnModel::setRowWidth(double len)
 	
 	_rowWidth = len;
 	emit rowWidthChanged();
+	refresh();
 }
 
 void ColumnModel::refresh()
