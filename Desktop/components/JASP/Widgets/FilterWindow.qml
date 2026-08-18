@@ -60,12 +60,8 @@ FocusScope
 		}
 		clip:			true
 		
-	
-	
-		RowLayout
+		Flickable
 		{
-			id:		filtersTabs
-			z:		2
 			anchors
 			{
 				top:			backgroundFiltersTabs.top
@@ -74,55 +70,74 @@ FocusScope
 				margins:		jaspTheme.generalAnchorMargin
 			}
 			
-			Repeater
+			implicitHeight:		filtersTabs.height
+			height:				filtersTabs.height
+			
+			contentHeight:		filtersTabs.height
+			contentWidth:		filtersTabs.width
+		
+			RowLayout
 			{
-				model:	filterModel.filterDropDownList
-				
-				FilterWindowTabButton
+				id:		filtersTabs
+				z:		2
+				anchors
 				{
-					property string labelText:	modelData["label"]
-					property string valueText:	modelData["value"]
-					text:			doSeparator ? "" : labelText
-					onClicked:		
-					{
-						if(!doSeparator)
-						{
-							filterContainer.askIfChanged(function() { filterModel.currentFilterId = valueText } )
-						}
-						else
-						{
-							filterContainer.askIfChanged(function() {  filterModel.addFilter(labelText) } )
-						}
-					}
-					buttonActive:	!hideButtoness && filterModel.currentFilterId  == valueText
-					showTextField:	buttonActive && filterModel.currentFilter != "DEFAULT_FILTER"
-					doSeparator:	valueText == "---"
-					hideButtoness:	valueText == "-" || valueText == "*"
-					hideButtonCol:	valueText == "*" ? jaspTheme.textEnabled : jaspTheme.textDisabled
-					
-					theButton.color:		doSeparator ||  hideButtoness ? jaspTheme.uiBackground		: theButton.defaultColor
-					theButton.border.width:	doSeparator ||  hideButtoness ? 0							: 1
-					theButton.border.color:	doSeparator ||  hideButtoness ? jaspTheme.buttonBorderColor	: theButton.defaultBorderColor
-					
-					//Component.onCompleted: {
-					//	messages.log("FilterWindowTabButton")
-					//	messages.log( JSON.stringify(modelData ))	
-					//}
-					
+					top:			backgroundFiltersTabs.top
+					left:			backgroundFiltersTabs.left
+					right:			backgroundFiltersTabs.right
+					margins:		jaspTheme.generalAnchorMargin
 				}
-			}
-			
-			//FilterWindowTabButton
-			//{
-			//	id:					addFilterButtonEasy
-			//	iconSource:			jaspTheme.iconPath + "/round_addition.png"
-			//	onClicked:			
-			//	theButton.width:	theButton.height
-			//}
-			
-			Item
-			{
-				Layout.fillWidth: true	
+				
+				Repeater
+				{
+					model:	filterModel.filterDropDownList
+					
+					FilterWindowTabButton
+					{
+						property string labelText:	modelData["label"]
+						property string valueText:	modelData["value"]
+						text:			doSeparator ? "" : labelText
+						onClicked:		
+						{
+							if(!doSeparator)
+							{
+								filterContainer.askIfChanged(function() { filterModel.currentFilterId = valueText } )
+							}
+							else
+							{
+								filterContainer.askIfChanged(function() {  filterModel.addFilter(labelText) } )
+							}
+						}
+						buttonActive:	!hideButtoness && filterModel.currentFilterId  == valueText
+						showTextField:	buttonActive && filterModel.currentFilter != "DEFAULT_FILTER"
+						doSeparator:	valueText == "---"
+						hideButtoness:	valueText == "-" || valueText == "*"
+						hideButtonCol:	valueText == "*" ? jaspTheme.textEnabled : jaspTheme.textDisabled
+						
+						theButton.color:		doSeparator ||  hideButtoness ? jaspTheme.uiBackground		: theButton.defaultColor
+						theButton.border.width:	doSeparator ||  hideButtoness ? 0							: 1
+						theButton.border.color:	doSeparator ||  hideButtoness ? jaspTheme.buttonBorderColor	: theButton.defaultBorderColor
+						
+						//Component.onCompleted: {
+						//	messages.log("FilterWindowTabButton")
+						//	messages.log( JSON.stringify(modelData ))	
+						//}
+						
+					}
+				}
+				
+				//FilterWindowTabButton
+				//{
+				//	id:					addFilterButtonEasy
+				//	iconSource:			jaspTheme.iconPath + "/round_addition.png"
+				//	onClicked:			
+				//	theButton.width:	theButton.height
+				//}
+				
+				Item
+				{
+					Layout.fillWidth: true	
+				}
 			}
 		}
 	}
