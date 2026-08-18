@@ -117,6 +117,7 @@ void sendLogCfg();
 	void			setState(engineState newState);
 
 	const QString	analysisStatus() const;
+	bool			isComputingDataSet(int dataSetId) const { return _lastCompDataSetId == dataSetId && state() == engineState::computeDataSet; }
 
 	float			loadingProgress() const { return _loadingProgress; }
 

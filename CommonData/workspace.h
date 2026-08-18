@@ -16,6 +16,7 @@ class Workspace : public DataSetBaseNode
 	Q_PROPERTY(Column		*	shownColumn			READ shownColumn		WRITE setShownColumn		NOTIFY shownColumnChanged	)
 	Q_PROPERTY(Filter		*	shownFilter			READ shownFilter		WRITE setShownFilter		NOTIFY shownFilterChanged	)
 	Q_PROPERTY(VariableInfo *	varInfo				READ varInfo										CONSTANT					)
+	Q_PROPERTY(QVariantList	inputFilterDropDownList READ inputFilterDropDownList						NOTIFY inputFilterDropDownListChanged	)
 	
 	// Emit signals also in refresh
 	
@@ -56,8 +57,8 @@ public:
 			void					setShownColumn(Column *newShownColumn);
 			void					setShownFilter(Filter * newShownFilter);
 			void					initializeComputedColumns();
-	///True if making 'me' depend on 'target' (as defaultInputDataSetId) would create a cycle among
-	///the computed datasets. Used by DataSet::setDefaultInputDataSetId to refuse loops.
+	///True if making 'me' depend on 'target' (as defaultInputFilterId) would create a cycle among
+	///the computed datasets. Used by DataSet::setDefaultInputFilterId to refuse loops.
 	bool							wouldCreateComputedDataSetLoop(DataSet * me, DataSet * target) const;
 	///True if any cycle exists among computed datasets; fills errorMessage. Used as an anti-livelock
 	///sweep before running the recompute cascade.
@@ -69,11 +70,12 @@ public slots:
 			void					refresh();
 			DataSet				*	createDataSet();
 			Column				*	createComputedColumn(const std::string & name, int dataSetId, int analysisId = -1, columnType type = columnType::unknown, computedColumnType desiredType = computedColumnType::analysis);
-			DataSet				*	createComputedDataSet(const std::string & name, int defaultInputDataSetId, computedColumnType desiredType = computedColumnType::rCode);
+			DataSet				*	createComputedDataSet(const std::string & name, int defaultInputFilterId, computedColumnType desiredType = computedColumnType::rCode);
 			Q_INVOKABLE int						shownDataSetId() const	{ return shownDataSet() ? shownDataSet()->id() : -1; }
 			Q_INVOKABLE int						dataSetIdByName(const QString & name) const		{ DataSet * ds = dataSetByName(fq(name)); return ds ? ds->id() : -1; }
 			Q_INVOKABLE QString					dataSetNameById(int id) const				{ DataSet * ds = dataSetById(id); return ds ? ds->name() : QString(); }
 			Q_INVOKABLE QStringList				dataSetNames() const;
+			QVariantList						inputFilterDropDownList() const;
 			Q_INVOKABLE void					setDataSetComputed(const QString & name, bool computed);
 			void					setShownDataSet(QString	  name);
 			void					setShownDataSet(DataSet * dataSet);
@@ -116,7 +118,7 @@ signals:
 			void					columnsLabelFilteredCountChanged();
 			void					refreshAllAnalyses(Filter * f);
 			void					runComputedColumn(int dataSetid, QString columnName, QString code, enum columnType columnType);
-			void					runComputedDataSet(int dataSetid, QString code, int defaultInputDataSetId);
+			void					runComputedDataSet(int dataSetid, QString code, int defaultInputFilterId);
 			void					sendFilter(			int dataSetID, const QString & generatedFilter, const QString & filter);
 			void					sendFilterByName(	int dataSetID, const QString & name, const QString & module = "*");
 			void					filtersCountChanged();
@@ -125,6 +127,7 @@ void					enableModified();
 			void					checkForDependentAnalyses(Column * column);
 			void					showAnalysis(			int			analysisId);
 			void					emptyValuesChanged();
+			void					inputFilterDropDownListChanged();
 			
 	
 			

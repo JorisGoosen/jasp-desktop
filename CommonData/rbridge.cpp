@@ -655,15 +655,24 @@ extern "C" bool STDCALL rbridge_setColumnDataAndType(const char* columnName, con
 
 extern "C" bool STDCALL rbridge_setDataSetData(const char* datasetName, const char ** columnNames, const int * columnTypes, const char *** columnData, const size_t * columnLengths, size_t colCount)
 {
-	std::vector<std::string>							names(columnNames, columnNames + colCount);
+	std::vector<std::string>							names;
 	std::vector<columnType>								types;
 	std::vector<std::vector<std::string>>				data;
 
 	types.reserve(colCount);
 	data.reserve(colCount);
+	names.reserve(colCount);
 
 	for(size_t i=0; i<colCount; i++)
 	{
+		//The R data.frame's column names are encoded (the user code was encoded before evaluation);
+		//decode them back to the plain names (no type suffix) so the output dataset gets the real
+		//column titles. New/user-authored names are not encodable, so keep them as-is.
+		const std::string & colName = columnNames[i];
+		names.push_back(ColumnEncoder::columnEncoder()->shouldDecode(colName)
+			? ColumnEncoder::columnEncoder()->decode(colName)
+			: colName);
+
 		types.push_back(columnType(columnTypes[i]));
 		data.emplace_back(columnData[i], columnData[i] + columnLengths[i]);
 	}
@@ -680,6 +689,11 @@ void rbridge_memoryCleaning()
 {
 	freeRBridgeColumns();
 	jaspRCPP_purgeGlobalEnvironment();
+}
+
+void rbridge_clearDataSet()
+{
+	rbridge_dataSet = nullptr;
 }
 
 void freeRBridgeColumns()
@@ -925,14 +939,14 @@ std::string rbridge_evalRComputedColumn(const std::string &rCode, const std::str
 	return result;
 }
 
-std::string rbridge_evalRComputedDataSet(const std::string & rCode, const std::string & outputDataSetName)
+std::string rbridge_evalRComputedDataSet(const std::string & rCode, const std::string & outputDataSetName, const std::string & filterToUse)
 {
 	rbridge_dataSet = data_bridge->provideAndUpdateDataSet();
 
 	if(!rbridge_dataSet)
 		return "null";
 
-	computedColumnFilter = "DEFAULT_FILTER";
+	computedColumnFilter = filterToUse.empty() ? DEFAULT_FILTER_NAME : filterToUse;
 
 	rbridge_dataSet->showFilter(computedColumnFilter);
 
@@ -968,7 +982,9 @@ std::string rbridge_evalRComputedDataSet(const std::string & rCode, const std::s
 		}
 		escapedName = out;
 	}
-	std::string setDataSetCode = ".setDataSet('" + escapedName + "', .jaspResult)";
+	//Wrap in toString() because .setDataSet returns an R logical, and
+	//jaspRCPP_parseEvalStringReturn only returns a string result (else "null").
+	std::string setDataSetCode = "toString(.setDataSet('" + escapedName + "', .jaspResult))";
 	std::string result = jaspRCPP_evalComputedDataSet(rCode64.c_str(), setDataSetCode.c_str());
 	jaspRCPP_runScript("detach(data)");	//afterwards we make sure it is detached to avoid superfluous messages and possible clobbering of analyses
 

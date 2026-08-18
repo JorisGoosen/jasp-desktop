@@ -70,7 +70,7 @@ public slots:
 	void		sendFilterByName(	int dataSetId, const QString & name,				const QString & module);
 	void		sendRCode(			int dataSetId, const QString & rCode,				int requestId,					bool whiteListedVersion, QString module);
 	void		computeColumn(		int dataSetId, const QString & columnName,			const QString & computeCode,	columnType columnType);
-	void		computeDataSet(		int dataSetId, const QString & computeCode,			int defaultInputDataSetId);
+	void		computeDataSet(		int dataSetId, const QString & computeCode,			int defaultInputFilterId);
 	void		pauseEngines(bool  unloadData = false);
 	void		stopEngines();
 	void		resumeEngines();

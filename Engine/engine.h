@@ -67,7 +67,7 @@ private:
 
 	void					runAnalysis();
 	void					runComputeColumn(	int dataSet,		const std::string & computeColumnName,	const std::string & computeColumnCode,	columnType computeColumnType	);
-	void					runComputeDataSet(	int dataSet,		const std::string & computeCode,			int defaultInputDataSetId			);
+	void					runComputeDataSet(	int dataSet,		const std::string & computeCode,			int defaultInputFilterId			);
 	void					runDefaultFilter(	int dataSet,		const std::string & filter,				const std::string & generatedFilter,	int filterRequestId				);
 	void 					runFilterByName(	const std::string & name, int dataSet);
 	void					runRCode(			int dataSet,		const std::string & rCode,				int rCodeRequestId,						bool whiteListed				);

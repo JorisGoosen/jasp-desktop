@@ -44,6 +44,11 @@ DataSet::DataSet(Workspace * workspace, int id)
 	if(id == -1)			dbCreate();
 	else if(id > 0)			dbLoad(id);
 	
+	//Make the encoder prefix globally unique (carries the dataset id) so ALL datasets loaded into the
+	//engine can coexist without encoded-name collisions. Must happen after dbCreate/dbLoad set the id.
+	_encoder->_encodePrefix = "JASPColumn_" + std::to_string(_dataSetId) + "_";
+	_encoder->setCurrentNames(getColumnTypesMap()); //regenerate all encoded names with the new prefix
+	
 	_undoStack = new UndoStack(this);
 	
 	connect(this,			&DataSet::datasetChanged,			this,		&DataSet::handleDataSetChanged			);
@@ -643,7 +648,7 @@ void DataSet::dbLoad(int id, std::function<void(float)> progressCallback, Versio
 
 	db().dataSetLoad(_dataSetId, _title, _dataFilePath, _dataFileTimestamp, _description, databaseJson, emptyVals, _revision, _dataFileSynch, _csvDelimiter);
 
-	db().dataSetGetComputedInfo(_dataSetId, _invalidated, _codeType, _rCode, _error, _defaultInputDataSetId);
+	db().dataSetGetComputedInfo(_dataSetId, _invalidated, _codeType, _rCode, _error, _defaultInputFilterId);
 
 	Json::Reader().parse(databaseJson,	_database);
 
@@ -973,9 +978,9 @@ void DataSet::runComputedColumn(QString columnName, QString code, columnType col
 	emit _workspace->runComputedColumn(id(), columnName, code, columnType);
 }
 
-void DataSet::runComputedDataset(QString code, int defaultInputDataSetId)
+void DataSet::runComputedDataset(QString code, int defaultInputFilterId)
 {
-	emit _workspace->runComputedDataSet(id(), code, defaultInputDataSetId);
+	emit _workspace->runComputedDataSet(id(), code, defaultInputFilterId);
 }
 
 std::string DataSet::rCodeStripped() const
@@ -983,9 +988,15 @@ std::string DataSet::rCodeStripped() const
 	return stringUtils::stripRComments(_rCode);
 }
 
+Filter * DataSet::defaultInputFilter() const
+{
+	return _workspace ? _workspace->filterById(_defaultInputFilterId) : nullptr;
+}
+
 DataSet * DataSet::defaultInputDataSet() const
 {
-	return _workspace ? _workspace->dataSetById(_defaultInputDataSetId) : nullptr;
+	Filter * input = defaultInputFilter();
+	return input ? input->data() : nullptr;
 }
 
 bool DataSet::iShouldBeSentAgain()
@@ -1005,7 +1016,7 @@ void DataSet::dbUpdateComputedDatasetStuff()
 {
 	std::string oldError = _error;
 
-	db().dataSetSetComputedInfo(_dataSetId, _invalidated, _codeType, _rCode, _error, _defaultInputDataSetId);
+	db().dataSetSetComputedInfo(_dataSetId, _invalidated, _codeType, _rCode, _error, _defaultInputFilterId);
 	incRevision();
 
 	if(oldError != _error)
@@ -1043,7 +1054,7 @@ void DataSet::setInvalidated(bool invalidated)
 		return;
 
 	_invalidated = invalidated;
-	db().dataSetSetComputedInfo(_dataSetId, _invalidated, _codeType, _rCode, _error, _defaultInputDataSetId);
+	db().dataSetSetComputedInfo(_dataSetId, _invalidated, _codeType, _rCode, _error, _defaultInputFilterId);
 	incRevision();
 	emit invalidatedChanged();
 }
@@ -1064,25 +1075,26 @@ bool DataSet::setError(const std::string & error)
 	return true;
 }
 
-bool DataSet::setDefaultInputDataSetId(int defaultInputDataSetId)
+bool DataSet::setDefaultInputFilterId(int defaultInputFilterId)
 {
-	if(defaultInputDataSetId == _defaultInputDataSetId)
+	if(defaultInputFilterId == _defaultInputFilterId)
 		return true;
 
 	//Refuse to introduce a cycle (A <- B <- A) between computed datasets: a computed dataset must
-	//not depend on an input that (transitively) depends on it, or the recompute cascade would livelock.
-	if(_workspace && defaultInputDataSetId >= 0)
+	//not depend on an input filter that (transitively) depends on it, or the recompute cascade would livelock.
+	if(_workspace && defaultInputFilterId >= 0)
 	{
-		DataSet * target = _workspace->dataSetById(defaultInputDataSetId);
+		Filter * inputFilter = _workspace->filterById(defaultInputFilterId);
+		DataSet * target = inputFilter ? inputFilter->data() : nullptr;
 		if (target && _workspace->wouldCreateComputedDataSetLoop(this, target))
 		{
-			setError("The dataset chosen as input for this computed dataset would create a loop between the computed datasets.");
+			setError("The filter chosen as input for this computed dataset would create a loop between the computed datasets.");
 			dbUpdateComputedDatasetStuff();
 			return false;
 		}
 	}
 
-	_defaultInputDataSetId = defaultInputDataSetId;
+	_defaultInputFilterId = defaultInputFilterId;
 	invalidate();
 
 	//Clear any previously surfaced input-loop error: picking a valid input must not leave the earlier
@@ -1091,7 +1103,7 @@ bool DataSet::setDefaultInputDataSetId(int defaultInputDataSetId)
 	if(!_error.empty())
 		setError("");
 
-	emit defaultInputDataSetChanged();
+	emit defaultInputFilterChanged();
 
 	//Changing only the *input* must still trigger a recompute (setRCode no-ops when the code text is
 	//unchanged, so input-only edits used to leave the computed dataset stuck invalidated).
@@ -1107,15 +1119,16 @@ bool DataSet::tryAndRunComputedDataset()
 	if(code.empty())
 		return false;
 
-	runComputedDataset(tq(code), _defaultInputDataSetId);
+	runComputedDataset(tq(code), _defaultInputFilterId);
 
 	return true;
 }
 
 void DataSet::checkForDependentDatasetsToBeSent(bool refreshMe)
 {
+	//Invalidate this (if refreshMe) and every computed dataset that reads from this one.
 	for(DataSet * ds : _workspace->dataSets())
-		if(ds->isComputed() && ((ds == this && refreshMe) || ds->defaultInputDataSetId() == id()))
+		if(ds->isComputed() && ((ds == this && refreshMe) || ds->defaultInputDataSet() == this))
 			ds->invalidate();
 
 	//Anti-livelock guard: if the computed-dataset dependency graph somehow contains a cycle (e.g.
@@ -1130,9 +1143,14 @@ void DataSet::checkForDependentDatasetsToBeSent(bool refreshMe)
 		return;
 	}
 
+	//Re-dispatch only the datasets that were invalidated above (plus dependents). Crucially, this must
+	//NOT re-dispatch `this` when refreshMe is false: handleDataSetChanged() (which runs on any data
+	//reload, including the reload right after a successful compute) calls this with refreshMe=false and
+	//`this` still invalidated at that moment; re-dispatching it there would recompute it forever.
 	for(DataSet * ds : _workspace->dataSets())
-		if(ds->isComputed() && ds->iShouldBeSentAgain())
-			ds->tryAndRunComputedDataset();
+		if(ds->isComputed() && ((ds == this && refreshMe) || ds->defaultInputDataSet() == this))
+			if(ds->iShouldBeSentAgain())
+				ds->tryAndRunComputedDataset();
 }
 
 Columns DataSet::computedColumns() const

@@ -9,6 +9,7 @@
 #include <QTimer>
 
 class Column;
+class DataSet;
 
 /// 
 /// This pipes through the label-information for a single column from DataSetPackage
@@ -218,6 +219,7 @@ private:
 	std::set<QString>		_selected;
 	int						_lastSelected		= -1;
 	Column				*	_column				= nullptr;
+	DataSet				*	_shownDataSet		= nullptr;
 	int						_columnIndex		= -1;
 };
 

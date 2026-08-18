@@ -247,7 +247,7 @@ void TestEngine::testComputedDataSet()
 
 	QVERIFY2(spy.isValid(),	"Spy is broken!");
 
-	DataSet * computed = Workspace::singleton()->createComputedDataSet("computedOut", _data->id());
+	DataSet * computed = Workspace::singleton()->createComputedDataSet("computedOut", _data->defaultFilter()->id());
 
 	QVERIFY2(computed,						"Could not create computed dataset!");
 	QVERIFY2(computed->isComputed(),		"Computed dataset should be marked as computed!");
@@ -287,7 +287,7 @@ void TestEngine::testComputedDataSet()
 
 	//A second computed dataset that uses the first one as its input must wait for it to be valid,
 	//then cascade.
-	DataSet * computed2 = Workspace::singleton()->createComputedDataSet("computedOut2", computed->id());
+	DataSet * computed2 = Workspace::singleton()->createComputedDataSet("computedOut2", computed->defaultFilter()->id());
 
 	QVERIFY2(computed2,						"Could not create dependent computed dataset!");
 	computed2->setRCode("data.frame(z = x * 2)");
@@ -317,6 +317,20 @@ void TestEngine::testComputedDataSet()
 
 	QVERIFY2(!computed2->invalidated(),	"Dependent computed dataset should be validated after its input ran");
 	QVERIFY2(computed2->column("z"),		"Dependent computed dataset should have the produced column z");
+
+	//Regression guard against the infinite-recompute loop: once every computed dataset is validated,
+	//no further compute requests may be dispatched. Drain the spy, let the event loop settle, and
+	//assert that no new computeDataSetSucceeded arrives — a dataset that kept recomputing would keep
+	//emitting here and this comparison would fail.
+	while(spy.count() > 0)
+		spy.takeFirst();
+
+	QElapsedTimer	settleTimer;
+	settleTimer.start();
+	while(settleTimer.elapsed() < 2000)
+		QCoreApplication::processEvents();
+
+	QCOMPARE(spy.count(), 0);
 
 	disconnect(DataSetPackage::pkg(), &DataSetPackage::runComputedDataSet, _engines, &EngineSync::computeDataSet);
 }

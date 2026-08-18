@@ -56,11 +56,11 @@ struct RComputeColumnStore : public RScriptStore
 /// For when a whole computed dataset must be (re)computed
 struct RComputeDataSetStore : public RScriptStore
 {
-	RComputeDataSetStore(int dataSetId, QString computeCode, int defaultInputDataSetId) 
-		: RScriptStore(dataSetId, -1, computeCode, "", engineState::computeDataSet), _defaultInputDataSetId(defaultInputDataSetId)
+	RComputeDataSetStore(int dataSetId, QString computeCode, int defaultInputFilterId) 
+		: RScriptStore(dataSetId, -1, computeCode, "", engineState::computeDataSet), _defaultInputFilterId(defaultInputFilterId)
 	{ }
 
-	int			_defaultInputDataSetId;
+	int			_defaultInputFilterId;
 };
 
 #endif // RSCRIPTSTORE_H

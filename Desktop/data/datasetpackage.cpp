@@ -620,6 +620,12 @@ void DataSetPackage::setManualEdits(bool newManualEdits)
 
 	_manualEdits = newManualEdits;
 
+	//Editing the data by hand means the external data file no longer reflects the workspace: disable
+	//external synching for the (shown) dataset so the next file change doesn't silently revert the
+	//user's edits. This is per-dataset now (the shown dataset owns its own DataSetSyncer).
+	if(_manualEdits && dataSet())
+		dataSet()->setDataFileSynch(false);
+
 	emit manualEditsChanged();
 }
 

@@ -248,7 +248,7 @@ void ListModelTermsAvailable::addAssignedModel(ListModelAssignedInterface *assig
 	connect(this,			&ListModelTermsAvailable::availableTermsReset,			assignedModel,				&ListModelAssignedInterface::availableTermsResetHandler	);
 	connect(this,			&ListModelTermsAvailable::variableNamesChanged,			assignedModel,				&ListModelAssignedInterface::sourceVariableNamesChanged	);
 	connect(this,			&ListModelTermsAvailable::variablesChanged,				assignedModel,				&ListModelAssignedInterface::sourceVariablesChanged		);
-	connect(this,			&ListModelTermsAvailable::sourceVariableTypeChanged,	assignedModel,				&ListModelAssignedInterface::sourceVariableTypeChanged	);
+	connect(this,			&ListModelTermsAvailable::variableTypeChanged,		assignedModel,				&ListModelAssignedInterface::sourceVariableTypeChanged	);
 	connect(this,			&ListModelTermsAvailable::labelsChanged,				assignedModel,				&ListModelAssignedInterface::sourceLabelsChanged		);
 	connect(this,			&ListModelTermsAvailable::labelsReordered,				assignedModel,				&ListModelAssignedInterface::sourceLabelsReordered		);
 	connect(this,			&ListModelTermsAvailable::filterChanged,				assignedModel,				&ListModelAssignedInterface::filterChanged				);

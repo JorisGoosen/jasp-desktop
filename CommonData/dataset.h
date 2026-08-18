@@ -50,7 +50,7 @@ class DataSet : public DataSetBaseNode
 	Q_PROPERTY(computedColumnType	codeType			READ codeType				WRITE setCodeType			NOTIFY codeTypeChanged			)
 	Q_PROPERTY(bool			invalidated				READ invalidated										NOTIFY invalidatedChanged			)
 	Q_PROPERTY(QString		error					READ errorQ					WRITE setErrorQ				NOTIFY errorChanged				)
-	Q_PROPERTY(int			defaultInputDataSetId	READ defaultInputDataSetId	WRITE setDefaultInputDataSetId	NOTIFY defaultInputDataSetChanged	)
+	Q_PROPERTY(int			defaultInputFilterId	READ defaultInputFilterId	WRITE setDefaultInputFilterId	NOTIFY defaultInputFilterChanged	)
 	// Emit signals also in refresh
 	
 	friend Column;
@@ -191,7 +191,7 @@ void			setDataFile( const std::string & dataFilePath, long timestamp)	{ _dataFil
 			void			incRevision() override;
 			bool			checkForUpdates(std::function<void(float)> progressCallback = [](float){});
 			void			runComputedColumn(QString columnName, QString code, enum columnType columnType);
-			void			runComputedDataset(QString code, int defaultInputDataSetId);
+			void			runComputedDataset(QString code, int defaultInputFilterId);
 
 			Columns				computedColumns() const;
 
@@ -207,7 +207,8 @@ void			setDataFile( const std::string & dataFilePath, long timestamp)	{ _dataFil
 			std::string				rCodeStripped()				const;
 			QString					errorQ()					const	{ return tq(_error);														}
 			std::string				error()						const	{ return _error;															}
-			int						defaultInputDataSetId()		const	{ return _defaultInputDataSetId;										}
+			int						defaultInputFilterId()		const	{ return _defaultInputFilterId;											}
+			Filter				*	defaultInputFilter()		const;
 			DataSet				*	defaultInputDataSet()		const;
 			bool					setRCode(				const std::string	& rCode);
 			bool					setRCodeQ(				const QString		& rCode)	{ return setRCode(fq(rCode));						}
@@ -215,7 +216,7 @@ void			setDataFile( const std::string & dataFilePath, long timestamp)	{ _dataFil
 			void					setInvalidated(			bool invalidated);
 			bool					setError(				const std::string	& error);
 			bool					setErrorQ(				const QString		& error)				{ return setError(fq(error));			}
-			bool					setDefaultInputDataSetId(int defaultInputDataSetId);
+			bool					setDefaultInputFilterId(int defaultInputFilterId);
 			bool					tryAndRunComputedDataset();
 			bool					iShouldBeSentAgain();
 			void					checkForDependentDatasetsToBeSent(bool refreshMe = false);
@@ -277,7 +278,7 @@ void			filterRemoved(Filter * f);
 			void			codeTypeChanged();
 			void			invalidatedChanged();
 			void			errorChanged();
-			void			defaultInputDataSetChanged();
+			void			defaultInputFilterChanged();
 			
 public slots:
 			void			refresh(bool doColumnsToo = true);
@@ -351,7 +352,7 @@ private:
 	UndoStack			*	_undoStack				= nullptr;
 	computedColumnType		_codeType				= computedColumnType::notComputed;
 	bool					_invalidated			= false;
-	int						_defaultInputDataSetId	= -1;
+	int						_defaultInputFilterId	= -1;
 	std::string				_rCode,
 							_error;
 };

@@ -43,8 +43,12 @@ Filter::Filter(DataSet * data, const std::string & name, bool createIfMissing)
 	else if(createIfMissing)						dbCreate();
 	else											throw std::runtime_error("Filter by name '" + _name + "' but it doesnt exist and createIfMissing=false!\nAre you sure this filter should exist?");
 	
+	//Named filters intentionally do NOT create a LabelFilterGenerator: it is only needed for the
+	//(single, unnamed) default filter, which owns the label-level filtering generated from the
+	//label checkboxes. Named filters carry their own rFilter/constructorR instead, so _labelGen
+	//stays null for them and setConstructorR() below falls back to DEFAULT_FILTER_GEN.
 	//_labelGen			= new LabelFilterGenerator(this);
-	
+
 	connectionCreation();
 }
 
@@ -267,6 +271,11 @@ bool Filter::checkForUpdates()
 
 void Filter::setName(const std::string &name)
 {
+	//"---" is the separator sentinel used by the filter dropdown lists; a real filter must never take
+	//this name or it would be indistinguishable from a separator (and unselectable/ambiguous there).
+	if(name == "---")
+		return;
+
 	bool	wasChange	=_name != name;
 			_name		= name;
 

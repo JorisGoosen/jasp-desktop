@@ -402,6 +402,11 @@ void EngineRepresentation::processFilterReply(Json::Value & json)
 
 	int requestId = json.get("requestId", -1).asInt();
 
+	//Ignore stale replies (from a request that has since been superseded): only the reply for the
+	//most recently dispatched filter may update the filter state.
+	if(requestId != _lastRequestId)
+		return;
+
 	//The engine signals a failed filter run by including an "error" field; surface it rather than
 	//treating the run as a success (the old code emitted processFilterErrorMsg for this).
 	const std::string & error = json.get("error", "").asString();
@@ -410,8 +415,7 @@ void EngineRepresentation::processFilterReply(Json::Value & json)
 	else
 		emit filterDone(requestId);
 
-	if(requestId == _lastRequestId)
-		Workspace::singleton()->checkForUpdates();
+	Workspace::singleton()->checkForUpdates();
 }
 
 void EngineRepresentation::processFilterByNameReply(Json::Value &json)
@@ -522,7 +526,13 @@ void EngineRepresentation::processComputeColumnReply(Json::Value & json)
 	std::string columnName	= json.get("columnName", "").asString();
 	std::string warning		= json.get("error", "").asString();
 	std::string result		= json.get("result", "").asString();
-	bool		dataChanged	= result == "TRUE";
+
+	//The engine reports success as the stringified R logical "TRUE"; anything else (explicit "fail",
+	//or "FALSE" from a failed .setColumnData* without an R error) is a failure, so surface a non-empty
+	//warning so the coordinator leaves the column invalidated instead of silently validating it.
+	bool dataChanged = result == "TRUE";
+	if(!dataChanged && warning.empty())
+		warning = "The computed column could not be produced by the engine.";
 
 	emit computeColumnSucceeded(_lastCompColDataSet, tq(columnName), tq(warning), dataChanged);
 	emit checkDataSetForUpdates();
@@ -537,7 +547,7 @@ void EngineRepresentation::runScriptOnProcess(RComputeDataSetStore * computeData
 	json["typeRequest"]				= engineStateToString(_engineState);
 	json["computeCode"]				= computeDataSetStore->script.toStdString();
 	json["dataSetId"]				= computeDataSetStore->dataSetId;
-	json["defaultInputDataSetId"]	= computeDataSetStore->_defaultInputDataSetId;
+	json["defaultInputFilterId"]	= computeDataSetStore->_defaultInputFilterId;
 
 	_lastCompDataSetId				= computeDataSetStore->dataSetId;
 
@@ -552,7 +562,13 @@ void EngineRepresentation::processComputeDataSetReply(Json::Value & json)
 
 	std::string warning		= json.get("error", "").asString();
 	std::string result		= json.get("result", "").asString();
-	bool		dataChanged	= result == "TRUE";
+
+	//The engine reports success as the stringified R logical "TRUE"; anything else (explicit "fail",
+	//or "FALSE" from a failed .setDataSet without an R error) is a failure, so surface a non-empty
+	//warning so the coordinator leaves the dataset invalidated instead of silently validating it.
+	bool dataChanged = result == "TRUE";
+	if(!dataChanged && warning.empty())
+		warning = "The computed dataset could not be produced by the engine.";
 
 	emit computeDataSetSucceeded(_lastCompDataSetId, tq(warning), dataChanged);
 	emit checkDataSetForUpdates();

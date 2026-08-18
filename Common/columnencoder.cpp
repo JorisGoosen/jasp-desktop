@@ -41,14 +41,15 @@ bool							ColumnEncoder::_encodedNamesInvalidated		= true;
 
 ColumnEncoder * ColumnEncoder::columnEncoder()
 {
+	//This static getter is the ENGINE-ONLY entry point for the R bridge encoder context, set by
+	//setCurrentEncoder() in provideAndUpdateDataSet. Desktop code must use provider->columnEncoder()
+	//(the dataset's own encoder) which reads from the instance directly.
 	if(!_currentEncoder)
 	{
 		if(!_columnEncoder)
 			_columnEncoder = new ColumnEncoder();
-
 		_currentEncoder = _columnEncoder;
 	}
-
 	return _currentEncoder;
 }
 
@@ -148,28 +149,28 @@ std::string ColumnEncoder::encode(const std::string &in)
 {
 	if(in == "") return "";
 
-	if(encodingMap().count(in) == 0)
+	if(_encodingMap.count(in) == 0)
 		throw std::runtime_error("Trying to encode columnName but '" + in + "' is not a columnName!");
 
-	return encodingMap().at(in);
+	return _encodingMap.at(in);
 }
 
 std::string ColumnEncoder::decode(const std::string &in)
 {
 	if(in == "") return "";
 
-	if(decodingMap().count(in) == 0)
+	if(_decodingMap.count(in) == 0)
 		throw std::runtime_error("Trying to decode columnName but '" + in + "' is not an encoded columnName!");
 
-	return decodingMap().at(in);
+	return _decodingMap.at(in);
 }
 
 columnType ColumnEncoder::columnTypeFromEncoded(const std::string &in)
 {
-	if(in == "" || decodingTypes().count(in) == 0) 
+	if(in == "" || _decodingTypes.count(in) == 0) 
 		return columnType::unknown;
 	
-	return decodingTypes().at(in);
+	return _decodingTypes.at(in);
 }
 
 void ColumnEncoder::setCurrentNames(const std::vector<std::string> & names, bool generateTypesEncoding)
@@ -236,6 +237,7 @@ void ColumnEncoder::setCurrentNames(const colTypeMap & namesWithTypes)
 	}
 	
 	sortVectorBigToSmall(_originalNames);
+	sortVectorBigToSmall(_encodedNames);
 	invalidateAll();
 }
 
@@ -262,6 +264,8 @@ const ColumnEncoder::colMap	&	ColumnEncoder::encodingMap()
 {
 	static ColumnEncoder::colMap map;
 
+	bool rebuilt = false;
+
 	if(_encodingMapInvalidated)
 	{
 		map = columnEncoder()->_encodingMap;
@@ -273,8 +277,10 @@ const ColumnEncoder::colMap	&	ColumnEncoder::encodingMap()
 						map[keyVal.first] = keyVal.second;
 
 		_encodingMapInvalidated = false;
+		rebuilt = true;
 	}
 
+	(void)rebuilt;
 	return map;
 }
 
@@ -438,11 +444,11 @@ std::string	ColumnEncoder::replaceAll(std::string text, const std::map<std::stri
 
 	return text;
 }
-
 std::string ColumnEncoder::encodeRScript(std::string text, std::set<std::string> * columnNamesFound)
 {
-	return encodeRScript(text, encodingMap(), originalNames(), columnNamesFound);
+	return encodeRScript(text, _encodingMap, _originalNames, columnNamesFound);
 }
+
 
 /*!
  * \brief Replace column names with encoded column names.
@@ -460,7 +466,7 @@ std::string ColumnEncoder::encodeRScript(std::string text, std::map<std::string,
 	
 	for(auto& prefix : prefixes) {
 		stringset columnNamesFound;
-		text = encodeRScript(text, encodingMap(), originalNames(), &columnNamesFound, prefix);
+		text = encodeRScript(text, _encodingMap, _originalNames, &columnNamesFound, prefix);
 		prefixedColumnsFound.insert({prefix, columnNamesFound});
 	}
 	return text;
