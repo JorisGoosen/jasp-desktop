@@ -119,12 +119,12 @@ signals:
 			void variablesChanged(QStringList columns);
 			void selectedItemsChanged();
 			void keyTermChanged(const QString& oldName, const QString& newName);
-			void variableTypeChanged(Term term);
+			void variableTypeChanged(QString columnName, columnType columnType);
 
 public slots:	
 	virtual void sourceTermsReset();
 	virtual void sourceVariableNamesChanged(QMap<QString, QString> map);
-	virtual bool sourceVariableTypeChanged(Term sourceTerm);
+	virtual bool sourceVariableTypeChanged(QString columnName, columnType colType);
 	virtual bool sourceLabelsChanged(QString columnName, QMap<QString, QString> changedLabels = {});
 	virtual bool sourceLabelsReordered(QString columnName);
 	virtual void sourceVariablesChanged(QStringList columns);

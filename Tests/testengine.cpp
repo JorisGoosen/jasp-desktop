@@ -374,8 +374,7 @@ void TestEngine::testVariableInfoPerFilter()
 	QCOMPARE_GE(ds->rowCount(),		6);
 
 	int rowCount		 = ds->rowCount();
-	int half			 = rowCount / 2;
-	
+
 	//NB: vector<bool>(count, value) — use the full row-count, every row passes.
 	ds->defaultFilter()->setFilterVector(boolvec(rowCount, true));
 	QCOMPARE(ds->defaultFilter()->filteredRowCount(), rowCount);
@@ -395,8 +394,10 @@ void TestEngine::testVariableInfoPerFilter()
 	for(int i=1; i<rowCount; i+=2)	oddFilter[i] = true;
 	QVERIFY2(filterOdd->setFilterVector(oddFilter),		"Could not set filter vector for filterOdd");
 
-	QCOMPARE(filterEven->filteredRowCount(), half);
-	QCOMPARE(filterOdd->filteredRowCount(),  half);
+	//evenFilter sets rows 0,2,... (ceil(rowCount/2)), oddFilter rows 1,3,... (floor(rowCount/2)).
+	//The fixture has an odd row count here, so the two counts differ; don't assume both equal rowCount/2.
+	QCOMPARE(filterEven->filteredRowCount(), int((rowCount + 1) / 2));
+	QCOMPARE(filterOdd->filteredRowCount(),  int(rowCount / 2));
 
 	VariableInfo info;
 	info.setProvider(filterEven);

@@ -127,7 +127,7 @@ void Analysis::initAnalysis()
 	{
 		//Make sure we have some sort of filter if the one the analysis is using is deleted
 		_filterDataSet = _filter->data();
-		connect(_filter->data(), &DataSet::filterRemoved, this, &Analysis::filterRemoved);
+		connect(_filter->data(), &DataSet::filterRemoved, this, &Analysis::filterRemoved, Qt::UniqueConnection);
 	}
 }
 
@@ -136,9 +136,14 @@ void Analysis::filterRemoved(Filter * f)
 {
 	if(_filter == f) 
 	{
-		_filter = _filterDataSet->defaultFilter();
+		_filter = _filterDataSet ? _filterDataSet->defaultFilter() : nullptr;
 		refresh();
 	}
+}
+
+DataSet * Analysis::dataSet() const
+{
+	return _filterDataSet;
 }
 
 Analysis::~Analysis()

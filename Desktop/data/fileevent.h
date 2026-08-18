@@ -20,10 +20,12 @@
 
 #include <QObject>
 #include <QString>
+#include <QPointer>
 #include "json/json.h"
 #include "utilenums.h"
 
 class Exporter;
+class DataSet;
 
 ///
 /// This class is used to handle the communication to and from the asynchronous loading/synching/saving file processes.
@@ -48,6 +50,8 @@ public:
 	void				setDatabase(	const Json::Value & dbInfo);
 	void				setSyncDataSetId(int id)				{ _syncDataSetId = id; }
 	int					syncDataSetId()							const { return _syncDataSetId; }
+	void				setSyncDataSet(DataSet * ds);		///< defined in fileevent.cpp (needs a complete DataSet)
+	DataSet		*		syncDataSet()							const;
 	void				setFileType(	Utils::FileType	type)			{ _type = type; }
 	void				setTmp(			bool saveTmp)					{ _tmp  = saveTmp; }
 
@@ -86,6 +90,7 @@ private slots:
 private:
 	FileMode			_operation;
 	int					_syncDataSetId		= -1;
+	QPointer<QObject>	_syncDataSet;		///< Auto-nulls if the target dataset is destroyed before the sync runs
 	Utils::FileType		_type			= Utils::FileType::unknown;
 	QString				_path,
 						_osfPath		= "", //To show the user a friendly path

@@ -184,7 +184,6 @@ signals:
 				void				sendFilter(			int dataSetID, const QString & generatedFilter, const QString & filter);
 				void				sendFilterByName(	int dataSetID, const QString & name, const QString & module);
 				void				filtersCountChanged();
-				DataSet *			createDataSetBlockingQueued();
 				void				workspaceChanged();
 				void				runComputedColumn(int dataSetId, QString columnName, QString code, columnType columnType);
 				void				runComputedDataSet(int dataSetId, QString code, int defaultInputDataSetId);

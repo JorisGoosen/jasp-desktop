@@ -84,7 +84,7 @@ public:
 	void				imagesRewritten(	const Json::Value & results);
 	void				rewriteImages();
 	bool				isColumnFreeOrMine(const QString & columnName)				const override;
-	DataSet		*		dataSet()													const override { return _filterDataSet; }
+	DataSet		*		dataSet()													const override;
 
 	void				setRFile(const std::string &file)							{ _rfile = file;								}
 	void				setRSources(const Json::Value& rSources);

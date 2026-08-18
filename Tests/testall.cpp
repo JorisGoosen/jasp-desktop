@@ -467,14 +467,17 @@ void TestAll::testSyncerFileChangeEmitsSignal()
 	f.write("x,y\n3,4\n");
 	f.close();
 
-	// The file watcher signal is async; we check via syncRequired spy
+	// The file watcher signal is async; we check via syncRequired spy.
+	// Signal args: (int dataSetId, DataSet * dataSet, QString locator, QString extension, QString databaseJson).
 	QSignalSpy spy(&syncer, &DataSetSyncer::syncRequired);
 	QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 5000);
 
 	QList<QVariant> args = spy.takeFirst();
+	QCOMPARE(args.size(), 5); //(dataSetId, DataSet*, locator, extension, databaseJson)
 	QCOMPARE(args[0].toInt(), ds->id());
-	QCOMPARE(args[1].toString(), testFilePath);
-	QVERIFY(args[3].toString().isEmpty());
+	QCOMPARE(args[2].toString(), testFilePath);
+	QCOMPARE(args[3].toString(), QString("csv")); //extension
+	QVERIFY(args[4].toString().isEmpty()); //databaseJson
 
 	syncer.stopFileSyncing();
 }

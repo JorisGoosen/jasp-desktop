@@ -132,8 +132,9 @@ private:
 	std::map<int,DataSet*>			_dataSets;
 	DataSet						*	_shownDataSet			= nullptr;
 	VariableInfo				*	_varInfo				= nullptr;
-bool							_showRSyntax			= false,
-									_dataMode				= false;
+	bool							_showRSyntax			= false,
+									_dataMode				= false,
+									_inRefresh				= false; //instance flag (not static): works across Workspace instances
 	static Workspace			*	_singleton;
 
 };

@@ -68,7 +68,7 @@ public:
 	static void			stripResults(Json::Value& val);
 
 	Analysis	*	createFromJaspFileEntry(Json::Value analysisData, RibbonModel* ribbonModel);
-	Analysis	*	create(const Json::Value & analysisData, Modules::AnalysisEntry * analysisEntry, size_t id, Analysis::Status status = Analysis::Empty, bool notifyAll = true, const std::string & title = "", const Version & loadedVersion = "", const Json::Value & options = Json::nullValue, std::string filter="DEFAULT_FILTER");
+	Analysis	*	create(const Json::Value & analysisData, Modules::AnalysisEntry * analysisEntry, size_t id, Analysis::Status status = Analysis::Empty, bool notifyAll = true, const std::string & title = "", const Version & loadedVersion = "", const Json::Value & options = Json::nullValue);
 	Analysis	*	create(Modules::AnalysisEntry * analysisEntry)													{ return create(Json::nullValue, analysisEntry, _nextId++);						}
 	Analysis	*	create(Modules::AnalysisEntry * analysisEntry, const Json::Value & options);
 

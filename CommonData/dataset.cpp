@@ -512,7 +512,7 @@ void DataSet::setDataFileAndTimeStamp(const std::string &dataFilePath, long time
 	bool isChange		= _dataFilePath	!= dataFilePath || _dataFileTimestamp	!= timestamp;
 	_dataFileTimestamp	= timestamp;		
 	_dataFilePath		= dataFilePath;
-	dbUpdate(); 
+	if(isChange) dbUpdate(); 
 	
 	if(isChange)
 	{
@@ -525,7 +525,7 @@ void DataSet::setDataFile(const std::string &dataFilePath)
 { 
 	bool isChange	= _dataFilePath	!= dataFilePath;
 	_dataFilePath	= dataFilePath;
-	dbUpdate(); 
+	if(isChange) dbUpdate(); 
 	
 	if(isChange)
 		emit dataFileChanged();
@@ -535,7 +535,7 @@ void DataSet::setDataTimestamp(long timestamp)
 { 
 	bool isChange		= _dataFileTimestamp	!= timestamp;
 	_dataFileTimestamp	= timestamp;		
-	dbUpdate(); 
+	if(isChange) dbUpdate(); 
 	
 	if(isChange)
 		emit dataTimestampChanged();
@@ -546,7 +546,7 @@ void DataSet::setDatabaseJson(const Json::Value & databaseJson)
 
 	bool isChange	= _database	!= databaseJson;
 	_database	= databaseJson;
-	dbUpdate(); 
+	if(isChange) dbUpdate(); 
 	
 	if(isChange)
 		emit databaseJsonChanged(); 
@@ -556,7 +556,7 @@ void DataSet::setDataFileSynch(bool synchronizing)
 { 
 	bool isChange	= _dataFileSynch	!= synchronizing;
 	_dataFileSynch	= synchronizing;	
-	dbUpdate(); 
+	if(isChange) dbUpdate(); 
 	
 	if(isChange)
 		emit dataFileChanged();
@@ -882,7 +882,7 @@ bool DataSet::checkForUpdates(std::function<void(float)> progressCallback)
 		
 		colsRemoved = stringvec(prevCols.begin(), prevCols.end());
 		
-		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, newColumns, rowCountChanged);
+		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, rowCountChanged, newColumns);
 		
 		refresh();
 		
@@ -960,7 +960,7 @@ bool DataSet::checkForUpdates(std::function<void(float)> progressCallback)
 				delete f;
 		}
 		
-		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, newColumns, rowCountChanged);
+		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, rowCountChanged, newColumns);
 		
 		refresh();
 
@@ -1056,6 +1056,11 @@ bool DataSet::setError(const std::string & error)
 	_error = error;
 	dbUpdateComputedDatasetStuff();
 
+	//dbUpdateComputedDatasetStuff() snapshots oldError *after* we already changed _error, so it can't
+	//detect this change itself: emit explicitly (mirrors Column::setError) so QML's `error` binding
+	//gets notified that a computed dataset failed.
+	emit errorChanged();
+
 	return true;
 }
 
@@ -1079,8 +1084,18 @@ bool DataSet::setDefaultInputDataSetId(int defaultInputDataSetId)
 
 	_defaultInputDataSetId = defaultInputDataSetId;
 	invalidate();
+
+	//Clear any previously surfaced input-loop error: picking a valid input must not leave the earlier
+	//"would create a loop" error persisting.
 	dbUpdateComputedDatasetStuff();
+	if(!_error.empty())
+		setError("");
+
 	emit defaultInputDataSetChanged();
+
+	//Changing only the *input* must still trigger a recompute (setRCode no-ops when the code text is
+	//unchanged, so input-only edits used to leave the computed dataset stuck invalidated).
+	checkForDependentDatasetsToBeSent(true);
 
 	return true;
 }
@@ -1137,7 +1152,6 @@ void DataSet::loadOldComputedColumnsJson(const Json::Value &json)
 
 	for(const Json::Value & colJson : json)
 	{
-		Log::log() << "Old computed column: " << colJson.toStyledString() << std::endl;
 		if (!colJson.isObject() || colJson["error"].asString().rfind("The engine crashed", 0) == 0) continue;
 
 		const std::string name = colJson["name"].asString();
@@ -1657,7 +1671,7 @@ bool DataSet::insertColumns(int column, int count, const QModelIndex &)
 	strstrmap		changeNameColumns;
 	stringvec		missingColumns;
 
-	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), true, false);
+	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), false, true);
 
 	_encoder->setCurrentNames(getColumnNames());
 
@@ -1685,7 +1699,7 @@ bool DataSet::removeColumns(int column, int count, const QModelIndex &)
 
 	endRemoveColumns();
 
-	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), false, true);
+	emit datasetChanged(_dataSetId, tq(changed), tq(missingColumns), tq(changeNameColumns), false, false);
 
 	_encoder->setCurrentNames(getColumnNames());
 

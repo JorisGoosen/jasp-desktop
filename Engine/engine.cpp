@@ -193,7 +193,8 @@ void Engine::beIdle(bool newlyIdle)
 			});
 			
 			_engineState = engineState::idle;
-			sendEngineResumed();
+			sendEngineResumed(true); //A background reload did push loading-progress to ~1.0; signal it so
+			                          //the desktop resets its loading bar (justReloadedData=true) instead of staying stuck.
 			lastCheckTime = Utils::currentSeconds();
 		}
 	}
@@ -326,7 +327,7 @@ void Engine::runFilterByName(const std::string & name, int dataSetId)
 	
 	if(!_workspace || !_workspace->dataSetById(dataSetId) || !_workspace->dataSetById(dataSetId)->showFilter(name))
 	{
-		sendFilterByNameDone(name, dataSetId, "No workspace (" + std::to_string(reinterpret_cast<uint64_t>(_workspace)) + " or filter in it found)!");
+		sendFilterByNameDone(name, dataSetId, "No workspace or filter in it found!");
 		_engineState = engineState::idle;
 		
 		return;
@@ -479,7 +480,8 @@ void Engine::runRCode(int dataSetId, const std::string & rCode, int rCodeRequest
 
 void Engine::runRCodeCommander(int dataSetId, std::string rCode)
 {
-    bool thereIsSomeData = provideAndUpdateDataSet(dataSetId) && provideAndUpdateDataSet(dataSetId)->rowCount();
+    DataSet * thereIsSomeDataDs = provideAndUpdateDataSet(dataSetId);
+    bool thereIsSomeData = thereIsSomeDataDs && thereIsSomeDataDs->rowCount();
 
 
 	static const std::string rCmdDataName = "data", rCmdFiltered = "filteredData";
@@ -625,7 +627,18 @@ void Engine::runComputeDataSet(int dataSetId, const std::string & computeCode, i
 
 	//The "shown" dataset during a computed-dataset run is the input that the R code reads from;
 	//the output (the computed dataset itself) is written to by name via .setDataSet.
-	int inputId = defaultInputDataSetId != -1 ? defaultInputDataSetId : dataSetId;
+	//A computed dataset that evaluates R code must read from an *input* dataset; without one
+	//(-1) it must not silently compute from its own (previous) output as though it were its input.
+	if(defaultInputDataSetId == -1)
+	{
+		computeDataSetResponse["result"]	= "fail";
+		computeDataSetResponse["error"]		= "This computed dataset has no input dataset selected; choose an input dataset before computing it.";
+		sendString(computeDataSetResponse);
+		_engineState = engineState::idle;
+		return;
+	}
+
+	int inputId = defaultInputDataSetId;
 
 	if(provideAndUpdateDataSet(inputId))
 	{
@@ -828,8 +841,10 @@ void Engine::runAnalysis()
 
 	_analysisColsTypes = ColumnEncoder::encodeColumnNamesinOptions(encodedAnalysisOptions, _analysisPreloadData);
 
-	if(dataset && !_analysisFilter.empty())
-		dataset->showFilter(_analysisFilter);
+	if(dataset && !_analysisFilter.empty() && dataset->filter(_analysisFilter))
+		dataset->showFilter(_analysisFilter); //Only show a filter that actually exists: showFilter(name)
+		                                        //creates a new filter for an unknown name, which would
+		                                        //silently fabricate one from a stale analysis request.
 	
 	_analysisResultsString = rbridge_runModuleCall(_analysisName, _analysisTitle, _dynamicModuleCall, _analysisDataKey,
 								encodedAnalysisOptions.toStyledString(), _analysisStateKey, _analysisId, _analysisRevision, 

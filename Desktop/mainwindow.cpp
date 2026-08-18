@@ -496,10 +496,12 @@ void MainWindow::makeConnections()
 	connect(_package,				&DataSetPackage::shownDataSetChanged,				_datasetTableModel,		&DataSetTableModel::handleDataSetChange						);
 	connect(_package,				&DataSetPackage::shownDataSetChanged,				this,					&MainWindow::updateShownFilterInQmlContext					);
 	//Every dataset (not just the currently shown one) must trigger its own reload when it needs to sync.
-	//We rely on Qt's automatic disconnect when a DataSet is destroyed, so nothing needs explicit tracking.
+	//Qt::UniqueConnection is required because wireDataSetSync is re-run on every shownDataSetChanged
+	//(emitted from both setShownDataSet and refresh) and on dataSetCreated; without it the same
+	//(sender, signal) -> loader connection would accumulate, fanning one logical sync out to many reloads.
 	auto wireDataSetSync = [this](DataSet * ds) {
 		if(ds)
-			connect(ds, &DataSet::syncRequired, _loader, &AsyncLoader::onSyncRequired, Qt::QueuedConnection);
+			connect(ds, &DataSet::syncRequired, _loader, &AsyncLoader::onSyncRequired, static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection));
 	};
 	//Datasets that already exist (e.g. loaded from a file/db before connections were made) and any created later.
 	wireDataSetSync(_package->workspace() ? _package->workspace()->shownDataSet() : nullptr);
@@ -509,7 +511,7 @@ void MainWindow::makeConnections()
 	connect(_package,				&DataSetPackage::dataSetCreated,					this,					[this](int dataSetId){
 		DataSet * ds = _package->workspace() ? _package->workspace()->dataSetById(dataSetId) : nullptr;
 		if(ds)
-			connect(ds, &DataSet::syncRequired, _loader, &AsyncLoader::onSyncRequired, Qt::QueuedConnection);
+			connect(ds, &DataSet::syncRequired, _loader, &AsyncLoader::onSyncRequired, static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection));
 	});
 	//The worker thread finishes the sync; route the completion back to the dataset's syncer on the main
 	//thread (via a QueuedConnection, since syncCompleted is emitted from the loader worker) so its
@@ -1892,7 +1894,7 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 					QString dataFilePath = QString::fromStdString(_package->dataSet()->dataFilePath());
 					if (QFileInfo::exists(dataFilePath))
 					{
-						uint currentDataFileTimestamp = QFileInfo(dataFilePath).lastModified().toSecsSinceEpoch();
+						qint64 currentDataFileTimestamp = QFileInfo(dataFilePath).lastModified().toSecsSinceEpoch();
 						if (currentDataFileTimestamp > _package->dataSet()->dataFileTimestamp())
 						{
 							setCheckAutomaticSync(true);

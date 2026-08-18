@@ -140,7 +140,7 @@ public:
 	void setHasLabels(bool newHasLabels);
 	
 public slots:
-	void 		filteredOutChangedHandler(int col);
+	void 		refreshFilteredOut();
 	void 		setVisible(bool visible);
 	void 		setChosenColumn(int chosenColumn);
 	void 		setChosenColumnByName(const QString chosenName, int colIndex=-1);

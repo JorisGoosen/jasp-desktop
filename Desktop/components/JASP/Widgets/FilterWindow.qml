@@ -85,11 +85,6 @@ FocusScope
 					text:			doSeparator ? "" : labelText
 					onClicked:		
 					{
-						messages.log("FilterWindowTabButton with text: '" + labelText + "' is clicked!")
-						messages.log(filterModel.currentFilterId)
-						messages.log(valueText)
-						messages.log(JSON.stringify(modelData))
-						
 						if(!doSeparator)
 						{
 							filterContainer.askIfChanged(function() { filterModel.currentFilterId = valueText } )

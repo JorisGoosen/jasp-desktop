@@ -182,12 +182,14 @@ void ListModelTermsAvailable::sourceVariablesChanged(QStringList columns)
 		emit variablesChanged(changedColumns);
 }
 
-bool ListModelTermsAvailable::sourceVariableTypeChanged(Term term)
+bool ListModelTermsAvailable::sourceVariableTypeChanged(QString columnName, columnType colType)
 {
-	bool change = ListModelDraggable::sourceVariableTypeChanged(term);
+	Term term(columnName, colType);
+
+	bool change = ListModelDraggable::sourceVariableTypeChanged(columnName, colType);
 
 	if (!change && _allTerms.containsValue(term))
-		emit variableTypeChanged(term);
+		emit variableTypeChanged(columnName, colType);
 
 	return change;
 }

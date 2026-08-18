@@ -190,7 +190,7 @@ int DatabaseInterface::dataSetInsert(const std::string & dataFilePath, long data
 	std::function<void(sqlite3_stmt *stmt)>  prepare = [&](sqlite3_stmt *stmt)
 	{
 		sqlite3_bind_text(stmt, 1, dataFilePath.c_str(),	dataFilePath.length(),		SQLITE_TRANSIENT);
-		sqlite3_bind_int(stmt,	2, dataFileTimestamp);
+		sqlite3_bind_int64(stmt,	2, dataFileTimestamp);
 		sqlite3_bind_text(stmt, 3, description.c_str(),		description.length(),		SQLITE_TRANSIENT);
 		sqlite3_bind_text(stmt, 4, databaseJson.c_str(),	databaseJson.length(),		SQLITE_TRANSIENT);
 		sqlite3_bind_text(stmt, 5, emptyValuesJson.c_str(), emptyValuesJson.length(),	SQLITE_TRANSIENT);
@@ -233,7 +233,7 @@ void DatabaseInterface::dataSetUpdate(int dataSetId,	const std::string & title, 
 	{
 		sqlite3_bind_text(stmt, 1, dataFilePath.c_str(),	dataFilePath.length(),		SQLITE_TRANSIENT);
 		sqlite3_bind_text(stmt, 2, title.c_str(),			title.length(),				SQLITE_TRANSIENT);
-		sqlite3_bind_int(stmt,	3, dataFileTimestamp);
+		sqlite3_bind_int64(stmt, 3, dataFileTimestamp);
 		sqlite3_bind_text(stmt, 4, description.c_str(),		description.length(),		SQLITE_TRANSIENT);
 		sqlite3_bind_text(stmt, 5, databaseJson.c_str(),	databaseJson.length(),		SQLITE_TRANSIENT);
 		sqlite3_bind_text(stmt, 6, emptyValuesJson.c_str(), emptyValuesJson.length(),	SQLITE_TRANSIENT);
@@ -264,7 +264,7 @@ void DatabaseInterface::dataSetLoad(int dataSetId, std::string & title, std::str
 
 		dataFilePath		= _wrap_sqlite3_column_text(stmt, 0);
 		title				= _wrap_sqlite3_column_text(stmt, 1);
-		dataFileTimestamp	= sqlite3_column_int(	stmt, 2);
+		dataFileTimestamp	= sqlite3_column_int64(stmt, 2);
 		description			= _wrap_sqlite3_column_text(stmt, 3);
 		databaseJson		= _wrap_sqlite3_column_text(stmt, 4);
 		emptyValuesJson		= _wrap_sqlite3_column_text(stmt, 5);
@@ -863,16 +863,16 @@ void DatabaseInterface::dataSetBatchedValuesLoad(DataSet *data, std::function<vo
 	//Set up some functions and such for concurrent loading:
 	std::mutex	progressMutex;
 	size_t 		totalRows	= data->rowCount(), // for progressbar
-				progressRow = 0;
+				progressRow = 0,
+				lastRow		= 0;
 	
 	
-	std::function<void(float)> localProgressBar = [&progressMutex, &progressRow, &totalRows, &progressCallback](int rows)
+	std::function<void(float)> localProgressBar = [&progressMutex, &progressRow, &totalRows, &lastRow, &progressCallback](int rows)
 	{
 		progressMutex.lock();
 		progressRow += rows;
 		
 		const size_t rowPercent = std::max(1, int(totalRows) / 100);
-		static size_t lastRow = 0;
 		
 		if(progressRow - lastRow > rowPercent || progressRow >= totalRows - 1)
 		{
@@ -999,21 +999,21 @@ void DatabaseInterface::dataSetBatchedLabelsLoad(DataSet *data, std::function<vo
 	//Set up some functions and such for concurrent loading:
 	std::mutex	progressMutex;
 	size_t 		totalCols	= data->columnCount(), // for progressbar
-				progressCol = 0;
+				progressCol = 0,
+				lastCol		= 0;
 	
 	
-	std::function<void(float)> localProgressBar = [&progressMutex, &progressCol, &totalCols, &progressCallback](int rows)
+	std::function<void(float)> localProgressBar = [&progressMutex, &progressCol, &totalCols, &lastCol, &progressCallback](int rows)
 	{
 		progressMutex.lock();
 		progressCol += rows;
 		
 		const size_t rowPercent = std::max(1, int(totalCols) / 100);
-		static size_t lastRow = 0;
 		
-		if(progressCol - lastRow > rowPercent || progressCol >= totalCols - 1)
+		if(progressCol - lastCol > rowPercent || progressCol >= totalCols - 1)
 		{
 			progressCallback(float(progressCol) / float(totalCols));
-			lastRow = progressCol;
+			lastCol = progressCol;
 		}
 		progressMutex.unlock();
 	};

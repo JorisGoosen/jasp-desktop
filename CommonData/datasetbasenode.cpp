@@ -67,8 +67,11 @@ int DataSetBaseNode::nestedRevision()
 {
 	int rev = _revision;
 	
+	//Sum (not product) of child revisions: a multiplier is fragile as a change detector because any
+	//child whose revision is 0 forces the whole product to 0, masking parent-only changes. A
+	//monotonic sum strictly increases whenever the node or any descendant's revision is incremented.
 	for(DataSetBaseNode * child : _nodesBelow)
-		rev *= child->nestedRevision();
+		rev += child->nestedRevision();
 	
 	return rev;
 }

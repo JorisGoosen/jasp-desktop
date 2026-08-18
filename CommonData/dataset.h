@@ -91,7 +91,7 @@ public:
 			
 	const	std::string &	dataFilePath()			const { return _dataFilePath;			}
 			bool			dataFileCanHaveLabels() const;
-			int				dataFileTimestamp()		const { return _dataFileTimestamp;		}
+			qint64			dataFileTimestamp()		const { return _dataFileTimestamp;		}
 	const	Json::Value &	databaseJson()			const { return _database;				}
 			bool			writeBatchedToDB()		const { return _writeBatchedToDBDepth;		}
 			bool			filterExists(const std::string & name) { return filter(name); }
@@ -267,7 +267,7 @@ signals:
 void			filterRemoved(Filter * f);
 			void			synchronizeStart(DataSet *);
 			void			synchronizeDo(DataSet *);
-			void			syncRequired(int dataSetId, QString locator, QString extension, QString databaseJson);
+			void			syncRequired(int dataSetId, DataSet * dataSet, QString locator, QString extension, QString databaseJson);
 			void			labelChanged(		const Column * column, QString originalLabel, QString newLabel);
 			QString			askPassword(	QString title, QString message);
 			bool			showYesNo(		QString title, QString message);
