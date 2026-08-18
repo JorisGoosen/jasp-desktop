@@ -23,7 +23,12 @@
 RSyntaxHighlighter::RSyntaxHighlighter(QTextDocument *parent, VariableInfo * varInfo)
 	: QSyntaxHighlighter(parent), VariableInfoConsumer(varInfo), _textDocument(parent)
 {
-	setVarInfo(varInfo ? varInfo : Workspace::singleton()->shownFilter()->varInfo());
+	if(!varInfo)
+	{
+		DataSet * shownDataSet = Workspace::singleton() ? Workspace::singleton()->shownDataSet() : nullptr;
+		varInfo = shownDataSet ? shownDataSet->shownFilter()->varInfo() : nullptr; //may stay null if no live dataset: VariableInfoConsumer guards on it
+	}
+	setVarInfo(varInfo);
 
 	HighlightingRule rule;
 	// most of these R regExp are copied from: https://github.com/PrismJS/prism/blob/master/components/prism-r.js

@@ -80,7 +80,7 @@ int	DataSetProvider::columnCount(const QModelIndex &) const
 
 QVariant DataSetProvider::data(const QModelIndex & index, int role) const
 {
-	Column * column = index.row() > columnCount() ? nullptr : dataSet()->column(index.row());
+	Column * column = index.row() >= rowCount() ? nullptr : dataSet()->column(index.row());
 
 	if (!column)						return QVariant();
 	else if (role == Qt::DisplayRole)	return tq(column->name());

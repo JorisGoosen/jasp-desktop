@@ -686,10 +686,10 @@ void Analysis::runScriptRequestDone(const QString& result, const QString& contro
 		_analysisForm->runScriptRequestDone(result, controlName, hasError);
 }
 
-void Analysis::filterByNameDone(int dataSetID, const QString &name, const QString &error)
+void Analysis::filterByNameDone(int dataSetId, const QString &name, const QString &error)
 {
 	if (_analysisForm)
-		_analysisForm->filterByNameDone(dataSetID, name, error);
+		_analysisForm->filterByNameDone(dataSetId, name, error);
 	
 	if(name == filter()->name())
 		run();

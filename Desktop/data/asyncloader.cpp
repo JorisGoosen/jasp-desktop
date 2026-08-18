@@ -52,6 +52,41 @@ AsyncLoader::AsyncLoader(QObject *parent) :
 	connect(this, &AsyncLoader::beginSave, this, &AsyncLoader::saveTask, Qt::QueuedConnection);
 }
 
+void AsyncLoader::onSyncRequired(int dataSetId, const QString & locator, const QString & extension, const QString & databaseJson)
+{
+	//Owns the per-dataset sync lifecycle on behalf of the (data) syncer. This is invoked from the
+	//main thread via a queued connection; the actual reload runs on our worker thread through the
+	//normal FileEvent/loadTask mechanism below.
+	if(locator.isEmpty())
+	{
+		emit syncCompleted(dataSetId, false); //Nothing sensible to sync; release the syncer guard we set on the request launch.
+		return;
+	}
+
+	DataSet * dataSet = DataSetPackage::pkg() && DataSetPackage::pkg()->workspace()
+			? DataSetPackage::pkg()->workspace()->dataSetById(dataSetId)
+			: nullptr;
+
+	//If the dataset is gone (e.g. destroyed during the queued hand-off) there is nothing to sync.
+	if(!dataSet)
+	{
+		emit syncCompleted(dataSetId, false);
+		return;
+	}
+
+	FileEvent * event = new FileEvent(this, FileEvent::FileSyncData);
+	event->setSyncDataSetId(dataSetId);
+	event->setPath(locator);
+	if(!databaseJson.isEmpty())
+	{
+		Json::Value db;
+		Json::Reader().parse(databaseJson.toStdString(), db);
+		event->setDatabase(db);
+	}
+
+	io(event);
+}
+
 void AsyncLoader::io(FileEvent *event)
 {
 	switch (event->operation())
@@ -237,15 +272,19 @@ void AsyncLoader::loadPackage(QString id)
 
 			DataSetPackage * pkg = DataSetPackage::pkg();
 
+			//For a FileSyncData event the reload targets a specific (possibly non-shown) dataset; keep that
+			//reference so the bookkeeping below (and the syncer lifecycle completion) apply to the right one.
+			DataSet * syncTargetDataSet = nullptr;
+
 			if (_currentEvent->operation() == FileEvent::FileSyncData)
 			{
-				DataSet * dataSet = pkg->workspace()->dataSetById(_currentEvent->syncDataSetId());
-				if(!dataSet)
+				syncTargetDataSet = pkg->workspace()->dataSetById(_currentEvent->syncDataSetId());
+				if(!syncTargetDataSet)
 				{
 					_currentEvent->setComplete(false, "No dataset found for sync");
 					return;
 				}
-				_loader.syncPackage(path, extension, dataSet, boost::bind(&AsyncLoader::progressHandler, this, _1));
+				_loader.syncPackage(path, extension, syncTargetDataSet, boost::bind(&AsyncLoader::progressHandler, this, _1));
 
 				_currentEvent->setComplete();
 			}
@@ -257,28 +296,36 @@ void AsyncLoader::loadPackage(QString id)
 			if (dataNode != nullptr && calcMD5 != dataNode->md5().toLower())
 				throw LoaderException("The security check of the downloaded file has failed.\n\nLoading has been cancelled due to an MD5 mismatch.");
 
-			pkg->setInitialMD5(fq(calcMD5));
-
-			if (dataNode != nullptr)
+			//Timestamp/databaseJson bookkeeping applies to whichever dataset was reloaded (the target for a sync).
+			DataSet * bookkeepingDataSet = syncTargetDataSet ? syncTargetDataSet : pkg->dataSet();
+			if (bookkeepingDataSet)
 			{
-				pkg->setId(fq(dataNode->nodeId()));
-				_currentEvent->setPath(dataNode->path());
+				pkg->setInitialMD5(fq(calcMD5));
+
+				if (dataNode != nullptr)
+				{
+					pkg->setId(fq(dataNode->nodeId()));
+					_currentEvent->setPath(dataNode->path());
+				}
+				else
+					pkg->setId(path);
+
+				if (_currentEvent->type() != Utils::FileType::jasp)
+				{
+					QFileInfo fileInfo(_currentEvent->path());
+					long timestamp = fileInfo.isFile() ? fileInfo.lastModified().toSecsSinceEpoch() : 0;
+
+					bookkeepingDataSet->setDataFileAndTimeStamp(_currentEvent->path().toStdString(), timestamp);
+					bookkeepingDataSet->setDatabaseJson(_currentEvent->database());
+				}
+
+				pkg->setFileReadOnly(_currentEvent->isReadOnly());
+				_currentEvent->setDataFilePath(QString::fromStdString(bookkeepingDataSet->dataFilePath()));
 			}
-			else
-				pkg->setId(path);
-
-			if (_currentEvent->type() != Utils::FileType::jasp)
-			{
-				QFileInfo fileInfo(_currentEvent->path());
-				long timestamp = fileInfo.isFile() ? fileInfo.lastModified().toSecsSinceEpoch() : 0;
-
-				pkg->dataSet()->setDataFileAndTimeStamp(_currentEvent->path().toStdString(), timestamp);
-				pkg->dataSet()->setDatabaseJson(_currentEvent->database());
-			}
-
-			pkg->setFileReadOnly(_currentEvent->isReadOnly());
-			_currentEvent->setDataFilePath(QString::fromStdString(pkg->dataSet()->dataFilePath()));
 			_currentEvent->setComplete();
+
+			if(syncTargetDataSet)
+				emit syncCompleted(_currentEvent->syncDataSetId(), _currentEvent->isSuccessful());
 
 			if (dataNode != nullptr)
 				_odm->deleteActionDataNode(id);

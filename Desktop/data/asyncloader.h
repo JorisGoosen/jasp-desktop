@@ -59,6 +59,10 @@ signals:
 	void progress(QString status, int progress);
 	void beginFileUpload(QString nodePath, QString sourcePath);
 	bool checkDoSync();
+	void syncCompleted(int dataSetId, bool success);
+
+public slots:
+	void onSyncRequired(int dataSetId, const QString & locator, const QString & extension, const QString & databaseJson);
 
 private slots:
 	void loadTask(FileEvent *event);

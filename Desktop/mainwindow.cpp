@@ -495,9 +495,28 @@ void MainWindow::makeConnections()
 	connect(_package,				&DataSetPackage::sendFilterByName,					_engineSync,			&EngineSync::sendFilterByName								);
 	connect(_package,				&DataSetPackage::shownDataSetChanged,				_datasetTableModel,		&DataSetTableModel::handleDataSetChange						);
 	connect(_package,				&DataSetPackage::shownDataSetChanged,				this,					&MainWindow::updateShownFilterInQmlContext					);
-	connect(_package,				&DataSetPackage::shownDataSetChanged,				this, [&](DataSet * ds) {
+	//Every dataset (not just the currently shown one) must trigger its own reload when it needs to sync.
+	//We rely on Qt's automatic disconnect when a DataSet is destroyed, so nothing needs explicit tracking.
+	auto wireDataSetSync = [this](DataSet * ds) {
 		if(ds)
-			connect(ds, &DataSet::syncRequired, _fileMenu, &FileMenu::handleSyncRequired);
+			connect(ds, &DataSet::syncRequired, _loader, &AsyncLoader::onSyncRequired, Qt::QueuedConnection);
+	};
+	//Datasets that already exist (e.g. loaded from a file/db before connections were made) and any created later.
+	wireDataSetSync(_package->workspace() ? _package->workspace()->shownDataSet() : nullptr);
+	for(DataSet * ds : _package->workspace() ? _package->workspace()->dataSets() : DataSets())
+		wireDataSetSync(ds);
+	connect(_package,				&DataSetPackage::shownDataSetChanged,				this,					[wireDataSetSync](DataSet * ds){ wireDataSetSync(ds); });
+	connect(_package,				&DataSetPackage::dataSetCreated,					this,					[this](int dataSetId){
+		DataSet * ds = _package->workspace() ? _package->workspace()->dataSetById(dataSetId) : nullptr;
+		if(ds)
+			connect(ds, &DataSet::syncRequired, _loader, &AsyncLoader::onSyncRequired, Qt::QueuedConnection);
+	});
+	//The worker thread finishes the sync; route the completion back to the dataset's syncer on the main thread
+	//so its re-entrancy guard (_isSyncing) is always released for whichever dataset syncs.
+	connect(_loader,				&AsyncLoader::syncCompleted,						this,					[this](int dataSetId, bool success){
+		DataSet * ds = _package->workspace() ? _package->workspace()->dataSetById(dataSetId) : nullptr;
+		if(ds)
+			ds->syncer().setSyncingResult(success);
 	});
 	connect(_package,				&DataSetPackage::shownFilterChanged,				this,					&MainWindow::updateShownFilterInQmlContext					);
 	connect(_package,				&DataSetPackage::shownFilterChanged,				_filterModel,			&FilterModel::filterChanged,								Qt::QueuedConnection);
@@ -1995,6 +2014,19 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 		if(!event->path().endsWith(".pdf") && _preferences->currentThemeName() != "lightTheme")
 			_resultsJsInterface->setThemeCss(_preferences->currentThemeName());
 	}
+	else if (event->operation() == FileEvent::FileSyncData)
+		notifyDataSetSyncCompleted(event);
+}
+
+
+void MainWindow::notifyDataSetSyncCompleted(FileEvent *event)
+{
+	if(!_package || !_package->workspace())
+		return;
+
+	DataSet * ds = _package->workspace()->dataSetById(event->syncDataSetId());
+	if(ds)
+		ds->syncer().setSyncingResult(event->isSuccessful());
 }
 
 

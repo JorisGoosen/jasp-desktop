@@ -32,9 +32,9 @@
 class EngineSync;
 
 ///
-/// DataSetPackage is a utility class that should probably have been called Workspace
+/// DataSetPackage is the Desktop-side wrapper around a Workspace (the multi-dataset model in CommonData).
 ///
-/// It handles loading and creation of DataSet(Q) which handles interaction with the database via itself and the other DataSetBaseNodes
+/// It handles loading and creation of DataSets, which handle interaction with the database via themselves and the other DataSetBaseNodes
 /// 
 class DataSetPackage : public QObject
 {
@@ -179,6 +179,8 @@ signals:
 				void				makeAnAutoSave();
 				void				shownDataSetChanged(DataSet * dataSet);
 				void				shownFilterChanged();
+				void				dataSetCreated(int dataSetId);
+				void				dataSetRemoved(int dataSetId);
 				void				sendFilter(			int dataSetID, const QString & generatedFilter, const QString & filter);
 				void				sendFilterByName(	int dataSetID, const QString & name, const QString & module);
 				void				filtersCountChanged();
@@ -186,7 +188,7 @@ signals:
 				void				workspaceChanged();
 				void				runComputedColumn(int dataSetId, QString columnName, QString code, columnType columnType);
 				void				runComputedDataSet(int dataSetId, QString code, int defaultInputDataSetId);
-				void				filterByNameDone(int dataSetID, const QString &name, const QString &error);
+				void				filterByNameDone(int dataSetId, const QString &name, const QString &error);
 				void				manualEditsChanged();
 				void				checkForDependentAnalyses(Column * column);
 				

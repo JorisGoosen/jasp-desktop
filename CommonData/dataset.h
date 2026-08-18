@@ -193,7 +193,7 @@ void			setDataFile( const std::string & dataFilePath, long timestamp)	{ _dataFil
 			void			runComputedColumn(QString columnName, QString code, enum columnType columnType);
 			void			runComputedDataset(QString code, int defaultInputDataSetId);
 
-			const Columns &	computedColumns() const;
+			Columns				computedColumns() const;
 
 			//Computed-dataset state (a whole DataSet generated from R code), mirroring the per-column state.
 			bool					isComputed()				const	{ return _codeType != computedColumnType::notComputed;									}

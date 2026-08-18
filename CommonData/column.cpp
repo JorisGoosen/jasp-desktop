@@ -3346,7 +3346,7 @@ bool Column::setLabelAllowFilter(int labelRow, bool newAllowValue)
 	if(!atLeastOneRemains) //Do not let the user uncheck every single one because that is useless, the user wants to uncheck row so lets see if there is another one left after that. Empty-value labels do not count: they cannot be "kept filtered in".
 	{
 		if(!label->filterAllows())
-			return true; //The label is already disabled, nothing changes
+			return false; //The label is already disabled, nothing changes
 
 		for(Label * other : labels())
 		{
@@ -3383,12 +3383,20 @@ QList<QVariant> Column::getColumnValuesAsDoubleList()	const
 {
 	QList<QVariant> list;
 
-	for (int id : _ints)
+	//For a labeled column the actual data rows live in _ints (intsId per row); for a no-label
+	//(scale) column the values live directly in _dbls. Return whichever actually stores the data.
+	if(_hasLabels)
 	{
-		Label * l = labelByIntsId(id);
-		list.append(l ? l->originalValueAsDouble() : EmptyValues::missingValueDouble);
+		for (int id : _ints)
+		{
+			Label * l = labelByIntsId(id);
+			list.append(l ? l->originalValueAsDouble() : EmptyValues::missingValueDouble);
+		}
 	}
-	
+	else
+		for (double d : _dbls)
+			list.append(d);
+
 	return list;
 }
 

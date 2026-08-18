@@ -588,7 +588,7 @@ void EngineSync::computeColumn(int dataSetId, const QString & columnName, const 
 	while(copiedWaiting.size() > 0)
 	{
 		RComputeColumnStore * cur = copiedWaiting.front();
-		if(cur->typeScript != engineState::computeColumn || static_cast<RComputeColumnStore*>(cur)->_columnName != columnName)
+		if(cur->typeScript != engineState::computeColumn || cur->dataSetId != dataSetId || static_cast<RComputeColumnStore*>(cur)->_columnName != columnName)
 			_waitingCompCols.push(cur);
 		copiedWaiting.pop();
 	}

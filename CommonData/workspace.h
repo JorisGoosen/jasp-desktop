@@ -64,7 +64,6 @@ public slots:
 			DataSet				*	createDataSet();
 			Column				*	createComputedColumn(const std::string & name, int dataSetId, int analysisId = -1, columnType type = columnType::unknown, computedColumnType desiredType = computedColumnType::analysis);
 			DataSet				*	createComputedDataSet(const std::string & name, int defaultInputDataSetId, computedColumnType desiredType = computedColumnType::rCode);
-			Q_INVOKABLE DataSet				*	createComputedDataSet(const QString & name, int defaultInputDataSetId, const QString & rCode);
 			Q_INVOKABLE int						shownDataSetId() const	{ return shownDataSet() ? shownDataSet()->id() : -1; }
 			Q_INVOKABLE int						dataSetIdByName(const QString & name) const		{ DataSet * ds = dataSetByName(fq(name)); return ds ? ds->id() : -1; }
 			Q_INVOKABLE QString					dataSetNameById(int id) const				{ DataSet * ds = dataSetById(id); return ds ? ds->name() : QString(); }
@@ -83,7 +82,9 @@ public slots:
 			void					initializeComputedDatasets();
 			
 signals:
-			void					filterByNameDone(int dataSetID, const QString & name, const QString & error);
+			void					dataSetCreated(int dataSetId);
+			void					dataSetRemoved(int dataSetId);
+			void					filterByNameDone(int dataSetId, const QString & name, const QString & error);
 			void					dataModeChanged(bool dataMode);
 			void					showRSyntaxChanged(bool showIt);
 			void					shownDataSetChanged(DataSet * dataSet);

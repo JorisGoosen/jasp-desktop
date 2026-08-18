@@ -145,6 +145,9 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 		if(tableHasColumn("DataSets", "showRSyntax"))
 		{
 			int showRSyntax = runStatementsId("SELECT showRSyntax FROM DataSets LIMIT 1;");
+			//Make sure a Workspace row exists, otherwise the UPDATE below would silently touch nothing
+			//and the preserved showRSyntax value would be lost.
+			runStatements("INSERT OR REPLACE INTO Workspace (id) VALUES (1);");
 			runStatements("UPDATE Workspace SET showRSyntax="+std::to_string(showRSyntax)+";");
 			runStatements("ALTER TABLE DataSets  DROP COLUMN showRSyntax;");
 		}
@@ -197,7 +200,6 @@ int DatabaseInterface::dataSetInsert(const std::string & dataFilePath, long data
 		sqlite3_bind_text(stmt, 4, databaseJson.c_str(),	databaseJson.length(),		SQLITE_TRANSIENT);
 		sqlite3_bind_text(stmt, 5, emptyValuesJson.c_str(), emptyValuesJson.length(),	SQLITE_TRANSIENT);
 		sqlite3_bind_int(stmt,	6, dataSynch);
-sqlite3_bind_int(stmt,	6, dataSynch);
 		sqlite3_bind_int(stmt,	7, csvDelimiter);
 	};
 
@@ -249,8 +251,6 @@ void DatabaseInterface::dataSetLoad(int dataSetId, std::string & title, std::str
 		int colCount = sqlite3_column_count(stmt);
 
 		assert(colCount == 9);
-
-assert(colCount == 9);
 
 		dataFilePath		= _wrap_sqlite3_column_text(stmt, 0);
 		title				= _wrap_sqlite3_column_text(stmt, 1);

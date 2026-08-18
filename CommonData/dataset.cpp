@@ -254,21 +254,12 @@ void DataSet::beginBatchedToDB()
 void DataSet::endBatchedToDB(std::function<void(float)> progressCallback, Columns columns)
 {
 	if(columns.size() == 0)
-		columns = _columns;//_changedDuringBatch.size() ? Columns(_changedDuringBatch.begin(), _changedDuringBatch.end()) : _columns;
-	
+		columns = _columns;
+
 	assert(columns.size() != _columns.size() || _writeBatchedToDBDepth);
-	
+
 	if(_writeBatchedToDBDepth > 0)
-	{
-		//lets also write the labels now if they werent yet:
-		//db().labelsWrite(columns, [&progressCallback](float f){ progressCallback(f * 0.75);});
-		//
-		//for(Column * col : columns)
-		//	if(col->batchedLabelDepth())
-		//		col->endBatchedLabelsDB(false);
-	
 		_writeBatchedToDBDepth--;
-	}
 	
 	if(_writeBatchedToDBDepth == 0)
 	{
@@ -353,7 +344,7 @@ void DataSet::columnsReorder(stringvec order)
 void DataSet::columnRefreshed(Column *column)
 {
 	int idx = columnIndex(column);
-	emit dataChanged(index(0, idx), index(rowCount(), idx), roleNames().keys());
+	emit dataChanged(index(0, idx), index(qMax(rowCount() - 1, 0), idx), roleNames().keys());
 }
 
 Column *DataSet::column(const std::string &name)
@@ -1075,11 +1066,9 @@ void DataSet::checkForDependentDatasetsToBeSent(bool refreshMe)
 			ds->tryAndRunComputedDataset();
 }
 
-const Columns & DataSet::computedColumns() const
+Columns DataSet::computedColumns() const
 {
-	static Columns computedColumns;
-
-	computedColumns.clear();
+	Columns computedColumns;
 
 	for(Column * column : _columns)
 		if(column->isComputed())
@@ -1170,6 +1159,10 @@ void DataSet::refresh(bool doColumnsToo)
 		for(Column * c : _columns)
 			c->refresh(false);
 	
+	endResetModel(); 
+
+	//Emit these after the reset completes: they connect into models that may re-query this DataSet,
+	//which must not happen while a reset is still in progress.
 	emit descriptionChanged();
 	emit dataFileChanged();
 	emit databaseJsonChanged();
@@ -1179,8 +1172,6 @@ void DataSet::refresh(bool doColumnsToo)
 	emit shownFilterChanged(this);
 	emit shownColumnChanged();
 	emit titleChanged();
-	
-	endResetModel(); 
 }
 
 void DataSet::runFilters()

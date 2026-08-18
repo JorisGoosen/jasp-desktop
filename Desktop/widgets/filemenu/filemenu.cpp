@@ -310,12 +310,6 @@ void FileMenu::dataSetIOCompleted(FileEvent *event)
 			_OSF->setProcessing(false);
 		}
 	}
-	else if (event->operation() == FileEvent::FileSyncData)
-	{
-		if (event->isSuccessful())		setCurrentDataFile(event->dataFilePath());
-		else
-			Log::log() << "Sync failed: " << event->getLastError().toStdString() << std::endl;
-	}
 	else if (event->operation() == FileEvent::FileClose)
 	{
 		_computer->clearFileName();
@@ -392,28 +386,6 @@ void FileMenu::setSyncFile(FileEvent *event)
 {
 	if (event->isSuccessful())
 		setCurrentDataFile(event->path());
-}
-
-void FileMenu::handleSyncRequired(int dataSetId, const QString &locator, const QString &extension, const QString &databaseJson)
-{
-	Q_UNUSED(extension)
-	if (locator.isEmpty())
-		return;
-
-	if (checkSyncFileExists(locator))
-	{
-		FileEvent *event = new FileEvent(this, FileEvent::FileSyncData);
-		event->setSyncDataSetId(dataSetId);
-		event->setPath(locator);
-		if(!databaseJson.isEmpty())
-		{
-			Json::Value db;
-			Json::Reader().parse(databaseJson.toStdString(), db);
-			event->setDatabase(db);
-		}
-
-		dataSetIORequestHandler(event);
-	}
 }
 
 void FileMenu::analysesExportResults()

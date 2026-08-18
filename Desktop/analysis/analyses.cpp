@@ -629,11 +629,11 @@ void Analyses::rCodeReturned(QString result, int requestId, bool hasError)
 		Log::log()  << "Unknown Returned Rcode request ID " << requestId << std::endl;
 }
 
-void Analyses::filterByNameDone(int dataSetID, QString name, QString error)
+void Analyses::filterByNameDone(int dataSetId, QString name, QString error)
 {
 	applyToAll([&](Analysis * a)
 	{
-		a->filterByNameDone(dataSetID, name, error);
+		a->filterByNameDone(dataSetId, name, error);
 	});
 }
 
@@ -1268,6 +1268,23 @@ void Analyses::registerRpcHandlers()
 		QString module   = QString::fromStdString(params["module"].asString());
 		QString analysis = QString::fromStdString(params["analysis"].asString());
 
+		// Resolve and validate the target dataset up front so we never create (and register) an
+		// analysis and then delete it, which would leave a dangling pointer in the inventory.
+		Filter * bindFilter = nullptr;
+		if (params.isMember("dataSetId"))
+		{
+			Workspace * ws = DataSetPackage::pkg() ? DataSetPackage::pkg()->workspace() : nullptr;
+			DataSet   * ds = ws ? ws->dataSetById(params["dataSetId"].asInt()) : nullptr;
+			if (!ds)
+				return JaspRpcDispatcher::errorResult(
+					"Dataset not found for dataSetId: " + std::to_string(params["dataSetId"].asInt()));
+
+			bindFilter = ds->defaultFilter() ? ds->defaultFilter() : ds->shownFilter();
+			if (!bindFilter)
+				return JaspRpcDispatcher::errorResult(
+					"Dataset has no filter to bind analysis to (dataSetId: " + std::to_string(params["dataSetId"].asInt()) + ")");
+		}
+
 		Analysis* a = Analyses::analyses()->createAnalysis(module, analysis);
 		if (!a)
 			return JaspRpcDispatcher::errorResult(
@@ -1275,25 +1292,8 @@ void Analyses::registerRpcHandlers()
 				"::" + analysis.toStdString());
 
 		// If the caller explicitly targets a dataset, associate the new analysis with it.
-		if (params.isMember("dataSetId"))
-		{
-			Workspace * ws = DataSetPackage::pkg() ? DataSetPackage::pkg()->workspace() : nullptr;
-			DataSet   * ds = ws ? ws->dataSetById(params["dataSetId"].asInt()) : nullptr;
-			if (!ds)
-			{
-				delete a;
-				return JaspRpcDispatcher::errorResult(
-					"Dataset not found for dataSetId: " + std::to_string(params["dataSetId"].asInt()));
-			}
-			if (Filter * f = ds->defaultFilter() ? ds->defaultFilter() : ds->shownFilter())
-				a->setFilterId(f->id());
-			else
-			{
-				delete a;
-				return JaspRpcDispatcher::errorResult(
-					"Dataset has no filter to bind analysis to (dataSetId: " + std::to_string(params["dataSetId"].asInt()) + ")");
-			}
-		}
+		if (bindFilter)
+			a->setFilterId(bindFilter->id());
 
 		// Mark AI-created analyses in the title
 		a->setTitle(a->title() + " (AI)");

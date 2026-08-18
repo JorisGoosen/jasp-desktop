@@ -88,7 +88,7 @@ private:
 	void					removeNonKeepFiles(const Json::Value & filesToKeepValue);
 
 	void					sendAnalysisResults();
-	void					sendFilterByNameDone(	const std::string & name, const std::string & errorMessage);
+	void					sendFilterByNameDone(	const std::string & name, int dataSetId, const std::string & errorMessage);
 	void					sendFilterResult(		int filterRequestId);
 	void					sendFilterError(		int filterRequestId,	const std::string & errorMessage);
 	void					sendRCodeResult(		int rCodeRequestId,		const std::string & rCodeResult);

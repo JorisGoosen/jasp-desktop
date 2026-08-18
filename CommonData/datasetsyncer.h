@@ -26,6 +26,9 @@ public:
 	const Json::Value &		databaseJson()								const { return _databaseJson; }
 
 	void					syncNow();
+	/// Called by the file/database IO machinery once a sync actually completes, so that
+	/// syncingFinished(int,bool) reflects the real end of the sync (not the request launch).
+	void					setSyncingResult(bool success);
 
 signals:
 	void					syncingStarted(int dataSetId);

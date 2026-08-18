@@ -318,11 +318,11 @@ void Engine::receiveFilterByNameMessage(const Json::Value & jsonRequest)
 
 void Engine::runFilterByName(const std::string & name, int dataSetId)
 {
-	provideAndUpdateDataSet();
+	provideAndUpdateDataSet(dataSetId);
 	
 	if(!_workspace || !_workspace->dataSetById(dataSetId) || !_workspace->dataSetById(dataSetId)->showFilter(name))
 	{
-		sendFilterByNameDone(name, "No workspace (" + std::to_string(reinterpret_cast<uint64_t>(_workspace)) + " or filter in it found)!");
+		sendFilterByNameDone(name, dataSetId, "No workspace (" + std::to_string(reinterpret_cast<uint64_t>(_workspace)) + " or filter in it found)!");
 		_engineState = engineState::idle;
 		
 		return;
@@ -355,7 +355,7 @@ void Engine::runFilterByName(const std::string & name, int dataSetId)
 	localFilter->incRevision();
 	DatabaseInterface::singleton()->transactionWriteEnd();
 
-	sendFilterByNameDone(name, RPossibleWarning);
+	sendFilterByNameDone(name, dataSetId, RPossibleWarning);
 
 	_engineState = engineState::idle;
 }
@@ -363,6 +363,13 @@ void Engine::runFilterByName(const std::string & name, int dataSetId)
 void Engine::runFilter(int dataSetId, const std::string & filter, const std::string & generatedFilter, int filterRequestId)
 {
 	DataSet		*	dataSet				= provideAndUpdateDataSet(dataSetId);
+
+	if(!dataSet)
+	{
+		sendFilterError(filterRequestId, "No DataSet found for dataSetId " + std::to_string(dataSetId) + ".");
+		_engineState = engineState::idle;
+		return;
+	}
 	
 	try
 	{		
@@ -422,12 +429,13 @@ void Engine::sendFilterError(int filterRequestId, const std::string & errorMessa
 	sendString(filterResponse);
 }
 
-void Engine::sendFilterByNameDone(const std::string & name, const std::string & errorMessage)
+void Engine::sendFilterByNameDone(const std::string & name, int dataSetId, const std::string & errorMessage)
 {
 	Json::Value filterResponse(Json::objectValue);
 
 	filterResponse["typeRequest"]	= engineStateToString(engineState::filterByName);
 	filterResponse["name"]			= name;
+	filterResponse["dataSetId"]		= dataSetId;
 	filterResponse["errorMessage"]	= errorMessage;
 
 	sendString(filterResponse);
@@ -467,7 +475,7 @@ void Engine::runRCode(int dataSetId, const std::string & rCode, int rCodeRequest
 
 void Engine::runRCodeCommander(int dataSetId, std::string rCode)
 {
-    bool thereIsSomeData = provideAndUpdateDataSet(dataSetId) && provideAndUpdateDataSet()->rowCount();
+    bool thereIsSomeData = provideAndUpdateDataSet(dataSetId) && provideAndUpdateDataSet(dataSetId)->rowCount();
 
 
 	static const std::string rCmdDataName = "data", rCmdFiltered = "filteredData";
@@ -569,13 +577,14 @@ void Engine::runComputeColumn(int dataSetId, const std::string & computeColumnNa
 	computeColumnResponse["typeRequest"]	= engineStateToString(engineState::computeColumn);
 	computeColumnResponse["columnName"]		= computeColumnName;
 	
-    if(provideAndUpdateDataSet(dataSetId))
+    DataSet * compDataSet = provideAndUpdateDataSet(dataSetId);
+    if(compDataSet)
 	{
 		try
 		{
 			std::string computeColumnNameEnc = ColumnEncoder::columnEncoder()->encode(computeColumnName);
 			
-			Column * compCol = _workspace->dataSetById(dataSetId)->column(computeColumnName);
+			Column * compCol = compDataSet->column(computeColumnName);
 			
 			std::string useThisFilter				= compCol ? compCol->computeFilter() : "",
 						computeColumnResultStr		= rbridge_evalRComputedColumn(
@@ -744,7 +753,7 @@ void Engine::receiveAnalysisMessage(const Json::Value & jsonRequest)
 		_analysisName			= jsonRequest.get("name",				Json::nullValue).asString();
 		_analysisTitle			= jsonRequest.get("title",				Json::nullValue).asString();
 		_analysisFilter			= jsonRequest.get("filter",				"DEFAULT_FILTER").asString();
-		_analysisDataSetId		= jsonRequest["dataSetId"].asInt();
+		_analysisDataSetId		= jsonRequest.get("dataSetId",			-1).asInt();
 		_analysisDataKey		= jsonRequest.get("dataKey",			Json::nullValue).toStyledString();
 		_analysisResultsMeta	= jsonRequest.get("resultsMeta",		Json::nullValue).toStyledString();
 		_analysisStateKey		= jsonRequest.get("stateKey",			Json::nullValue).toStyledString();
@@ -987,7 +996,8 @@ void Engine::stopEngine()
 	case engineState::analysis:			_analysisStatus = Status::aborted;		break;
 	case engineState::filter:
 	case engineState::filterByName:
-	case engineState::computeColumn:	throw std::runtime_error("Unexpected data synch during " + engineStateToString(_engineState) + " somehow, you should not expect to see this exception ever.");
+	case engineState::computeColumn:
+	case engineState::computeDataSet:	throw std::runtime_error("Unexpected data synch during " + engineStateToString(_engineState) + " somehow, you should not expect to see this exception ever.");
 	};
 
 	_engineState = engineState::stopped;
@@ -1016,7 +1026,8 @@ void Engine::pauseEngine(const Json::Value & json)
 	case engineState::analysis:			_analysisStatus = Status::aborted;		break;
 	case engineState::filter:
 	case engineState::filterByName:
-	case engineState::computeColumn:	throw std::runtime_error("Unexpected data synch during " + engineStateToString(_engineState) + " somehow, you should not expect to see this exception ever.");
+	case engineState::computeColumn:
+	case engineState::computeDataSet:	throw std::runtime_error("Unexpected data synch during " + engineStateToString(_engineState) + " somehow, you should not expect to see this exception ever.");
 	};
 
 	_engineState = engineState::paused;

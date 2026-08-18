@@ -948,8 +948,27 @@ std::string rbridge_evalRComputedDataSet(const std::string & rCode, const std::s
 	rbridge_setupRCodeEnv(rowCount);
 
 	//The user code is expected to produce a data.frame (kept in .jaspResult), which is then written
-	//into the output (computed) dataset by name.
-	std::string setDataSetCode = ".setDataSet('" + outputDataSetName + "', .jaspResult)";
+	//into the output (computed) dataset by name. The name is user-editable, so escape it for use inside
+	//a single-quoted R string to avoid breaking the generated code on ' \ or newlines.
+	std::string escapedName = outputDataSetName;
+	{
+		std::string out;
+		out.reserve(escapedName.size());
+		for (char c : escapedName)
+		{
+			switch (c)
+			{
+			case '\\':	out += "\\\\";	break;
+			case '\'':	out += "\\'";	break;
+			case '\n':	out += "\\n";	break;
+			case '\r':	out += "\\r";	break;
+			case '\t':	out += "\\t";	break;
+			default:	out += c;		break;
+			}
+		}
+		escapedName = out;
+	}
+	std::string setDataSetCode = ".setDataSet('" + escapedName + "', .jaspResult)";
 	std::string result = jaspRCPP_evalComputedDataSet(rCode64.c_str(), setDataSetCode.c_str());
 	jaspRCPP_runScript("detach(data)");	//afterwards we make sure it is detached to avoid superfluous messages and possible clobbering of analyses
 

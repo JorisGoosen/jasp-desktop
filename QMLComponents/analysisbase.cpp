@@ -292,6 +292,12 @@ Filter *AnalysisBase::filter() const
 	return _filter;
 }
 
+bool AnalysisBase::usesDataSet(int dataSetId) const
+{
+	//An analysis without an explicit dataset binding applies to any dataset (e.g. reports, unbound analyses).
+	return !_filterDataSet || _filterDataSet->id() == dataSetId;
+}
+
 QString AnalysisBase::filterName() const
 {
 	return _filter ? _filter->nameQ() : "";

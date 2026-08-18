@@ -66,6 +66,13 @@ DataSetPackage::DataSetPackage(QObject * parent) : QObject(parent)
 DataSetPackage::~DataSetPackage() 
 { 
 	_singleton = nullptr; 
+
+	//DataSetPackage is the single owner of the DatabaseInterface; Workspace::db() merely refers to it
+	//via DatabaseInterface::singleton(). Deleting it here (and only here) gives the DB one clear owner.
+	delete _workspace;
+	_workspace = nullptr;
+	delete _db;
+	_db = nullptr;
 }
 
 
@@ -144,12 +151,11 @@ void DataSetPackage::deleteWorkspace(bool dbDeletePlease)
 		dbDelete();
 	delete _workspace;
 	_workspace = nullptr;
-	
-	if(dbDeletePlease)
-	{
-		emit shownDataSetChanged(nullptr); //This can trigger models to read from DataSet and if we dont want dbDelete we most likely dont want this either
-		emit workspaceChanged();
-	}
+
+	//Always notify so QML can re-point its 'workspace' context (to null) instead of keeping a
+	//dangling pointer to the just-deleted Workspace.
+	emit shownDataSetChanged(nullptr);
+	emit workspaceChanged();
 }
 
 void DataSetPackage::connectWorkspace()
@@ -168,11 +174,14 @@ void DataSetPackage::connectWorkspace()
 	Workspace		::connect(workspace(),	&Workspace::shownFilterChanged,					this,			&DataSetPackage::shownFilterChanged					);
 	Workspace		::connect(workspace(),	&Workspace::refreshAllAnalyses,					this,			&DataSetPackage::refreshAllAnalyses					);
 	Workspace		::connect(workspace(),	&Workspace::shownDataSetChanged,				this,			&DataSetPackage::shownDataSetChanged				);	
+	Workspace		::connect(workspace(),	&Workspace::dataSetCreated,						this,			&DataSetPackage::dataSetCreated					);	
+	Workspace		::connect(workspace(),	&Workspace::dataSetRemoved,						this,			&DataSetPackage::dataSetRemoved					);	
+	//A manual edit by the user (in the data grid / paste) means external-file syncing should be disabled.
+	Workspace		::connect(workspace(),	&Workspace::manualEditMade,						this,			[this]{ setManualEdits(true); }					);
 	Workspace		::connect(workspace(),	&Workspace::runComputedColumn,					this,			&DataSetPackage::runComputedColumn					);	
 	Workspace		::connect(workspace(),	&Workspace::runComputedDataSet,					this,			&DataSetPackage::runComputedDataSet					);	
 	Workspace		::connect(workspace(),	&Workspace::checkForDependentAnalyses,			this,			&DataSetPackage::checkForDependentAnalyses			);	
 	Workspace		::connect(workspace(),	&Workspace::emptyValuesChanged,					this,			&DataSetPackage::workspaceEmptyValuesChanged		);	
-	
 
 	DataSetPackage	::connect(this,			&DataSetPackage::filterByNameDone,				workspace(),	&Workspace::filterByNameDone						);
 	DataSetPackage	::connect(this,			&DataSetPackage::createDataSetBlockingQueued,	workspace(),	&Workspace::createDataSet,							Qt::BlockingQueuedConnection);
@@ -388,8 +397,16 @@ void DataSetPackage::restartEngines()
 void DataSetPackage::dbDelete()
 {
 	JASPTIMER_SCOPE(DataSetPackage::dbDelete);
-	if(dataSet() && dataSet()->id() != -1)
-		dataSet()->dbDelete();
+
+	if(!workspace())
+		return;
+
+	//In a multi-dataset workspace we must delete *all* datasets from the database, not only the shown
+	//one — otherwise the remaining datasets are left orphaned in the DB and resurrect on next load.
+	DataSets sets = workspace()->dataSets();
+	for (DataSet * ds : sets)
+		if (ds && ds->id() != -1)
+			ds->dbDelete();
 }
 
 int DataSetPackage::thresholdScale()

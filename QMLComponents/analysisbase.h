@@ -78,6 +78,10 @@ public:
 							
 						Filter			*	filter() const;
 						
+						///Whether this analysis operates on the given dataset. An analysis without an explicit dataset
+						///binding (e.g. reports, or before a dataset is selected) is treated as using any dataset.
+						bool				usesDataSet(int dataSetId)						const;
+
 						QString				filterName()	const;
 						int					filterId()		const;
 						void				setFilterId(int filterId);
