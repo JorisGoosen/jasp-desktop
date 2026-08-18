@@ -8,7 +8,7 @@
 /// Using enumutilities templates to make sure we can easily and quickly go from enum -> string -> enum for json communication
 ///
 
-DECLARE_ENUM(engineState,			initializing, idle, analysis, filter, filterByName, rCode, computeColumn, moduleInstallRequest, moduleUninstallRequest, moduleLoadRequest, pauseRequested, paused, resuming, stopRequested, stopped, logCfg, settings, killed, loadingData);
+DECLARE_ENUM(engineState,			initializing, idle, analysis, filter, filterByName, rCode, computeColumn, computeDataSet, moduleInstallRequest, moduleUninstallRequest, moduleLoadRequest, pauseRequested, paused, resuming, stopRequested, stopped, logCfg, settings, killed, loadingData);
 DECLARE_ENUM(performType,			run, abort, saveImg, editImg, rewriteImgs);
 DECLARE_ENUM(analysisResultStatus,	validationError, fatalError, imageSaved, imageEdited, imagesRewritten, complete, running, changed, waiting);
 DECLARE_ENUM(moduleStatus,			initializing, installNeeded, uninstallNeeded, loading, readyForUse, error);

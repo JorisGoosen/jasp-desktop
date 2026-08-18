@@ -230,6 +230,95 @@ void TestEngine::testComputedColumnCascade()
 	disconnect(DataSetPackage::pkg(), &DataSetPackage::runComputedColumn, _engines, &EngineSync::computeColumn);
 }
 
+void TestEngine::testComputedDataSet()
+{
+	QVERIFY2(_data,			"No dataset!");
+	QVERIFY2(_engines,		"No EngineSync!");
+	QVERIFY2(_engineRep,	"No EngineRepresentation!");
+
+	_engines->startStoppedEngine(_engineRep);
+
+	//The dispatch goes through this connection (normally set up by MainWindow), replicate it here.
+	connect(DataSetPackage::pkg(), &DataSetPackage::runComputedDataSet, _engines, &EngineSync::computeDataSet, Qt::QueuedConnection);
+
+	QSignalSpy spy(_engineRep, SIGNAL(computeDataSetSucceeded(int, const QString &, bool)));
+
+	QVERIFY2(spy.isValid(),	"Spy is broken!");
+
+	DataSet * computed = Workspace::singleton()->createComputedDataSet("computedOut", _data->id());
+
+	QVERIFY2(computed,						"Could not create computed dataset!");
+	QVERIFY2(computed->isComputed(),		"Computed dataset should be marked as computed!");
+	QVERIFY2(computed->defaultInputDataSet() == _data,	"Computed dataset should reference the input dataset!");
+	QVERIFY2(computed->invalidated(),		"Computed dataset should start out invalidated!");
+
+	computed->setRCode("data.frame(x = contBinom, y = V1 + 1)");
+
+	QVERIFY2(computed->invalidated(),		"Setting rCode should keep the dataset invalidated");
+
+	//setRCode() dispatches it (through checkForDependentDatasetsToBeSent) once the engine is idle.
+	bool gotIt = false;
+	while(!gotIt && spy.wait(120000))
+	{
+		while(spy.count() > 0)
+		{
+			QVariantList response = spy.takeFirst();
+			if(response[0].toInt() == computed->id())
+				gotIt = true;
+		}
+	}
+
+	QVERIFY2(gotIt,	"Computed dataset never reported as computed");
+
+	computed->checkForUpdates();
+
+	//The coordinator validates the dataset through QueuedConnections, so let the event loop settle.
+	QElapsedTimer	waitTimer;
+	waitTimer.start();
+	while(computed->invalidated() && waitTimer.elapsed() < 5000)
+		QCoreApplication::processEvents();
+
+	QVERIFY2(!computed->invalidated(),	"Computed dataset should be validated after a successful compute");
+	QVERIFY2(computed->column("x"),		"Computed dataset should have the produced column x");
+	QVERIFY2(computed->column("y"),		"Computed dataset should have the produced column y");
+	QVERIFY2(computed->rowCount() == _data->rowCount(),	"Computed dataset should have the same number of rows as its input");
+
+	//A second computed dataset that uses the first one as its input must wait for it to be valid,
+	//then cascade.
+	DataSet * computed2 = Workspace::singleton()->createComputedDataSet("computedOut2", computed->id());
+
+	QVERIFY2(computed2,						"Could not create dependent computed dataset!");
+	computed2->setRCode("data.frame(z = x * 2)");
+
+	QVERIFY2(computed2->iShouldBeSentAgain(),	"Dependent computed dataset should be runnable once its input is valid");
+
+	//computed is already valid, so dispatch computed2 and wait for it.
+	bool gotIt2 = false;
+	while(!gotIt2 && spy.wait(120000))
+	{
+		while(spy.count() > 0)
+		{
+			QVariantList response = spy.takeFirst();
+			if(response[0].toInt() == computed2->id())
+				gotIt2 = true;
+		}
+	}
+
+	QVERIFY2(gotIt2,	"Dependent computed dataset never ran: the dataset cascade is broken");
+
+	computed2->checkForUpdates();
+
+	QElapsedTimer	waitTimer2;
+	waitTimer2.start();
+	while(computed2->invalidated() && waitTimer2.elapsed() < 5000)
+		QCoreApplication::processEvents();
+
+	QVERIFY2(!computed2->invalidated(),	"Dependent computed dataset should be validated after its input ran");
+	QVERIFY2(computed2->column("z"),		"Dependent computed dataset should have the produced column z");
+
+	disconnect(DataSetPackage::pkg(), &DataSetPackage::runComputedDataSet, _engines, &EngineSync::computeDataSet);
+}
+
 void TestEngine::testFilters()
 {
 	QVERIFY2(_data,			"No dataset!");

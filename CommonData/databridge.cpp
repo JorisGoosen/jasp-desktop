@@ -159,6 +159,43 @@ bool DataBridge::setColumnDataAndType(const std::string &columnName, const std::
 	return provideAndUpdateDataSet()->column(columnName)->overwriteDataAndType(data, colType, computed);
 }
 
+bool DataBridge::setDataSet(const std::string & datasetName, const std::vector<std::string> & columnNames, const std::vector<columnType> & columnTypes, const std::vector<std::vector<std::string>> & columnData)
+{
+	DataSet * ds = _workspace->dataSetByName(datasetName);
+
+	if(!ds)
+		return false;
+
+	size_t	colCount	= columnNames.size(),
+			rowCount	= 0;
+
+	for(const auto & col : columnData)
+		rowCount = std::max(rowCount, col.size());
+
+	//Replace the current contents of the (computed) output dataset wholesale.
+	while(ds->columnCount() > 0)
+		ds->removeColumn(0);
+
+	ds->setRowCount(rowCount);
+
+	//insertColumns starts colIdx at 0 (createColumn would leave an off-by-one gap on an empty dataset).
+	ds->insertColumns(size_t(0), colCount);
+
+	for(size_t i=0; i<colCount; i++)
+	{
+		Column * col = ds->column(i);
+
+		col->setName(columnNames[i]);
+		col->setDefaultValues(columnTypes[i], false);
+		col->setValues(columnData[i], columnData[i], 0);
+		col->setType(columnTypes[i]);
+	}
+
+	ds->incRevision();
+
+	return true;
+}
+
 void DataBridge::reloadColumnNames()
 {
 	DataSet * ds = provideAndUpdateDataSet();

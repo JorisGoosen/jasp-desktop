@@ -83,6 +83,7 @@ typedef int							(STDCALL *GetColumnAnalysisId)			(const char* columnName);
 typedef const char *				(STDCALL *CreateColumn)					(const char* columnName, bool computed);
 typedef bool						(STDCALL *DeleteColumn)					(const char* columnName);
 typedef bool						(STDCALL *SetColumnDataAndType)			(const char* columnName, const char **	nominalData,	size_t length, int columnTYpe, bool computed);
+typedef bool						(STDCALL *SetDataSet)					(const char* datasetName, const char ** columnNames, const int * columnTypes, const char *** columnData, const size_t * columnLengths, size_t colCount);
 typedef int							(STDCALL *DataSetRowCount)              ();
 typedef const char *				(STDCALL *EnDecodeDef)					(const char *);
 typedef int							(STDCALL *DecodeTypeDef)				(const char *);
@@ -113,6 +114,7 @@ struct RBridgeCallBacks {
 	GetColumnAnalysisId				dataSetGetColumnAnalysisId,
 									dataSetGetColumnOriginalIndex;
 	SetColumnDataAndType			dataSetColumnAsDataAndType;
+	SetDataSet						dataSetSetDataSet;
 	DataSetRowCount					dataSetRowCount;
 	EnDecodeDef						encoder,
 									decoder,
@@ -145,6 +147,7 @@ RBRIDGE_TO_JASP_INTERFACE void			STDCALL jaspRCPP_rewriteImages(const char * nam
 RBRIDGE_TO_JASP_INTERFACE const char*	STDCALL jaspRCPP_evalRCode(			const char *rCode, bool setWd);
 RBRIDGE_TO_JASP_INTERFACE const char*	STDCALL jaspRCPP_evalRCodeCommander(const char *rCode);
 RBRIDGE_TO_JASP_INTERFACE const char*	STDCALL jaspRCPP_evalComputedColumn(const char *rCode, const char * setColumnCode);
+RBRIDGE_TO_JASP_INTERFACE const char*	STDCALL jaspRCPP_evalComputedDataSet(const char *rCode, const char * setDataSetCode);
 
 RBRIDGE_TO_JASP_INTERFACE int			STDCALL jaspRCPP_runFilter(const char * filtercode, bool ** arraypointer); //arraypointer points to a pointer that will contain the resulting list of filter-booleans if jaspRCPP_runFilter returns > 0
 RBRIDGE_TO_JASP_INTERFACE void			STDCALL jaspRCPP_freeArrayPointer(bool ** arrayPointer);

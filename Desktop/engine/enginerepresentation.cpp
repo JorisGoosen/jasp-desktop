@@ -139,6 +139,15 @@ void EngineRepresentation::handleEngineCrash()
 		}
 		break;
 
+	case engineState::computeDataSet:
+		{
+			DataSet * dataSet = Workspace::singleton()->dataSetById(_lastCompDataSetId);
+			
+			if(dataSet)
+				dataSet->setError(fq(tr("The engine crashed while trying to compute this dataset...")));
+		}
+		break;
+
 	case engineState::rCode:
 		emit rCodeReturned(tr("The engine crashed while trying to run rscript..."), _lastRequestId, true);
 		break;
@@ -322,6 +331,7 @@ void EngineRepresentation::processReplies()
 			case engineState::rCode:				processRCodeReply(json);			break;
 			case engineState::analysis:				processAnalysisReply(json);			break;
 			case engineState::computeColumn:		processComputeColumnReply(json);	break;
+			case engineState::computeDataSet:		processComputeDataSetReply(json);	break;
 			case engineState::paused:				processEnginePausedReply();			break;
 			case engineState::resuming:				processEngineResumedReply(json);	break;
 			case engineState::stopped:				processEngineStoppedReply();		break;
@@ -452,6 +462,7 @@ void EngineRepresentation::runScriptOnProcess(RScriptStore * scriptStore)
 	case engineState::filter:			runScriptOnProcess(static_cast<RFilterStore*>(scriptStore));			return;
 	case engineState::filterByName:		runScriptOnProcess(static_cast<RFilterByNameStore*>(scriptStore));		return;
 	case engineState::computeColumn:	runScriptOnProcess(static_cast<RComputeColumnStore*>(scriptStore));		return;
+	case engineState::computeDataSet:	runScriptOnProcess(static_cast<RComputeDataSetStore*>(scriptStore));	return;
 	}
 }
 
@@ -507,6 +518,36 @@ void EngineRepresentation::processComputeColumnReply(Json::Value & json)
 	bool		dataChanged	= result == "TRUE";
 
 	emit computeColumnSucceeded(_lastCompColDataSet, tq(columnName), tq(warning), dataChanged);
+	emit checkDataSetForUpdates();
+}
+
+void EngineRepresentation::runScriptOnProcess(RComputeDataSetStore * computeDataSetStore)
+{
+	Json::Value json = Json::Value(Json::objectValue);
+
+	setState(engineState::computeDataSet);
+
+	json["typeRequest"]				= engineStateToString(_engineState);
+	json["computeCode"]				= computeDataSetStore->script.toStdString();
+	json["dataSetId"]				= computeDataSetStore->dataSetId;
+	json["defaultInputDataSetId"]	= computeDataSetStore->_defaultInputDataSetId;
+
+	_lastCompDataSetId				= computeDataSetStore->dataSetId;
+
+	sendString(json);
+}
+
+void EngineRepresentation::processComputeDataSetReply(Json::Value & json)
+{
+	checkIfExpectedReplyType(engineState::computeDataSet);
+
+	setState(engineState::idle);
+
+	std::string warning		= json.get("error", "").asString();
+	std::string result		= json.get("result", "").asString();
+	bool		dataChanged	= result == "TRUE";
+
+	emit computeDataSetSucceeded(_lastCompDataSetId, tq(warning), dataChanged);
 	emit checkDataSetForUpdates();
 }
 

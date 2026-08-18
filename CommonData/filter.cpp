@@ -173,7 +173,7 @@ bool Filter::setFilterVector(const boolvec & filterResult)
 		changed = true;
 	}
 	else
-		for(size_t i=0; i<filterResult.size(); i++)
+		for(size_t i=0; i<filterResult.size() && i<_filtered.size(); i++)
 		{
 			if(_filtered[i] != filterResult[i])
 				changed = true;
@@ -571,7 +571,7 @@ void Filter::datasetChanged(int, QStringList changedColumns, QStringList missing
 		invalidateMe = true;
 
 		setRFilter(			ColumnEncoder::replaceColumnNamesInRScript(rFilter(),							stdChangeNameCols));
-		setConstructorJson( JsonUtilities::replaceColumnNamesInDragNDropFilterJSONStr(constructorR(),		stdChangeNameCols));
+		setConstructorJson( JsonUtilities::replaceColumnNamesInDragNDropFilterJSONStr(constructorJson(),		stdChangeNameCols));
 	}
 
 	auto missingStd = fq(missingColumns);

@@ -75,10 +75,8 @@ public:
 
 		void				waitForExportResultsReady();
 
-		void				beginLoadingData(	bool informEngines = true);
 		void				stopEngines();
 		void				restartEngines();
-		void				endLoadingData(		bool informEngines = true);
 
 				void				refresh();
 
@@ -164,7 +162,6 @@ signals:
 				bool				enginesInitializingSignal();
 				void				filteredOutChanged(int column);
 				bool				checkDoSync();
-				void				modelInit();
 				void				nameChanged();
 				void				folderChanged();
 				void				windowTitleChanged();
@@ -188,6 +185,7 @@ signals:
 				DataSet *			createDataSetBlockingQueued();
 				void				workspaceChanged();
 				void				runComputedColumn(int dataSetId, QString columnName, QString code, columnType columnType);
+				void				runComputedDataSet(int dataSetId, QString code, int defaultInputDataSetId);
 				void				filterByNameDone(int dataSetID, const QString &name, const QString &error);
 				void				manualEditsChanged();
 				void				checkForDependentAnalyses(Column * column);
@@ -200,7 +198,6 @@ public slots:
 				void				generateEmptyData();
 				void				onDataModeChanged(					bool dataMode);
 				void				checkDataSetForUpdates();
-				void				doWalCheckPoint();
 				void				handleAutoSave();
 
 				void				prepareForLanguageChange();
@@ -239,8 +236,7 @@ private:
 	Json::Value					_analysesData;
 	Version						_archiveVersion,
 								_jaspVersion;
-	QTimer						_doWalCheckPointTimer,
-								_autoSaveTimer;
+	QTimer						_autoSaveTimer;
 };
 
 #endif // FILEPACKAGE_H

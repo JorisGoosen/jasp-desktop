@@ -36,7 +36,8 @@ DECLARE_ENUM(
 	totalLevels,
 	previewScale,
 	previewOrdinal,
-	previewNominal
+	previewNominal,
+	id
 );
 
 DECLARE_ENUM(dataSetBaseNodeType,	unknown, dataSet, filter, column, label, workspace);

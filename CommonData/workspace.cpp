@@ -12,9 +12,6 @@ Workspace::Workspace(QObject *parent)
 {
 	assert(!_singleton);
 	_singleton = this;
-	
-	connect(this, &Workspace::dataSetSynchingStart, this, &Workspace::synchingStart);
-	connect(this, &Workspace::dataSetSynchingDone,	this, &Workspace::synchingDone);
 }
 
 Workspace::~Workspace()
@@ -59,6 +56,9 @@ QVariant Workspace::data(const QModelIndex &index, int role) const
 	case int(dataPkgRoles::name):							return cur->name();//tq(cur->db().dataSetName(cur->id()));
 	case int(dataPkgRoles::title):							return cur->title();
 	case int(dataPkgRoles::description):					return cur->descriptionQ();
+	case int(dataPkgRoles::id):								return cur->id();
+	case int(dataPkgRoles::computedColumnType):			return int(cur->codeType());
+	case int(dataPkgRoles::columnIsComputed):				return cur->isComputed();
 	}
 	
 	return QVariant();
@@ -151,7 +151,7 @@ bool Workspace::checkForUpdates(std::function<void(float)> progressCallback)
 			aChange = true;
 			
 			if(!_shownDataSet)
-				_shownDataSet = _dataSets[id];
+				setShownDataSet(_dataSets[id]); //Full setter so encoder/undoStack/varInfo stay consistent
 			numChecked++;
 			progressCallback(numChecked / d);
 		}
@@ -162,9 +162,20 @@ bool Workspace::checkForUpdates(std::function<void(float)> progressCallback)
 	
 	for(int id : missing)
 	{
+		if(_shownDataSet == _dataSets[id])
+			_shownDataSet = nullptr;
 		delete _dataSets[id];
 		_dataSets.erase(id);
 		aChange = true;
+	}
+	
+	//Never leave even a dangling pointer to a deleted (previously shown) dataset.
+	if(!_shownDataSet)
+	{
+		if(_dataSets.empty())
+			_varInfo->setProvider(nullptr);
+		else
+			setShownDataSet(_dataSets.begin()->second);
 	}
 	
 	bool prev = _showRSyntax;
@@ -238,7 +249,11 @@ void Workspace::deleteShownDataSet()
 	}
 	
 	if(newShown)	setShownDataSet(newShown);
-	else			refresh();
+	else
+	{
+		_varInfo->setProvider(nullptr); //No dataset left: don't leave the provider pointing at a destroyed filter
+		refresh();
+	}
 }
 
 void Workspace::showFilter(int id)
@@ -292,6 +307,15 @@ DataSet *Workspace::dataSetById(int id) const
 	if(_dataSets.count(id))
 		return _dataSets.at(id);
 	
+	return nullptr;
+}
+
+DataSet *Workspace::dataSetByName(const std::string & name) const
+{
+	for(auto & idData : _dataSets)
+		if(idData.second->name().toStdString() == name)
+			return idData.second;
+
 	return nullptr;
 }
 
@@ -355,6 +379,78 @@ Column *Workspace::createComputedColumn(const std::string &name, int dataSetId, 
 	return nullptr;
 }
 
+DataSet *Workspace::createComputedDataSet(const std::string &name, int defaultInputDataSetId, computedColumnType desiredType)
+{
+	DataSet * newSet = createDataSet();
+
+	if(!newSet)
+		return nullptr;
+
+	newSet->setTitle(tq(name));
+	newSet->setCodeType(desiredType);
+	newSet->setDefaultInputDataSetId(defaultInputDataSetId);
+	newSet->invalidate();
+
+	setShownDataSet(newSet);
+
+	return newSet;
+}
+
+DataSet *Workspace::createComputedDataSet(const QString & name, int defaultInputDataSetId, const QString & rCode)
+{
+	DataSet * newSet = createComputedDataSet(fq(name), defaultInputDataSetId, computedColumnType::rCode);
+
+	if(newSet)
+		newSet->setRCode(fq(rCode));
+
+	return newSet;
+}
+
+QStringList Workspace::dataSetNames() const
+{
+	QStringList names;
+
+	for(const auto & idData : _dataSets)
+		names.push_back(idData.second->name());
+
+	return names;
+}
+
+void Workspace::setDataSetComputed(const QString & name, bool computed)
+{
+	DataSet * ds = dataSetByName(fq(name));
+
+	if(!ds || computed == ds->isComputed())
+		return;
+
+	if(ds != shownDataSet())
+		setShownDataSet(ds);
+
+	if(computed)
+	{
+		ds->setCodeType(computedColumnType::rCode);
+
+		if(ds->defaultInputDataSetId() < 0)
+			for(const auto & idData : _dataSets)
+				if(idData.second != ds)
+				{
+					ds->setDefaultInputDataSetId(idData.second->id());
+					break;
+				}
+	}
+	else
+		ds->setCodeType(computedColumnType::notComputed);
+
+	DataSets sets = dataSets();
+
+	for(int i = 0; i < sets.size(); ++i)
+		if(sets[i] == ds)
+		{
+			emit dataChanged(index(i, 0), index(i, 0), { int(dataPkgRoles::columnIsComputed), int(dataPkgRoles::computedColumnType), int(dataPkgRoles::id) });
+			break;
+		}
+}
+
 void Workspace::refresh()
 {
 	thread_local int refreshDepth = 0;
@@ -382,6 +478,37 @@ void Workspace::initializeComputedColumns()
 	for(auto & idDataSet : _dataSets)
 		for(Column * col : idDataSet.second->columns())
 			col->checkForDependentColumnsToBeSent();
+}
+
+void Workspace::initializeComputedDatasets()
+{
+	for(auto & idDataSet : _dataSets)
+		if(idDataSet.second->isComputed())
+			idDataSet.second->checkForDependentDatasetsToBeSent();
+}
+
+void Workspace::computedDataSetSucceeded(int dataSetId, QString warning, bool dataChanged)
+{
+	DataSet * dataSet = dataSetById(dataSetId);
+
+	if(!dataSet)
+		return;
+
+	dataSet->checkForUpdates();
+	dataSet->setError(warning.isEmpty() ? std::string() : fq(warning));
+
+	//A failed computation leaves the dataset invalidated so it stays marked as needing a (re)run;
+	//only a successful computation validates it and lets the datasets depending on it proceed.
+	if(!warning.isEmpty())
+		return;
+
+	dataSet->validate();
+	dataSet->checkForDependentDatasetsToBeSent();
+
+	//The whole dataset changed: the reload in checkForUpdates() above already emitted datasetChanged,
+	//and every filter of it must be recomputed so that analyses using them pick up the new data.
+	for(Filter * f : dataSet->filters())
+		f->setInvalidated(true);
 }
 
 void Workspace::updateComputedColumnDependenciesForAnalysis(int analysisId, const stringset & usedVariables)

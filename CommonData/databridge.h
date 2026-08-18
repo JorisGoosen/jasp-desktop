@@ -40,6 +40,7 @@ public:
 	std::string				createColumn(				const std::string & columnName, bool computed=false); ///< Returns encoded columnname on success or "" on failure (cause it already exists)
 	bool					deleteColumn(				const std::string & columnName);
 	bool					setColumnDataAndType(		const std::string & columnName, const	std::vector<std::string>	& nominalData, columnType colType, bool computed); ///< return true for any changes
+	bool					setDataSet(					const std::string & datasetName, const std::vector<std::string> & columnNames, const std::vector<columnType> & columnTypes, const std::vector<std::vector<std::string>> & columnData);
 	int						getColumnType(				const std::string & columnName);
 	int						getColumnAnalysisId(		const std::string & columnName);
 	int						getColumnOriginalIndex(		const std::string & columnName);

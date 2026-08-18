@@ -364,7 +364,10 @@ Item
 			{
 				//messages.log("onJaspsFilterConstructorJSONChanged!");
 				parent.initializeFromJSON()
-				filterConstructor.checkAndApplyFilter()
+				//Only re-apply (and push an undo step / send the filter to R again) for genuine
+				//pending user edits; pure reloads from the model must not pollute the undo stack.
+				if(filterConstructor.somethingChanged)
+					filterConstructor.checkAndApplyFilter()
 			}
 
 			parent.rememberCurrentconstructorJson()

@@ -1,5 +1,6 @@
 #include "log.h"
 #include "undostack.h"
+#include "column.h"
 #include "filter.h"
 #include "qutils.h"
 #include "timers.h"
@@ -291,6 +292,8 @@ void UndoModelCommandMultipleColumns::undo()
 		if(_serializedColumns.count(col) && !_serializedColumns[col].isNull())
         {
 			Column *	column	= dataSet()->column(col);
+			if(!column)
+				continue;
             QString		oldName	= tq(column->name());
 						column	->deserialize(_serializedColumns[col]);
 						column	->data()->emitColumnChanged(oldName);
@@ -348,7 +351,8 @@ void SetColumnPropertyCommand::undo()
 	case ColumnProperty::Name:
 		// In case that the command that deletes a column is undone, the id may change.
 		// As the column can be also recognize with its name, use it.
-		dataSet()->column(fq(_newValue.toString()))->setNameManually(_oldValue.toString());
+		if(Column * col = dataSet()->column(fq(_newValue.toString())))
+			col->setNameManually(_oldValue.toString());
 		break;
 		
 	case ColumnProperty::Title:
@@ -390,7 +394,8 @@ void SetColumnPropertyCommand::redo()
 	case ColumnProperty::Name:
 		// In case that the command that deletes a column is undone, the id may change.
 		// As the column can be also recognize with its name, use it.
-		dataSet()->column(fq(_oldValue.toString()))->setNameManually(_newValue.toString());
+		if(Column * col = dataSet()->column(fq(_oldValue.toString())))
+			col->setNameManually(_newValue.toString());
 		break;
 		
 	case ColumnProperty::Title:
@@ -453,8 +458,8 @@ void SetWorkspacePropertyCommand::redo()
 SetLabelCommand::SetLabelCommand(Column * column, int labelIndex, QString newLabel)
     : UndoModelCommandSingleColumn(column), _labelIndex{labelIndex}, _newLabel{newLabel}
 {
-			_oldLabel	= dataSet()->data(dataSet()->index(_labelIndex, 0)).toString();
-	QString value		= dataSet()->data(dataSet()->index(_labelIndex, 0), int(dataPkgRoles::label)).toString();
+			_oldLabel	= column->data(column->index(_labelIndex, 0)).toString();
+	QString value		= column->data(column->index(_labelIndex, 0), int(dataPkgRoles::label)).toString();
 	
 	setText(QObject::tr("Set label for value '%1' of column '%2' from '%3' to '%4'").arg(value).arg(columnName()).arg(_oldLabel).arg(_newLabel));
 }
@@ -462,22 +467,24 @@ SetLabelCommand::SetLabelCommand(Column * column, int labelIndex, QString newLab
 void SetLabelCommand::redo()
 {
     UndoModelCommandSingleColumn::redo(); //Makes sure we select the right column first
-	dataSet()->setData(dataSet()->index(_labelIndex, 0), _newLabel, int(dataPkgRoles::label));
+	if(column())
+		column()->setData(column()->index(_labelIndex, 0), _newLabel, int(dataPkgRoles::label));
 }
 
 SetLabelOriginalValueCommand::SetLabelOriginalValueCommand(Column * column, int labelIndex, QString originalValue)
     : UndoModelCommandSingleColumn(column), _labelIndex{labelIndex}, _newOriginalValue{originalValue}
 {
 
-	_oldOriginalValue	= dataSet()->data(dataSet()->index(_labelIndex, 0), int(dataPkgRoles::value)).toString();
-	_oldLabel			= dataSet()->data(dataSet()->index(_labelIndex, 0), int(dataPkgRoles::label)).toString();
+	_oldOriginalValue	= column->data(column->index(_labelIndex, 0), int(dataPkgRoles::value)).toString();
+	_oldLabel			= column->data(column->index(_labelIndex, 0), int(dataPkgRoles::label)).toString();
 	setText(QObject::tr("Set original value  from '%3' to '%4' for label '%1' of column '%2'").arg(_oldLabel).arg(columnName()).arg(_oldOriginalValue).arg(_newOriginalValue));
 }
 
 void SetLabelOriginalValueCommand::redo()
 {
     UndoModelCommandSingleColumn::redo(); //Makes sure we select the right column first
-	dataSet()->setData(dataSet()->index(_labelIndex, 0), _newOriginalValue, int(dataPkgRoles::value));
+	if(column())
+		column()->setData(column()->index(_labelIndex, 0), _newOriginalValue, int(dataPkgRoles::value));
 }
 
 DeleteLabelCommand::DeleteLabelCommand(Column * column, int labelIndex)
@@ -508,7 +515,7 @@ FilterLabelCommand::FilterLabelCommand(Column * column, int labelIndex, bool che
 	: UndoModelCommandSingleColumn(column, false), _labelIndex{labelIndex}, _checked{checked}
 
 {
-	QString label = dataSet()->data(dataSet()->index(_labelIndex, 0)).toString();
+	QString label = column->data(column->index(_labelIndex, 0)).toString();
 	if (checked)
 		setText(QObject::tr("Filter rows having label '%1' in column '%2'").arg(label).arg(columnName()));
 	else
@@ -518,14 +525,22 @@ FilterLabelCommand::FilterLabelCommand(Column * column, int labelIndex, bool che
 
 void FilterLabelCommand::undo()
 {
-	dataSet()->setShownColumn(dataSet()->column(_colId));
-	dataSet()->setData(dataSet()->index(_labelIndex, 0), !_checked, int(dataPkgRoles::filter));
+	Column * col = dataSet()->column(_colId);
+	if(col)
+	{
+		dataSet()->setShownColumn(col);
+		col->setData(col->index(_labelIndex, 0), !_checked, int(dataPkgRoles::filter));
+	}
 }
 
 void FilterLabelCommand::redo()
 {
-	dataSet()->setShownColumn(dataSet()->column(_colId));
-	dataSet()->setData(dataSet()->index(_labelIndex, 0), _checked, int(dataPkgRoles::filter));
+	Column * col = dataSet()->column(_colId);
+	if(col)
+	{
+		dataSet()->setShownColumn(col);
+		col->setData(col->index(_labelIndex, 0), _checked, int(dataPkgRoles::filter));
+	}
 }
 
 MoveLabelCommand::MoveLabelCommand(Column * col, const std::vector<size_t> &indexes, bool up)
@@ -533,12 +548,17 @@ MoveLabelCommand::MoveLabelCommand(Column * col, const std::vector<size_t> &inde
 {
 
 	_labels.clear();
+	_originalValues.clear();
 
 	QStringList allLabels = tq(column()->nonEmptyLevelsStrings());
 	for (int i : indexes)
 	{
 		if (i < allLabels.count())
+		{
 			_labels.push_back(allLabels[i]);
+			if(Label * l = column()->labelByIndexNonEmpty(i))
+				_originalValues.push_back(tq(l->originalValueAsString()));
+		}
 	}
 
 	if (_labels.size() == 1)
@@ -562,12 +582,19 @@ MoveLabelCommand::MoveLabelCommand(Column * col, const std::vector<size_t> &inde
 std::vector<qsizetype> MoveLabelCommand::_getIndexes()
 {
 	std::vector<qsizetype> indexes;
-	QStringList allLabels = tq(column()->nonEmptyLevelsStrings());
-	for (const QString& label : _labels)
+	//Match by original value instead of display string so that labels sharing a display
+	//text (multiple values mapped to one label) still resolve to the correct row.
+	for(const QString & originalValue : _originalValues)
 	{
-		int i = allLabels.indexOf(label);
-		if (i >= 0)
-			indexes.push_back(i);
+		for(int i=0; i<(int)column()->labelsNonEmptyCount(); i++)
+		{
+			Label * label = column()->labelByIndexNonEmpty(i);
+			if(label && tq(label->originalValueAsString()) == originalValue)
+			{
+				indexes.push_back(i);
+				break;
+			}
+		}
 	}
 
 	return indexes;

@@ -116,6 +116,8 @@ public:
 int			dataSetInsert(							const std::string & dataFilePath = "", long dataFileTimestamp = 0, const std::string & description = "", const std::string & databaseJson = "", const std::string & emptyValuesJson = "", bool dataSynch = false, char csvDelimiter = '\0');		///< Inserts a new DataSet row into DataSets and creates an empty DataSet_#id. returns id
 	void		dataSetUpdate(			int dataSetId,	const std::string & title = "", const std::string & dataFilePath = "", long dataFileTimestamp = 0, const std::string & description = "", const std::string & databaseJson = "", const std::string & emptyValuesJson = "", bool dataSynch = false, char csvDelimiter = '\0');		///< Updates an existing DataSet row in DataSets
 	void		dataSetLoad(			int dataSetId,		  std::string & title,		  std::string & dataFilePath,		long & dataFileTimestamp,		 std::string & description,			   std::string & databaseJson,			   std::string & emptyValuesJson, int & revision, bool & dataSynch, char & csvDelimiter);	///< Loads an existing DataSet row into arguments
+	void		dataSetSetComputedInfo(	int dataSetId, bool invalidated, computedColumnType codeType, const std::string & rCode, const std::string & error, int defaultInputDataSet);
+	void		dataSetGetComputedInfo(	int dataSetId, bool & invalidated, computedColumnType & codeType, std::string & rCode, std::string & error, int & defaultInputDataSet);
 	static int	dataSetColCount(		int dataSetId);
 	static int	dataSetRowCount(		int dataSetId);
 	void		dataSetSetRowCount(		int dataSetId, size_t rowCount);
@@ -212,7 +214,6 @@ int			dataSetInsert(							const std::string & dataFilePath = "", long dataFileT
 	void		transactionReadEnd();							///< runs COMMIT and ends the transaction. Tracks whether nested and only does BEGIN+COMMIT at lowest depth
 	
 	//Miscellaneous
-	void		doWalCheckPoint();
 	void		truncateAllTables();
 	bool		tableHasColumn(const std::string & tableName, const std::string & columnName);
 	bool		tableExists(const std::string & name);

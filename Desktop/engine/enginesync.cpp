@@ -289,6 +289,8 @@ EngineRepresentation * EngineSync::createNewEngine(bool addToEngines, int overri
 		connect(engine,						&EngineRepresentation::checkDataSetForUpdates,			this,					&EngineSync::checkDataSetForUpdates											);
 		if(Workspace::singleton())
 			connect(engine,					&EngineRepresentation::computeColumnSucceeded,			Workspace::singleton(),	&Workspace::computedColumnSucceeded,						Qt::QueuedConnection		);
+		if(Workspace::singleton())
+			connect(engine,					&EngineRepresentation::computeDataSetSucceeded,			Workspace::singleton(),	&Workspace::computedDataSetSucceeded,						Qt::QueuedConnection		);
 		connect(engine,						&EngineRepresentation::channelSignal,					this,					&EngineSync::channel,								Qt::DirectConnection	);
 		connect(engine,						&EngineRepresentation::stopAndDestroyEngine,			this,					&EngineSync::stopAndDestroyEngine,					Qt::QueuedConnection	);
 		connect(engine,						&EngineRepresentation::stopModuleEngine,				this,					&EngineSync::stopModuleEngine												);
@@ -453,7 +455,7 @@ void EngineSync::process()
 
 	if(_stopProcessing || _dataMode || _filterRunning)
 	{
-		if ((_dataMode) && processComputedColumnQueue())
+		if ((_dataMode) && (processComputedColumnQueue() || processComputedDataSetQueue()))
 			startExtraEngines(1);
 		return;
 	}
@@ -464,8 +466,9 @@ void EngineSync::process()
 	//So we try to distribute some work to each engine as below:
 	stringset	notEnoughIdlesForScript		=	processRCodeQueue();
 	bool		notEnoughIdlesForCompCol	=	processComputedColumnQueue();
+	bool		notEnoughIdlesForCompDataSet=	processComputedDataSetQueue();
 	auto		notEnoughIdlesForAnalysis	=	processAnalysisRequests();
-    bool		notEnoughIdles				=	notEnoughIdlesForCompCol || notEnoughIdlesForScript.size() || notEnoughIdlesForAnalysis.size();
+    bool		notEnoughIdles				=	notEnoughIdlesForCompCol || notEnoughIdlesForCompDataSet || notEnoughIdlesForScript.size() || notEnoughIdlesForAnalysis.size();
 	
 	// So  right now notEnoughIdles tells us we do not have enough idle engines (or free idle engines anyway)
 	// Now we join the set of missing module-engines, or engines registered for a module (and usually with that module loaded unless it is an install request)
@@ -473,11 +476,13 @@ void EngineSync::process()
 	
 	int			wantThisManyEngines			=	notEnoughIdlesSet.size();
 
-	if (notEnoughIdlesForCompCol) // Need an angine for a computed column: create one!
+	if (notEnoughIdlesForCompCol) // Need an engine for a computed column: create one!
+		wantThisManyEngines++;
+	if (notEnoughIdlesForCompDataSet) // Need an engine for a computed dataset: create one too!
 		wantThisManyEngines++;
 
 	if(notEnoughIdles)
-        Log::log() << "Not enough idle engines! Need " << (notEnoughIdlesForScript.size() ? " one for script" : "") << (notEnoughIdlesForCompCol ? " one for compcol" : "") << (notEnoughIdlesForAnalysis.size() ? std::to_string(notEnoughIdlesForAnalysis.size()) + " for analysis" : "") << ", one will " << ( !anEngineIdleSoon() ? "NOT " : "")  << "be idle soon..." << std::endl;
+        Log::log() << "Not enough idle engines! Need " << (notEnoughIdlesForScript.size() ? " one for script" : "") << (notEnoughIdlesForCompCol ? " one for compcol" : "") << (notEnoughIdlesForCompDataSet ? " one for compdata" : "") << (notEnoughIdlesForAnalysis.size() ? std::to_string(notEnoughIdlesForAnalysis.size()) + " for analysis" : "") << ", one will " << ( !anEngineIdleSoon() ? "NOT " : "")  << "be idle soon..." << std::endl;
 	
 	//First try to find or start some engines specifically for waiting analyses, and we assign them to the module immediately
 	if(notEnoughIdlesForAnalysis.size())
@@ -589,6 +594,23 @@ void EngineSync::computeColumn(int dataSetId, const QString & columnName, const 
 	}
 
 	_waitingCompCols.push(new RComputeColumnStore(dataSetId, columnName, computeCode, colType));
+}
+
+void EngineSync::computeDataSet(int dataSetId, const QString & computeCode, int defaultInputDataSetId)
+{
+	//first we remove the previously sent requests for this same dataset!
+	std::queue<RComputeDataSetStore*> copiedWaiting(_waitingCompDataSets);
+	_waitingCompDataSets = std::queue<RComputeDataSetStore*>();
+
+	while(copiedWaiting.size() > 0)
+	{
+		RComputeDataSetStore * cur = copiedWaiting.front();
+		if(cur->typeScript != engineState::computeDataSet || cur->dataSetId != dataSetId)
+			_waitingCompDataSets.push(cur);
+		copiedWaiting.pop();
+	}
+
+	_waitingCompDataSets.push(new RComputeDataSetStore(dataSetId, computeCode, defaultInputDataSetId));
 }
 
 void EngineSync::processFilterScript()
@@ -766,6 +788,49 @@ bool EngineSync::processComputedColumnQueue()
 		Log::log() << "Exception thrown in processComputedColumnQueue" << std::endl;
 	}
 	
+	return needEngine;
+}
+
+bool EngineSync::processComputedDataSetQueue()
+{
+	bool needEngine = false;
+	try
+	{
+		std::queue<RComputeDataSetStore*>	newWaiting;
+
+		while(_waitingCompDataSets.size() > 0)
+		{
+			RComputeDataSetStore * waiting = _waitingCompDataSets.front();
+
+			needEngine = true;
+			bool foundOne = false;
+
+			for(auto * engine : _engines)
+				if(engine->idle()  && engine->runsUtility())
+				{
+					engine->runScriptOnProcess(waiting);
+
+					delete waiting;
+					_waitingCompDataSets.pop();
+					foundOne = true;
+					needEngine = false;
+					break;
+				}
+
+			if(!foundOne)
+			{
+				newWaiting.push(waiting);
+				_waitingCompDataSets.pop();
+			}
+		}
+
+		_waitingCompDataSets = newWaiting;
+	}
+	catch(...)
+	{
+		Log::log() << "Exception thrown in processComputedDataSetQueue" << std::endl;
+	}
+
 	return needEngine;
 }
 

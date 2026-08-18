@@ -101,10 +101,8 @@ void JASPImporter::loadDataSet(const std::string &path, std::function<void(int)>
 
 	JASPTIMER_STOP(JASPImporter::loadDataSet INIT);
 
-	packageData->beginLoadingData();
 	loadDataArchive(tmpPath.generic_string(), progressCallback);
 	loadJASPArchive(tmpPath.generic_string(), progressCallback);
-	packageData->endLoadingData();
 
 	if(encrypted) //delete the decrypted tmp file we made
 		std::filesystem::remove(tmpPath);

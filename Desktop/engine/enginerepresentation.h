@@ -44,6 +44,7 @@ public:
 	void			runScriptOnProcess(		const QString		& rCmdCode);
 	void			runScriptOnProcess(		RFilterByNameStore	* filterStore);
 	void			runScriptOnProcess(		RComputeColumnStore * computeColumnStore);
+	void			runScriptOnProcess(		RComputeDataSetStore * computeDataSetStore);
 
 	void			runModuleInstallRequestOnProcess(	Json::Value request);
 	void			runModuleUnInstallRequestOnProcess(	Json::Value request);
@@ -126,6 +127,7 @@ protected:
 	void			processFilterByNameReply(	Json::Value & json);
 	void			processAnalysisReply(		Json::Value & json);
 	void			processComputeColumnReply(	Json::Value & json);
+	void			processComputeDataSetReply(	Json::Value & json);
 	void			processModuleRequestReply(	Json::Value & json);
 	void			processLoadingDataReply(Json::Value & json);
 	void			processEnginePausedReply();
@@ -155,6 +157,7 @@ signals:
 	void			filterDone(																int requestID);
 	void			processFilterErrorMsg(			const QString & error,					int requestId = -1);
 		void			computeColumnSucceeded(			int dataSetId, QString columnName, QString warning, bool dataChanged);
+		void			computeDataSetSucceeded(		int dataSetId, QString warning, bool dataChanged);
 	
 	void			rCodeReturned(					const QString & result, int requestId, bool hasError	);
 	void			rCodeReturnedLog(				const QString & log, bool hasError						);
@@ -215,7 +218,8 @@ private:
 					_lastRequestId		= -1,		///<for R code requests from qml components, so that we can send it back to the right element
 					_abortTime			= -1,		///<When did we tell the analysis to abort? So that we can kill it if it takes too long
 					_idleStartSecs		= -1,
-					_lastCompColDataSet = -1;
+					_lastCompColDataSet = -1,
+					_lastCompDataSetId	= -1;
 	bool			_pauseRequested		= false,	///<should tell the engine to pause as soon as possible
 					_stopRequested		= false,	///<should tell the engine to stop as soon as possible
 					_slaveCrashed		= false,	///<My slave crashed

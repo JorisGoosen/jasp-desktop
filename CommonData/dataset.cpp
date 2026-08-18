@@ -115,7 +115,8 @@ void DataSet::deleteShownFilter()
 		emit filterRemoved(_shownFilter);
 		
 		delete _shownFilter;
-		_shownFilter = _filters[std::max(indexWas, _filters.size()-1)];
+		// Showing the filter that took the removed one's place (if within range), else the last remaining, else the default (no filter).
+		_shownFilter = _filters.empty() ? _defaultFilter : _filters[std::min(indexWas, _filters.size() - 1)];
 		emit shownFilterChanged(this);
 		incRevision();
 		refresh();		
@@ -204,7 +205,7 @@ Filter *DataSet::filter(int id)
 		if(f->id() == id)
 			return f;
 	
-	return _defaultFilter->id() == id ? _defaultFilter : nullptr;
+	return _defaultFilter && _defaultFilter->id() == id ? _defaultFilter : nullptr;
 }
 
 void DataSet::registerFilter(Filter *f)
@@ -235,7 +236,7 @@ void DataSet::dbDelete()
 	}
 	
 	_columns.clear();
-	
+	_shownColumn	= nullptr; //children are freed above; don't leave a dangling reference
 
 	db().dataSetDelete(_dataSetId);
 	
@@ -647,6 +648,8 @@ void DataSet::dbLoad(int id, std::function<void(float)> progressCallback, Versio
 
 	db().dataSetLoad(_dataSetId, _title, _dataFilePath, _dataFileTimestamp, _description, databaseJson, emptyVals, _revision, _dataFileSynch, _csvDelimiter);
 
+	db().dataSetGetComputedInfo(_dataSetId, _invalidated, _codeType, _rCode, _error, _defaultInputDataSetId);
+
 	Json::Reader().parse(databaseJson,	_database);
 
 	progressCallback(0.1);
@@ -950,6 +953,126 @@ bool DataSet::checkForUpdates(std::function<void(float)> progressCallback)
 void DataSet::runComputedColumn(QString columnName, QString code, columnType columnType)
 {
 	emit _workspace->runComputedColumn(id(), columnName, code, columnType);
+}
+
+void DataSet::runComputedDataset(QString code, int defaultInputDataSetId)
+{
+	emit _workspace->runComputedDataSet(id(), code, defaultInputDataSetId);
+}
+
+std::string DataSet::rCodeStripped() const
+{
+	return stringUtils::stripRComments(_rCode);
+}
+
+DataSet * DataSet::defaultInputDataSet() const
+{
+	return _workspace ? _workspace->dataSetById(_defaultInputDataSetId) : nullptr;
+}
+
+bool DataSet::iShouldBeSentAgain()
+{
+	if(!invalidated())
+		return false;
+
+	DataSet * input = defaultInputDataSet();
+
+	if(input && input->isComputed() && input->invalidated())
+		return false;
+
+	return true;
+}
+
+void DataSet::dbUpdateComputedDatasetStuff()
+{
+	std::string oldError = _error;
+
+	db().dataSetSetComputedInfo(_dataSetId, _invalidated, _codeType, _rCode, _error, _defaultInputDataSetId);
+	incRevision();
+
+	if(oldError != _error)
+		emit errorChanged();
+}
+
+bool DataSet::setRCode(const std::string & rCode)
+{
+	if(_rCode == rCode)
+		return false;
+
+	_rCode		= rCode;
+	invalidate();
+	dbUpdateComputedDatasetStuff();
+	emit rCodeChanged();
+	checkForDependentDatasetsToBeSent(true);
+
+	return true;
+}
+
+void DataSet::setCodeType(computedColumnType codeType)
+{
+	if(codeType == _codeType)
+		return;
+
+	_codeType = codeType;
+
+	dbUpdateComputedDatasetStuff();
+	emit codeTypeChanged();
+}
+
+void DataSet::setInvalidated(bool invalidated)
+{
+	if(_invalidated == invalidated)
+		return;
+
+	_invalidated = invalidated;
+	db().dataSetSetComputedInfo(_dataSetId, _invalidated, _codeType, _rCode, _error, _defaultInputDataSetId);
+	incRevision();
+	emit invalidatedChanged();
+}
+
+bool DataSet::setError(const std::string & error)
+{
+	if(error == _error)
+		return false;
+
+	_error = error;
+	dbUpdateComputedDatasetStuff();
+
+	return true;
+}
+
+void DataSet::setDefaultInputDataSetId(int defaultInputDataSetId)
+{
+	if(defaultInputDataSetId == _defaultInputDataSetId)
+		return;
+
+	_defaultInputDataSetId = defaultInputDataSetId;
+	invalidate();
+	dbUpdateComputedDatasetStuff();
+	emit defaultInputDataSetChanged();
+}
+
+bool DataSet::tryAndRunComputedDataset()
+{
+	const std::string code = rCodeStripped();
+
+	if(code.empty())
+		return false;
+
+	runComputedDataset(tq(code), _defaultInputDataSetId);
+
+	return true;
+}
+
+void DataSet::checkForDependentDatasetsToBeSent(bool refreshMe)
+{
+	for(DataSet * ds : _workspace->dataSets())
+		if(ds->isComputed() && ((ds == this && refreshMe) || ds->defaultInputDataSetId() == id()))
+			ds->invalidate();
+
+	for(DataSet * ds : _workspace->dataSets())
+		if(ds->isComputed() && ds->iShouldBeSentAgain())
+			ds->tryAndRunComputedDataset();
 }
 
 const Columns & DataSet::computedColumns() const
@@ -1598,7 +1721,9 @@ void DataSet::handleDataSetChanged( int						dataSetID,
 			col->tryAndRunComputedColumn();
 	}
 
-	
+	//Computed datasets that read from this dataset must be recomputed too.
+	checkForDependentDatasetsToBeSent();
+
 	
 }
 
@@ -1608,7 +1733,12 @@ void DataSet::handleDataSetChanged( int						dataSetID,
 
 bool DataSet::getRowFilter(int row) const
 {
-	return bool(shownFilter()->filtered().size() == 0 || shownFilter()->filtered().at(row));
+	const Filter * filter = shownFilter();
+	if(!filter)
+		return true;
+
+	const std::vector<bool> & filtered = filter->filtered();
+	return filtered.empty() || (row >= 0 && static_cast<size_t>(row) < filtered.size() && filtered[row]);
 }
 
 QVariant DataSet::getDataSetViewLines(bool up, bool left, bool down, bool right)

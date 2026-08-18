@@ -22,6 +22,7 @@ private slots:
     void    initTestCase();
     void    testComputedColumns();
 	void    testComputedColumnCascade();
+	void    testComputedDataSet();
     void    testVariableInfoPerFilter();
 
 private:

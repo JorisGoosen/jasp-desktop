@@ -150,6 +150,19 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 		}
 	}
 
+	//Computed datasets (a whole DataSet generated from R code) store their state on the DataSets
+	//table, just like computed columns store it on the Columns table.
+	if(!tableHasColumn("DataSets", "codeType"))
+		runStatements("ALTER TABLE DataSets  ADD COLUMN codeType			TEXT NULL;");
+	if(!tableHasColumn("DataSets", "rCode"))
+		runStatements("ALTER TABLE DataSets  ADD COLUMN rCode				TEXT NULL;");
+	if(!tableHasColumn("DataSets", "invalidated"))
+		runStatements("ALTER TABLE DataSets  ADD COLUMN invalidated		INT NULL;");
+	if(!tableHasColumn("DataSets", "error"))
+		runStatements("ALTER TABLE DataSets  ADD COLUMN error				TEXT NULL;");
+	if(!tableHasColumn("DataSets", "defaultInputDataSet"))
+		runStatements("ALTER TABLE DataSets  ADD COLUMN defaultInputDataSet INT NULL;");
+
 	transactionWriteEnd();
 }
 
@@ -253,6 +266,55 @@ assert(colCount == 9);
 	};
 
 runStatements("SELECT dataFilePath, title, dataFileTimestamp, description, databaseJson, emptyValuesJson, revision, dataFileSynch, csvDelimiter FROM DataSets WHERE id = ?;", prepare, processRow);
+}
+
+void DatabaseInterface::dataSetSetComputedInfo(int dataSetId, bool invalidated, computedColumnType codeType, const std::string & rCode, const std::string & error, int defaultInputDataSet)
+{
+	JASPTIMER_SCOPE(DatabaseInterface::dataSetSetComputedInfo);
+
+	runStatements("UPDATE DataSets SET invalidated=?, codeType=?, rCode=?, error=?, defaultInputDataSet=? WHERE id=?;", [&](sqlite3_stmt * stmt)
+	{
+		std::string codeT = computedColumnTypeToString(codeType);
+
+		sqlite3_bind_int(stmt,  1, int(invalidated));
+		sqlite3_bind_text(stmt, 2, codeT.c_str(),		codeT.length(),		SQLITE_TRANSIENT);
+		sqlite3_bind_text(stmt, 3, rCode.c_str(),		rCode.length(),		SQLITE_TRANSIENT);
+		sqlite3_bind_text(stmt, 4, error.c_str(),		error.length(),		SQLITE_TRANSIENT);
+		sqlite3_bind_int(stmt,  5, defaultInputDataSet);
+		sqlite3_bind_int(stmt,  6, dataSetId);
+	});
+}
+
+void DatabaseInterface::dataSetGetComputedInfo(int dataSetId, bool & invalidated, computedColumnType & codeType, std::string & rCode, std::string & error, int & defaultInputDataSet)
+{
+	JASPTIMER_SCOPE(DatabaseInterface::dataSetGetComputedInfo);
+
+	std::function<void(sqlite3_stmt *stmt)>  prepare = [&](sqlite3_stmt *stmt)
+	{
+		sqlite3_bind_int(stmt, 1, dataSetId);
+	};
+
+	std::function<void(size_t row, sqlite3_stmt *stmt)> processRow = [&](size_t row, sqlite3_stmt *stmt)
+	{
+		int colCount = sqlite3_column_count(stmt);
+
+		assert(colCount == 5);
+
+					invalidated			= sqlite3_column_int(		stmt,	0);
+		std::string codeTypeStr			= _wrap_sqlite3_column_text(stmt,	1);
+					rCode				= _wrap_sqlite3_column_text(stmt,	2);
+					error				= _wrap_sqlite3_column_text(stmt,	3);
+					defaultInputDataSet	= sqlite3_column_int(		stmt,	4);
+
+		codeType = computedColumnType::notComputed;
+		if (!codeTypeStr.empty())
+		{
+			try { codeType = computedColumnTypeFromString(codeTypeStr); }
+			catch(...) {}
+		}
+	};
+
+	runStatements("SELECT invalidated, codeType, rCode, error, defaultInputDataSet FROM DataSets WHERE id = ?;", prepare, processRow);
 }
 
 int DatabaseInterface::dataSetColCount(int dataSetId)
@@ -2505,18 +2567,6 @@ isItReallyALabel:
 	}
 	
 	_dbCreator = std::this_thread::get_id();
-}
-
-void DatabaseInterface::doWalCheckPoint()
-{
-	/*int sizeWalLogInFrames, totalNumberOfFramesCheckpointed;
-	
-	sqlite3_wal_checkpoint_v2(_db(), NULL, SQLITE_CHECKPOINT_RESTART, &sizeWalLogInFrames, &totalNumberOfFramesCheckpointed);
-	
-	if(sizeWalLogInFrames || totalNumberOfFramesCheckpointed)
-	{
-		Log::log() << "DatabaseInterface::doWalCheckPoint: sizeWalLogInFrames=" << sizeWalLogInFrames << " and totalNumberOfFramesCheckpointed=" << totalNumberOfFramesCheckpointed << std::endl;
-	}*/
 }
 
 void DatabaseInterface::preloadInterfaceForThread()

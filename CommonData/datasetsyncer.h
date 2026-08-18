@@ -30,7 +30,6 @@ public:
 signals:
 	void					syncingStarted(int dataSetId);
 	void					syncingFinished(int dataSetId, bool success);
-	void					syncingProgress(int dataSetId, int percent);
 
 	void					askUserForRelink(int dataSetId);
 	QString					askPassword(int dataSetId, QString title, QString message);

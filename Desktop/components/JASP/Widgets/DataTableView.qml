@@ -72,7 +72,7 @@ FocusScope
 			anchors.top:			dataStatusBar.bottom
 			anchors.left:			parent.left
 			anchors.right:			parent.right
-			anchors.bottom:			dataSelectionBar.top
+			anchors.bottom:			computeDataSetPanel.visible ? computeDataSetPanel.top : dataSelectionBar.top
 
 			itemHorizontalPadding:	8 * jaspTheme.uiScale
 			itemVerticalPadding:	8 * jaspTheme.uiScale
@@ -459,18 +459,36 @@ FocusScope
 					{
 						model:			dataSetPackage.workspace
 						
-						DataSetTabButton
-						{ 
+						RowLayout
+						{
+							id:					dataSetTabItem
+							spacing:			4 * jaspTheme.uiScale
+							
 							required property string name
 							required property string title
 							required property string description
+							required property bool columnIsComputed
 							
-							text:				title
-							buttonActive:		dataSetPackage.workspace.shownDataSet.name === name
-							showTextField:		buttonActive
-							onClicked:			dataSetPackage.workspace.setShownDataSet(name)
-							theButton.toolTip:	description
-							//
+							CheckBox
+							{
+								id:					computedToggle
+								checked:			dataSetTabItem.columnIsComputed
+								onToggled:			dataSetPackage.workspace.setDataSetComputed(dataSetTabItem.name, checked)
+
+								ToolTip.text:		qsTr("Computed dataset")
+								ToolTip.visible:	hovered
+							}
+							
+							DataSetTabButton
+							{
+								name:				dataSetTabItem.name
+								description:		dataSetTabItem.description
+								text:				dataSetTabItem.title
+								buttonActive:		dataSetPackage.workspace.shownDataSet.name === name
+								showTextField:		buttonActive
+								onClicked:			dataSetPackage.workspace.setShownDataSet(name)
+								theButton.toolTip:	description
+							}
 						}
 					}
 					
@@ -483,6 +501,15 @@ FocusScope
 					}
 				}
 			}
+		}
+		
+		ComputeDataSetPanel
+		{
+			id:						computeDataSetPanel
+			anchors.left:			parent.left
+			anchors.right:			parent.right
+			anchors.bottom:			dataSelectionBar.top
+			visible:				dataSetPackage.workspace.shownDataSet && dataSetPackage.workspace.shownDataSet.codeType === computedColumnTypeRCode
 		}
 	}
 }
