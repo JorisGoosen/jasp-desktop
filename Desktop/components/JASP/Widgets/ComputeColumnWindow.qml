@@ -342,7 +342,7 @@ FocusScope
 				id:					computeFilterDropDown
 				values:				filterModel.filterDropDownList
 				startValue:			""
-				currentValue:		columnModel.column.computeFilter
+				currentValue:		columnModel.column ? columnModel.column.computeFilter : -1
 				onValueChanged:		{
 					computedColumnContainer.applyComputedColumn()
 					columnModel.setComputeFilterQ(currentValue)

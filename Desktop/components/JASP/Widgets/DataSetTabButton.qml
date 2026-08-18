@@ -15,11 +15,12 @@ Item
 	
 	property alias	text:			theButton.text
 	property alias	iconSource:		theButton.iconSource
-	property string	name:			""
+	property string	dataSetName:	""
 	property string	description:	""
-	property bool	buttonActive:	false
-	property bool	showTextField:	false
+	property bool	buttonActive:	dataSetPackage && dataSetPackage.workspace && dataSetPackage.workspace.shownDataSet && dataSetName === dataSetPackage.workspace.shownDataSet.name
+	property bool	showTextField:	buttonActive
 	property alias	theButton:		theButton
+	property bool   isComputed:		false;
 
 	signal clicked();
 	signal doubleClicked();
@@ -63,6 +64,8 @@ Item
 				bottomMargin:	parent.implicitHeight
 			}
 		}
+		
+		toolTip:		description
 	}
 	
 	Component
@@ -71,6 +74,15 @@ Item
 		
 		RowLayout
 		{
+			JaspControls.CheckBox
+			{
+				id:					computedToggle
+				checked:			root.isComputed
+				onCheckedChanged:	dataSetPackage.workspace.setDataSetComputed(root.dataSetName, checked)
+
+				ToolTip.text:		qsTr("Computed dataset")
+				ToolTip.visible:	hovered
+			}
 			
 			TextInput
 			{
@@ -92,6 +104,8 @@ Item
 				onClicked:			dataSetPackage.workspace.deleteShownDataSet()
 				toolTip:			qsTr("Delete dataset")
 			}
+			
+			
 		}
 	}
 }

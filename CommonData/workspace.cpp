@@ -64,7 +64,7 @@ QVariant Workspace::data(const QModelIndex &index, int role) const
 	case int(dataPkgRoles::title):							return cur->title();
 	case int(dataPkgRoles::description):					return cur->descriptionQ();
 	case int(dataPkgRoles::id):								return cur->id();
-	case int(dataPkgRoles::computedColumnType):			return int(cur->codeType());
+	case int(dataPkgRoles::computedColumnType):				return int(cur->codeType());
 	case int(dataPkgRoles::columnIsComputed):				return cur->isComputed();
 	}
 	
@@ -229,6 +229,7 @@ void Workspace::setShownDataSet(DataSet *dataSet)
 	_varInfo->setProvider(_shownDataSet->shownFilter());
 			
 	emit shownDataSetChanged(_shownDataSet);
+	
 	refresh();
 }
 
@@ -582,18 +583,19 @@ void Workspace::refresh()
 
 	//instance flag (see _inRefresh in workspace.h), not static, so it cannot suppress refreshes
 	//across separate Workspace instances.
-	if (_inRefresh)
-		return;
+	if (!_inRefresh)
+	{
 
-	RefreshGuard guard(_inRefresh);
-	beginResetModel();
-
-	for(auto & idData : _dataSets)
-		idData.second->refresh();
-
-	emit dataModeChanged(dataMode());
-	emit showRSyntaxChanged(showRSyntax());
-	endResetModel();
+		RefreshGuard guard(_inRefresh);
+		beginResetModel();
+	
+		for(auto & idData : _dataSets)
+			idData.second->refresh();
+	
+		emit dataModeChanged(dataMode());
+		emit showRSyntaxChanged(showRSyntax());
+		endResetModel();
+	}
 
 	//Emit the "shown" signals only after the reset is complete: these connect into QML/other models
 	//that may re-query the Workspace model, which is not allowed while a reset is still active.

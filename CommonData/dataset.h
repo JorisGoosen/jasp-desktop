@@ -36,21 +36,21 @@ class DataSet : public DataSetBaseNode
 	Q_OBJECT
 	
 	//Would be nice to have EmptyValuesQ also and make it available as a property here
-	Q_PROPERTY(QString		description				READ descriptionQ			WRITE setDescriptionQ		NOTIFY descriptionChanged			)
-	Q_PROPERTY(QString		dataFile				READ dataFileQ				WRITE setDataFileQ			NOTIFY dataFileChanged				)
-	//Q_PROPERTY(QJsonValue	databaseJson			READ databaseJsonQ			WRITE setDatabaseJsonQ		NOTIFY databaseJsonChanged			)
-	Q_PROPERTY(bool			dataFileSynch			READ dataFileSynch			WRITE setDataFileSynch		NOTIFY dataFileSynchChanged			)
-	Q_PROPERTY(long			dataFileTimestamp		READ dataFileTimestamp		WRITE setDataTimestamp		NOTIFY dataTimestampChanged			)
-	Q_PROPERTY(int			columnsLabelFilteredCount	READ columnsLabelFilteredCount								NOTIFY columnsLabelFilteredCountChanged	)
-	Q_PROPERTY(Filter	*	shownFilter				READ shownFilter										NOTIFY shownFilterChanged			)
-	Q_PROPERTY(Column	*	shownColumn				READ shownColumn			WRITE setShownColumn		NOTIFY shownColumnChanged			)
-	Q_PROPERTY(QString		name					READ name												CONSTANT							)
-	Q_PROPERTY(QString		title					READ title					WRITE setTitle				NOTIFY titleChanged					)
-	Q_PROPERTY(QString		rCode					READ rCodeQ					WRITE setRCodeQ				NOTIFY rCodeChanged				)
-	Q_PROPERTY(computedColumnType	codeType			READ codeType				WRITE setCodeType			NOTIFY codeTypeChanged			)
-	Q_PROPERTY(bool			invalidated				READ invalidated										NOTIFY invalidatedChanged			)
-	Q_PROPERTY(QString		error					READ errorQ					WRITE setErrorQ				NOTIFY errorChanged				)
-	Q_PROPERTY(int			defaultInputFilterId	READ defaultInputFilterId	WRITE setDefaultInputFilterId	NOTIFY defaultInputFilterChanged	)
+	Q_PROPERTY(QString				description					READ descriptionQ				WRITE setDescriptionQ			NOTIFY descriptionChanged				)
+	Q_PROPERTY(QString				dataFile					READ dataFileQ					WRITE setDataFileQ				NOTIFY dataFileChanged					)
+	//Q_PROPERTY(QJsonValue			databaseJson				READ databaseJsonQ				WRITE setDatabaseJsonQ			NOTIFY databaseJsonChanged				)
+	Q_PROPERTY(bool					dataFileSynch				READ dataFileSynch				WRITE setDataFileSynch			NOTIFY dataFileSynchChanged				)
+	Q_PROPERTY(long					dataFileTimestamp			READ dataFileTimestamp			WRITE setDataTimestamp			NOTIFY dataTimestampChanged				)
+	Q_PROPERTY(int					columnsLabelFilteredCount	READ columnsLabelFilteredCount									NOTIFY columnsLabelFilteredCountChanged	)
+	Q_PROPERTY(Filter	*			shownFilter					READ shownFilter												NOTIFY shownFilterChanged				)
+	Q_PROPERTY(Column	*			shownColumn					READ shownColumn				WRITE setShownColumn			NOTIFY shownColumnChanged				)
+	Q_PROPERTY(QString				name						READ name														CONSTANT								)
+	Q_PROPERTY(QString				title						READ title						WRITE setTitle					NOTIFY titleChanged						)
+	Q_PROPERTY(QString				rCode						READ rCodeQ						WRITE setRCodeQ					NOTIFY rCodeChanged						)
+	Q_PROPERTY(computedColumnType	codeType					READ codeType					WRITE setCodeType				NOTIFY codeTypeChanged					)
+	Q_PROPERTY(bool					invalidated					READ invalidated												NOTIFY invalidatedChanged				)
+	Q_PROPERTY(QString				error						READ errorQ						WRITE setErrorQ					NOTIFY errorChanged						)
+	Q_PROPERTY(int					defaultInputFilterId		READ defaultInputFilterId		WRITE setDefaultInputFilterId	NOTIFY defaultInputFilterChanged		)
 	// Emit signals also in refresh
 	
 	friend Column;
@@ -131,7 +131,7 @@ public:
 			Column		*	createComputedColumn(	const std::string & name, columnType type		= columnType::unknown, computedColumnType desiredType = computedColumnType::analysis, int analysisId = -1);
 			ColumnEncoder	&	encoder()			{ return *_encoder; }
 	const	ColumnEncoder	&	encoder()	const	{ return *_encoder; }
-	DataSetSyncer	&	syncer()			{ return *_syncer; }
+			DataSetSyncer	&	syncer()			{ return *_syncer; }
 	const	DataSetSyncer	&	syncer()	const	{ return *_syncer; }
 			int				getColumnIndex(	const	std::string &	name	) const;
 			int				columnIndex(	const	Column		*	col		) const;
@@ -181,7 +181,7 @@ public:
 			
 			void			emitColumnChanged(		const QString		& name);
 
-void			setDataFile( const std::string & dataFilePath, long timestamp)	{ _dataFilePath	= dataFilePath;	_dataFileTimestamp = timestamp; dbUpdate(); }
+			void			setDataFile( const std::string & dataFilePath, long timestamp)	{ _dataFilePath	= dataFilePath;	_dataFileTimestamp = timestamp; dbUpdate(); }
 			void			setDatabaseJson(	const std::string & databaseJson)	{ Json::Reader().parse(databaseJson, _database); dbUpdate(); }
 			char			csvDelimiter()		const								{ return _csvDelimiter; }
 			void			setCsvDelimiter(	char delimiter)						{ _csvDelimiter		= delimiter;			dbUpdate(); }
@@ -266,7 +266,7 @@ signals:
 			void			sendFilterByName(int dataSetID, const QString & name, const QString & module = "*");
 			void			filtersCountChanged();
 			void			shownFilterChanged(DataSet * data);
-void			filterRemoved(Filter * f);
+			void			filterRemoved(Filter * f);
 			void			synchronizeStart(DataSet *);
 			void			synchronizeDo(DataSet *);
 			void			syncRequired(int dataSetId, DataSet * dataSet, QString locator, QString extension, QString databaseJson);

@@ -3144,7 +3144,7 @@ int Column::rowCount(const QModelIndex &parent) const
 
 int Column::columnCount(const QModelIndex &parent) const
 {
-	return parent.isValid() ? 0 : 3;
+	return parent.isValid() ? 0 : 1;
 }
 
 QVariant Column::headerData(int section, Qt::Orientation orientation, int role) const
@@ -3162,13 +3162,16 @@ QVariant Column::headerData(int section, Qt::Orientation orientation, int role) 
 			return QVariant();
 	
 		case int(dataPkgRoles::maxRowHeaderString):
-			return QString::number(rowCount()) + "XXX";
+			return ""; //QString::number(rowCount()) + "XXX";
 	
 		case Qt::DisplayRole:
 			return QVariant(section + 1);
 		}
 	else
 	{
+		if(role == int(dataPkgRoles::maxColString) || role == int(dataPkgRoles::maxColumnHeaderString))
+			return QVariant();
+		
 		switch(section)
 		{
 		case 0:		return tr("Filter");

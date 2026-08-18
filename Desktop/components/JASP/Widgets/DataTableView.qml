@@ -459,37 +459,22 @@ FocusScope
 					{
 						model:			dataSetPackage.workspace
 						
-						RowLayout
+						DataSetTabButton
 						{
-							id:					dataSetTabItem
-							spacing:			4 * jaspTheme.uiScale
+							required property string	name
+							required property string	title
+							required property string	description
+							required property bool		columnIsComputed
 							
-							required property string name
-							required property string title
-							required property string description
-							required property bool columnIsComputed
-							
-							CheckBox
-							{
-								id:					computedToggle
-								checked:			dataSetTabItem.columnIsComputed
-								onToggled:			dataSetPackage.workspace.setDataSetComputed(dataSetTabItem.name, checked)
-
-								ToolTip.text:		qsTr("Computed dataset")
-								ToolTip.visible:	hovered
-							}
-							
-							DataSetTabButton
-							{
-								name:				dataSetTabItem.name
-								description:		dataSetTabItem.description
-								text:				dataSetTabItem.title
-								buttonActive:		dataSetPackage.workspace.shownDataSet && dataSetPackage.workspace.shownDataSet.name === name
-								showTextField:		buttonActive
-								onClicked:			dataSetPackage.workspace.setShownDataSet(name)
-								theButton.toolTip:	description
-							}
+							dataSetName:		name
+							description:		description
+							text:				title
+							isComputed:			columnIsComputed
+							//buttonActive:		dataSetPackage.workspace.shownDataSet && dataSetPackage.workspace.shownDataSet.name === name
+							//showTextField:		buttonActive
+							onClicked:			dataSetPackage.workspace.setShownDataSet(name)
 						}
+					
 					}
 					
 					JaspControls.MenuButton
