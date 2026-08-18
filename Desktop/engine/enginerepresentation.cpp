@@ -503,9 +503,10 @@ void EngineRepresentation::processComputeColumnReply(Json::Value & json)
 
 	std::string columnName	= json.get("columnName", "").asString();
 	std::string warning		= json.get("error", "").asString();
-	bool		dataChanged	= warning.empty();
+	std::string result		= json.get("result", "").asString();
+	bool		dataChanged	= result == "TRUE";
 
-	emit computeColumnSucceeded(tq(columnName), tq(warning), dataChanged);
+	emit computeColumnSucceeded(_lastCompColDataSet, tq(columnName), tq(warning), dataChanged);
 	emit checkDataSetForUpdates();
 }
 
@@ -654,7 +655,7 @@ void EngineRepresentation::processAnalysisReply(Json::Value & json)
 	case analysisResultStatus::complete:
 		analysis->setResults(results, status);
 		clearAnalysisInProgress();
-		checkForComputedColumns(results);
+		checkForComputedColumns(analysis->dataSet(), results);
 		emit checkDataSetForUpdates(); //Maybe the analysis wrote some stuff?
 
 		break;
@@ -670,12 +671,15 @@ void EngineRepresentation::processAnalysisReply(Json::Value & json)
 	}
 }
 
-void EngineRepresentation::checkForComputedColumns(const Json::Value & results)
+void EngineRepresentation::checkForComputedColumns(DataSet * dataSet, const Json::Value & results)
 {
+	if(!dataSet)
+		return;
+
 	if(results.isArray())
 	{
 		for(const Json::Value & row : results)
-			checkForComputedColumns(row);
+			checkForComputedColumns(dataSet, row);
 	}
 	else if(results.isObject())
 	{
@@ -684,19 +688,25 @@ void EngineRepresentation::checkForComputedColumns(const Json::Value & results)
 
 		if(memberset.count("columnName") > 0 && memberset.count("columnType") > 0 && memberset.count("dataChanged") > 0)
 		{
-			//Log::log() << "The analysis reply contained information on changed computed columns: " << results.toStyledString() << std::endl;
-
-			//jaspColumnType	columnType	= jaspColumnTypeFromString(results["columnType"].asString()); This would work if jaspColumn wasn't defined in jaspColumn.h and Windows would not need to have that separately in a DLL... But it isn't really needed here anyway.
+			//An analysis reported that it (re)wrote one or more computed columns; treat that like a
+			//successful compute: pick the values back up from the DB, validate the column and let the
+			//columns depending on it proceed.
 			std::string		columnName	= results["columnName"].asString();
 			bool			dataChanged	= results["dataChanged"].asBool(),
-							typeChanged	= results["typeChanged"].asBool(),
-							removed 	= results["removed"]	.asBool();
+							removed 	= results["removed"].asBool();
+
+			//The analysis reports the encoded column name; translate it to the real one.
+			std::string	decoded = columnName;
+			try { decoded = dataSet->encoder().decode(columnName); } catch(...) {}
+
+			if(dataSet->column(decoded) && !removed)
+				Workspace::singleton()->computedColumnSucceeded(dataSet->id(), tq(decoded), "", dataChanged);
 
 			emit checkDataSetForUpdates();
 		}
 		else
 			for(const std::string & member : members)
-				checkForComputedColumns(results[member]);
+				checkForComputedColumns(dataSet, results[member]);
 	}
 }
 

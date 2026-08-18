@@ -934,6 +934,7 @@ void Analyses::_rpcWriteIdentity(Json::Value& response, Analysis* a)
 	response["analysisId"] = static_cast<int>(a->id());
 	response["module"]     = a->module();
 	response["analysis"]   = a->name();
+	response["dataSetId"]  = a->dataSet() ? a->dataSet()->id() : -1;
 }
 
 void Analyses::_rpcWriteStatus(Json::Value& response, Analysis* a)
@@ -1272,6 +1273,21 @@ void Analyses::registerRpcHandlers()
 			return JaspRpcDispatcher::errorResult(
 				"Failed to create analysis: " + module.toStdString() +
 				"::" + analysis.toStdString());
+
+		// If the caller explicitly targets a dataset, associate the new analysis with it.
+		if (params.isMember("dataSetId"))
+		{
+			Workspace * ws = DataSetPackage::pkg() ? DataSetPackage::pkg()->workspace() : nullptr;
+			DataSet   * ds = ws ? ws->dataSetById(params["dataSetId"].asInt()) : nullptr;
+			if (!ds)
+			{
+				delete a;
+				return JaspRpcDispatcher::errorResult(
+					"Dataset not found for dataSetId: " + std::to_string(params["dataSetId"].asInt()));
+			}
+			if (ds->defaultFilter())
+				a->setFilterId(ds->defaultFilter()->id());
+		}
 
 		// Mark AI-created analyses in the title
 		a->setTitle(a->title() + " (AI)");
@@ -1677,20 +1693,26 @@ void Analyses::registerRpcHandlers()
 		return result;
 	});
 
-	disp->registerMethodByName("analyses_list", [](const Json::Value&) -> Json::Value
+	disp->registerMethodByName("analyses_list", [](const Json::Value& params) -> Json::Value
 	{
 		auto* ans = Analyses::analyses();
+		int   filterDataSetId = params.isMember("dataSetId") ? params["dataSetId"].asInt() : -1;
 		Json::Value analysesArr(Json::arrayValue);
 
-		ans->applyToAll([&analysesArr](Analysis* a)
+		ans->applyToAll([&analysesArr, filterDataSetId](Analysis* a)
 		{
 			if (a->isReport()) return; // skip reports — they have no module to reference
 
+			int dataSetId = a->dataSet() ? a->dataSet()->id() : -1;
+			if (filterDataSetId >= 0 && dataSetId != filterDataSetId)
+				return;
+
 			Json::Value entry;
-			entry["id"]       = static_cast<int>(a->id());
-			entry["module"]   = a->module();
-			entry["analysis"] = a->name();
-			entry["title"]    = a->title();
+			entry["id"]         = static_cast<int>(a->id());
+			entry["module"]     = a->module();
+			entry["analysis"]   = a->name();
+			entry["title"]      = a->title();
+			entry["dataSetId"]  = dataSetId;
 			analysesArr.append(entry);
 		});
 
@@ -1799,7 +1821,8 @@ void Analyses::registerRpcHandlers()
 		response["reportId"] = static_cast<int>(report->id());
 		response["title"]    = report->title();
 		return response;
-	}
+	});
+}
 
 void Analyses::checkForDependentAnalyses(Column * column)
 {

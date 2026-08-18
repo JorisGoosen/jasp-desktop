@@ -14,6 +14,7 @@
 #include "data/importers/rdataimporter.h"
 #include "data/importers/readstatimporter.h"
 #include "utilities/settings.h"
+#include "utilities/desktopcommunicator.h"
 #include "datasetsyncer.h"
 #include "dataset.h"
 #include "workspace.h"
@@ -31,6 +32,9 @@ void TestAll::initTestCase()
 void TestAll::init()
 {
 	Settings::informSettingsThatThisIsATest();
+	//The CSV delimiter scratchpad (_knownCsvDelimiter) is a per-import value in production
+	//(reset by DataSetLoader); make sure a leftover value can never leak between tests.
+	DesktopCommunicator::singleton()->setKnownCsvDelimiter('\0');
 	//_pkg->reset(false);
 }
 
@@ -44,6 +48,24 @@ void TestAll::cleanup()
 	DatabaseInterface::singleton()->closeInterfaces();
 	delete _pkg;
 	_pkg = nullptr;
+}
+
+bool TestAll::_newPkgWithDataSet()
+{
+	delete _importer;
+	_importer = nullptr;
+	delete _pkg;
+	_pkg = nullptr;
+
+	_pkg = new DataSetPackage(this);
+
+	//Reset the per-import CSV delimiter scratchpad so it can't leak from a previous import.
+	DesktopCommunicator::singleton()->setKnownCsvDelimiter('\0');
+
+	CSVImporter importer;
+	importer.loadDataSet(fq(_testLibrary().absoluteFilePath("csv/debug.csv")), _pkg->createDataSet(), [](int){});
+
+	return _pkg->dataSet() != nullptr;
 }
 
 #define TO_STR2(x) #x
@@ -98,6 +120,9 @@ void TestAll::testDataImport()
 	_importer = getImporter();
 
 	QVERIFY2(_importer, "Getting importer failed...");
+
+	//Reset the per-import CSV delimiter scratchpad so one file's delimiter can't leak into the next.
+	DesktopCommunicator::singleton()->setKnownCsvDelimiter('\0');
 
 	std::cerr << "Testing " << dataFileAbsolutePath << std::endl;
 	_importer->loadDataSet(fq(dataFileAbsolutePath), _pkg->createDataSet(), [](int i){});
@@ -199,6 +224,8 @@ void TestAll::testJaspRoundRobin()
 	std::string jaspFile	= TempFiles::createSpecific("testjasp", "temp.jasp");
 
 	std::cerr << "Storing jasp file temporarily to: " << jaspFile << std::endl;
+	// Create snapshot before exporting
+	JASPExporter::createSnapshot("testjasp_snapshot_");
 	JASPExporter().saveDataSet(jaspFile, [](int){});
 	
 	_pkg->reset();
@@ -385,6 +412,8 @@ void TestAll::testFilterLabels()
 
 void TestAll::testSyncerStartStopFileSyncing()
 {
+	QVERIFY(_newPkgWithDataSet());
+
 	DataSet * ds = _pkg->dataSet();
 	QVERIFY(ds);
 
@@ -411,6 +440,8 @@ void TestAll::testSyncerStartStopFileSyncing()
 
 void TestAll::testSyncerFileChangeEmitsSignal()
 {
+	QVERIFY(_newPkgWithDataSet());
+
 	DataSet * ds = _pkg->dataSet();
 	QVERIFY(ds);
 
@@ -451,6 +482,8 @@ void TestAll::testSyncerFileChangeEmitsSignal()
 
 void TestAll::testSyncerStartStopDatabaseSyncing()
 {
+	QVERIFY(_newPkgWithDataSet());
+
 	DataSet * ds = _pkg->dataSet();
 	QVERIFY(ds);
 
@@ -475,6 +508,8 @@ void TestAll::testSyncerStartStopDatabaseSyncing()
 
 void TestAll::testSyncerSyncNowWithoutDataSource()
 {
+	QVERIFY(_newPkgWithDataSet());
+
 	DataSet * ds = _pkg->dataSet();
 	QVERIFY(ds);
 
@@ -490,6 +525,8 @@ void TestAll::testSyncerSyncNowWithoutDataSource()
 
 void TestAll::testSyncerMultipleStartStop()
 {
+	QVERIFY(_newPkgWithDataSet());
+
 	DataSet * ds = _pkg->dataSet();
 	QVERIFY(ds);
 

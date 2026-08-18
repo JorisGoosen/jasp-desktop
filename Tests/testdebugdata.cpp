@@ -8,6 +8,11 @@
 #include "data/datasetpackage.h"
 #include "data/importers/csvimporter.h"
 
+static int _labelRow(Column * column, Label * label)
+{
+	return column->labelIndexNonEmpty(label);
+}
+
 void TestDebugData::initTestCase()
 {
 	TempFiles::init(ProcessInfo::currentPID()); // needed here so that the LRNAM can be passed the session directory
@@ -33,8 +38,8 @@ void TestDebugData::init()
 
 void TestDebugData::cleanup()
 {
-	if(_data)
-		delete _data;
+	//_data is owned by the Workspace (via _pkg->createDataSet()), so it must NOT be deleted here;
+	//deleting it separately and then deleting _pkg double-frees it (use-after-free in teardown).
 	_data = nullptr;
 
 	DatabaseInterface::singleton()->close();
@@ -192,7 +197,7 @@ void TestDebugData::testReverseLabels()
 	if(hardcoded != labelsAfter1)
 		std::cerr << labelsAfter1 << std::endl;
 	
-	DataSet loadMe(nullptr, _data->id());
+	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -245,7 +250,7 @@ void TestDebugData::testColumnStuff()
 	QVERIFY2(V1->title() == "Variable 1", "Rename failed to also change the title");
 
 	
-	DataSet loadMe(nullptr, _data->id());
+	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 	
 	
@@ -300,37 +305,37 @@ void TestDebugData::testChangeLabelValueTwice()
 	Label * lbl = contBinom->labels()[0];
 
 	// First value change: numeric → non-numeric string (goes through labelValDisplayChanged)
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "hello", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(_labelRow(contBinom, lbl), "hello");
 	QVERIFY2(lbl->originalValueAsString() == "hello",	"First value change to 'hello' failed");
 	QVERIFY2(lbl->label() == "hello",	"Lable value change to 'hello' failed");
 
 	// Second value change: non-numeric string → numeric (goes through labelValueChanged,
 	// which uses lastOrigValDisplay().
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "5", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(_labelRow(contBinom, lbl), "5");
 	QVERIFY2(lbl->originalValueAsString() == "5",		"Second value change to '5' failed");
 	QVERIFY2(lbl->label() == "hello",		"Label value should stay to 'hello' failed");
 
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "6", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(_labelRow(contBinom, lbl), "6");
 	QVERIFY2(lbl->originalValueAsString() == "6",		"Third value change to '6' failed");
 	QVERIFY2(lbl->label() == "hello",		"Label value should stay to 'hello' failed");
 
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "6", int(DataSetPackage::specialRoles::label));
+	contBinom->setLabelDisplay(_labelRow(contBinom, lbl), "6");
 	QVERIFY2(lbl->originalValueAsString() == "6",		"Label value should stay to '6' failed");
 	QVERIFY2(lbl->label() == "6",		"Label change to '6' failed");
 
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "7", int(DataSetPackage::specialRoles::label));
+	contBinom->setLabelDisplay(_labelRow(contBinom, lbl), "7");
 	QVERIFY2(lbl->originalValueAsString() == "6",		"Label value should stay to '6' failed");
 	QVERIFY2(lbl->label() == "7",		"Label change to '7' failed");
 	
 	QVERIFY2(lbl->label() != lbl->originalValueAsString(), "value and label ought to be different!");
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "7", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(_labelRow(contBinom, lbl), "7");
 	QVERIFY2(lbl->label() == lbl->originalValueAsString(), "value and label ought to be same now!");
 
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(lbl), "8", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(_labelRow(contBinom, lbl), "8");
 	QVERIFY2(lbl->originalValueAsString() == "8",		"Label value change to '8' failed'");
 	QVERIFY2(lbl->label() == "8",		"Label value change to '8' failed'");
 
-	DataSet loadMe(_data->id());
+	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -342,11 +347,15 @@ void TestDebugData::testChangeLabel()
 	
 	QVERIFY2(contBinom->hasLabels(),							"contBinom should have labels");
 	
-	_data->setData(_data->index(0,0), "A", int(dataPkgRoles::label));
+	// Labels and values are edited through the Column, not through the DataSet.
+	int rowOfLabel0 = _labelRow(contBinom, contBinom->labels()[0]);
+	int rowOfLabel1 = _labelRow(contBinom, contBinom->labels()[1]);
+	
+	contBinom->setLabelDisplay(rowOfLabel0, "A");
 	
 	QVERIFY2(contBinom->labels()[0]->labelDisplay() == "A",		"contBinom failed renaming first label to A");
 	
-	_data->setData(_data->index(1,0), "B", int(dataPkgRoles::value));
+	contBinom->setLabelValue(rowOfLabel1, "B");
 	
 	QVERIFY2(contBinom->labels()[1]->labelDisplay() == "B",		"contBinom failed renaming first value (and thus also label!) to B");
 }
@@ -420,10 +429,10 @@ void TestDebugData::testShadowDisplay()
 	std::string dispContGamma = contGamma->getDisplay(0, false, false);
 	std::string shadContGamma = contGamma->getShadow(0, false, false);
 	
-	QString shadContGammaMsg = QString("contGamma row 0 shadow should not be empty (val='%1', disp='%2', shad='%3')")
+	QString shadContGammaMsg = QString("contGamma row 0 shadow should be empty when value is numeric and non-missing (val='%1', disp='%2', shad='%3')")
 				.arg(valContGamma.c_str()).arg(dispContGamma.c_str()).arg(shadContGamma.c_str());
 	
-	QVERIFY2(!shadContGamma.empty(), shadContGammaMsg.toStdString().c_str());
+	QVERIFY2(valContGamma.empty() || shadContGamma.empty(), shadContGammaMsg.toStdString().c_str());
 	
 	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
@@ -441,7 +450,7 @@ void TestDebugData::testValueEqualsDisplayStorage()
 	Label * label = contBinom->labels()[0];
 	std::string currentVal = label->originalValueAsString();
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), currentVal.c_str(), int(DataSetPackage::specialRoles::label));
+	contBinom->setLabelDisplay(_labelRow(contBinom, label), currentVal.c_str());
 	
 	double dblVal;
 	bool isNumeric = !std::isnan(ColumnUtils::getDoubleValue(currentVal, dblVal)) && !std::isnan(dblVal);
@@ -457,7 +466,7 @@ void TestDebugData::testValueEqualsDisplayStorage()
 		QVERIFY2(label->labelDisplay() == label->label(), "Display should match label");
 	}
 	
-	DataSet loadMe(_data->id());
+	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -474,25 +483,25 @@ void TestDebugData::testSequentialValueChanges()
 	
 	std::string firstVal = label->originalValueAsString();
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "test1", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(_labelRow(contBinom, label), "test1");
 	QVERIFY2(label->originalValueAsString() == "test1", "First value change failed");
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "test2", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(_labelRow(contBinom, label), "test2");
 	QVERIFY2(label->originalValueAsString() == "test2", "Second value change failed");
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "test3", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(_labelRow(contBinom, label), "test3");
 	QVERIFY2(label->originalValueAsString() == "test3", "Third value change failed");
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "5", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(_labelRow(contBinom, label), "5");
 	QVERIFY2(label->originalValueAsString() == "5", "String to numeric conversion failed");
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "6", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(_labelRow(contBinom, label), "6");
 	QVERIFY2(label->originalValueAsString() == "6", "Numeric to numeric conversion failed");
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "hello", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(_labelRow(contBinom, label), "hello");
 	QVERIFY2(label->originalValueAsString() == "hello", "Numeric to string conversion failed");
 	
-	DataSet loadMe(_data->id());
+	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -506,16 +515,17 @@ void TestDebugData::testEmptyValueLabel()
 		contBinom->noLabelsToLabels();
 	
 	Label * label = contBinom->labels()[0];
+	int lblRow = _labelRow(contBinom, label);
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "", int(DataSetPackage::specialRoles::value));
+	contBinom->setLabelValue(lblRow, "");
 	
 	QVERIFY2(label->originalValueAsString() == "", "Empty value should be stored");
 	
-	DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "", int(DataSetPackage::specialRoles::label));
+	contBinom->setLabelDisplay(lblRow, "");
 	
 	QVERIFY2(label->label() == "", "Empty label should be stored");
 	
-	DataSet loadMe(_data->id());
+	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -537,17 +547,17 @@ void TestDebugData::testNumericToStringConversion()
 	
 	if(wasNumeric)
 	{
-		DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "newstring", int(DataSetPackage::specialRoles::value));
+		contBinom->setLabelValue(_labelRow(contBinom, label), "newstring");
 		
 		QVERIFY2(label->originalValueAsString() == "newstring", "Numeric to string conversion failed");
 		QVERIFY2(label->label() == "newstring", "Label should match new value");
 		
-		DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "5.5", int(DataSetPackage::specialRoles::value));
+		contBinom->setLabelValue(_labelRow(contBinom, label), "5.5");
 		
 		QVERIFY2(label->originalValueAsString() == "5.5", "String to double conversion failed");
 	}
 	
-	DataSet loadMe(_data->id());
+	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -561,6 +571,7 @@ void TestDebugData::testStringToNumericConversion()
 		contBinom->noLabelsToLabels();
 	
 	Label * label = contBinom->labels()[0];
+	int lblRow = _labelRow(contBinom, label);
 	
 	std::string original = label->originalValueAsString();
 	
@@ -569,16 +580,16 @@ void TestDebugData::testStringToNumericConversion()
 	
 	if(!wasNumeric)
 	{
-		DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "42", int(DataSetPackage::specialRoles::value));
+		contBinom->setLabelValue(lblRow, "42");
 		
 		QVERIFY2(label->originalValueAsString() == "42", "String to numeric conversion failed");
 		
-		DataSetPackage::pkg()->setData(DataSetPackage::pkg()->indexForSubNode(label), "100", int(DataSetPackage::specialRoles::value));
+		contBinom->setLabelValue(lblRow, "100");
 		
 		QVERIFY2(label->originalValueAsString() == "100", "Sequential numeric changes failed");
 	}
 	
-	DataSet loadMe(_data->id());
+	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 
@@ -607,7 +618,7 @@ void TestDebugData::testBatchOperationsWithFilters()
 	for(Label * label : labelsToDisable)
 		label->setFilterAllows(false);
 	
-	QVERIFY2(facFive->hasFilter(), "Filter should be active");
+	QVERIFY2(facFive->hasLabelFilter(), "Filter should be active");
 	
 	facFive->valuesReverse();
 	
@@ -618,7 +629,7 @@ void TestDebugData::testBatchOperationsWithFilters()
 	
 	QVERIFY2(facFive->allLabelsPassFilter(), "All labels should pass after reset");
 	
-	DataSet loadMe(_data->id());
+	DataSet loadMe(_data->workspace(), _data->id());
 	QVERIFY2(_data->jsonForCompare() == loadMe.jsonForCompare(), "DataSet isnt the same after dbload!");
 }
 

@@ -559,11 +559,10 @@ void Engine::runComputeColumn(int dataSetId, const std::string & computeColumnNa
 		try
 		{
 			std::string computeColumnNameEnc = ColumnEncoder::columnEncoder()->encode(computeColumnName);
-			computeColumnResponse["columnName"]		= computeColumnNameEnc;
 			
-			Column * compCol = _workspace->shownDataSet()->column(computeColumnName);
+			Column * compCol = _workspace->dataSetById(dataSetId)->column(computeColumnName);
 			
-			std::string useThisFilter				= compCol->computeFilter(),
+			std::string useThisFilter				= compCol ? compCol->computeFilter() : "",
 						computeColumnResultStr		= rbridge_evalRComputedColumn(
 							computeColumnCode, 
 							"toString("+ setColumnFunction.at(computeColumnType) + "('" + computeColumnNameEnc +"', .calcedVals, 1))",
@@ -572,9 +571,10 @@ void Engine::runComputeColumn(int dataSetId, const std::string & computeColumnNa
 			computeColumnResponse["result"]			= computeColumnResultStr;
 			computeColumnResponse["error"]			= jaspRCPP_getLastErrorMsg();
 		}
-		catch(std::exception e)
+		catch(std::exception & e)
 		{
-			throw e;
+			computeColumnResponse["result"]			= "fail";
+			computeColumnResponse["error"]			= e.what();
 		}
 	}
 	else

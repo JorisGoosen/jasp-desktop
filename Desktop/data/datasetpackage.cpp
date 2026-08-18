@@ -28,6 +28,7 @@
 #include "utilities/messageforwarder.h"
 #include "databaseconnectioninfo.h"
 #include "filtermodel.h"
+#include "utilities/settings.h"
 #include <ranges>
 #include "variableinfo.h"
 #include "fileevent.h"
@@ -80,7 +81,7 @@ void DataSetPackage::createWorkspace()
 	
 	_workspace = new Workspace(this);
 	
-	_workspace->setShowRSyntax(PreferencesModel::prefs()->showRSyntaxInResults());
+	_workspace->setShowRSyntax(PreferencesModel::prefs() ? PreferencesModel::prefs()->showRSyntaxInResults() : false);
 	
 	connectWorkspace();
 	
@@ -97,6 +98,10 @@ DataSet * DataSetPackage::createDataSet()
 		createWorkspace();
 	
 	DataSet * dataSet = workspace()->createDataSet();
+	
+	//A brand new DataSet should start out with the configured default workspace empty values
+	//(this also covers unittests, where there is no PreferencesModel).
+	setDefaultWorkspaceEmptyValues();
 		
 	return dataSet;
 }
@@ -244,7 +249,7 @@ void DataSetPackage::generateEmptyData()
 	newSet->setColumnCount(1);
 	newSet->setRowCount(1, false);
 	
-	newSet->column(0)->initFromLookups(newSet->freeNewColumnName(0), 1, [](size_t){return "";}, [](size_t){return "";}, "", columnType::scale, {}, PreferencesModel::prefs()->thresholdScale(), PreferencesModel::prefs()->orderByValueByDefault());
+	newSet->column(0)->initFromLookups(newSet->freeNewColumnName(0), 1, [](size_t){return "";}, [](size_t){return "";}, "", columnType::scale, {}, thresholdScale(), orderByValueByDefault());
 	
 	setModified(false);
 	
@@ -337,9 +342,9 @@ void DataSetPackage::languageChangeDone()
 
 void DataSetPackage::handleAutoSavePrefChange()
 {
-	_autoSaveTimer.setInterval(1000 * PreferencesModel::prefs()->autoSaveIntervalSec());
+	_autoSaveTimer.setInterval(1000 * (PreferencesModel::prefs() ? PreferencesModel::prefs()->autoSaveIntervalSec() : 1));
 	
-	if(_autoSaveTimer.isActive() != PreferencesModel::prefs()->autoSaveAtAll())
+	if(PreferencesModel::prefs() && _autoSaveTimer.isActive() != PreferencesModel::prefs()->autoSaveAtAll())
 	{
 		if(!PreferencesModel::prefs()->autoSaveAtAll())		
 			_autoSaveTimer.stop();
@@ -424,24 +429,25 @@ void DataSetPackage::dbDelete()
 
 int DataSetPackage::thresholdScale()
 {
-	return PreferencesModel::prefs()->thresholdScale();
+	//In unittests there is no PreferencesModel, so fall back to the configured default (10) instead of a hardcoded value.
+	return PreferencesModel::prefs() ? PreferencesModel::prefs()->thresholdScale() : Settings::value(Settings::THRESHOLD_SCALE).toInt();
 }
 
 int DataSetPackage::orderByValueByDefault()
 {
-	return PreferencesModel::prefs()->orderByValueByDefault();
+	return PreferencesModel::prefs() ? int(PreferencesModel::prefs()->orderByValueByDefault()) : true;
 }
 
 void DataSetPackage::resetVariableTypes()
 {
 	if(workspace())
 		for(DataSet * dataSet : workspace()->dataSets())
-			dataSet->resetVariableTypes(PreferencesModel::prefs()->thresholdScale());
+			dataSet->resetVariableTypes(thresholdScale());
 }
 
 bool DataSetPackage::workspaceShowRSyntax() const
 {
-	return workspace() ? workspace()->showRSyntax() : PreferencesModel::prefs()->showRSyntaxInResults();
+	return workspace() ? workspace()->showRSyntax() : (PreferencesModel::prefs() ? PreferencesModel::prefs()->showRSyntaxInResults() : false);
 }
 
 
@@ -462,7 +468,19 @@ void DataSetPackage::setDataSetEmptyValues(const stringset &emptyValues, bool re
 
 void DataSetPackage::setDefaultWorkspaceEmptyValues()
 {
-	stringvec prefs = fq(PreferencesModel::prefs()->emptyValues());
+	stringvec prefs;
+
+	if (PreferencesModel::prefs())
+		prefs = fq(PreferencesModel::prefs()->emptyValues());
+	else if (Settings::value(Settings::EMPTY_VALUES_LIST).isValid())
+	{
+		// In unittests there is no PreferencesModel, but we still want to apply the configured
+		// default empty values (Settings::value(EMPTY_VALUES_LIST) returns them in test mode too).
+		QStringList items = Settings::value(Settings::EMPTY_VALUES_LIST).toString().split("|");
+		std::set<QString> ordered(items.begin(), items.end());
+		prefs = fq(QStringList(ordered.begin(), ordered.end()));
+	}
+
 	setDataSetEmptyValues(stringset(prefs.begin(), prefs.end()));
 }
 

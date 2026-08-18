@@ -116,10 +116,7 @@ private:
 	bool							_isRSource					= false;
 	ListModel			*			_sourceListModel			= nullptr;
 	QAbstractItemModel	*			_sourceNativeModel			= nullptr;
-	int								_nativeModelDisplayRole		= Qt::DisplayRole,
-									_nativeModelValueRole		= Qt::DisplayRole,
-									_nativeModelTypeRole		= -1,
-									_nativeModelInfoRole		= -1;
+	int								_nativeModelRole			= Qt::DisplayRole;
 	bool							_isDataSetVariables			= false,
 									_combineWithOtherModels		= false,
 									_noInteractions				= false;

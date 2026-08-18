@@ -21,9 +21,6 @@ class ColumnModel : public QIdentityProxyModel
 	Q_PROPERTY(Column *		column						READ column														NOTIFY chosenColumnChanged				)
 	Q_PROPERTY(int			chosenColumn				READ chosenColumn				WRITE setChosenColumn			NOTIFY chosenColumnChanged				)
     Q_PROPERTY(bool			visible						READ visible                    WRITE setVisible                NOTIFY visibleChanged					)
-    Q_PROPERTY(QString		columnName					READ columnNameQ                WRITE setColumnNameQ            NOTIFY columnNameChanged				)
-    Q_PROPERTY(QString		columnTitle					READ columnTitle                WRITE setColumnTitle            NOTIFY columnTitleChanged				)
-	Q_PROPERTY(QString		columnDescription			READ columnDescription			WRITE setColumnDescription		NOTIFY columnDescriptionChanged			)
 	Q_PROPERTY(double		rowWidth					READ rowWidth					WRITE setRowWidth				NOTIFY rowWidthChanged					)
 	Q_PROPERTY(double		valueMaxWidth				READ valueMaxWidth												NOTIFY valueMaxWidthChanged				)
 	Q_PROPERTY(double		labelMaxWidth				READ labelMaxWidth												NOTIFY labelMaxWidthChanged				)
@@ -39,10 +36,8 @@ class ColumnModel : public QIdentityProxyModel
 	Q_PROPERTY(QVariantList	tabs						READ tabs														NOTIFY tabsChanged						)
     Q_PROPERTY(bool         isVirtual					READ isVirtual													NOTIFY isVirtualChanged					)
     Q_PROPERTY(bool			compactMode					READ compactMode                WRITE setCompactMode            NOTIFY compactModeChanged				)
-	Q_PROPERTY(bool			autoSort					READ autoSort					WRITE setAutoSort				NOTIFY autoSortChanged					)
     Q_PROPERTY(bool			hasSeveralNumericValues		READ hasSeveralNumericValues                                    NOTIFY hasSeveralNumericValuesChanged	) //Only works when autosort is on
 	Q_PROPERTY(int			rowsTotal					READ rowsTotal													NOTIFY rowsTotalChanged					)
-	Q_PROPERTY(QString		computeFilter				READ computeFilter				WRITE setComputeFilter			NOTIFY computeFilterChanged				)
     Q_PROPERTY(QString		dropLevels					READ dropLevels					WRITE setDropLevels				NOTIFY dropLevelsChanged                )
 	
 	
@@ -105,6 +100,9 @@ public:
 	Q_INVOKABLE void undo()				{ if (undoStack()) undoStack()->undo(); }
 	Q_INVOKABLE void redo()				{ if (undoStack()) undoStack()->redo(); }
 	
+	Q_INVOKABLE bool isColumnNameFree(		const QString & name);
+	Q_INVOKABLE void createComputedColumn(	const QString & name, int columnType, bool useJsonConstructor);
+	
 	UndoStack *	undoStack();
 
 	double rowWidth()			const	{ return _rowWidth;			}
@@ -115,6 +113,14 @@ public:
 	void setColumnDescription(		const QString &		newColumnDescription);
 	void setComputedType(			QString				computedType);
 	void setColumnType(				QString				type);
+	
+	Q_INVOKABLE void setColumnTitleQ(			const QString &		newColumnTitle)				{ setColumnTitle(newColumnTitle);			}
+	Q_INVOKABLE void setColumnDescriptionQ(		const QString &		newColumnDescription)		{ setColumnDescription(newColumnDescription);	}
+	Q_INVOKABLE void setColumnNameByQString(	const QString &		newColumnName)				{ setColumnNameQ(newColumnName);				}
+	Q_INVOKABLE void setHasLabelsQ(				bool				newHasLabels)				{ setHasLabels(newHasLabels);					}
+	Q_INVOKABLE void setAutoSortQ(				bool				newAutoSort)				{ setAutoSort(newAutoSort);					}
+	Q_INVOKABLE void setComputeFilterQ(			const QString &		newComputeFilter)			{ setComputeFilter(newComputeFilter);			}
+	Q_INVOKABLE void setDropLevelsQ(			QString				dropLevels)					{ setDropLevels(dropLevels);					}
 	
 	void setUseCustomEmptyValues(	bool				useCustomMissingValues);
 	void setCustomEmptyValues(		const QStringList&	customMissingValues);
@@ -189,6 +195,9 @@ private:
 	std::vector<size_t>		getSortedSelection()					const;
 	void					setValueMaxWidth();
 	void					clearVirtual();
+	// Fires the notify signals of the (GUI-side) properties that depend on the chosen column,
+	// as well as chosenColumnChanged which drives the `column` Q_PROPERTY.
+	void					notifyColumnChanged();
 
 	struct
 	{

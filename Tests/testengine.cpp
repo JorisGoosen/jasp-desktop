@@ -2,6 +2,7 @@
 #include "qutils.h"
 #include "testengine.h"
 #include <QSignalSpy>
+#include <QElapsedTimer>
 #include "testinfo.h"
 #include "tempfiles.h"
 #include "processinfo.h"
@@ -65,8 +66,8 @@ void TestEngine::testComputedColumns()
 	
 	_engines->startStoppedEngine(_engineRep);
 	
-	// const QString & columnName, const QString & warning, bool dataChanged
-	QSignalSpy spy(_engineRep, SIGNAL(computeColumnSucceeded(const QString &, const QString &, bool))); 
+	// int dataSetId, const QString & columnName, const QString & warning, bool dataChanged
+	QSignalSpy spy(_engineRep, SIGNAL(computeColumnSucceeded(int, const QString &, const QString &, bool))); 
 	
 	QVERIFY2(spy.isValid(),	"Spy is broken!");
 	
@@ -86,9 +87,10 @@ void TestEngine::testComputedColumns()
 	QVariantList response = spy.takeFirst();
 	spy.clear();
 	
-	QVERIFY2(response[0].toString() == "contBinom",	"Did not get the right column back in response");
-	QVERIFY2(response[1].toString() == "",			"Got a warning!");
-	QVERIFY2(response[2].toBool(),					"Did not get dataChanged back in response");
+	QVERIFY2(response[0].toInt() == _data->id(),	"Did not get the right dataSet back in response");
+	QVERIFY2(response[1].toString() == "contBinom",	"Did not get the right column back in response");
+	QVERIFY2(response[2].toString() == "",			"Got a warning!");
+	QVERIFY2(response[3].toBool(),					"Did not get dataChanged back in response");
 
 	col->checkForUpdates();
 	
@@ -115,9 +117,10 @@ void TestEngine::testComputedColumns()
 	response = spy.takeFirst();
 	spy.clear();
 
-	QVERIFY2(response[0].toString() == "contBinom",	"Did not get the right column back in response");
-	QVERIFY2(response[1].toString() == "",			"Got a warning!");
-	QVERIFY2(response[2].toBool(),					"Did not get dataChanged back in response");
+	QVERIFY2(response[0].toInt() == _data->id(),	"Did not get the right dataSet back in response");
+	QVERIFY2(response[1].toString() == "contBinom",	"Did not get the right column back in response");
+	QVERIFY2(response[2].toString() == "",			"Got a warning!");
+	QVERIFY2(response[3].toBool(),					"Did not get dataChanged back in response");
 
 	col->checkForUpdates();
 
@@ -144,9 +147,10 @@ void TestEngine::testComputedColumns()
 	response = spy.takeFirst();
 	spy.clear();
 
-	QVERIFY2(response[0].toString() == "contcor1",	"Did not get the right column back in response");
-	QVERIFY2(response[1].toString() == "",			"Got a warning!");
-	QVERIFY2(response[2].toBool(),					"Did not get dataChanged back in response");
+	QVERIFY2(response[0].toInt() == _data->id(),	"Did not get the right dataSet back in response");
+	QVERIFY2(response[1].toString() == "contcor1",	"Did not get the right column back in response");
+	QVERIFY2(response[2].toString() == "",			"Got a warning!");
+	QVERIFY2(response[3].toBool(),					"Did not get dataChanged back in response");
 
 	col2->checkForUpdates();
 
@@ -157,6 +161,73 @@ void TestEngine::testComputedColumns()
 	QVERIFY2(jsonContCor1["data"]   == jsonV1["data"],   "Data is not the same");
 	QVERIFY2(jsonContCor1["labels"] == jsonV1["labels"], "Labels are not the same");
 
+}
+
+void TestEngine::testComputedColumnCascade()
+{
+	QVERIFY2(_data,			"No dataset!");
+	QVERIFY2(_engines,		"No EngineSync!");
+	QVERIFY2(_engineRep,	"No EngineRepresentation!");
+
+	_engines->startStoppedEngine(_engineRep);
+
+	//The cascade dispatches computed columns from the data layer back to the engine via this
+	//connection (normally set up by MainWindow). Replicate it here so the test can exercise it.
+	connect(DataSetPackage::pkg(), &DataSetPackage::runComputedColumn, _engines, &EngineSync::computeColumn, Qt::QueuedConnection);
+
+	QSignalSpy spy(_engineRep, SIGNAL(computeColumnSucceeded(int, const QString &, const QString &, bool)));
+
+	QVERIFY2(spy.isValid(),	"Spy is broken!");
+
+	Column * colA = _data->column("contBinom");
+	Column * colB = _data->column("contcor1");
+
+	colA->setCodeType(computedColumnType::rCode);
+	colB->setCodeType(computedColumnType::rCode);
+
+	//colB depends on colA, so it may only run after colA has been validated.
+	colA->setRCode("V1");
+	colB->setRCode("contBinom-1");
+
+	QVERIFY2(colA->invalidated(),	"contBinom should be invalidated after setting its code");
+	QVERIFY2(colB->invalidated(),	"contcor1 should be invalidated after setting its code");
+
+	//colA is still invalidated, so colB (which depends on it) must not be runnable yet.
+	QVERIFY2(colB->iShouldBeSentAgain() == false,	"contcor1 should not run while its dependency contBinom is still invalidated");
+
+	//Run colA; the connected coordinator should validate it and cascade so that colB gets dispatched too.
+	_engines->computeColumn(_data->id(), "contBinom", tq(colA->rCode()), columnType::scale);
+
+	bool gotColA = false, gotColB = false;
+
+	//Give the engine plenty of time: the very first engine/R initialization in a fresh session can be slow.
+	while((!gotColA || !gotColB) && spy.wait(120000))
+	{
+		while(spy.count() > 0)
+		{
+			QVariantList response = spy.takeFirst();
+			if(response[1].toString() == "contBinom")	gotColA = true;
+			else if(response[1].toString() == "contcor1") gotColB = true;
+		}
+	}
+
+	QVERIFY2(gotColA,	"contBinom never reported as computed");
+	QVERIFY2(gotColB,	"contcor1 never ran: the cascade from contBinom to its dependents is broken");
+
+	colA->checkForUpdates();
+	colB->checkForUpdates();
+
+	//The coordinator validates/depends dispatch happens through QueuedConnections, so let the
+	//event loop settle before checking the final invalidation state.
+	QElapsedTimer	waitTimer;
+	waitTimer.start();
+	while((colA->invalidated() || colB->invalidated()) && waitTimer.elapsed() < 5000)
+		QCoreApplication::processEvents();
+
+	QVERIFY2(!colA->invalidated(),	"contBinom should be validated after a successful compute");
+	QVERIFY2(!colB->invalidated(),	"contcor1 should be validated after its dependency ran");
+
+	disconnect(DataSetPackage::pkg(), &DataSetPackage::runComputedColumn, _engines, &EngineSync::computeColumn);
 }
 
 void TestEngine::testFilters()

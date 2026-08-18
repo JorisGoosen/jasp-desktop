@@ -404,49 +404,7 @@ void DataSetViewBase::determineCurrentViewPortIndices()
 	JASPTIMER_STOP(DataSetViewBase::determineCurrentViewPortIndices);
 }
 
-void DataSetViewBase::storeAllItems()
-{
-	JASPTIMER_SCOPE(DataSetViewBase::storeAllItems);
-
-    for(auto & subVec : _cellTextItems)
-    {
-        for(auto & intTextItem : subVec.second)
-        {
-            if(intTextItem.second)
-            {
-                intTextItem.second->item->setVisible(false);
-
-                if (_cacheItems)		_textItemStorage.push(intTextItem.second);
-                else					delete intTextItem.second;
-            }
-        }
-        subVec.second.clear();
-    }
-
-    _cellTextItems.clear();
-
-    for(auto & intItem : _columnHeaderItems)
-    {
-        intItem.second->item->setVisible(false);
-
-        if (_cacheItems)		_columnHeaderStorage.push(intItem.second);
-        else					delete intItem.second;
-    }
-
-    _columnHeaderItems.clear();
-
-    for(auto & intItem : _rowNumberItems)
-    {
-        intItem.second->item->setVisible(false);
-
-        if (_cacheItems)		_rowNumberStorage.push(intItem.second);
-        else					delete intItem.second;
-    }
-
-    _rowNumberItems.clear();
-}
-
-void DataSetViewBase::storeOutOfViewItems()
+void DataSetViewBase::storeOutOfViewItems(bool all)
 {
 	JASPTIMER_SCOPE(DataSetViewBase::storeOutOfViewItems);
 
@@ -462,9 +420,10 @@ void DataSetViewBase::storeOutOfViewItems()
                     int col = subVec.first,
                         row = intTextItem.first;
 
-                    if(col < _currentViewportColMin || col > _currentViewportColMax || row < _currentViewportRowMin || row > _currentViewportRowMax)
+                    if(all || col < _currentViewportColMin || col > _currentViewportColMax || row < _currentViewportRowMin || row > _currentViewportRowMax)
                     {
                         intTextItem.second->item->setVisible(false);
+						intTextItem.second->item->setParentItem(nullptr);
 
                         if (_cacheItems)		_textItemStorage.push(intTextItem.second);
                         else					delete intTextItem.second;
@@ -477,7 +436,7 @@ void DataSetViewBase::storeOutOfViewItems()
             }
         }
 
-       _cellTextItems = cleanList ;
+       _cellTextItems = cleanList;
     }
 
     {
@@ -487,9 +446,10 @@ void DataSetViewBase::storeOutOfViewItems()
         {
             int col = intItem.first;
 
-            if(col < _currentViewportColMin || col > _currentViewportColMax)
+            if(all || col < _currentViewportColMin || col > _currentViewportColMax)
             {
                 intItem.second->item->setVisible(false);
+				intItem.second->item->setParentItem(nullptr);
 
                 if (_cacheItems)		_columnHeaderStorage.push(intItem.second);
                 else					delete intItem.second;
@@ -509,9 +469,10 @@ void DataSetViewBase::storeOutOfViewItems()
         {
             int row = intItem.first;
 
-            if(row < _currentViewportRowMin || row > _currentViewportRowMax)
+            if(all || row < _currentViewportRowMin || row > _currentViewportRowMax)
             {
                 intItem.second->item->setVisible(false);
+				intItem.second->item->setParentItem(nullptr);
 
                 if (_cacheItems)		_rowNumberStorage.push(intItem.second);
                 else					delete intItem.second;
@@ -730,6 +691,8 @@ QQuickItem * DataSetViewBase::createTextItem(int row, int col)
 #endif
 			itemCon = _textItemStorage.top();
 			textItem = itemCon->item;
+			iAmParent(textItem);
+			
 			_textItemStorage.pop();
 			setStyleDataItem(itemCon->context, active, col, row);
 			JASPTIMER_STOP(DataSetViewBase::createTextItem textItemStorage has something);
@@ -749,8 +712,8 @@ QQuickItem * DataSetViewBase::createTextItem(int row, int col)
 
 			textItem = qobject_cast<QQuickItem*>(localIncubator.object());
 			itemCon->item = textItem;
-			
 			iAmParent(textItem);
+			
 
 			JASPTIMER_STOP(DataSetViewBase::createTextItem textItemStorage has NOTHING);
 		}
@@ -760,6 +723,7 @@ QQuickItem * DataSetViewBase::createTextItem(int row, int col)
 		setTextItemInfo(row, col, textItem);
 
 		_cellTextItems[col][row] = itemCon;
+		
 
 		JASPTIMER_STOP(DataSetViewBase::createTextItem setValues);
 	}
@@ -784,6 +748,7 @@ void DataSetViewBase::setTextItemInfo(int row, int col, QQuickItem * textItem)
 
 	textItem->setZ(-4.5);
 	textItem->setVisible(true);
+	iAmParent(textItem);
 }
 
 void DataSetViewBase::storeTextItem(int row, int col, bool cleanUp)
@@ -807,8 +772,9 @@ void DataSetViewBase::storeTextItem(int row, int col, bool cleanUp)
 			_cellTextItems.erase(col);
 	}
 
-	textItem->item->setFocus(	false);
-	textItem->item->setVisible(	false);
+	textItem->item->setFocus(		false);
+	textItem->item->setVisible(		false);
+	textItem->item->setParentItem(	nullptr);
 
 	if (_cacheItems)		_textItemStorage.push(textItem);
 	else					delete textItem;
@@ -849,6 +815,7 @@ QQuickItem * DataSetViewBase::createRowNumber(int row)
 			 itemCon = _rowNumberStorage.top();
 			_rowNumberStorage.pop();
 			rowNumber = itemCon->item;
+			iAmParent(rowNumber);
 
 			setStyleDataRowNumber(itemCon->context,
 								  _model->headerData(row, Qt::Orientation::Vertical).toString(),
@@ -867,7 +834,6 @@ QQuickItem * DataSetViewBase::createRowNumber(int row)
 			_rowNumberDelegate->create(localIncubator, itemCon->context);
 			rowNumber = qobject_cast<QQuickItem*>(localIncubator.object());
 			itemCon->item = rowNumber;
-
 			iAmParent(rowNumber);
 		}
 
@@ -886,6 +852,8 @@ QQuickItem * DataSetViewBase::createRowNumber(int row)
 	rowNumber->setX(1 + _viewportX);
 	rowNumber->setY(1 + _dataRowsMaxHeight * (1 + row));
 	rowNumber->setZ(-4);
+	
+	
 
 	return _rowNumberItems[row]->item;
 }
@@ -904,6 +872,8 @@ void DataSetViewBase::storeRowNumber(int row)
 	_rowNumberItems.erase(row);
 
 	rowNumber->item->setVisible(false);
+	rowNumber->item->setParentItem(nullptr);
+	
 
 	if (_cacheItems)		_rowNumberStorage.push(rowNumber);
 	else					delete rowNumber;
@@ -939,6 +909,7 @@ QQuickItem * DataSetViewBase::createColumnHeader(int col)
 			itemCon = _columnHeaderStorage.top();
 			_columnHeaderStorage.pop();
 			columnHeader = itemCon->item;
+			iAmParent(columnHeader);
 
 			setStyleDataColumnHeader(itemCon->context,
 									_model->headerData(col, Qt::Orientation::Horizontal).toString(),
@@ -970,7 +941,6 @@ QQuickItem * DataSetViewBase::createColumnHeader(int col)
 			_columnHeaderDelegate->create(localIncubator, itemCon->context);
 			columnHeader = qobject_cast<QQuickItem*>(localIncubator.object());
 			itemCon->item = columnHeader;
-
 			iAmParent(columnHeader);
 		}
 
@@ -1006,6 +976,7 @@ void DataSetViewBase::storeColumnHeader(int col)
 	_columnHeaderItems.erase(col);
 
 	columnHeader->item->setVisible(false);
+	columnHeader->item->setParentItem(nullptr);
 
 	if (_cacheItems)		_columnHeaderStorage.push(columnHeader);
 	else					delete columnHeader;

@@ -81,6 +81,9 @@ public:
 						QString				filterName()	const;
 						int					filterId()		const;
 						void				setFilterId(int filterId);
+
+						bool				isAnnotated()		const	{ return _isAnnotated; }
+						void				setIsAnnotated(bool isAnnotated);
 	
 
 
@@ -109,6 +112,7 @@ protected:
 	AnalysisForm*	_analysisForm		= nullptr;
 	QQuickItem	*	_parentItem			= nullptr;
 	QString			_qmlError;
+	bool			_isAnnotated		= false;
 	Filter		*	_filter				= nullptr;
 	DataSet		*	_filterDataSet		= nullptr;
 

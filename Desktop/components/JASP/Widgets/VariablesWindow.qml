@@ -44,9 +44,9 @@ FocusScope
 		{
 			if (columnModel.visible && columnModel.chosenColumn >= 0)
 			{
-				columnModel.columnName			= (columnModel.compactMode ? tabInfo : columnInfoTop).columnNameValue
-				columnModel.columnTitle			= (columnModel.compactMode ? tabInfo : columnInfoTop).columnTitleValue
-				columnModel.columnDescription	= (columnModel.compactMode ? tabInfo : columnInfoTop).columnDescriptionValue
+				columnModel.setColumnNameQ(		(columnModel.compactMode ? tabInfo : columnInfoTop).columnNameValue)
+				columnModel.setColumnTitleQ(	(columnModel.compactMode ? tabInfo : columnInfoTop).columnTitleValue)
+				columnModel.setColumnDescriptionQ((columnModel.compactMode ? tabInfo : columnInfoTop).columnDescriptionValue)
 				columnModel.computedType		= (columnModel.compactMode ? tabInfo : columnInfoTop).columnComputedTypeValue
 				columnModel.currentColumnType	= (columnModel.compactMode ? tabInfo : columnInfoTop).columnTypeValue
 			}

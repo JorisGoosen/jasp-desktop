@@ -70,6 +70,7 @@ public slots:
 			void					onShownFilterChanged(DataSet * data);
 			void					refreshAllCompCols(Filter * f);
 			void					updateComputedColumnDependenciesForAnalysis(int analysisId, const stringset & usedVariables);
+			void					computedColumnSucceeded(int dataSetId, QString columnName, QString warning, bool dataChanged);
 			
 signals:
 			void					filterByNameDone(int dataSetID, const QString & name, const QString & error);

@@ -240,9 +240,9 @@ public slots:
 protected:
 	void		calculateCellSizesAndClear(bool clearStorage);
 	void		determineCurrentViewPortIndices();
-    void		storeAllItems();
+	void		storeAllItems() { storeOutOfViewItems(true); }
 	void		iAmParent(QQuickItem *item);
-    void		storeOutOfViewItems();
+    void		storeOutOfViewItems(bool all = false);
 	void		buildNewLinesAndCreateNewItems();
 	void		columnIndexSelectedApply(int columnIndex, std::function<void (int)> applyThis);
 	void		columnIndexSelectedApply(int columnIndex, std::function<void (intset)> applyThis);

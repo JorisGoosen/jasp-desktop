@@ -62,6 +62,8 @@ class AnalysisForm : public QQuickItem
 	Q_PROPERTY(bool				developerMode			READ developerMode											NOTIFY developerModeChanged			)
 	Q_PROPERTY(QString			rSyntaxText				READ rSyntaxText											NOTIFY rSyntaxTextChanged			)
 	Q_PROPERTY(bool				showAllROptions			READ showAllROptions		WRITE setShowAllROptions		NOTIFY showAllROptionsChanged		)
+	Q_PROPERTY(bool				isAnnotated				READ isAnnotated											NOTIFY isAnnotatedChanged			)
+	Q_PROPERTY(bool			relaxInputConstraints	READ relaxInputConstraints	WRITE setRelaxInputConstraints	NOTIFY relaxInputConstraintsChanged)
 	Q_PROPERTY(QString			rSyntaxControlName		MEMBER rSyntaxControlName	CONSTANT															)
 	Q_PROPERTY(JASPControl	*	activeJASPControl		READ getActiveJASPControl									NOTIFY activeJASPControlChanged		)
 	Q_PROPERTY(Filter		*	filter					READ filter													NOTIFY filterChanged				)
@@ -98,6 +100,11 @@ public:
 	bool					developerMode()					const	{ return _developerMode;	}
 	QString					rSyntaxText()					const;
 	bool					showAllROptions()				const;
+	bool					isAnnotated()					const;
+	void					setIsAnnotated(bool isAnnotated = true);
+	bool					relaxInputConstraints()			const;
+	void					setRelaxInputConstraints(	bool					relax);
+	Json::Value				optionMeta(bool includeDescriptions = true)	const;
 
 public slots:
 	void					runScriptRequestDone(		const QString		&	result, const QString & requestId, bool hasError);
@@ -135,6 +142,8 @@ signals:
 	void					rSyntaxTextChanged();
 	void					showAllROptionsChanged();
 	void					activeJASPControlChanged();
+	void					isAnnotatedChanged();
+	void					relaxInputConstraintsChanged(bool relax);
 		
 public:
 	ListModel			*	getModel(const QString& modelName)								const	{ return _modelMap.count(modelName) > 0 ? _modelMap[modelName] : nullptr;	} // Maps create elements if they do not exist yet
@@ -218,6 +227,8 @@ private:
 	stringvecvec	_getValuesFromJson(const Json::Value& jsonValues, const QStringList& searchPath);
 	QString			msgsListToString(const QStringList & list) const;
 	void			lockOptions();
+	void			_disableControls(QQuickItem * root, bool disable);
+	Json::Value		_controlOptionMeta(JASPControl* ctrl, bool includeDescriptions) const;
 
 private slots:
 	   void			formCompletedHandler();
@@ -254,6 +265,7 @@ private:
 	RSyntax										*	_rSyntax						= nullptr;
 	bool											_showRButton					= false,
 													_developerMode					= false;
+	bool											_relaxInputConstraints			= true;
 	JASPControl*									_activeJASPControl				= nullptr;
 };
 

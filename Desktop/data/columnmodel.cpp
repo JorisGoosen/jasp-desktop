@@ -556,6 +556,7 @@ void ColumnModel::setChosenColumnByName(const QString chosenNameQ, int colIndex)
 	_columnIndex = colIndex != -1 || _virtual || !chosenColumn || !chosenColumn->data() ? colIndex : chosenColumn->data()->columnIndex(chosenColumn);
 
 	refresh();
+	notifyColumnChanged();
 
 	if(deleteMe != "")
 		chosenColumn->data()->removeColumn(deleteMe);
@@ -580,6 +581,7 @@ void ColumnModel::setChosenColumn(int columnIndex)
 	
 	_column = nullptr;
 	refresh();
+	notifyColumnChanged();
 	
 }
 
@@ -669,6 +671,28 @@ void ColumnModel::refresh()
 {
 	beginResetModel();
 	endResetModel();
+}
+
+void ColumnModel::notifyColumnChanged()
+{
+	setValueMaxWidth();
+	setLabelMaxWidth();
+
+	emit chosenColumnChanged();
+	emit filteredOutChanged();
+	emit nameEditableChanged();
+	emit computedTypeChanged();
+	emit computedTypeEditableChanged();
+	emit computedTypeValuesChanged();
+	emit columnTypeChanged();
+	emit columnTypeValuesChanged();
+	emit hasSeveralNumericValuesChanged();
+	emit rowsTotalChanged();
+	emit tabsChanged();
+	emit useCustomEmptyValuesChanged();
+	emit emptyValuesChanged();
+	emit dropLevelsChanged();
+	emit columnIsFilteredChanged();
 }
 
 void ColumnModel::setSelected(int row, int modifier)
@@ -824,4 +848,29 @@ void ColumnModel::setHasLabels(bool newHasLabels)
 
 	if(column())
 		undoStack()->pushCommand(new SetColumnPropertyCommand(column(), newHasLabels, SetColumnPropertyCommand::ColumnProperty::HasLabels));
+}
+
+bool ColumnModel::isColumnNameFree(const QString & name)
+{
+	DataSet * dataSet = DataSetPackage::pkg()->dataSet();
+
+	return dataSet && !dataSet->column(fq(name));
+}
+
+void ColumnModel::createComputedColumn(const QString & name, int colType, bool useJsonConstructor)
+{
+	DataSet * dataSet = DataSetPackage::pkg()->dataSet();
+
+	if(!dataSet || !isColumnNameFree(name))
+		return;
+
+	Column * column = Workspace::singleton()->createComputedColumn(
+		fq(name),
+		dataSet->id(),
+		-1,
+		columnType(colType),
+		useJsonConstructor ? computedColumnType::constructorCode : computedColumnType::rCode);
+
+	if(column)
+		openComputedColumn(name);
 }

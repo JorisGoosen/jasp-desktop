@@ -33,11 +33,11 @@ FocusScope
 	{
 		target: columnModel
 
-		function onColumnChanged()
+		function onChosenColumnChanged()
 		{
-			if(columnModel.column.codeType == computedColumnTypeRCode)
+			if(columnModel.column && columnModel.column.codeType == computedColumnTypeRCode)
 				computeColumnEdit.text = columnModel.column.rCode;
-			else
+			else if(columnModel.column)
 				computedColumnConstructor.initializeFromJSON(columnModel.column.constructorJson);
 		}
 	}
@@ -68,7 +68,7 @@ FocusScope
 
 	function askIfChangedOrClose()
 	{
-		if(columnModel.isComputed && columnModel.computedTypeEditable && computedColumnContainer.changed)	
+		if(columnModel.column && columnModel.column.isComputed && columnModel.computedTypeEditable && computedColumnContainer.changed)	
 			saveDialog.open()
 	}
 
@@ -281,7 +281,7 @@ FocusScope
 				id:						computeColumnError
 				color:					jaspTheme.red
 				readOnly:				true
-				text:					columnModel.column.compute
+				text:					columnModel.column.error
 
 				selectByMouse:			true
 				onActiveFocusChanged:	if(!activeFocus) deselect()
@@ -306,7 +306,7 @@ FocusScope
 			JaspControls.RectangularButton
 			{
 				id:				showGeneratedRCode
-				visible:		!computedColumnsInterface.computeColumnUsesRCode
+				visible:		columnModel.column.codeType != computedColumnTypeRCode
 				width:			visible ? implicitWidth : 0
 
 				toolTip:		qsTr("Show generated R code")
@@ -338,10 +338,10 @@ FocusScope
 				id:					computeFilterDropDown
 				values:				filterModel.filterDropDownList
 				startValue:			""
-				currentValue:		columnModel.computeFilter
+				currentValue:		columnModel.column.computeFilter
 				onValueChanged:		{
 					computedColumnContainer.applyComputedColumn()
-					columnModel.computeFilter = currentValue
+					columnModel.setComputeFilterQ(currentValue)
 					
 				}
 				anchors.right:		helpButton.left
@@ -374,7 +374,14 @@ FocusScope
 			}
 			onDiscard:
 			{
-				computedColumnsInterface.refreshProperties()	
+				//Revert any unsaved edits back to whatever is stored on the column.
+				if(columnModel.column)
+				{
+					if(columnModel.column.codeType == computedColumnTypeRCode)
+						computeColumnEdit.text = columnModel.column.rCode;
+					else
+						computedColumnConstructor.initializeFromJSON(columnModel.column.constructorJson);
+				}
 			}
 		}
 	}
