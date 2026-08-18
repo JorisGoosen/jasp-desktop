@@ -215,7 +215,7 @@ void			setDataFile( const std::string & dataFilePath, long timestamp)	{ _dataFil
 			void					setInvalidated(			bool invalidated);
 			bool					setError(				const std::string	& error);
 			bool					setErrorQ(				const QString		& error)				{ return setError(fq(error));			}
-			void					setDefaultInputDataSetId(int defaultInputDataSetId);
+			bool					setDefaultInputDataSetId(int defaultInputDataSetId);
 			bool					tryAndRunComputedDataset();
 			bool					iShouldBeSentAgain();
 			void					checkForDependentDatasetsToBeSent(bool refreshMe = false);

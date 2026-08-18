@@ -642,13 +642,21 @@ void Analyses::sendRScriptHandler(QString script, QString controlName, bool whit
 	Analysis* analysis = qobject_cast<Analysis*>(sender());
 	_scriptIDMap[_scriptRequestID] = qMakePair(analysis, controlName);
 
-	emit sendRScript(analysis->filter()->data()->id(), script, _scriptRequestID++, whiteListedVersion, module);
+	//An analysis can exist without a filter (created before any dataset, or via RPC): resolve the
+	//dataset id defensively rather than dereferencing a possibly-null filter/DataSet.
+	Filter * filter = analysis ? analysis->filter() : nullptr;
+	int dsId = filter ? filter->data()->id() : -1;
+
+	emit sendRScript(dsId, script, _scriptRequestID++, whiteListedVersion, module);
 }
 
 void Analyses::sendFilterHandler(QString name, QString module)
 {
 	Analysis* analysis = qobject_cast<Analysis*>(sender());
-	emit sendFilterByName(analysis->filter()->data()->id(), name, module);
+	Filter * filter = analysis ? analysis->filter() : nullptr;
+	int dsId = filter ? filter->data()->id() : -1;
+
+	emit sendFilterByName(dsId, name, module);
 }
 
 void Analyses::selectAnalysis(Analysis * analysis)

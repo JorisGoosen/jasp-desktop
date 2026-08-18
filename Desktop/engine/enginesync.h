@@ -22,6 +22,7 @@
 #include <QAbstractListModel>
 #include "enginerepresentation.h"
 #include <queue>
+#include <list>
 
 /// EngineSync is responsible for launching the background
 /// processes, scheduling analyses, and for sending and
@@ -167,12 +168,16 @@ private:
 	QTimer							*	_filterRunningResetTimer		= nullptr,
 									*	_timerProcess					= nullptr,
 									*	_timerBeat						= nullptr;
-	RFilterStore					*	_waitingFilter					= nullptr;
+	///Pending filters, deduplicated per (dataSetId, script): with a per-dataset workspace more than
+	///one dataset can request a filter before the single engine slot is free, so a single _waitingFilter
+	///would silently drop the previous dataset's filter. Only one is dispatched at a time.
+	std::list<RFilterStore*>			_waitingFilters;
+	int									_waitingFilterRequestIDCounter	= 0;
+	int									_dispatchedFilterRequestID		= -1; //requestId of the filter currently in flight
 	bool								_stopProcessing					= false,
 										_dataMode						= false,
 										_filterRunning					= false,
 										_activateUtilEngine				= false;
-	int									_filterCurrentRequestID			= 0;
 	std::string							_memoryName,
 										_engineInfo;
 

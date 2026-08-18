@@ -25,9 +25,9 @@
 #include "databaseinterface.h"
 
 
+class ColumnEncoder;
 class DataSetProvider : public QAbstractTableModel, public VariableInfoProvider
 {
-
 public:
 	static DataSetProvider	*	getProvider(bool inMemory, bool reset = true, QObject * parent = nullptr);
 
@@ -47,6 +47,7 @@ public:
 	QVariant					provideInfo(varInfoType info, const QString& colName = "", int row = 0)		const	override;
 	bool						absorbInfo(	varInfoType info, const QString& name, int row, QVariant value)			override;
 	QAbstractItemModel		*	providerModel()																					override	{ return this;	}
+	ColumnEncoder			*	columnEncoder()																					override	{ DataSet * ds = dataSet(); return ds ? &ds->encoder() : nullptr;	}
 
 
 

@@ -1,6 +1,7 @@
 #ifndef WORKSPACE_H
 #define WORKSPACE_H
 
+#include <set>
 #include "dataset.h"
 #include "datasetbasenode.h"
 #include "databaseinterface.h"
@@ -55,6 +56,12 @@ public:
 			void					setShownColumn(Column *newShownColumn);
 			void					setShownFilter(Filter * newShownFilter);
 			void					initializeComputedColumns();
+	///True if making 'me' depend on 'target' (as defaultInputDataSetId) would create a cycle among
+	///the computed datasets. Used by DataSet::setDefaultInputDataSetId to refuse loops.
+	bool							wouldCreateComputedDataSetLoop(DataSet * me, DataSet * target) const;
+	///True if any cycle exists among computed datasets; fills errorMessage. Used as an anti-livelock
+	///sweep before running the recompute cascade.
+	bool							computedDataSetsHaveLoop(std::string & errorMessage) const;
 	static	Workspace			*	singleton() { return _singleton; }
 	
 	
@@ -125,10 +132,10 @@ private:
 	std::map<int,DataSet*>			_dataSets;
 	DataSet						*	_shownDataSet			= nullptr;
 	VariableInfo				*	_varInfo				= nullptr;
-	bool							_showRSyntax			= false,
+bool							_showRSyntax			= false,
 									_dataMode				= false;
 	static Workspace			*	_singleton;
-	
+
 };
 
 #endif // WORKSPACE_H

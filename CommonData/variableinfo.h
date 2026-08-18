@@ -26,6 +26,7 @@
 #include "columntype.h"
 
 class VariableInfoProvider;
+class ColumnEncoder;
 class DataSet;
 class Column;
 
@@ -108,6 +109,10 @@ public:
 	virtual QVariant				provideInfo(varInfoType info, const QString& name = "", int row = 0)			const	= 0;
 	virtual bool					absorbInfo(	varInfoType info, const QString& name,		int row, QVariant value)		= 0;
 	virtual QAbstractItemModel*		providerModel()																			{ return nullptr;			}
+	/// The ColumnEncoder for the data this provider serves, or nullptr if there is none. The desktop
+	/// uses this to en-/decode column names against the dataset's own encoder instead of the
+	/// process-global current-encoder (which is only meaningful inside the engine's request context).
+	virtual ColumnEncoder			*	columnEncoder()																{ return nullptr;			}
 	
 	VarInfoSignaller * infoSignaller() { return _infoSignaller; }
 	

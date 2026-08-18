@@ -18,6 +18,7 @@
 #include "datasetsyncer.h"
 #include "dataset.h"
 #include "workspace.h"
+#include "undostack.h"
 
 #include <QSignalSpy>
 #include <QFile>
@@ -784,6 +785,86 @@ void TestAll::testFilterSetFilterVectorResizesToResult()
 	QVERIFY(filter->filtered() == smaller);
 }
 
+void TestAll::testComputedDataSetCycleDetection()
+{
+	QVERIFY(_newPkgWithDataSet());
+
+	Workspace * ws = _pkg->workspace();
+	QVERIFY(ws);
+
+	//Workspace::createDataSet reuses the currently-shown (empty) dataset, so make each one
+	//non-empty (by importing) before creating the next, to get three distinct datasets.
+	CSVImporter importer;
+	const std::string csvPath = fq(_testLibrary().absoluteFilePath("csv/debug.csv"));
+
+	DataSet * a = ws->createDataSet();
+	QVERIFY(a);
+	importer.loadDataSet(csvPath, a, [](int){});
+	DataSet * b = ws->createDataSet();
+	QVERIFY(b);
+	importer.loadDataSet(csvPath, b, [](int){});
+	DataSet * c = ws->createDataSet();
+	QVERIFY(c);
+	importer.loadDataSet(csvPath, c, [](int){});
+
+	QVERIFY(a->id() != b->id());
+	QVERIFY(b->id() != c->id());
+	QVERIFY(a->id() != c->id());
+
+	a->setCodeType(computedColumnType::rCode);
+	b->setCodeType(computedColumnType::rCode);
+	c->setCodeType(computedColumnType::rCode);
+
+	std::string err;
+	QVERIFY(!ws->computedDataSetsHaveLoop(err));
+
+	//A valid chain c -> b -> a is accepted and is not a loop.
+	QVERIFY(c->setDefaultInputDataSetId(b->id()));
+	QVERIFY(b->setDefaultInputDataSetId(a->id()));
+	QCOMPARE(c->defaultInputDataSetId(), b->id());
+	QCOMPARE(b->defaultInputDataSetId(), a->id());
+	QVERIFY(!ws->computedDataSetsHaveLoop(err));
+
+	//A depending on C would close the chain into a loop (A <- C <- B <- A) and must be refused,
+	//leaving A without an input (the value is unchanged).
+	QVERIFY(!a->setDefaultInputDataSetId(c->id()));
+	QCOMPARE(a->defaultInputDataSetId(), -1);
+
+	//Likewise A depending on B while B depends on A is a loop and must be refused.
+	QVERIFY(!a->setDefaultInputDataSetId(b->id()));
+	QCOMPARE(a->defaultInputDataSetId(), -1);
+
+	QVERIFY(!ws->computedDataSetsHaveLoop(err));
+}
+
+void TestAll::testUndoColumnDropLevels()
+{
+	QVERIFY(_newPkgWithDataSet());
+
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+	Column * col = ds->column("contNormal");
+	QVERIFY(col);
+
+	UndoStack::setCurrent(ds->undoStack());
+
+	col->setDropLevels(dropLevelsType::drop);
+	QCOMPARE(col->dropLevels(), dropLevelsType::drop);
+
+	//Regression: the old value used to be stored as an int (0/1/2) while undo/redo restore it via
+	//dropLevelsTypeFromQString (which needs the enum name) -> undo threw missingEnumVal.
+	ds->undoStack()->pushCommand(new SetColumnPropertyCommand(col,
+		dropLevelsTypeToQString(dropLevelsType::keep),
+		SetColumnPropertyCommand::ColumnProperty::DropLevels));
+
+	QCOMPARE(col->dropLevels(), dropLevelsType::keep); //push() redoes the command
+
+	ds->undoStack()->undo();
+	QCOMPARE(col->dropLevels(), dropLevelsType::drop);
+
+	ds->undoStack()->redo();
+	QCOMPARE(col->dropLevels(), dropLevelsType::keep);
+}
 
 void TestAll::testSyncerExportModifyReimportChangesDetected()
 {

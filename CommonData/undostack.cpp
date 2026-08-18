@@ -339,7 +339,7 @@ SetColumnPropertyCommand::SetColumnPropertyCommand(Column * column, QVariant new
 		break;
 		
 	case ColumnProperty::DropLevels:
-		_oldValue = int(column->dropLevels());
+		_oldValue = dropLevelsTypeToQString(column->dropLevels()); //Store the name, not the int: undo restores via dropLevelsTypeFromQString.
 		setText(QObject::tr("Change column drop levels of '%1' from '%2' to '%3'").arg(columnName(), _oldValue.toString(), _newValue.toString()));
 		break;
 	}
