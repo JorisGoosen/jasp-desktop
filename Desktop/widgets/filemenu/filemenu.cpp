@@ -186,6 +186,7 @@ void FileMenu::close()
 
 void FileMenu::setCurrentDataFile(const QString &path)
 {
+	Log::log() << "[FileMenu::setCurrentDataFile] START: path=" << path.toStdString() << std::endl;
 	QString currentPath = _currentDataFile->getCurrentFilePath();
 
 	if (!currentPath.isEmpty())
@@ -198,17 +199,30 @@ void FileMenu::setCurrentDataFile(const QString &path)
 	bool setCurrentPath = true;
 	if (!path.isEmpty())
 	{
+		Log::log() << "[FileMenu::setCurrentDataFile] Path not empty, checking if file exists" << std::endl;
 		if (checkSyncFileExists(path))
 		{
+			Log::log() << "[FileMenu::setCurrentDataFile] File exists" << std::endl;
 			DataSet * ds = DataSetPackage::pkg()->dataSet();
 			if(ds)
 				ds->syncer().startFileSyncing(path);
 		}
 		else
+		{
+			Log::log() << "[FileMenu::setCurrentDataFile] checkSyncFileExists returned false" << std::endl;
 			setCurrentPath = false;
+		}
 	}
 	if (setCurrentPath)
+	{
+		Log::log() << "[FileMenu::setCurrentDataFile] Setting current file path" << std::endl;
 		_currentDataFile->setCurrentFilePath(path);
+	}
+	else
+	{
+		Log::log() << "[FileMenu::setCurrentDataFile] Not setting current file path" << std::endl;
+	}
+	Log::log() << "[FileMenu::setCurrentDataFile] END" << std::endl;
 }
 
 void FileMenu::setDataFileWatcher(bool watch)
@@ -274,6 +288,7 @@ void FileMenu::buttonsForEmptyWorkspace()
 
 void FileMenu::dataSetIOCompleted(FileEvent *event)
 {
+	Log::log() << "[FileMenu::dataSetIOCompleted] START: event->operation()=" << event->operation() << ", event->isSuccessful()=" << event->isSuccessful() << std::endl;
 	if (event->operation() == FileEvent::FileSave || event->operation() == FileEvent::FileOpen)
 	{
 		if (event->isSuccessful() && !event->isTmp())
@@ -334,15 +349,18 @@ void FileMenu::dataSetIOCompleted(FileEvent *event)
 			break;
 
 		case FileEvent::FileClose:
+			Log::log() << "[FileMenu::dataSetIOCompleted] FileClose operation" << std::endl;
 			buttonsForEmptyWorkspace();
 			setMode(FileEvent::FileOpen);
 			break;
 
 		default:
+			Log::log() << "[FileMenu::dataSetIOCompleted] Default case (operation=" << event->operation() << ")" << std::endl;
 			//Do nothing?
 			break;
 		}
 	}
+	Log::log() << "[FileMenu::dataSetIOCompleted] END" << std::endl;
 }
 
 void FileMenu::refresh()
@@ -384,8 +402,18 @@ void FileMenu::workspaceModified()
 
 void FileMenu::setSyncFile(FileEvent *event)
 {
+	Log::log() << "[FileMenu::setSyncFile] START: event->isSuccessful()=" << event->isSuccessful() << ", event->path()=" << event->path().toStdString() << std::endl;
 	if (event->isSuccessful())
+	{
+		Log::log() << "[FileMenu::setSyncFile] Calling setCurrentDataFile" << std::endl;
 		setCurrentDataFile(event->path());
+		Log::log() << "[FileMenu::setSyncFile] setCurrentDataFile returned" << std::endl;
+	}
+	else
+	{
+		Log::log() << "[FileMenu::setSyncFile] Event not successful, not updating current data file" << std::endl;
+	}
+	Log::log() << "[FileMenu::setSyncFile] END" << std::endl;
 }
 
 void FileMenu::analysesExportResults()

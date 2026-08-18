@@ -512,15 +512,21 @@ void MainWindow::makeConnections()
 		DataSet * ds = _package->workspace() ? _package->workspace()->dataSetById(dataSetId) : nullptr;
 		if(ds)
 			connect(ds, &DataSet::syncRequired, _loader, &AsyncLoader::onSyncRequired, static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection));
-	});
-	//The worker thread finishes the sync; route the completion back to the dataset's syncer on the main
-	//thread (via a QueuedConnection, since syncCompleted is emitted from the loader worker) so its
-	//re-entrancy guard (_isSyncing) is released exactly once for whichever dataset syncs.
-	connect(_loader,				&AsyncLoader::syncCompleted,						this,					[this](int dataSetId, bool success){
-		DataSet * ds = _package->workspace() ? _package->workspace()->dataSetById(dataSetId) : nullptr;
-		if(ds)
-			ds->syncer().setSyncingResult(success);
-	},																											Qt::QueuedConnection);
+  });
+  //The worker thread finishes the sync; route the completion back to the dataset's syncer on the main
+  //thread (via a QueuedConnection, since syncCompleted is emitted from the loader worker) so its
+  //re-entrancy guard (_isSyncing) is released exactly once for whichever dataset syncs.
+  connect(_loader,				&AsyncLoader::syncCompleted,						this,					[this](int dataSetId, bool success){
+    Log::log() << "[MainWindow::syncCompleted] Received: dataSetId=" << dataSetId << ", success=" << success << std::endl;
+    DataSet * ds = _package->workspace() ? _package->workspace()->dataSetById(dataSetId) : nullptr;
+    Log::log() << "[MainWindow::syncCompleted] dataSetById returned: " << (ds ? QString::number(ds->id()) : "NULL") << std::endl;
+    if(ds)
+    {
+      Log::log() << "[MainWindow::syncCompleted] Calling setSyncingResult for datasetId=" << ds->id() << std::endl;
+      ds->syncer().setSyncingResult(success);
+      Log::log() << "[MainWindow::syncCompleted] setSyncingResult returned" << std::endl;
+    }
+  },																											Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::shownFilterChanged,				this,					&MainWindow::updateShownFilterInQmlContext					);
 	connect(_package,				&DataSetPackage::shownFilterChanged,				_filterModel,			&FilterModel::filterChanged,								Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::filtersCountChanged,				_filterModel,			&FilterModel::filterDropDownListChanged						);
@@ -2458,15 +2464,25 @@ void MainWindow::showCommunity()
 
 void MainWindow::startDataEditorEventCompleted(FileEvent* event)
 {
+	Log::log() << "[MainWindow::startDataEditorEventCompleted] START: event->isSuccessful()=" << event->isSuccessful() << ", event->path()=" << event->path().toStdString() << std::endl;
 	hideProgress();
 
 	if (event->isSuccessful())
 	{
+		Log::log() << "[MainWindow::startDataEditorEventCompleted] Event successful, updating dataset" << std::endl;
 		_package->dataSet()->setDataFile(event->path().toStdString());
+		Log::log() << "[MainWindow::startDataEditorEventCompleted] Dataset file set to: " << event->path().toStdString() << std::endl;
 		_package->setFileReadOnly(false);
 		_package->setModified(true);
+		Log::log() << "[MainWindow::startDataEditorEventCompleted] Calling startDataEditor" << std::endl;
 		startDataEditor(event->path());
+		Log::log() << "[MainWindow::startDataEditorEventCompleted] startDataEditor returned" << std::endl;
 	}
+	else
+	{
+		Log::log() << "[MainWindow::startDataEditorEventCompleted] Event NOT successful" << std::endl;
+	}
+	Log::log() << "[MainWindow::startDataEditorEventCompleted] END" << std::endl;
 }
 
 

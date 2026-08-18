@@ -185,19 +185,28 @@ void Importer::loadDataSet(const std::string &locator, DataSet * dataSet, std::f
 
 void Importer::syncDataSet(const std::string &locator, DataSet * dataSet, std::function<void(int)> progress)
 {
+	Log::log() << "[Importer::syncDataSet] START: locator=" << locator << ", dataSetId=" << (dataSet ? dataSet->id() : -1) << std::endl;
+
 					_synching			= true;
 					_progressCallback	= progress;
 	int64_t			timeBeginS		= Utils::currentSeconds();
 					_importDataSet	= loadFile(locator, progress);
+	Log::log() << "[Importer::syncDataSet] loadFile returned, _importDataSet=" << _importDataSet << std::endl;
 	bool			rowCountChanged	= _importDataSet->rowCount() != dataSet->rowCount();
+	Log::log() << "[Importer::syncDataSet] rowCountChanged=" << rowCountChanged << std::endl;
 	ColumnSet		oldColumns;
 	
 	for(Column * c : dataSet->columns())
 		if(!c->isComputed())
 			oldColumns.insert(c);
 	
+	Log::log() << "[Importer::syncDataSet] Calling checkDoSync" << std::endl;
 	if(! emit DataSetPackage::pkg()->checkDoSync())
+	{
+		Log::log() << "[Importer::syncDataSet] checkDoSync returned false, aborting" << std::endl;
 		return;
+	}
+	Log::log() << "[Importer::syncDataSet] checkDoSync returned true, continuing" << std::endl;
 	
 	stringvec       changedColumns,
 					newOrder,
@@ -329,5 +338,6 @@ void Importer::syncDataSet(const std::string &locator, DataSet * dataSet, std::f
 	delete _importDataSet;
 	
 	int64_t totalS = (Utils::currentSeconds() - timeBeginS);
-	Log::log() << "Synching '" << locator << "' took " << totalS << "s or " << (totalS / 60) << "m" << std::endl;
+	Log::log() << "[Importer::syncDataSet] Synching '" << locator << "' took " << totalS << "s or " << (totalS / 60) << "m" << std::endl;
+	Log::log() << "[Importer::syncDataSet] END" << std::endl;
 }
