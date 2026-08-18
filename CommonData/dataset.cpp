@@ -999,9 +999,12 @@ bool DataSet::checkForUpdates(std::function<void(float)> progressCallback)
 			}
 		}
 		
-		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, rowCountChanged, newColumns);
+		if(somethingChanged || colsChanged.size() || colsRemoved.size() || rowCountChanged || newColumns)
+		{
+			emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, rowCountChanged, newColumns);
 		
-		refresh();
+			refresh();
+		}
 
 		return somethingChanged || rowCountChanged;
 	}
@@ -1833,7 +1836,14 @@ void DataSet::handleDataSetChanged( int						dataSetID,
 	}
 
 	//Computed datasets that read from this dataset must be recomputed too.
-	checkForDependentDatasetsToBeSent();
+	if(
+		changedColumns.size()		||
+		missingColumns.size()		||
+		changeNameColumns.size()	||
+		rowCountChanged				||
+		hasNewColumns				
+	)
+		checkForDependentDatasetsToBeSent();
 
 	
 }

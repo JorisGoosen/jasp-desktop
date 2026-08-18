@@ -309,7 +309,7 @@ FocusScope
 					LabelEditorWindow
 					{
 						id:					labelEditonWindow
-						enabled:			columnModel.column.hasLabels
+						enabled:			columnModel.column && columnModel.column.hasLabels
 						height:				labelsView.height - y
 						opacity:			enabled ? 1 : .5
 						anchors

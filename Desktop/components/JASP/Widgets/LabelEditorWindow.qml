@@ -773,7 +773,7 @@ FocusScope
 					height:			buttonColumnVariablesWindow.buttonHeight
 					implicitHeight: buttonColumnVariablesWindow.buttonHeight
 					width:			height
-					enabled:		!autoSorted && columnModel.column.rowCount > 1
+					enabled:		!autoSorted && columnModel.column && columnModel.column.rowCount > 1
 				}
 	
 				RoundedButton
