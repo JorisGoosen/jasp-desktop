@@ -356,7 +356,7 @@ Json::Value AgentStateTracker::buildWorkspaceSnapshot(bool includeResults) const
 			d["dataSetId"]   = ds->id();
 			d["title"]       = ds->title().toStdString();
 			d["name"]        = ds->name().toStdString();
-			d["isComputed"]  = false;
+			d["isComputed"]  = ds->isComputed();
 			d["active"]      = (ds == shown);
 			datasets.append(d);
 		}
