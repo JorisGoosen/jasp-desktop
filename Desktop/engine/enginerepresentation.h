@@ -156,7 +156,6 @@ signals:
 	void			checkDataSetForUpdates();
 	void			filterByNameDone(				int dataSetID, QString name, QString error);
 	void			filterDone(																int requestID);
-	void			processFilterErrorMsg(			const QString & error,					int requestId = -1);
 		void			computeColumnSucceeded(			int dataSetId, QString columnName, QString warning, bool dataChanged);
 		void			computeDataSetSucceeded(		int dataSetId, QString warning, bool dataChanged);
 	

@@ -49,6 +49,14 @@ private slots:
 	// (which restore via dropLevelsTypeFromQString) do not throw missingEnumVal.
 	void	testUndoColumnDropLevels();
 
+	// Encoder regression: each dataset's encoder prefix must carry the dataset id (not -1), so
+	// colliding column names across datasets cannot encode to the same name.
+	void	testEncoderPrefixPerDataset();
+
+	// Filter ownership: removeFilter must unregister (no dangling pointer in _filters) and
+	// runFilters() must stay safe afterwards.
+	void	testFilterRemoveFilter();
+
 	// Sync + export integration tests
 	void	testSyncerExportModifyReimport();
 	void	testSyncerExportModifyReimportChangesDetected();

@@ -50,7 +50,7 @@ AnalysisForm::AnalysisForm(QQuickItem *parent) : QQuickItem(parent)
 	setObjectName("AnalysisForm");
 
 	_rSyntax = new RSyntax(this);
-	_varInfo = new VariableInfo();
+	_varInfo = new VariableInfo(nullptr, this);
 	
 	connect(this,									&AnalysisForm::filterChanged,					varInfo(),	&VariableInfo::setProvider	);
 
@@ -93,7 +93,7 @@ void AnalysisForm::runFilter(const QString & name)
 
 Filter *AnalysisForm::filter()
 {
-	return _analysis->filter();
+	return _analysis ? _analysis->filter() : nullptr;
 }
 
 void AnalysisForm::refreshAnalysis()
@@ -325,6 +325,11 @@ void AnalysisForm::clearAllErrors()
 			control->setHasWarning(false);
 		}
 	}
+
+	_formErrors.clear();
+	_formWarnings.clear();
+	emit errorsChanged();
+	emit warningsChanged();
 }
 
 bool AnalysisForm::parseOptions(std::string rawOptions, Json::Value& parsedOptions, std::string& errorMsg)

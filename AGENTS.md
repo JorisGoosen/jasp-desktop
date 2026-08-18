@@ -18,7 +18,7 @@ Add `-DINSTALL_R_MODULES=OFF` to skip building R modules (much faster build, but
 
 ## Tests
 
-All test targets depend on `JASPDesktopLib` (cannot build independently).
+Most test targets depend on `JASPDesktopLib` (cannot build independently); `JASPTestColumnEncoderContext` depends only on `Common`.
 
 ```bash
 cmake --build build --target JASPTest
@@ -27,9 +27,23 @@ xvfb-run build/Tests/JASPTest testSyncerStartStopFileSyncing  # single test by n
 ctest -R testDataImport --output-on-failure             # or via ctest
 ```
 
-Test names (use `-functions` on binary to list all):
+Test names (use `-functions` on binary to list all). There are SIX test executables — verify against ALL of them:
 - `JASPTest` — data import + syncer tests
-- `JASPTestEngine`, `JASPTestDebugData`, `JASPTestCsvPrev`, `JASPQuickTest`
+- `JASPTestEngine` — engine integration tests
+- `JASPTestDebugData`, `JASPTestCsvPrev`, `JASPQuickTest`
+- `JASPTestColumnEncoderContext` — encoder indirection/extra-encodings (depends only on `Common`, unlike the others)
+
+To build and run everything in one go:
+
+```bash
+cmake --build build --target JASPTest JASPTestEngine JASPTestDebugData JASPTestCsvPrev JASPQuickTest JASPTestColumnEncoderContext
+xvfb-run build/Tests/JASPTest
+xvfb-run build/Tests/JASPTestEngine
+xvfb-run build/Tests/JASPTestDebugData
+xvfb-run build/Tests/JASPTestCsvPrev
+QT_QPA_PLATFORM=offscreen xvfb-run build/Tests/JASPQuickTest
+xvfb-run build/Tests/JASPTestColumnEncoderContext
+```
 
 For most tests, use `xvfb-run` (or combine `QT_QPA_PLATFORM=offscreen` with `xvfb-run`). `JASPQuickTest` requires both: `QT_QPA_PLATFORM=offscreen xvfb-run build/Tests/JASPQuickTest`. The test library is at `Tests/TestLibrary/`.
 

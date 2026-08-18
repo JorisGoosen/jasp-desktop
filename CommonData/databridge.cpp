@@ -242,7 +242,7 @@ void DataBridge::updateOptionsAccordingToMeta(Json::Value & encodedOptions)
 				if(!col)
 					return;
 
-				Filter			*	filter	= data->createFilter(filterN, false);
+				Filter			*	filter	= data->filter(filterN);
 
 				if(col && filter)
 				{
@@ -260,7 +260,6 @@ void DataBridge::updateOptionsAccordingToMeta(Json::Value & encodedOptions)
 					options["rowIndices"]	= rowIndices;
 					options["values"]		= values;
 				}
-				delete filter;
 			}
 			return;
 

@@ -318,16 +318,22 @@ void TestEngine::testComputedDataSet()
 	QVERIFY2(!computed2->invalidated(),	"Dependent computed dataset should be validated after its input ran");
 	QVERIFY2(computed2->column("z"),		"Dependent computed dataset should have the produced column z");
 
-	//Regression guard against the infinite-recompute loop: once every computed dataset is validated,
-	//no further compute requests may be dispatched. Drain the spy, let the event loop settle, and
-	//assert that no new computeDataSetSucceeded arrives — a dataset that kept recomputing would keep
-	//emitting here and this comparison would fail.
+	//Regression guard against the infinite-recompute loop. The deterministic oracle is the *state*: a
+	//recompute livelock necessarily leaves a dataset invalidated or wanting to be sent again, because
+	//iShouldBeSentAgain() gates every (re)dispatch. This is machine-speed independent, unlike waiting
+	//a fixed wall-clock time for a signal that never comes.
+	QVERIFY2(!computed->invalidated(),		"Computed dataset should not be invalidated after validation");
+	QVERIFY2(!computed->iShouldBeSentAgain(),	"Computed dataset should not want another compute");
+	QVERIFY2(!computed2->invalidated(),		"Dependent computed dataset should not be invalidated after validation");
+	QVERIFY2(!computed2->iShouldBeSentAgain(),	"Dependent computed dataset should not want another compute");
+
+	//Secondary signal-level guard: after draining and a short settle, no recompute may have arrived.
 	while(spy.count() > 0)
 		spy.takeFirst();
 
 	QElapsedTimer	settleTimer;
 	settleTimer.start();
-	while(settleTimer.elapsed() < 2000)
+	while(settleTimer.elapsed() < 1500)
 		QCoreApplication::processEvents();
 
 	QCOMPARE(spy.count(), 0);

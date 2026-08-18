@@ -67,30 +67,9 @@ void FilterModel::processFilterResult(QString name)
 	
 	Filter * f = DataSetPackage::pkg()->dataSet() ? DataSetPackage::pkg()->dataSet()->filter(fq(name)) : nullptr;
 	
-	if(!f && DataSetPackage::pkg()->dataSet())
-		f = DataSetPackage::pkg()->dataSet()->createFilter(fq(name), false);
-	
 	if(f)
 		f->checkFilterResults();
 	
-}
-
-void FilterModel::processFilterErrorMsg()
-{
-	if(!filter())
-		return;
-	
-	filter()->checkFilterResults();
-	
-	if(filter()->errorMsg() != "")
-	{
-		setFilterVisible(true);
-		
-		//Now this might be caused by some labelfilter, or something. However, the filterwindow by default does not show the generatedFilter
-		//Maybe its better to open it on the R display then?
-		if(isJustGeneratedFilter())
-			setShowEasyFilter(false);
-	}
 }
 
 void FilterModel::onFilterChanged()

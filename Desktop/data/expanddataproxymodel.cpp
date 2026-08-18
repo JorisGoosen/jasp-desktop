@@ -359,8 +359,8 @@ void ExpandDataProxyModel::resize(int row, int col, bool onlyExpand, const QStri
 	const int rawRows	= ds->rowCount(),
 			  rawCols	= ds->columnCount();
 
-	int targetRow = std::max(0, std::min(row, rawRows - 1)),
-		targetCol = std::max(0, std::min(col, rawCols - 1));
+	int targetRow = std::max(0, row),
+		targetCol = std::max(0, col);
 
 	if (targetCol == rawCols - 1 && targetRow == rawRows - 1)
 		return;

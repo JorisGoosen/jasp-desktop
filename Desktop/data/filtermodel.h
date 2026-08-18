@@ -65,7 +65,6 @@ public slots:
 				void			resetRFilter();
 				void			computeColumnSucceeded(QString columnName, QString warning, bool dataChanged);
 				void			processFilterResult(QString name);
-				void			processFilterErrorMsg();
 				void			onFilterChanged();
 	
 private:

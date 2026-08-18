@@ -49,9 +49,6 @@ class Filter : public DataSetBaseNode, public VariableInfoProvider
 	Q_PROPERTY( VariableInfo *	varInfo				READ varInfo										CONSTANT						)
 
 public:
-	Filter(DataSet * data);
-	Filter(DataSet * data, const std::string & name, bool createIfMissing = true);
-	
 			int					rowCount(		const QModelIndex &parent = QModelIndex())										const	override;
 			int					columnCount(	const QModelIndex &parent = QModelIndex())										const	override;
 			QVariant			data(			const QModelIndex &index, int role = Qt::DisplayRole)							const	override;
@@ -163,6 +160,9 @@ protected slots:
 	
 
 private:
+	Filter(DataSet * data);
+	Filter(DataSet * data, const std::string & name, bool createIfMissing = true);
+
 	DataSet					*	_data				= nullptr;
 	int							_id					= -1,
 								_filteredRowCount	= 0;

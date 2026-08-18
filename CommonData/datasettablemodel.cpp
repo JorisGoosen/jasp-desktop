@@ -40,13 +40,15 @@ void DataSetTableModel::onSourceModelChanged()
 	
 	DataSet * dataSet = dataSetSourceModel();
 	
+	if(!dataSet)
+		return;
+
+	_connections.push_back(connect(dataSet,	&DataSet::columnsLabelFilteredCountChanged,	this, &DataSetTableModel::columnsLabelFilteredCountChanged	, Qt::UniqueConnection));
+	_connections.push_back(connect(dataSet,	&DataSet::labelChanged,						this, &DataSetTableModel::labelChanged						, Qt::UniqueConnection));
+	_connections.push_back(connect(dataSet,	&DataSet::labelsReordered,					this, &DataSetTableModel::labelsReordered					, Qt::UniqueConnection));
+	_connections.push_back(connect(dataSet,	&DataSet::columnTypeChanged,				this, &DataSetTableModel::columnTypeChanged					, Qt::UniqueConnection));
 	
-	connect(dataSet,	&DataSet::columnsLabelFilteredCountChanged,	this, &DataSetTableModel::columnsLabelFilteredCountChanged	, Qt::UniqueConnection);
-	connect(dataSet,	&DataSet::labelChanged,						this, &DataSetTableModel::labelChanged						, Qt::UniqueConnection);
-	connect(dataSet,	&DataSet::labelsReordered,					this, &DataSetTableModel::labelsReordered					, Qt::UniqueConnection);
-	connect(dataSet,	&DataSet::columnTypeChanged,				this, &DataSetTableModel::columnTypeChanged					, Qt::UniqueConnection);
-	
-	connect(dataSet,	&DataSet::shownFilterChanged,			this, &DataSetTableModel::invalidateFilter			);
+	_connections.push_back(connect(dataSet,	&DataSet::shownFilterChanged,			this, &DataSetTableModel::invalidateFilter			));
 	
 }
 

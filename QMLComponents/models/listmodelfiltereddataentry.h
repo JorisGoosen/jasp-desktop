@@ -21,6 +21,7 @@
 #define LISTMODELFILTEREDDATAENTRY_H
 
 #include "listmodeltableviewbase.h"
+#include <QPointer>
 
 class Filter;
 class ListModelFilteredDataEntry : public ListModelTableViewBase
@@ -85,7 +86,7 @@ private:
 	QStringList					_dataColumns,
 								_extraColsStr;
 	std::string					_filterName;
-	Filter					*	_filter			= nullptr;
+	QPointer<Filter>			_filter			= nullptr;
 	bool						_informOnce		= false;
 };
 

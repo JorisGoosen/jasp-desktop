@@ -491,7 +491,7 @@ void Engine::runRCodeCommander(int dataSetId, std::string rCode)
 	{
 		
 		
-		rCode = ColumnEncoder::encodeAll(rCode);
+		rCode = ColumnEncoder::columnEncoder()->encodeAll(rCode);
 		jaspRCPP_runScript((rCmdDataName + "<- .readFullDatasetToEnd();").c_str());
 		jaspRCPP_runScript((rCmdFiltered + "<- .readFullFilteredDatasetToEnd();").c_str());
 	}
@@ -502,7 +502,7 @@ void Engine::runRCodeCommander(int dataSetId, std::string rCode)
 	{
 		rbridge_detachRCodeEnv(rCmdFiltered);
 		rbridge_detachRCodeEnv(rCmdDataName);
-		rCodeResult = ColumnEncoder::decodeAll(rCodeResult);
+		rCodeResult = ColumnEncoder::columnEncoder()->decodeAll(rCodeResult);
 	}
 
 	sendRCodeResult(-1, rCodeResult);

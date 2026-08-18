@@ -11,8 +11,10 @@ class LabelFilterGenerator : public QObject
 {
 	Q_OBJECT
 
-public:
+private:
 				LabelFilterGenerator(Filter * filter);
+	friend class Filter;
+public:
 	std::string generateFilter();
 
 public slots:
