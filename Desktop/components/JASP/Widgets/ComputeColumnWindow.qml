@@ -340,7 +340,7 @@ FocusScope
 			JaspControls.DropDown
 			{
 				id:					computeFilterDropDown
-				values:				filterModel.filterDropDownList
+				values:				filterModel.computeFilterDropDownList
 				startValue:			""
 				currentValue:		columnModel.column ? columnModel.column.computeFilter : -1
 				onValueChanged:		{

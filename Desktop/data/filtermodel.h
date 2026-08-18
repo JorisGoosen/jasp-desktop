@@ -17,6 +17,7 @@ class FilterModel : public QObject
 
 	Q_PROPERTY( QVariantList	filterDropDownList			READ filterDropDownList								NOTIFY filterDropDownListChanged	)
 	Q_PROPERTY( QVariantList	filterDropDownAnalysisList	READ filterDropDownAnalysisList						NOTIFY filterDropDownListChanged	)
+	Q_PROPERTY( QVariantList	computeFilterDropDownList	READ computeFilterDropDownList						NOTIFY filterDropDownListChanged	)
 	Q_PROPERTY( Filter		*	filter						READ filter											NOTIFY filterChanged				)
 	Q_PROPERTY( bool			filterVisible				READ filterVisible		WRITE setFilterVisible		NOTIFY filterVisibleChanged			)
 	Q_PROPERTY( bool			showEasyFilter				READ showEasyFilter		WRITE setShowEasyFilter		NOTIFY showEasyFilterChanged		)
@@ -30,9 +31,10 @@ public:
 
 				Filter		*	filter()				const;
 
-				QVariantList	filterDropDownList()						const { return _filterDropDownList(false); }
-				QVariantList	filterDropDownAnalysisList()				const { return _filterDropDownList(true); }
-				bool			hasFilter()									const;
+				QVariantList	filterDropDownList();
+				QVariantList	filterDropDownAnalysisList();
+				QVariantList	computeFilterDropDownList();
+				bool			hasFilter() const;
 
 	Q_INVOKABLE bool			isJustGeneratedFilter()						const;
 				bool			filterVisible()								const;
@@ -68,7 +70,6 @@ public slots:
 				void			onFilterChanged();
 	
 private:
-				QVariantList	_filterDropDownList(bool forCustomMenu) const;
 	bool						_filterVisible	= false,
 								_showEasyFilter	= true;
 };

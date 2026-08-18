@@ -87,7 +87,7 @@ void FilterModel::computeColumnSucceeded(QString columnName, QString, bool dataC
 		filter()->setInvalidated(true);
 }
 
-QVariantList FilterModel::_filterDropDownList(bool forCustomMenu) const
+QVariantList FilterModel::filterDropDownList() const
 {
 	typedef QMap<QString, QVariant> localMap;
 	
@@ -95,8 +95,7 @@ QVariantList FilterModel::_filterDropDownList(bool forCustomMenu) const
 	
 	if(DataSetPackage::pkg()->workspace())
 	{
-		if(forCustomMenu)
-			out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", "---")});
+		out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", "---")});
 		
 		for(DataSet * dataSet : DataSetPackage::pkg()->workspace()->dataSets())
 		{
@@ -109,11 +108,55 @@ QVariantList FilterModel::_filterDropDownList(bool forCustomMenu) const
 				if(f != dataSet->defaultFilter())
 					out.append(localMap{std::make_pair("value", tq(std::to_string(f->id()))), std::make_pair("label", f->title())});
 			
-			if(forCustomMenu)
-				out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", "---")});
-			else
-				out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", tq(std::to_string(dataSet->id())))});
+			out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", tq(std::to_string(dataSet->id())))});
 		}
+	}
+	
+	return out;
+}
+
+QVariantList FilterModel::filterDropDownAnalysisList() const
+{
+	typedef QMap<QString, QVariant> localMap;
+	
+	QVariantList out;
+	
+	if(DataSetPackage::pkg()->workspace())
+	{
+		out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", "---")});
+		
+		for(DataSet * dataSet : DataSetPackage::pkg()->workspace()->dataSets())
+		{
+			out.append(localMap{std::make_pair("value", tq(dataSet == DataSetPackage::pkg()->dataSet() ? "*" : "-")), std::make_pair("label", dataSet->title() + ":")});
+			
+			if(dataSet->defaultFilter())
+				out.append(localMap{std::make_pair("value", tq(std::to_string(dataSet->defaultFilter()->id()))), std::make_pair("label", dataSet->defaultFilter()->title())});
+			
+			for(const Filter * f : dataSet->filters())
+				if(f != dataSet->defaultFilter())
+					out.append(localMap{std::make_pair("value", tq(std::to_string(f->id()))), std::make_pair("label", f->title())});
+			
+			out.append(localMap{std::make_pair("value", tq("---")), std::make_pair("label", "---")});
+		}
+	}
+	
+	return out;
+}
+
+QVariantList FilterModel::computeFilterDropDownList() const
+{
+	typedef QMap<QString, QVariant> localMap;
+	
+	QVariantList out;
+	
+	if(DataSet * dataSet = DataSetPackage::pkg()->dataSet())
+	{
+		if(dataSet->defaultFilter())
+			out.append(localMap{std::make_pair("value", tq(dataSet->defaultFilter()->name())), std::make_pair("label", dataSet->defaultFilter()->title())});
+		
+		for(const Filter * f : dataSet->filters())
+			if(f != dataSet->defaultFilter())
+				out.append(localMap{std::make_pair("value", tq(f->name())), std::make_pair("label", f->title())});
 	}
 	
 	return out;
