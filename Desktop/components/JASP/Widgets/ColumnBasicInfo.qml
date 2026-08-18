@@ -127,7 +127,7 @@ Item
 				text:				qsTr("Show parent analysis")
 				width:				parent.width - x
 				x:					leftColumn.labelWidth
-				onClicked:			computedColumnsInterface.showAnalysisFormForColumn(columnModel.columnName)
+				onClicked:			columnModel.column.showAnalysisForm()
 			}
 		}
 	}

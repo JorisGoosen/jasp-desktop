@@ -6,15 +6,22 @@
 #include "controls/jaspcontrol.h"
 #include "appinfo.h"
 
+
 class AnalysisForm;
+class DataSet;
+class Filter;
 
 class AnalysisBase : public QObject
 {
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(QQuickItem	*	formItem			READ formItem										NOTIFY formItemChanged			)
-	Q_PROPERTY(QString			qmlError			READ qmlError			WRITE setQmlError			NOTIFY qmlErrorChanged			)
+	Q_PROPERTY(QQuickItem		*	formItem				READ formItem										NOTIFY formItemChanged			)
+	Q_PROPERTY(QString				qmlError				READ qmlError			WRITE setQmlError			NOTIFY qmlErrorChanged			)
+	Q_PROPERTY(Filter * filter		READ filter								NOTIFY filterChanged) //Select filter by changing filterName
+	Q_PROPERTY(QString	filterName	READ filterName							NOTIFY filterChanged)
+	Q_PROPERTY(int		filterId	READ filterId		WRITE setFilterId	NOTIFY filterChanged)
+	
 
 public:
 	explicit AnalysisBase(QObject *parent = nullptr);
@@ -35,7 +42,6 @@ public:
 	virtual				void				setTitle(const std::string& titel)									{}
 	virtual				void				preprocessMarkdownHelp(const QString& md)					const	{}
 	virtual				QString				helpFile()															{ return "";				}
-
 	virtual				const stringvec   & upgradeMsgsForOption(const std::string& name)				const	{ return emptyStringVec;	}
 	virtual				const Json::Value & resultsMeta()												const 	{ return Json::Value::null;	}
 	virtual				const Json::Value & getRSource(const std::string& name)							const 	{ return Json::Value::null;	}
@@ -46,6 +52,7 @@ public:
 	virtual Q_INVOKABLE void				createForm(QQuickItem* parentItem=nullptr);
 	virtual				void				destroyForm();
 	virtual				bool				isColumnFreeOrMine(const QString & columnName)				const	{ return false; }
+	virtual				DataSet *			dataSet()													const	{ return nullptr; }
 
 	virtual QVariant			getConstant(const QString& key, const QVariant& defaultValue)													const	{ return defaultValue;		}
 	virtual QVariant			getConstant(const QString& key, const QVariant& defaultValue, const QString& module, const QString& analysis)	const	{ return defaultValue;		}
@@ -68,9 +75,14 @@ public:
 						void				setQmlError(const QString &newQmlError);
 						void				sendRScript(const QString & script, const QString & controlName, bool whiteListedVersion)		{ emit sendRScriptSignal(script, controlName, whiteListedVersion, tq(module())); }
 						void				sendFilter(	const QString & name)																{ emit sendFilterSignal(name, tq(module())); }
+							
+						Filter			*	filter() const;
+						
+						QString				filterName()	const;
+						int					filterId()		const;
+						void				setFilterId(int filterId);
+	
 
-						bool				isAnnotated()		const	{ return _isAnnotated; }
-						void				setIsAnnotated(bool isAnnotated);
 
 public slots:
 	virtual void	boundValueChangedHandler()																	{}
@@ -86,6 +98,7 @@ signals:
 	void			formItemChanged();
 	void			qmlErrorChanged();
 	void			boundValuesChanged();
+	void			filterChanged(Filter * f);
 
 
 protected:
@@ -96,13 +109,13 @@ protected:
 	AnalysisForm*	_analysisForm		= nullptr;
 	QQuickItem	*	_parentItem			= nullptr;
 	QString			_qmlError;
-	bool			_isAnnotated		= false;
-
+	Filter		*	_filter				= nullptr;
+	DataSet		*	_filterDataSet		= nullptr;
 
 private:
-	Json::Value		_boundValues		= Json::objectValue;
-
-
+	Json::Value		_boundValues		= Json::objectValue,
+					_orgBoundValues		= Json::objectValue;
+	
 protected:
 	static const std::string	emptyString; ///< Otherwise we return references to a temporary object (std::string(""))
 	static const stringvec		emptyStringVec;

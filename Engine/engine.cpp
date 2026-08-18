@@ -22,7 +22,7 @@
 #include "rbridge.h"
 #include "tempfiles.h"
 #include "columnutils.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "databaseinterface.h"
 #include "r_functionwhitelist.h"
 
@@ -90,16 +90,10 @@ void Engine::initialize()
 
 		Log::log() << "rbridge_init completed" << std::endl;
 		
-		_datasetProvidedCallback = [this]()
-		{
-			if(_engineState == engineState::reloadData)
-			{
-				sendEngineResumed();
-				_engineState = engineState::idle;
-			}
-		};
-	
 		sendEngineLoadingData();
+		provideAndUpdateDataSet();
+		_engineState = engineState::idle;
+		sendEngineResumed(true);
 	}
 	catch(std::exception & e)
 	{
@@ -141,7 +135,6 @@ void Engine::run()
 		case engineState::paused:			/* Do nothing */
 		case engineState::stopped:															break;
 		case engineState::resuming:			throw std::runtime_error("Enginestate " + engineStateToString(_engineState) + " should NOT be set as currentState!");
-		case engineState::reloadData:		provideAndUpdateDataSet();						break;
 		default:
 			Log::log() << "Engine got stuck in engineState " << engineStateToString(_engineState) << " which is not supposed to happen..." << std::endl;
 		}
@@ -164,15 +157,41 @@ void Engine::run()
 void Engine::beIdle(bool newlyIdle)
 {
 	static int64_t idleStartTime = -1;
+	static int64_t lastCheckTime = -1;
 
 	if(newlyIdle)
-		idleStartTime = Utils::currentSeconds();
-	else if(idleStartTime != -1 && idleStartTime + 10 < Utils::currentSeconds())
 	{
-		Log::log() << "Attempting to clean up memory used by engine/R a bit." << std::endl;
-		rbridge_memoryCleaning();
-		Log::log() << "Memory is cleaned up" << std::endl;
-		idleStartTime = -1;
+		idleStartTime = Utils::currentSeconds();
+		lastCheckTime = idleStartTime;
+	}
+	else
+	{
+		if(idleStartTime != -1 && idleStartTime + 10 < Utils::currentSeconds())
+		{
+			Log::log() << "Attempting to clean up memory used by engine/R a bit." << std::endl;
+			rbridge_memoryCleaning();
+			Log::log() << "Memory is cleaned up" << std::endl;
+			idleStartTime = -1;
+		}
+
+		if(lastCheckTime != -1 && lastCheckTime + 15 < Utils::currentSeconds())
+		{
+			_engineState = engineState::loadingData;
+			sendEngineLoadingData();
+			
+			float lastSent = 0.0f;
+			provideAndUpdateDataSet(-1, [&](float p){
+				if(p - lastSent > 0.01f || p >= 1.0f)
+				{
+					sendLoadingDataProgress(p);
+					lastSent = p;
+				}
+			});
+			
+			_engineState = engineState::idle;
+			sendEngineResumed();
+			lastCheckTime = Utils::currentSeconds();
+		}
 	}
 
 	_lastRequest = engineState::idle;
@@ -263,7 +282,6 @@ bool Engine::receiveMessages(int timeout)
 			case engineState::stopRequested:		stopEngine();								break;
 			case engineState::logCfg:				receiveLogCfg(jsonRequest);					break;
 			case engineState::settings:				receiveSettings(jsonRequest);				break;
-			case engineState::reloadData:			receiveReloadData();						break;
 			default:								throw std::runtime_error("Engine::receiveMessages begs you to add your new engineState " + engineStateToString(_lastRequest) + " to it!");
 			}
 	}
@@ -280,8 +298,9 @@ void Engine::receiveFilterMessage(const Json::Value & jsonRequest)
 	std::string filter			= jsonRequest.get("filter", "").asString();
 	std::string generatedFilter = jsonRequest.get("generatedFilter", "").asString();
 	int filterRequestId			= jsonRequest.get("requestId", -1).asInt();
+	int dataSetId				= jsonRequest.get("dataSetId", -1).asInt();
 
-	runFilter(filter, generatedFilter, filterRequestId);
+	runFilter(dataSetId, filter, generatedFilter, filterRequestId);
 }
 
 void Engine::receiveFilterByNameMessage(const Json::Value & jsonRequest)
@@ -290,22 +309,31 @@ void Engine::receiveFilterByNameMessage(const Json::Value & jsonRequest)
 		Log::log() << "Unexpected filterByName message, current state is not idle (" << engineStateToString(_engineState) << ")";
 
 	_engineState				= engineState::filter;
-	std::string name			= jsonRequest.get("name", "").asString();
+	std::string name			= jsonRequest.get("name",		"").asString();
+	int dataSetId				= jsonRequest.get("dataSetId",	-1).asInt();
 
-	runFilterByName(name);
+	runFilterByName(name, dataSetId);
 }
 
-void Engine::runFilterByName(const std::string & name)
+void Engine::runFilterByName(const std::string & name, int dataSetId)
 {
 	provideAndUpdateDataSet();
 	
-	Filter		localFilter			(_dataSet, name, false);
-	std::string strippedFilter		= stringUtils::stripRComments(localFilter.rFilter());
+	if(!_workspace || !_workspace->dataSetById(dataSetId) || !_workspace->dataSetById(dataSetId)->showFilter(name))
+	{
+		sendFilterByNameDone(name, "No workspace (" + std::to_string(reinterpret_cast<uint64_t>(_workspace)) + " or filter in it found)!");
+		_engineState = engineState::idle;
+		
+		return;
+	}
+	
+	Filter	*	localFilter			= _workspace->dataSetById(dataSetId)->shownFilter();
+	std::string strippedFilter		= stringUtils::stripRComments(localFilter->rFilter());
 	boolvec		filterResult;
 	std::string RPossibleWarning;
 	try
 	{
-		filterResult		= rbridge_applyFilter(strippedFilter, "");
+		filterResult		= rbridge_applyFilter(strippedFilter, localFilter->generatedFilter());
 		RPossibleWarning	= jaspRCPP_getLastErrorMsg();
 	}
 	catch(filterException & e)
@@ -314,16 +342,16 @@ void Engine::runFilterByName(const std::string & name)
 		error = "There was a problem running filter '" + name + "':\n" + error;
 		Log::log() << error << std::endl;
 		
-		filterResult		= boolvec(_dataSet ? _dataSet->rowCount() : 0, false); //in the case of a non-dataset filter a better default is probably better to set everything to false if something is wrong
+		filterResult		= boolvec(localFilter && localFilter->data() ? localFilter->data()->rowCount() : 0, false); //in the case of a non-dataset filter a better default is probably better to set everything to false if something is wrong
 		RPossibleWarning	= error;
 	}
 	
 
 
 	DatabaseInterface::singleton()->transactionWriteBegin();
-	localFilter.setFilterVector(filterResult);
-	localFilter.setErrorMsg(RPossibleWarning);
-	localFilter.incRevision();
+	localFilter->setFilterVector(filterResult);
+	localFilter->setErrorMsg(RPossibleWarning);
+	localFilter->incRevision();
 	DatabaseInterface::singleton()->transactionWriteEnd();
 
 	sendFilterByNameDone(name, RPossibleWarning);
@@ -331,42 +359,38 @@ void Engine::runFilterByName(const std::string & name)
 	_engineState = engineState::idle;
 }
 
-
-
-void Engine::runFilter(const std::string & filter, const std::string & generatedFilter, int filterRequestId)
+void Engine::runFilter(int dataSetId, const std::string & filter, const std::string & generatedFilter, int filterRequestId)
 {
+	DataSet		*	dataSet				= provideAndUpdateDataSet(dataSetId);
+	
 	try
 	{		
-		
-		
 		std::string		strippedFilter		= stringUtils::stripRComments(filter);
 		boolvec			filterResult		= rbridge_applyFilter(strippedFilter, generatedFilter);
 		std::string		RPossibleWarning	= jaspRCPP_getLastErrorMsg();
 
-		Log::log() << "Engine::runFilter ran:\n\t" << strippedFilter << "\n\tRPossibleWarning='" << RPossibleWarning << "'\n\t\tfor revision " << _dataSet->filter()->revision() << std::endl;
+        Log::log() << "Engine::runFilter ran:\n\t" << strippedFilter << "\n\tRPossibleWarning='" << RPossibleWarning << "'\n\t\tfor revision " << dataSet->defaultFilter()->revision() << std::endl;
 
-		_dataSet->db().transactionWriteBegin();
-		_dataSet->filter()->setRFilter(filter);
-		_dataSet->filter()->setFilterVector(filterResult);
-		_dataSet->filter()->setErrorMsg(RPossibleWarning);
-		_dataSet->filter()->incRevision();
-		_dataSet->db().transactionWriteEnd();
-
+		dataSet->db().transactionWriteBegin();
+		dataSet->defaultFilter()->setRFilter(filter);
+		dataSet->defaultFilter()->setFilterVector(filterResult);
+		dataSet->defaultFilter()->setErrorMsg(RPossibleWarning);
+		dataSet->defaultFilter()->incRevision();
+		dataSet->db().transactionWriteEnd();
 
 		sendFilterResult(filterRequestId);
-
 	}
 	catch(filterException & e)
 	{
 		std::string error = std::string(e.what()).length() > 0 ? e.what() : "Something went wrong with the filter but it is unclear what.";
 		
-		while(_dataSet->db().transactionReadDepth() > 0)
-			_dataSet->db().transactionReadEnd();
+		while(dataSet->db().transactionReadDepth() > 0)
+			dataSet->db().transactionReadEnd();
 		
-		_dataSet->db().transactionWriteBegin();
-		_dataSet->filter()->setErrorMsg(error);
-		_dataSet->filter()->incRevision();
-		_dataSet->db().transactionWriteEnd();
+		dataSet->db().transactionWriteBegin();
+		dataSet->defaultFilter()->setErrorMsg(error);
+		dataSet->defaultFilter()->incRevision();
+		dataSet->db().transactionWriteEnd();
 
 		sendFilterError(filterRequestId, error);
 	}
@@ -415,18 +439,19 @@ void Engine::receiveRCodeMessage(const Json::Value & jsonRequest)
 
 				_engineState	= engineState::rCode;
 	std::string rCode			= jsonRequest.get("rCode",			"").asString();
-	int			rCodeRequestId	= jsonRequest.get("requestId",		-1).asInt();
+	int			rCodeRequestId	= jsonRequest.get("requestId",		-1).asInt(),
+				dataSetId		= jsonRequest.get("dataSetId",		-1).asInt();
 	bool		whiteListed		= jsonRequest.get("whiteListed",	true).asBool(),
 				returnLog		= jsonRequest.get("returnLog",		false).asBool();
 
-	if(returnLog)	runRCodeCommander(rCode);
-	else			runRCode(rCode, rCodeRequestId, whiteListed);
+	if(returnLog)	runRCodeCommander(dataSetId, rCode);
+	else			runRCode(dataSetId, rCode, rCodeRequestId, whiteListed);
 }
 
 // Evaluating arbitrary R code (as string) which returns a string
-void Engine::runRCode(const std::string & rCode, int rCodeRequestId, bool whiteListed)
+void Engine::runRCode(int dataSetId, const std::string & rCode, int rCodeRequestId, bool whiteListed)
 {
-	provideAndUpdateDataSet();
+	provideAndUpdateDataSet(dataSetId);
 	
 
 	std::string rCodeResult = whiteListed ? rbridge_evalRCodeWhiteListed(rCode.c_str(), true) : jaspRCPP_evalRCode(rCode.c_str(), true);
@@ -439,9 +464,9 @@ void Engine::runRCode(const std::string & rCode, int rCodeRequestId, bool whiteL
 }
 
 
-void Engine::runRCodeCommander(std::string rCode)
+void Engine::runRCodeCommander(int dataSetId, std::string rCode)
 {
-    bool thereIsSomeData = provideAndUpdateDataSet() && provideAndUpdateDataSet()->rowCount();
+    bool thereIsSomeData = provideAndUpdateDataSet(dataSetId) && provideAndUpdateDataSet()->rowCount();
 
 
 	static const std::string rCmdDataName = "data", rCmdFiltered = "filteredData";
@@ -510,11 +535,12 @@ void Engine::receiveComputeColumnMessage(const Json::Value & jsonRequest)
 	std::string	computeColumnName =						 jsonRequest.get("columnName",  "").asString();
 	std::string	computeColumnCode =						 jsonRequest.get("computeCode", "").asString();
 	columnType	computeColumnType = columnTypeFromString(jsonRequest.get("columnType",  "").asString());
+	int			dataSetId		  =						 jsonRequest.get("dataSetId",	-1).asInt();
 
-	runComputeColumn(computeColumnName, computeColumnCode, computeColumnType);
+	runComputeColumn(dataSetId, computeColumnName, computeColumnCode, computeColumnType);
 }
 
-void Engine::runComputeColumn(const std::string & computeColumnName, const std::string & computeColumnCode, columnType computeColumnType)
+void Engine::runComputeColumn(int dataSetId, const std::string & computeColumnName, const std::string & computeColumnCode, columnType computeColumnType)
 {
 	Log::log() << "Engine::runComputeColumn()" << std::endl;
 
@@ -528,17 +554,15 @@ void Engine::runComputeColumn(const std::string & computeColumnName, const std::
 	computeColumnResponse["typeRequest"]	= engineStateToString(engineState::computeColumn);
 	computeColumnResponse["columnName"]		= computeColumnName;
 	
-    if(provideAndUpdateDataSet())
+    if(provideAndUpdateDataSet(dataSetId))
 	{
 		try
 		{
 			std::string computeColumnNameEnc = ColumnEncoder::columnEncoder()->encode(computeColumnName);
 			computeColumnResponse["columnName"]		= computeColumnNameEnc;
 			
-			Column * compCol = _dataSet->column(computeColumnName);
+			Column * compCol = _workspace->shownDataSet()->column(computeColumnName);
 			
-			
-
 			std::string useThisFilter				= compCol->computeFilter(),
 						computeColumnResultStr		= rbridge_evalRComputedColumn(
 							computeColumnCode, 
@@ -662,6 +686,8 @@ void Engine::receiveAnalysisMessage(const Json::Value & jsonRequest)
 		
 		_analysisName			= jsonRequest.get("name",				Json::nullValue).asString();
 		_analysisTitle			= jsonRequest.get("title",				Json::nullValue).asString();
+		_analysisFilter			= jsonRequest.get("filter",				"DEFAULT_FILTER").asString();
+		_analysisDataSetId		= jsonRequest["dataSetId"].asInt();
 		_analysisDataKey		= jsonRequest.get("dataKey",			Json::nullValue).toStyledString();
 		_analysisResultsMeta	= jsonRequest.get("resultsMeta",		Json::nullValue).toStyledString();
 		_analysisStateKey		= jsonRequest.get("stateKey",			Json::nullValue).toStyledString();
@@ -723,8 +749,8 @@ void Engine::runAnalysis()
 	default:	break;
 	}
 
-	provideAndUpdateDataSet();
-	Log::log() << "Analysis will be run now." << std::endl;
+	DataSet * dataset = provideAndUpdateDataSet(_analysisDataSetId);
+	Log::log() << "Analysis will be run now, it has DataSet id " << _analysisDataSetId << " and filter '" << _analysisFilter << "', it " << (dataset ? " found a loaded one" : " did not find one though..") << "." << std::endl;
 
 	Json::Value encodedAnalysisOptions = _analysisOptions;
 	
@@ -732,8 +758,9 @@ void Engine::runAnalysis()
 
 	_analysisColsTypes = ColumnEncoder::encodeColumnNamesinOptions(encodedAnalysisOptions, _analysisPreloadData);
 
-	//Log::log() << "Encoded options right before calling R are:\n" << encodedAnalysisOptions << std::endl;
-
+	if(dataset && !_analysisFilter.empty())
+		dataset->showFilter(_analysisFilter);
+	
 	_analysisResultsString = rbridge_runModuleCall(_analysisName, _analysisTitle, _dynamicModuleCall, _analysisDataKey,
 								encodedAnalysisOptions.toStyledString(), _analysisStateKey, _analysisId, _analysisRevision, 
 								_developerMode, _analysisColsTypes, _analysisPreloadData);
@@ -940,32 +967,11 @@ void Engine::pauseEngine(const Json::Value & json)
 	freeRBridgeColumns();
 	if(json.get("unloadData", false).asBool())
 	{
-		delete _dataSet;
-		_dataSet = nullptr;
+		delete _workspace;
+		_workspace = nullptr;
 	}
 
 	sendEnginePaused();
-}
-
-void Engine::receiveReloadData()
-{
-	Log::log() << "Engine::receiveReloadData()" << std::endl;
-
-	//Im doing the following switch as a copy from Engine::pauseEngine, but probably the engine is always going to be idle anyway.
-	switch(_engineState)
-	{
-	default:							/* everything not mentioned is fine */	break;
-	case engineState::analysis:			_analysisStatus = Status::aborted;		break;
-	case engineState::filter:
-	case engineState::filterByName:
-	case engineState::computeColumn:	throw std::runtime_error("Unexpected data synch during " + engineStateToString(_engineState) + " somehow, you should not expect to see this exception ever.");
-	};
-
-	//First send state, then load data
-	sendEngineLoadingData();
-	provideAndUpdateDataSet(); //Also triggers loading from DB and calls _datasetProvidedCallback
-	reloadColumnNames();
-	sendEngineResumed();
 }
 
 void Engine::sendEnginePaused()
@@ -1001,9 +1007,19 @@ void Engine::sendEngineLoadingData()
 {
 	Log::log() << "Engine::sendEngineLoadingData()" << std::endl;
 	
-	_engineState			= engineState::reloadData;
+	_engineState			= engineState::loadingData;
 	Json::Value response	= Json::objectValue;
 	response["typeRequest"]	= engineStateToString(_engineState);
+	response["progress"]	= 0.0;
+
+	sendString(response);
+}
+
+void Engine::sendLoadingDataProgress(float progress)
+{
+	Json::Value response	= Json::objectValue;
+	response["typeRequest"]	= engineStateToString(engineState::loadingData);
+	response["progress"]	= progress;
 
 	sendString(response);
 }

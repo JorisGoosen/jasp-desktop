@@ -16,15 +16,21 @@
 //
 
 #include "log.h"
+#include "utils.h"
+#include "analysis.h"
+#include "tempfiles.h"
+#include "appinfo.h"
+#include "filter.h"
 #include "dirs.h"
 #include "utils.h"
+#include "qutils.h"
 #include "appinfo.h"
 #include "analysis.h"
 #include "analyses.h"
 #include "tempfiles.h"
 #include "analysisform.h"
 #include "columnencoder.h"
-#include "utilities/qutils.h"
+#include "utilities/settings.h"
 #include "utilities/reporter.h"
 #include "gui/preferencesmodel.h"
 #include "results/resultsjsinterface.h"
@@ -34,15 +40,15 @@
 #include <QAccessible>
 #include <QScopeGuard>
 
-Analysis::Analysis(size_t id, Modules::AnalysisEntry * analysisEntry, const std::string & title, const Version & optionsVersion, const Json::Value & options) :
-	  AnalysisBase(Analyses::analyses()),
-		_id(				id),
-		_name(			analysisEntry->function()),
-		_qml(			analysisEntry->qml().empty() ? _name : analysisEntry->qml()),
-		_titleDefault(	analysisEntry->title()),
-		_title(			title == "" ? _titleDefault : title),
-		_moduleData(		analysisEntry),
-		_dynamicModule(	_moduleData ? _moduleData->dynamicModule() : nullptr)
+Analysis::Analysis(size_t id, Modules::AnalysisEntry * analysisEntry, const std::string & title, const Version & optionsVersion, const Json::Value & options) 
+	: AnalysisBase(		Analyses::analyses())
+	, _id(				id)
+	, _name(				analysisEntry->function())
+	, _qml(				analysisEntry->qml().empty() ? _name : analysisEntry->qml())
+	, _titleDefault(		analysisEntry->title())
+	, _title(				title == "" ? _titleDefault : title)
+	, _moduleData(		analysisEntry)
+	, _dynamicModule(		_moduleData ? _moduleData->dynamicModule() : nullptr)
 {
 	// If the optionsVersion parameter is given, this is the version this analysis was stored with (in a JASP file).
 	// This version might be not the same as the current module version: in this case, the analysis will have to be refreshed.
@@ -81,6 +87,8 @@ Analysis::Analysis(size_t id, Analysis * duplicateMe)
 	, _helpFile(						duplicateMe->_helpFile							)
 	, _rSources(						duplicateMe->_rSources							)
 {
+	_filter = duplicateMe->_filter;
+	
 	initAnalysis();
 }
 
@@ -111,7 +119,26 @@ void Analysis::initAnalysis()
 
 	if(!_isDuplicate && isNewAnalysis)
 		_status = Empty;
+	
+	if(!_filter && DataSetPackage::filter())
+		_filter = DataSetPackage::filter();
+	
+	if(_filter)
+	{
+		//Make sure we have some sort of filter if the one the analysis is using is deleted
+		_filterDataSet = _filter->data();
+		connect(_filter->data(), &DataSet::filterRemoved, this, &Analysis::filterRemoved);
+	}
+}
 
+
+void Analysis::filterRemoved(Filter * f)
+{
+	if(_filter == f) 
+	{
+		_filter = _filterDataSet->defaultFilter();
+		refresh();
+	}
 }
 
 Analysis::~Analysis()
@@ -122,14 +149,15 @@ Analysis::~Analysis()
 
 	if(DataSetPackage::pkg() && DataSetPackage::pkg()->hasDataSet())
 	{
-		for(Column * col : DataSetPackage::pkg()->dataSet()->columns())
-			if(col->analysisId() == id())
-			{
-				if(col->codeType() == computedColumnType::analysisNotComputed)
-					DataSetPackage::pkg()->setColumnComputedType(DataSetPackage::pkg()->dataSet()->columnIndex(col), computedColumnType::notComputed);
-				else
-					emit requestComputedColumnDestruction(col->name(), this);
-			}
+		for(DataSet * data : DataSetPackage::pkg()->workspace()->dataSets())
+			for(Column * col : data->columns())
+				if(col->analysisId() == id())
+				{
+					if(col->codeType() == computedColumnType::analysisNotComputed)
+						col->setCodeType(computedColumnType::notComputed);
+					else
+						emit requestComputedColumnDestruction(col->name(), this);
+				}
 	}
 }
 
@@ -500,6 +528,7 @@ Json::Value Analysis::asJSON(bool withRSource) const
 	analysisAsJson["name"]			= _name;
 	analysisAsJson["title"]			= _title;
 	analysisAsJson["titleDef"]		= _titleDefault;
+	analysisAsJson["filter"]		= fq(filterName());
 	analysisAsJson["rfile"]			= _rfile;
 	analysisAsJson["hasReport"]		= _hasReport;
 	analysisAsJson["isReport"]		= _isReport;
@@ -641,7 +670,14 @@ stringset Analysis::usedVariables()
 
 stringset Analysis::createdVariables()
 {
-	return DataSetPackage::pkg()->columnsCreatedByAnalysis(this);
+	stringset names;
+	
+	if(dataSet())
+		for(Column * col : dataSet()->columns())
+			if(col->analysisId() == id())
+				names.insert(col->name());
+	
+	return names;
 }
 
 void Analysis::runScriptRequestDone(const QString& result, const QString& controlName, bool hasError)
@@ -650,10 +686,13 @@ void Analysis::runScriptRequestDone(const QString& result, const QString& contro
 		_analysisForm->runScriptRequestDone(result, controlName, hasError);
 }
 
-void Analysis::filterByNameDone(const QString &name, const QString &error)
+void Analysis::filterByNameDone(int dataSetID, const QString &name, const QString &error)
 {
 	if (_analysisForm)
-		_analysisForm->filterByNameDone(name, error);
+		_analysisForm->filterByNameDone(dataSetID, name, error);
+	
+	if(name == filter()->name())
+		run();
 }
 
 Json::Value Analysis::createAnalysisRequestJson()
@@ -685,9 +724,11 @@ Json::Value Analysis::createAnalysisRequestJson()
 	{
 		json["name"]			= name();
 		json["title"]			= title();
+		json["filter"]			= fq(filterName());
+		json["dataSetId"]		= _filter ? _filter->data()->id() : -1;
 
-		bool imgP = perform == performType::saveImg || perform == performType::editImg;
-		if (imgP)	json["image"]		= imgOptions();
+		if (perform == performType::saveImg || perform == performType::editImg)	
+			json["image"]		= imgOptions();
 
 		json["options"]		= boundValues();
 	}
@@ -1181,7 +1222,7 @@ void Analysis::setRSyntaxTextInResult(bool show)
 
 void Analysis::onUsedVariablesChanged()
 {
-	DataSetPackage::pkg()->checkComputedColumnDependenciesForAnalysis(this);
+	DataSetPackage::pkg()->workspace()->updateComputedColumnDependenciesForAnalysis(id(), usedVariables());
 }
 
 void Analysis::checkForRSources()
@@ -1297,12 +1338,9 @@ std::string Analysis::qmlFormPath(bool addFileProtocol, bool ignoreReadyForUse) 
 
 bool Analysis::isColumnFreeOrMine(const QString & columnName) const
 {
-	if(DataSetPackage::pkg()->isColumnNameFree(columnName))
-		return true;
-
-	Column * col = DataSetPackage::pkg()->getColumn(columnName.toStdString());
-
-	return col->analysisId() == id();
+	Column * col = _filter->data()->column(columnName);
+	
+	return !col || col->analysisId() == id();
 }
 
 

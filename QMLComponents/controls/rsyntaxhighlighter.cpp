@@ -18,15 +18,12 @@
 
 #include "rsyntaxhighlighter.h"
 #include "r_functionwhitelist.h"
+#include "workspace.h"
 
-RSyntaxHighlighter::RSyntaxHighlighter(QTextDocument *parent)
-	: QSyntaxHighlighter(parent), VariableInfoConsumer(), _textDocument(parent)
+RSyntaxHighlighter::RSyntaxHighlighter(QTextDocument *parent, VariableInfo * varInfo)
+	: QSyntaxHighlighter(parent), VariableInfoConsumer(varInfo), _textDocument(parent)
 {
-	if(VariableInfo::info())
-	{
-		connect(VariableInfo::info(), &VariableInfo::variableNamesChanged,		this, &RSyntaxHighlighter::handleNamesChanged);
-		connect(VariableInfo::info(), &VariableInfo::rowCountChanged,	this, &RSyntaxHighlighter::handleRowCountChanged);
-	}
+	setVarInfo(varInfo ? varInfo : Workspace::singleton()->shownFilter()->varInfo());
 
 	HighlightingRule rule;
 	// most of these R regExp are copied from: https://github.com/PrismJS/prism/blob/master/components/prism-r.js
@@ -94,6 +91,9 @@ RSyntaxHighlighter::RSyntaxHighlighter(QTextDocument *parent)
 	_columnFormat.setFontItalic(true);
 }
 
+
+
+
 void RSyntaxHighlighter::highlightBlock(const QString &text)
 {
 	setStringsFormat(text, '"');
@@ -104,7 +104,7 @@ void RSyntaxHighlighter::highlightBlock(const QString &text)
 		applyRule(text, rule);
 	
 	//Do columns
-	QStringList			names = requestInfo(VariableInfo::InfoType::VariableNames).toStringList();
+	QStringList			names = requestInfo(varInfoType::VariableNames).toStringList();
 	
 	for(const QString & name : names)
 		applyRule(text, QRegularExpression(QString(R"(%1(\.(scale|ordinal|nominal))?)").arg(name)), _columnFormat);
@@ -141,6 +141,23 @@ void RSyntaxHighlighter::applyRule(const QString & text, const QRegularExpressio
 	}
 }
 
+void RSyntaxHighlighter::setVarInfo(VariableInfo *info)
+{
+	_varInfo = info;
+	
+	if(_varInfo)
+	{
+		connect(_varInfo, &VariableInfo::variableNamesChanged,		this, &RSyntaxHighlighter::handleNamesChanged,		Qt::UniqueConnection);
+		connect(_varInfo, &VariableInfo::rowCountChanged,			this, &RSyntaxHighlighter::handleRowCountChanged,	Qt::UniqueConnection);
+	}	
+}
+
+RSyntaxHighlighterQuick::RSyntaxHighlighterQuick(QQuickItem *parent)
+	: QQuickItem(parent)	
+{
+
+}
+
 void RSyntaxHighlighterQuick::setTextDocument(QQuickTextDocument *textDocument) 
 {
 	if(_textDocument == textDocument)	
@@ -149,7 +166,32 @@ void RSyntaxHighlighterQuick::setTextDocument(QQuickTextDocument *textDocument)
 	_textDocument = textDocument;
 	
 	if(_textDocument)
-		_highlighter = new RSyntaxHighlighter(_textDocument->textDocument());
+	{
+		_highlighter = new RSyntaxHighlighter(_textDocument->textDocument(), _varInfo);
+		connect(_highlighter, &RSyntaxHighlighter::varInfoChanged,	this, &RSyntaxHighlighterQuick::varInfoChanged);
+	}
 	
 	emit textDocumentChanged();
+}
+
+VariableInfo *RSyntaxHighlighterQuick::varInfo() const
+{
+	return !_highlighter ? _varInfo : _highlighter->varInfo();
+}
+
+void RSyntaxHighlighterQuick::setVarInfo(VariableInfo *newVarInfo)
+{
+	if(_highlighter)
+	{
+		_highlighter->setVarInfo(_varInfo);
+		return;
+	}
+	
+	if (_varInfo == newVarInfo)
+		return;
+
+	_varInfo = newVarInfo;
+	emit varInfoChanged();
+	
+	
 }

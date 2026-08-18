@@ -23,12 +23,12 @@
 #include "models/listmodelassignedinterface.h"
 #include "models/columntypesmodel.h"
 #include "log.h"
+#include "filter.h"
 #include "rowcontrols.h"
 #include "sourceitem.h"
 #include "jasptheme.h"
 #include "utilities/desktopcommunicator.h"
 #include "preferencesmodelbase.h"
-
 #include <QQmlContext>
 
 
@@ -37,10 +37,19 @@ JASPListControl::JASPListControl(QQuickItem *parent)
 {
 	_hasUserInteractiveValue = false;
 	_allowedTypesModel		= new ColumnTypesModel(this);
-
-	connect(VariableInfo::info(),	&VariableInfo::dataSetChanged,		this,	&JASPListControl::levelsChanged);
-
+	
+	JASPListControl * listControl = this;
+	
+	connect(this, &JASPControl::formIsKnown, this, &JASPListControl::whenFormIsKnown);
 }
+
+void JASPListControl::whenFormIsKnown(AnalysisForm * form)
+{
+	if (!form) return;
+	connect(form->varInfo(),	&VariableInfo::dataSetChanged,		this,	&JASPListControl::levelsChanged, Qt::UniqueConnection);
+	if (model())				model()->setVarInfo(form->varInfo());
+}
+
 
 void JASPListControl::setUpModel()
 {
@@ -337,12 +346,14 @@ bool JASPListControl::_checkLevelsConstraintsForVariable(const QString& variable
 	if (variable.isEmpty() || !model())
 		return true;
 
-	columnType	type	= (columnType)model()->requestInfo(VariableInfo::VariableType, variable).toInt();
+	columnType	type	= model()->getVariableType(variable);
+	if (type == columnType::unknown)
+		type = (columnType)model()->requestInfo(varInfoType::VariableType, variable).toInt();
 	if (type == columnType::unknown)
 		return true;
 
-	int nbLevels			= model()->requestInfo(VariableInfo::TotalLevels, variable).toInt(),
-		nbNumValues			= model()->requestInfo(VariableInfo::TotalNumericValues, variable).toInt(),
+	int nbLevels			= model()->requestInfo(varInfoType::TotalLevels, variable).toInt(),
+		nbNumValues			= model()->requestInfo(varInfoType::TotalNumericValues, variable).toInt(),
 		maxScaleLevels		= PreferencesModelBase::preferences()->maxScaleLevels();
 	bool noScaleAllowed		= !_allowedTypesModel->hasType(columnType::scale);
 
@@ -402,8 +413,12 @@ bool JASPListControl::checkLevelsConstraints()
 	bool checked			= true,
 		 noScaleAllowed		= !_allowedTypesModel->hasType(columnType::scale);
 
-	if (_minLevels >= 0 || _maxLevels >= 0 || _minNumericLevels >= 0 || _maxNumericLevels >= 0 || noScaleAllowed)
+	if ((_minLevels >= 0 || _maxLevels >= 0 || _minNumericLevels >= 0 || _maxNumericLevels >= 0 || noScaleAllowed) && model())
+	{
+		if (!model()->varInfo() && form())
+			model()->setVarInfo(form()->varInfo());
 		checked = _checkLevelsConstraints();
+	}
 
 	if (checked)
 		clearControlError();

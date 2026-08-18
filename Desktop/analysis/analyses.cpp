@@ -133,7 +133,7 @@ Analysis* Analyses::create(Modules::AnalysisEntry * analysisEntry, const Json::V
 	return create(Json::nullValue, analysisEntry, _nextId++, Analysis::Empty, true, "", "", options);
 }
 
-Analysis* Analyses::create(const Json::Value & analysisData, Modules::AnalysisEntry * analysisEntry, size_t id, Analysis::Status status, bool notifyAll, const std::string & title, const Version & optionsVersion, const Json::Value & options)
+Analysis* Analyses::create(const Json::Value & analysisData, Modules::AnalysisEntry * analysisEntry, size_t id, Analysis::Status status, bool notifyAll, const std::string & title, const Version & optionsVersion, const Json::Value & options, std::string filterName)
 {
 	Analysis *analysis = new Analysis(id, analysisEntry, title, optionsVersion, options);
 
@@ -416,6 +416,13 @@ void Analyses::reloadQmlAnalysesDynamicModule(Modules::DynamicModule * module)
 			idAnalysis.second->analysisQMLFileChanged();
 }
 
+void Analyses::refreshAllAnalysesOfFilter(Filter * f)
+{
+	for(auto idAnalysis : _analysisMap)
+		if(idAnalysis.second->filter() == f)
+			idAnalysis.second->refresh();
+}
+
 void Analyses::refreshAllAnalyses()
 {
 	for(auto idAnalysis : _analysisMap)
@@ -622,11 +629,11 @@ void Analyses::rCodeReturned(QString result, int requestId, bool hasError)
 		Log::log()  << "Unknown Returned Rcode request ID " << requestId << std::endl;
 }
 
-void Analyses::filterByNameDone(QString name, QString error)
+void Analyses::filterByNameDone(int dataSetID, QString name, QString error)
 {
 	applyToAll([&](Analysis * a)
 	{
-		a->filterByNameDone(name, error);
+		a->filterByNameDone(dataSetID, name, error);
 	});
 }
 
@@ -635,12 +642,13 @@ void Analyses::sendRScriptHandler(QString script, QString controlName, bool whit
 	Analysis* analysis = qobject_cast<Analysis*>(sender());
 	_scriptIDMap[_scriptRequestID] = qMakePair(analysis, controlName);
 
-	emit sendRScript(script, _scriptRequestID++, whiteListedVersion, module);
+	emit sendRScript(analysis->filter()->data()->id(), script, _scriptRequestID++, whiteListedVersion, module);
 }
 
 void Analyses::sendFilterHandler(QString name, QString module)
 {
-	emit sendFilterByName(name, module);
+	Analysis* analysis = qobject_cast<Analysis*>(sender());
+	emit sendFilterByName(analysis->filter()->data()->id(), name, module);
 }
 
 void Analyses::selectAnalysis(Analysis * analysis)
@@ -652,6 +660,12 @@ void Analyses::selectAnalysis(Analysis * analysis)
 			emit showAnalysisInResults(analysis->id());
 			return;
 		}
+}
+
+void Analyses::selectAnalysisById(int analysisId)
+{
+	if(_analysisMap.count(analysisId))
+		selectAnalysis(_analysisMap.at(analysisId));
 }
 
 void Analyses::setCurrentAnalysisIndex(int currentAnalysisIndex)
@@ -877,7 +891,9 @@ void Analyses::languageChangedHandler()
 		a->setRefreshBlocked(false);
 		emit a->form()->languageChanged();
 	});
+	
 	refreshAllAnalyses();
+	
 	emit setResultsMeta(tq(_resultsMeta.toStyledString()));
 }
 
@@ -1783,5 +1799,27 @@ void Analyses::registerRpcHandlers()
 		response["reportId"] = static_cast<int>(report->id());
 		response["title"]    = report->title();
 		return response;
+	}
+
+void Analyses::checkForDependentAnalyses(Column * column)
+{
+	applyToAll([&](Analysis * analysis)
+	{
+		stringset	usedCols	= analysis->usedVariables(),
+					createdCols = analysis->createdVariables();
+
+		//Dont create an infinite loop please, but do this only for non-computed columns created by an analysis (aka distributions, because otherwise it breaks things like planning from audit)
+		if(usedCols.count(column->name()) && (!createdCols.count(column->name()) || column->codeType() != computedColumnType::analysisNotComputed))
+		{
+			bool allColsValidated = true;
+
+			for(DataSet * dataSet : column->data()->workspace()->dataSets())
+				for(Column * col : dataSet->computedColumns())
+					if(usedCols.count(col->name()) > 0 && col->invalidated())
+						allColsValidated = false;
+
+			if(allColsValidated)
+				analysis->refresh();
+		}
 	});
 }
