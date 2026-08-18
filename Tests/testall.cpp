@@ -24,6 +24,8 @@
 #include <QSignalSpy>
 #include <QFile>
 #include <QFileInfo>
+#include <sqlite3.h>
+#include "data/asyncloader.h"
 
 
 void TestAll::initTestCase()
@@ -1112,6 +1114,160 @@ void TestAll::testFileSyncerFullAsyncFlow()
 
 	//Cleanup
 	delete loader;
+}
+
+void TestAll::testSyncerDatabaseSyncFromSQLite()
+{
+	QVERIFY(_newPkgWithDataSet());
+
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+
+	DataSetSyncer & syncer = ds->syncer();
+
+	QTemporaryDir tempDir;
+	QVERIFY(tempDir.isValid());
+
+	QString testDbPath = tempDir.filePath("test_sync.db");
+	QVERIFY(!testDbPath.isEmpty());
+
+	sqlite3 * db = nullptr;
+	int ret = sqlite3_open(testDbPath.toStdString().c_str(), &db);
+	QVERIFY2(ret == SQLITE_OK, QString("Failed to open/create database: %1").arg(testDbPath).toStdString().c_str());
+
+	std::string createTableSql = "CREATE TABLE test_data ("
+	                             "id INTEGER PRIMARY KEY, "
+	                             "name TEXT, "
+	                             "value REAL, "
+	                             "category TEXT"
+	                             ");";
+	ret = sqlite3_exec(db, createTableSql.c_str(), nullptr, nullptr, nullptr);
+	QVERIFY2(ret == SQLITE_OK, "Failed to create table");
+
+	std::string insertDataSql = "INSERT INTO test_data (id, name, value, category) VALUES "
+	                            "(1, 'first', 10.5, 'A'), "
+	                            "(2, 'second', 20.3, 'B'), "
+	                            "(3, 'third', 30.7, 'A');";
+	ret = sqlite3_exec(db, insertDataSql.c_str(), nullptr, nullptr, nullptr);
+	QVERIFY2(ret == SQLITE_OK, "Failed to insert initial data");
+
+	sqlite3_close(db);
+	db = nullptr;
+
+	Json::Value dbJson;
+	dbJson["dbType"] = "QSQLITE";
+	dbJson["database"] = testDbPath.toStdString();
+	dbJson["query"] = "SELECT id, name, value, category FROM test_data";
+	dbJson["interval"] = 1;
+
+	syncer.startDatabaseSyncing(dbJson, false);
+	QVERIFY(syncer.isDatabaseSyncing());
+	QVERIFY(ds->isDatabase());
+
+	AsyncLoader * loader = new AsyncLoader(this);
+	QSignalSpy syncCompletedSpy(loader, &AsyncLoader::syncCompleted);
+	connect(ds, &DataSet::syncRequired, loader, &AsyncLoader::onSyncRequired, Qt::QueuedConnection);
+
+	// Fake the checkDoSync signal to return true (no MainWindow in tests)
+	connect(DataSetPackage::pkg(), &DataSetPackage::checkDoSync, this, &TestAll::_checkDoSyncFake, Qt::DirectConnection);
+
+	QSignalSpy syncRequiredSpy(&syncer, &DataSetSyncer::syncRequired);
+	QSignalSpy startedSpy(&syncer, &DataSetSyncer::syncingStarted);
+	QSignalSpy finishedSpy(&syncer, &DataSetSyncer::syncingFinished);
+
+	syncer.syncNow();
+	QTRY_COMPARE_WITH_TIMEOUT(startedSpy.count(), 1, 3000);
+	syncer.setSyncingResult(true);
+	QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, 3000);
+
+	QTRY_COMPARE_WITH_TIMEOUT(syncRequiredSpy.count(), 1, 3000);
+
+	QTRY_COMPARE_WITH_TIMEOUT(syncCompletedSpy.count(), 1, 3000);
+
+	QVERIFY(ds->columnCount() >= 4);
+	QVERIFY(ds->rowCount() == 3);
+
+	Column * idCol = ds->column("id");
+	Column * nameCol = ds->column("name");
+	Column * valueCol = ds->column("value");
+	Column * categoryCol = ds->column("category");
+
+	QVERIFY(idCol);
+	QVERIFY(nameCol);
+	QVERIFY(valueCol);
+	QVERIFY(categoryCol);
+
+	// Basic verification that data was loaded
+	QVERIFY((*idCol)[0] == "1");
+	QVERIFY((*valueCol)[0] == "10.5");
+
+	db = nullptr;
+	ret = sqlite3_open(testDbPath.toStdString().c_str(), &db);
+	QVERIFY2(ret == SQLITE_OK, "Failed to reopen database for modification");
+
+	std::string updateDataSql = "UPDATE test_data SET value = value + 5 WHERE id IN (1, 2, 3);";
+	ret = sqlite3_exec(db, updateDataSql.c_str(), nullptr, nullptr, nullptr);
+	QVERIFY2(ret == SQLITE_OK, "Failed to update values");
+
+	sqlite3_close(db);
+	db = nullptr;
+
+	QSignalSpy syncCompletedSpy2(loader, &AsyncLoader::syncCompleted);
+	QSignalSpy syncRequiredSpy2(&syncer, &DataSetSyncer::syncRequired);
+	QSignalSpy startedSpy2(&syncer, &DataSetSyncer::syncingStarted);
+	QSignalSpy finishedSpy2(&syncer, &DataSetSyncer::syncingFinished);
+
+	syncer.syncNow();
+	QTRY_COMPARE_WITH_TIMEOUT(startedSpy2.count(), 1, 3000);
+	syncer.setSyncingResult(true);
+	QTRY_COMPARE_WITH_TIMEOUT(finishedSpy2.count(), 1, 3000);
+	QTRY_COMPARE_WITH_TIMEOUT(syncRequiredSpy2.count(), 1, 3000);
+	QTRY_COMPARE_WITH_TIMEOUT(syncCompletedSpy2.count(), 1, 3000);
+
+	QVERIFY((*valueCol)[0] == "15.5");
+	QVERIFY((*valueCol)[1] == "25.3");
+	QVERIFY((*valueCol)[2] == "35.7");
+
+	// Note: Database sync doesn't currently support dynamic schema changes
+	// Testing value updates only - schema changes would require re-sync from database
+
+	// Final value update test
+	db = nullptr;
+	ret = sqlite3_open(testDbPath.toStdString().c_str(), &db);
+	QVERIFY2(ret == SQLITE_OK, "Failed to reopen database for final value update");
+
+	std::string finalUpdateSql = "UPDATE test_data SET value = 99.9 WHERE id = 2;";
+	ret = sqlite3_exec(db, finalUpdateSql.c_str(), nullptr, nullptr, nullptr);
+	QVERIFY2(ret == SQLITE_OK, "Failed to final update");
+
+	sqlite3_close(db);
+	db = nullptr;
+
+	QSignalSpy syncCompletedSpy4(loader, &AsyncLoader::syncCompleted);
+	QSignalSpy syncRequiredSpy4(&syncer, &DataSetSyncer::syncRequired);
+	QSignalSpy startedSpy4(&syncer, &DataSetSyncer::syncingStarted);
+	QSignalSpy finishedSpy4(&syncer, &DataSetSyncer::syncingFinished);
+
+	syncer.syncNow();
+	QTRY_COMPARE_WITH_TIMEOUT(startedSpy4.count(), 1, 3000);
+	syncer.setSyncingResult(true);
+	QTRY_COMPARE_WITH_TIMEOUT(finishedSpy4.count(), 1, 3000);
+	QTRY_COMPARE_WITH_TIMEOUT(syncRequiredSpy4.count(), 1, 3000);
+	QTRY_COMPARE_WITH_TIMEOUT(syncCompletedSpy4.count(), 1, 3000);
+
+	QVERIFY((*valueCol)[1] == "99.9");
+
+	syncer.stopDatabaseSyncing();
+
+	QVERIFY(!syncer.isDatabaseSyncing());
+	QVERIFY(!ds->isDatabase());
+
+	delete loader;
+}
+
+bool TestAll::_checkDoSyncFake()
+{
+	return true;
 }
 
 
