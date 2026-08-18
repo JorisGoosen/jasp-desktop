@@ -131,7 +131,6 @@ void rbridge_init(DataBridge * dataBridge, sendFuncDef sendToDesktopFunction, po
 		rbridge_getColumnAnalysisId,
 		rbridge_getColumnOriginalIndex,
 		rbridge_setColumnDataAndType,
-		rbridge_setDataSetData,
 		rbridge_dataSetRowCount,
 		rbridge_encodeColumnName,
 		rbridge_decodeColumnName,
@@ -141,7 +140,8 @@ void rbridge_init(DataBridge * dataBridge, sendFuncDef sendToDesktopFunction, po
 		rbridge_shouldEncodeColumnName,
 		rbridge_shouldDecodeColumnName,
 		rbridge_allColumnNames,
-		rbridge_computedColumnFilterIs
+		rbridge_computedColumnFilterIs,
+		rbridge_setDataSetData
 	};
 
 	JASPTIMER_START(jaspRCPP_init);

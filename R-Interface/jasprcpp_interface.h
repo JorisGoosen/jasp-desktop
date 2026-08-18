@@ -93,6 +93,10 @@ typedef void						(STDCALL *libraryFixerDef)				(const char *);
 typedef const char **				(STDCALL *getColNames)					(size_t &  names, bool encoded);
 typedef const char*					(STDCALL *RequestStringRBridge)        ();
 
+//This is a C ABI struct shared between JASPEngine and the R-Interface DLL. Its member ORDER IS
+//LOAD-BEARING: both sides read the callbacks by offset (offsetof), so inserting a field anywhere
+//except at the END silently corrupts every following pointer when an older/mismatched half is loaded.
+//ALWAYS append new callbacks at the END of the struct.
 struct RBridgeCallBacks {
 	ReadDataSetCB					readDataSetCB;
 	ReadADataSetFilterCB			readDataSetRequestedCB;
@@ -114,7 +118,6 @@ struct RBridgeCallBacks {
 	GetColumnAnalysisId				dataSetGetColumnAnalysisId,
 									dataSetGetColumnOriginalIndex;
 	SetColumnDataAndType			dataSetColumnAsDataAndType;
-	SetDataSet						dataSetSetDataSet;
 	DataSetRowCount					dataSetRowCount;
 	EnDecodeDef						encoder,
 									decoder,
@@ -125,6 +128,9 @@ struct RBridgeCallBacks {
 									shouldDecode;
 	getColNames						columnNames;
 	RequestStringRBridge			computedColumnFilter;
+	//New callbacks MUST be appended here (at the END): this struct is shared across the engine and
+	//the R-Interface DLL and read by offset, so inserting anywhere else breaks mismatched halves.
+	SetDataSet						dataSetSetDataSet;
 };
 
 typedef void			(*sendFuncDef)			(const char *);

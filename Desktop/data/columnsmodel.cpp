@@ -263,6 +263,12 @@ void ColumnsModel::datasetChanged(  int										dataSetID,
 									bool                                    rowCountChanged,
 									bool                                    hasNewColumns)
 {
+	//Only the shown dataset drives the visible column list (and the VariableInfo provider bound to it);
+	//ignore column changes coming from background datasets.
+	DataSet * shown = DataSetPackage::pkg()->dataSet();
+	if(!shown || dataSetID != shown->id())
+		return;
+
 	   if(! (missingColumns.size() > 0 || hasNewColumns))
 	   {
 			   if (changeNameColumns.size() > 0)

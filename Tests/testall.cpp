@@ -700,6 +700,90 @@ void TestAll::testSyncerReleasesSyncGuardOnCompletion()
 	syncer.stopDatabaseSyncing();
 }
 
+void TestAll::testSyncerRetriesFileChangeMissedDuringSync()
+{
+	QVERIFY(_newPkgWithDataSet());
+
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+
+	DataSetSyncer & syncer = ds->syncer();
+
+	QTemporaryDir tempDir;
+	QVERIFY(tempDir.isValid());
+	QString testFilePath = tempDir.filePath("sync_retry.csv");
+	QFile f(testFilePath);
+	QVERIFY(f.open(QIODevice::WriteOnly));
+	f.write("x,y\n1,2\n");
+	f.close();
+
+	ds->setDataFileAndTimeStamp(testFilePath.toStdString(), 0);
+
+	syncer.startFileSyncing(testFilePath);
+	QVERIFY(syncer.isFileSyncing());
+
+	QSignalSpy startedSpy(&syncer, &DataSetSyncer::syncingStarted);
+	QSignalSpy syncRequiredSpy(&syncer, &DataSetSyncer::syncRequired);
+
+	// 1) Trigger a sync that stays in-flight (the guard is held until setSyncingResult).
+	QTest::qSleep(1100); //advance the file mtime past second resolution
+	QVERIFY(f.open(QIODevice::WriteOnly));
+	f.write("x,y\n3,4\n");
+	f.close();
+	QTRY_COMPARE_WITH_TIMEOUT(startedSpy.count(), 1, 5000);
+	QCOMPARE(syncRequiredSpy.count(), 1);
+
+	// 2) A change arrives while the sync is still in-flight: it must be remembered, not dropped, and
+	//    must NOT start a new sync yet (the guard is still held).
+	QTest::qSleep(1100);
+	QVERIFY(f.open(QIODevice::WriteOnly));
+	f.write("x,y\n5,6\n");
+	f.close();
+	QTest::qWait(300); //let the file watcher deliver; still no new sync while in-flight
+	QCOMPARE(startedSpy.count(), 1);
+
+	// 3) Completing the in-flight sync must release the guard AND replay the missed change.
+	syncer.setSyncingResult(true);
+	QTRY_COMPARE_WITH_TIMEOUT(startedSpy.count(), 2, 5000);
+	QCOMPARE(syncRequiredSpy.count(), 2);
+
+	syncer.stopFileSyncing();
+}
+
+void TestAll::testFilterSetFilterVectorResizesToResult()
+{
+	QVERIFY(_newPkgWithDataSet());
+
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+	QVERIFY(ds->rowCount() > 0);
+
+	Filter * filter = ds->defaultFilter();
+	QVERIFY(filter);
+
+	const size_t originalRows = static_cast<size_t>(ds->rowCount());
+
+	//Seed a cache matching the current dataset.
+	boolvec initial(originalRows, true);
+	initial[0] = false;
+	filter->setFilterVector(initial);
+	QCOMPARE(filter->filtered().size(), originalRows);
+
+	//The dataset grew: the engine result is authoritative and must be adopted in full (new rows at
+	//the end get the engine's value), instead of silently dropping everything past the old size.
+	boolvec bigger(originalRows + 3, false);
+	bigger[0] = false, bigger[1] = true, bigger[bigger.size() - 1] = true;
+	filter->setFilterVector(bigger);
+	QCOMPARE(filter->filtered().size(), originalRows + 3);
+	QVERIFY(filter->filtered() == bigger);
+
+	//And when the result shrinks, stale tail rows must not survive.
+	boolvec smaller(originalRows - 2, true);
+	filter->setFilterVector(smaller);
+	QCOMPARE(filter->filtered().size(), originalRows - 2);
+	QVERIFY(filter->filtered() == smaller);
+}
+
 
 void TestAll::testSyncerExportModifyReimportChangesDetected()
 {
@@ -766,6 +850,54 @@ void TestAll::testSyncerExportModifyReimportChangesDetected()
 	QVERIFY(!lines[0].contains("y"));
 	QVERIFY(lines[1].contains("7"));
 	QVERIFY(lines[3].contains("9"));
+}
+
+void TestAll::testFilterRevisionInvalidatedRoundTrip()
+{
+	//Regression test: filterLoad used to assign `revision` twice (overwriting it with the
+	//`invalidated` column) and never loaded `invalidated`. Save a filter and check every
+	//field round-trips, especially revision vs invalidated.
+	QVERIFY(_newPkgWithDataSet());
+	DataSet * ds = _pkg->dataSet();
+	QVERIFY(ds);
+	DatabaseInterface & dbi = ds->db();
+	const int dataSetId = ds->id();
+	QVERIFY(dataSetId > 0);
+
+	const std::string originalRFilter		= "filterResult <- x > 1";
+	const std::string originalGenerated		= "generated <- TRUE";
+	const std::string originalConstructor	= "{\"formulas\":[]}";
+	const std::string originalConstructorR	= "constrR <- 1 + 1";
+	const std::string originalName			= "roundtripFilter";
+
+	const int filterId = dbi.filterInsert(dataSetId, originalRFilter, originalGenerated, originalConstructor, originalConstructorR, originalName);
+	QVERIFY2(filterId > 0, "filterInsert should return a valid filter id");
+
+	//Update with a marked-invalidated flag; make sure it round-trips.
+	const std::string updatedRFilter		= "filterResult <- x > 2";
+	const std::string updatedGenerated		= "generated <- FALSE";
+	const std::string updatedConstructor	= "{\"formulas\":[1]}";
+	const std::string updatedConstructorR	= "constrR <- 2 + 2";
+	const std::string updatedName			= "roundtripFilterRenamed";
+	const bool		updatedInvalidated		= true;
+
+	dbi.filterUpdate(filterId, updatedRFilter, updatedGenerated, updatedConstructor, updatedConstructorR, updatedName, updatedInvalidated);
+
+	std::string rFilter, generatedFilter, constructorJson, constructorR, name;
+	int		revision		= -1;
+	bool	invalidated		= false;
+
+	dbi.filterLoad(filterId, rFilter, generatedFilter, constructorJson, constructorR, revision, name, invalidated);
+
+	QCOMPARE(QString::fromStdString(rFilter),			QString::fromStdString(updatedRFilter));
+	QCOMPARE(QString::fromStdString(generatedFilter),	QString::fromStdString(updatedGenerated));
+	QCOMPARE(QString::fromStdString(constructorJson),	QString::fromStdString(updatedConstructor));
+	QCOMPARE(QString::fromStdString(constructorR),		QString::fromStdString(updatedConstructorR));
+	QCOMPARE(QString::fromStdString(name),				QString::fromStdString(updatedName));
+	QCOMPARE(invalidated, updatedInvalidated);
+	QVERIFY2(revision >= 0, "revision must stay an integer revision, not the invalidated flag");
+
+	dbi.filterDelete(filterId);
 }
 
 

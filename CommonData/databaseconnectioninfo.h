@@ -51,7 +51,11 @@ public:
 	bool	_rememberMe		= false,
 			_hadPassword	= false;
 	QTimer	_syncher;
-	
+
+	//Unique QSqlDatabase connection name so that concurrent connections (e.g. two datasets syncing
+	//to different databases at once) don't fight over the single unnamed default connection.
+	mutable	QString _connectionName = "";
+
 };
 
 #endif // DATABASECONNECTIONINFO_H

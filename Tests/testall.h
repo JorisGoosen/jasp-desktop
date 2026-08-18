@@ -30,9 +30,16 @@ private slots:
 	void	testSyncerSyncNowWithoutDataSource();
 	void	testSyncerMultipleStartStop();
 	void	testSyncerReleasesSyncGuardOnCompletion();
+	void	testSyncerRetriesFileChangeMissedDuringSync();
 
 	// DataExporter tests
 	void	testDataExporterShownDataSetOnly();
+
+	// DatabaseInterface regressions
+	void	testFilterRevisionInvalidatedRoundTrip();
+
+	// Filter cache-length regression: the engine result must be authoritative for the whole dataset.
+	void	testFilterSetFilterVectorResizesToResult();
 
 	// Sync + export integration tests
 	void	testSyncerExportModifyReimport();

@@ -11,6 +11,7 @@
 #include "data/datasetpackage.h"
 #include "data/importers/csvimporter.h"
 #include "engine/enginerepresentation.h"
+#include "utilities/settings.h"
 #include "filter.h"
 #include "variableinfo.h"
 
@@ -21,6 +22,7 @@ void TestEngine::initTestCase()
 
 void TestEngine::init()
 {
+	Settings::informSettingsThatThisIsATest(); //For deterministic Settings behaviour, as in TestAll.
 	TempFiles	::	clearSessionDir();
 	Dirs		::	setLocalAppdataDir(AppDirs::appData(false).toStdString());
 	TempFiles	::	init(ProcessInfo::currentPID()); // needed here so that the LRNAM can be passed the session directory
@@ -374,7 +376,8 @@ void TestEngine::testVariableInfoPerFilter()
 	int rowCount		 = ds->rowCount();
 	int half			 = rowCount / 2;
 	
-	ds->defaultFilter()->setFilterVector(boolvec(true, rowCount));
+	//NB: vector<bool>(count, value) — use the full row-count, every row passes.
+	ds->defaultFilter()->setFilterVector(boolvec(rowCount, true));
 	QCOMPARE(ds->defaultFilter()->filteredRowCount(), rowCount);
 
 	Filter * filterEven = ds->createFilter("filterEven", true);

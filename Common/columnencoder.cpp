@@ -105,6 +105,13 @@ ColumnEncoder::ColumnEncoder(const std::map<std::string, std::string> & decodeDi
 
 ColumnEncoder::~ColumnEncoder()
 {
+	//Whatever the current indirection points at, if it was us, clear it BEFORE the invalidation
+	//below: otherwise a later columnEncoder()/isColumnName() use dereferences a destroyed encoder.
+	//(Needed for non-default encoders too, e.g. a per-dataset encoder destroyed while current;
+	//DataSet also clears explicitly, but this covers every other owner.)
+	if(_currentEncoder == this)
+		_currentEncoder = nullptr;
+
 	if(this != _columnEncoder)
 	{
 		if(_otherEncoders && _otherEncoders->count(this) > 0) //The special "replacer-encoder" doesn't add itself to otherEncoders.
@@ -113,8 +120,6 @@ ColumnEncoder::~ColumnEncoder()
 	else
 	{
 		_columnEncoder = nullptr;
-		if(_currentEncoder == this)
-			_currentEncoder = nullptr;
 
 		ColumnEncoders others = *_otherEncoders;
 

@@ -511,13 +511,14 @@ void MainWindow::makeConnections()
 		if(ds)
 			connect(ds, &DataSet::syncRequired, _loader, &AsyncLoader::onSyncRequired, Qt::QueuedConnection);
 	});
-	//The worker thread finishes the sync; route the completion back to the dataset's syncer on the main thread
-	//so its re-entrancy guard (_isSyncing) is always released for whichever dataset syncs.
+	//The worker thread finishes the sync; route the completion back to the dataset's syncer on the main
+	//thread (via a QueuedConnection, since syncCompleted is emitted from the loader worker) so its
+	//re-entrancy guard (_isSyncing) is released exactly once for whichever dataset syncs.
 	connect(_loader,				&AsyncLoader::syncCompleted,						this,					[this](int dataSetId, bool success){
 		DataSet * ds = _package->workspace() ? _package->workspace()->dataSetById(dataSetId) : nullptr;
 		if(ds)
 			ds->syncer().setSyncingResult(success);
-	});
+	},																											Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::shownFilterChanged,				this,					&MainWindow::updateShownFilterInQmlContext					);
 	connect(_package,				&DataSetPackage::shownFilterChanged,				_filterModel,			&FilterModel::filterChanged,								Qt::QueuedConnection);
 	connect(_package,				&DataSetPackage::filtersCountChanged,				_filterModel,			&FilterModel::filterDropDownListChanged						);
@@ -1787,7 +1788,7 @@ void MainWindow::dataSetIORequestHandler(FileEvent *event)
 		_loader->io(event);
 		showProgress();
 	}
-else if (event->operation() == FileEvent::FileSyncData)
+	else if (event->operation() == FileEvent::FileSyncData)
 	{
 		if (!_package->hasDataSet())
 			return;
@@ -2014,20 +2015,12 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 		if(!event->path().endsWith(".pdf") && _preferences->currentThemeName() != "lightTheme")
 			_resultsJsInterface->setThemeCss(_preferences->currentThemeName());
 	}
-	else if (event->operation() == FileEvent::FileSyncData)
-		notifyDataSetSyncCompleted(event);
+	//FileSyncData completion is handled solely via AsyncLoader::syncCompleted -> DataSetSyncer::setSyncingResult
+	//(see wireDataSetSync), which covers both the automatic and file-menu initiated syncs exactly once.
+	//Routing it also through FileEvent::completed here would double-release the syncer's guard.
 }
 
 
-void MainWindow::notifyDataSetSyncCompleted(FileEvent *event)
-{
-	if(!_package || !_package->workspace())
-		return;
-
-	DataSet * ds = _package->workspace()->dataSetById(event->syncDataSetId());
-	if(ds)
-		ds->syncer().setSyncingResult(event->isSuccessful());
-}
 
 
 void MainWindow::populateUIfromDataSet()

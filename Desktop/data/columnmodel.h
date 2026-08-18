@@ -153,6 +153,7 @@ public slots:
 	void 		checkInsertedColumns(const QModelIndex & parent, int first, int last);
 	void 		openComputedColumn(const QString name);
 	void 		checkCurrentColumn( int dataSetId, QStringList changedColumns, QStringList missingColumns, QMap<QString, QString>	changeNameColumns, bool rowCountChanged, bool hasNewColumns);
+	void 		shownDataSetChangedHandler(DataSet * newDataSet);
 	void 		setCompactMode(bool newCompactMode);
 	void 		languageChangedHandler();
 	void 		setLabelMaxWidth();

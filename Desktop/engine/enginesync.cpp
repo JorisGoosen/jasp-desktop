@@ -588,9 +588,12 @@ void EngineSync::computeColumn(int dataSetId, const QString & columnName, const 
 	while(copiedWaiting.size() > 0)
 	{
 		RComputeColumnStore * cur = copiedWaiting.front();
+		copiedWaiting.pop();
+
 		if(cur->typeScript != engineState::computeColumn || cur->dataSetId != dataSetId || static_cast<RComputeColumnStore*>(cur)->_columnName != columnName)
 			_waitingCompCols.push(cur);
-		copiedWaiting.pop();
+		else
+			delete cur; //superseded by the new request for the same column
 	}
 
 	_waitingCompCols.push(new RComputeColumnStore(dataSetId, columnName, computeCode, colType));
@@ -605,9 +608,12 @@ void EngineSync::computeDataSet(int dataSetId, const QString & computeCode, int 
 	while(copiedWaiting.size() > 0)
 	{
 		RComputeDataSetStore * cur = copiedWaiting.front();
+		copiedWaiting.pop();
+
 		if(cur->typeScript != engineState::computeDataSet || cur->dataSetId != dataSetId)
 			_waitingCompDataSets.push(cur);
-		copiedWaiting.pop();
+		else
+			delete cur; //superseded by the new request for the same dataset
 	}
 
 	_waitingCompDataSets.push(new RComputeDataSetStore(dataSetId, computeCode, defaultInputDataSetId));

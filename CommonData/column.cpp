@@ -983,11 +983,13 @@ bool Column::overwriteDataAndType(stringvec colData, columnType colType, bool co
 {
 	JASPTIMER_SCOPE(Column::overwriteDataAndType);
 	
-	assert(data()->shownFilter()->name() == computeFilter());
-	
-	const boolvec & filtered = data()->shownFilter()->filtered();
+const Filter * shown = data()->shownFilter();
+	assert(shown && shown->name() == computeFilter());
+	//If shownFilter is unexpectedly null (e.g. during teardown) fall back to treating all rows as
+	//unfiltered rather than dereferencing null.
+	const boolvec & filtered = shown ? shown->filtered() : boolvec(static_cast<size_t>(rowCount()), true);
 	stringvec		newData;
-					newData	 . reserve(filtered.size());
+				newData	 . reserve(filtered.size());
 					
 	for(size_t iFilter=0, iData=0; iFilter < filtered.size() && iData < colData.size(); iFilter++)
 		newData.push_back(filtered[iFilter] ? colData[iData++] : "");
@@ -1373,11 +1375,11 @@ int Column::nonFilteredNumericsCount()
 			{
 				Label * l = labelByIntsId(_ints[r]);
 				
-				if(_data->shownFilter()->filtered()[r] && l && !l->isEmptyValue())
+				if(_data->getRowFilter(r) && l && !l->isEmptyValue())
 					numerics.insert(l->originalValueAsDouble());
 			}
 			else
-				if(_data->shownFilter()->filtered()[r] && !isEmptyValue(_dbls[r]))
+				if(_data->getRowFilter(r) && !isEmptyValue(_dbls[r]))
 					numerics.insert(_dbls[r]);
 		}
 
@@ -1418,7 +1420,7 @@ const stringvec & Column::nonFilteredLevels()
 			intset		collected;
 	
 			for(size_t r=0; r<data()->rowCount(); r++)
-				if(data()->shownFilter()->filtered()[r])
+				if(data()->getRowFilter(r))
 					if(_ints[r] != Label::NO_LABEL)
 					{
 						if(!collected.count(_ints[r]))
@@ -1443,7 +1445,8 @@ const stringvec & Column::nonFilteredLevels()
 		else
 		{
 			intvec intVals;
-			_nonFilteredLevels = dataAsRLevels(intVals, data()->shownFilter()->filtered());
+			const boolvec & filtered = data()->shownFilter() ? data()->shownFilter()->filtered() : boolvec(static_cast<size_t>(data()->rowCount()), true);
+			_nonFilteredLevels = dataAsRLevels(intVals, filtered);
 		}
 	}
 
@@ -3248,6 +3251,9 @@ bool Column::setLabelDescription(int labelRow, const QString & newDescription)
 	JASPTIMER_SCOPE(Column::setLabelDescription);
 
 	Label		*	label	= labelByIndexNonEmpty(labelRow);
+	if(!label)
+		return false;
+
 	label->setDescription(newDescription.toStdString());
 
 	emit dataChanged(index(labelRow, 0),	index(labelRow, columnCount()), {int(dataPkgRoles::description), Qt::DisplayRole});
@@ -3262,6 +3268,9 @@ bool Column::setLabelDisplay(int labelRow, const QString &newLabel)
 	Label			*	label		= labelByIndexNonEmpty(labelRow);
 	bool				aChange		= false,
 						setManual	= false;
+
+	if(!label)
+		return false;
 
 	if(label->setLabel(Label::processLabel(fq(newLabel), label->originalValueAsString())))
 	{
@@ -3292,6 +3301,9 @@ bool Column::setLabelValue(int labelRow, const QString &newLabelValue)
 	Label			*	label		= labelByIndexNonEmpty(labelRow);
 	bool				aChange		= false,
 						aNumber		= false;
+
+	if(!label)
+		return false;
 
 	Json::Value originalValue = newLabelValue.toStdString();
 
@@ -3342,6 +3354,9 @@ bool Column::setLabelAllowFilter(int labelRow, bool newAllowValue)
 
 	Label			*	label = labelByIndexNonEmpty(labelRow);
 	bool	atLeastOneRemains = newAllowValue;
+
+	if(!label)
+		return false;
 
 	if(!atLeastOneRemains) //Do not let the user uncheck every single one because that is useless, the user wants to uncheck row so lets see if there is another one left after that. Empty-value labels do not count: they cannot be "kept filtered in".
 	{

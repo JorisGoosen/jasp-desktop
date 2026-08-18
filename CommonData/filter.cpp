@@ -59,8 +59,9 @@ void Filter::connectionCreation()
 		
 	_data->registerFilter(this);
 	
-	if(_data->defaultFilter() != this && _data->defaultFilter()) //If it doesnt exist yet this is probably it
-		connect(_data->defaultFilter(), &Filter::generatedFilterChanged,	this, &Filter::generatedFilterChanged);
+		//NOTE: no longer relaying the default filter's generatedFilterChanged to named filters: it
+		//fired a signal whose value was unchanged (the named filter's own generatedFilter is separate),
+		//so it only caused spurious refreshes, and nothing consumes Filter::generatedFilterChanged.
 	
 	
 	connect(_data,	&DataSet::labelsReordered,				infoSignaller(),	&VarInfoSignaller::labelsReordered			);
@@ -167,19 +168,30 @@ bool Filter::setFilterVector(const boolvec & filterResult)
 {
 	bool changed = false;
 
+	//The engine result is authoritative for the whole (current) dataset, so the cached vector must
+	//match its length exactly. Only the first call may hit the empty-cache fast path; afterwards we
+	//resize to the result length (grow with filtered=false / shrink) instead of stopping at the old
+	//size, which previously dropped new rows and kept stale tail rows.
 	if(_filtered.size() == 0)
 	{
 		_filtered = filterResult;
 		changed = true;
 	}
 	else
-		for(size_t i=0; i<filterResult.size() && i<_filtered.size(); i++)
+	{
+		if(_filtered.size() != filterResult.size())
 		{
-			if(_filtered[i] != filterResult[i])
-				changed = true;
-
-			_filtered[i] = filterResult[i];
+			_filtered.resize(filterResult.size());
+			changed = true;
 		}
+
+		for(size_t i=0; i<filterResult.size(); i++)
+			if(_filtered[i] != filterResult[i])
+			{
+				changed = true;
+				_filtered[i] = filterResult[i];
+			}
+	}
 
 	if(!_data->writeBatchedToDB())
 		db().filterWrite(_id, _filtered);
@@ -394,6 +406,9 @@ stringset Filter::columnsUsedInRFilter() const
 
 bool Filter::filterNameIsFree(DataSet * dataSet, const std::string &filterName)
 {
+	if(!dataSet)
+		return true;
+
 	return -1 == DatabaseInterface::singleton()->filterGetId(dataSet->id(), filterName);
 }
 
@@ -596,7 +611,18 @@ void Filter::datasetChanged(int, QStringList changedColumns, QStringList missing
 	}
 
 	if(invalidateMe)
+	{
+		//Keep the cached filter vector length in sync with the dataset: on a row-count change the
+		//engine result is (re)computed asynchronously, so until it lands we must not serve a vector
+		//that is shorter than the dataset (drops rows) or longer (reads stale tail rows).
+		if(rowCountChanged)
+		{
+			_filtered.resize(_data->rowCount());
+			calculateFilteredRowCount();
+		}
+
 		setInvalidated(true);
+	}
 
 
 	//Do stuff for variable info provider:

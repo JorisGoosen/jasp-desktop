@@ -317,9 +317,9 @@ void AnalysisBase::setFilterId(int filterId)
 		
 	if(f == _filter)
 		return;
-	
+
 	_filter			= f;
-	_filterDataSet	= _filter->data();
+	_filterDataSet	= _filter ? _filter->data() : nullptr;
 	
 	emit filterChanged(_filter);
 	

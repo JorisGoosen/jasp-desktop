@@ -1,7 +1,6 @@
 #ifndef WORKSPACE_H
 #define WORKSPACE_H
 
-#include <QTimer>
 #include "dataset.h"
 #include "datasetbasenode.h"
 #include "databaseinterface.h"
@@ -128,7 +127,6 @@ private:
 	VariableInfo				*	_varInfo				= nullptr;
 	bool							_showRSyntax			= false,
 									_dataMode				= false;
-	QTimer							_syncher;
 	static Workspace			*	_singleton;
 	
 };

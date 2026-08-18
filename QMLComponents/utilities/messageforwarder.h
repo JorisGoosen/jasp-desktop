@@ -69,7 +69,7 @@ public slots:
 
 	void			log(QString msg);
 	
-	QString			askPasswordSlot(QString title, QString message) { return askPasswordSlot(title, message); }
+	QString			askPasswordSlot(QString title, QString message) { return askPassword(title, message); }
 	bool			showYesNoSlot(	QString title, QString message) { return showYesNo(title, message);			}
 	
 	

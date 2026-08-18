@@ -398,10 +398,10 @@ FocusScope
 						JaspControls.RectangularButton
 						{
 							id:						resetAllGeneratedFilters
-							width:					workspace.shownDataSet.columnsLabelFilteredCount > 0 ? height : 0
+							width:					(workspace.shownDataSet && workspace.shownDataSet.columnsLabelFilteredCount > 0) ? height : 0
 							height:					filterGeneratedBox.height
 							iconSource:				jaspTheme.iconPath + "eraser_all.png"
-							visible:				workspace.shownDataSet.columnsLabelFilteredCount > 0
+							visible:				workspace.shownDataSet && workspace.shownDataSet.columnsLabelFilteredCount > 0
 							toolTip:				qsTr("Reset all checkmarks on all labels")
 							onClicked:				dataSetModel.resetAllFilters()
 

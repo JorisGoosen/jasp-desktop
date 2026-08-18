@@ -53,6 +53,7 @@ private:
 	DatabaseConnectionInfo	*	_dbInfo			= nullptr;
 	Json::Value				_databaseJson		= Json::nullValue;
 	bool					_isSyncing			= false;
+	bool					_isPendingFileSync	= false; //a file change arrived while a sync was in flight
 };
 
 #endif // DATASETSYNCER_H

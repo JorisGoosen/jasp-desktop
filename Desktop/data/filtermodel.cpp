@@ -188,7 +188,20 @@ void FilterModel::setCurrentFilterId(int id)
 
 void FilterModel::renameCurrentFilter(const QString &newName)
 {
-	DataSetPackage::pkg()->dataSet()->shownFilter()->setName(fq(newName));
+	DataSet * ds = DataSetPackage::pkg()->dataSet();
+	Filter  * f  = ds ? ds->shownFilter() : nullptr;
+
+	if(!f)
+		return;
+
+	const std::string name = fq(newName);
+
+	//Guard against empty names, renaming the (single, unnamed) default filter, and name collisions:
+	//duplicate filter names would make filter(name)/filterGetId lookups ambiguous.
+	if(name.empty() || name == DEFAULT_FILTER_NAME || (name != f->name() && !Filter::filterNameIsFree(ds, name)))
+		return;
+
+	f->setName(name);
 	emit filterChanged();
 	emit filterDropDownListChanged();
 }

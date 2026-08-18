@@ -14,9 +14,10 @@ ColumnModel::ColumnModel() : QIdentityProxyModel(DataSetPackage::pkg())
 
 	connect(DataSetPackage::pkg(),	&DataSetPackage::allFiltersReset,				this, &ColumnModel::allFiltersReset				);
 	
-	connect(DataSetPackage::pkg(),	&DataSetPackage::datasetChanged,				this, &ColumnModel::checkCurrentColumn			);
+connect(DataSetPackage::pkg(),	&DataSetPackage::datasetChanged,				this, &ColumnModel::checkCurrentColumn			);
 	connect(DataSetPackage::pkg(),	&DataSetPackage::workspaceEmptyValuesChanged,	this, &ColumnModel::emptyValuesChanged			);
-	connect(DataSetPackage::pkg(),	&DataSetPackage::chooseColumn,					this, &ColumnModel::setChosenColumn				);
+	connect(DataSetPackage::pkg(),	&DataSetPackage::chooseColumn,				this, &ColumnModel::setChosenColumn				);
+	connect(DataSetPackage::pkg(),	&DataSetPackage::shownDataSetChanged,			this, &ColumnModel::shownDataSetChangedHandler	);
 }
 
 QVariant ColumnModel::columnTypeFriendlyMapping(computedColumnType compColT)
@@ -620,7 +621,8 @@ void ColumnModel::openComputedColumn(const QString name)
 
 void ColumnModel::checkCurrentColumn(int dataSetId, QStringList, QStringList missingColumns, QMap<QString, QString> changeNameColumns, bool, bool hasNewColumns)
 {
-	if(dataSetId != DataSetPackage::pkg()->dataSet()->id())
+	DataSet * current = DataSetPackage::pkg()->dataSet();
+	if(!current || dataSetId != current->id())
 		return;
 	
 	QString colName = columnNameQ();
@@ -641,6 +643,21 @@ void ColumnModel::checkCurrentColumn(int dataSetId, QStringList, QStringList mis
 			setChosenColumnByName(colName);
 		}
 	}
+}
+
+void ColumnModel::shownDataSetChangedHandler(DataSet * newDataSet)
+{
+	if(!newDataSet || !column())
+		return;
+
+	QString currentName = columnNameQ();
+	if(currentName.isEmpty())
+		return;
+
+	//Another dataset became the shown one: re-resolve the currently chosen column (by name)
+	//against the new shown dataset so the Variables/label editor follows the tab switch instead of
+	//silently editing a non-shown dataset's column.
+	setChosenColumnByName(currentName);
 }
 
 void ColumnModel::removeAllSelected()

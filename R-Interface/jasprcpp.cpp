@@ -940,9 +940,18 @@ bool _jaspRCPP_setColumnDataAndType(const std::string & columnName, Rcpp::RObjec
 
 bool jaspRCPP_setDataSet(const std::string & datasetName, Rcpp::RObject dfObj)
 {
+	//The whole output dataset is replaced by this frame, so we must refuse anything that is not a
+	//data.frame (e.g. a matrix or list slips past the NULL/empty-frame guard in the caller). Report
+	//the real cause instead of silently writing an empty dataset.
+	if(!Rcpp::is<Rcpp::DataFrame>(dfObj))
+	{
+		std::string what = "The R code produced a non-data.frame result that cannot be used to replace the output dataset";
+		jaspRCPP_setErrorMsg(what.c_str());
+		return false;
+	}
+
 	Rcpp::DataFrame			df(dfObj);
-	size_t					colCount	= df.size(),
-							rowCount	= df.nrows();
+	size_t					colCount	= df.size();
 	Rcpp::CharacterVector	dfNames		= df.names();
 
 	static Rcpp::Function	asNumeric	("as.numeric"),
@@ -953,7 +962,7 @@ bool jaspRCPP_setDataSet(const std::string & datasetName, Rcpp::RObject dfObj)
 	std::vector<int>							types;
 	std::vector<std::vector<std::string>>		data;
 	std::vector<std::vector<const char *>>		innerPtrs;
-	std::vector<const char *>					namePtrs, columnLengthDummy;
+	std::vector<const char *>					namePtrs;
 	std::vector<int>							typePtrs;
 	std::vector<const char **>					dataPtrs;
 	std::vector<size_t>							lengths;
@@ -976,7 +985,10 @@ bool jaspRCPP_setDataSet(const std::string & datasetName, Rcpp::RObject dfObj)
 		Rcpp::Vector<REALSXP>	dblData = Rcpp::NumericVector(	asNumeric(	Rcpp::_["x"] = colObj));
 
 		std::vector<std::string> colData(strData.begin(), strData.end());
-		for(size_t r=0; r<colData.size(); r++)
+		//as.character and as.numeric may not agree on length for unusual R objects, so only read
+		//dblData within its own bounds.
+		size_t common = std::min(colData.size(), size_t(dblData.size()));
+		for(size_t r=0; r<common; r++)
 			if(std::isnan(dblData[r]))
 				colData[r] = "";
 

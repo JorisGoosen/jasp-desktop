@@ -29,7 +29,7 @@ void WorkspaceModel::refresh()
 
 QStringList WorkspaceModel::emptyValues() const
 {
-	DataSet * set = DataSetPackage::pkg()->workspace() ? DataSetPackage::pkg()->workspace()->shownDataSet() : nullptr;;
+	DataSet * set = DataSetPackage::pkg()->workspace() ? DataSetPackage::pkg()->workspace()->shownDataSet() : nullptr;
 	return tql(set ? set->emptyValuesAsStrings() : stringset());
 }
 

@@ -484,7 +484,7 @@ FocusScope
 								name:				dataSetTabItem.name
 								description:		dataSetTabItem.description
 								text:				dataSetTabItem.title
-								buttonActive:		dataSetPackage.workspace.shownDataSet.name === name
+								buttonActive:		dataSetPackage.workspace.shownDataSet && dataSetPackage.workspace.shownDataSet.name === name
 								showTextField:		buttonActive
 								onClicked:			dataSetPackage.workspace.setShownDataSet(name)
 								theButton.toolTip:	description

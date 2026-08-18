@@ -125,7 +125,12 @@ void DataSetSyncer::fileChanged(const QString & path)
 
 	_dataSet->setDataFile(path.toStdString(), newTimestamp);
 
-	doSync();
+	if(_isSyncing)
+		//QFileSystemWatcher won't re-fire for this modification, so remember we missed it and retry
+		//once the in-flight sync completes (setSyncingResult), otherwise the change would be lost.
+		_isPendingFileSync = true;
+	else
+		doSync();
 }
 
 void DataSetSyncer::databaseSyncIntervalPassed()
@@ -166,5 +171,15 @@ void DataSetSyncer::setSyncingResult(bool success)
 	//The re-entrancy guard is only released on *real* completion (or an explicit abort),
 	//not when the request is launched, so overlapping syncs can't start while one is in flight.
 	_isSyncing = false;
+
+	//Pick up any file change that was dropped during the just-finished sync. fileChanged already
+	//bumped the dataset timestamp when it was seen, so re-running it would be a no-op; a direct
+	//doSync() re-issues the (now-current) file/database state so the change is not lost.
+	if(_isPendingFileSync)
+	{
+		_isPendingFileSync = false;
+		doSync();
+	}
+
 	emit syncingFinished(_dataSet ? _dataSet->id() : -1, success);
 }

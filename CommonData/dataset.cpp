@@ -76,6 +76,11 @@ DataSet::~DataSet()
 {
 	JASPTIMER_SCOPE(DataSet::~DataSet);
 
+	//If this dataset's encoder is the one currently active (shown), make sure the indirection doesn't
+	//keep pointing at it once it's freed. Otherwise later encode/decode would dereference freed memory.
+	if(ColumnEncoder::currentEncoder() == _encoder)
+		ColumnEncoder::setCurrentEncoder(nullptr);
+
 	delete _syncer;
 	_syncer = nullptr;
 	delete _encoder;
@@ -268,10 +273,9 @@ void DataSet::endBatchedToDB(std::function<void(float)> progressCallback, Column
 		else
 			progressCallback(1);
 
-		//Column names/types have (just) been (re)loaded into this DataSet, so make sure the encoder
-		//(used for computed-column dependency resolution) is up to date with them.
+		//Column names/types have (just) been (re)loaded into this DataSet, so keep our own encoder in
+		//sync; when this dataset is the shown/current one it is what the encoder indirection points at.
 		_encoder->setCurrentNames(getColumnNames());
-		ColumnEncoder::setCurrentColumnNames(getColumnNames());
 
 		incRevision(); //Should trigger reload at engine end
 	}
@@ -926,11 +930,34 @@ bool DataSet::checkForUpdates(std::function<void(float)> progressCallback)
 		if(destroyUs.size() > 0)
 		{
 			somethingChanged = true;
-		
+
+			Filter * newShownFilter = nullptr;
+
+			//If the shown filter is among the pruned (its DB row vanished), pick a surviving replacement
+			//BEFORE deleting, mirroring deleteShownFilter(), so we never leave a dangling _shownFilter.
+			if(_shownFilter && _shownFilter != _defaultFilter && destroyUs.count(_shownFilter))
+			{
+				size_t indexWas = 0;
+				for(size_t i=0; i<_filters.size(); i++)
+					if(_filters[i] == _shownFilter)
+					{
+						indexWas = i;
+						break;
+					}
+
+				newShownFilter = keepUs.empty() ? _defaultFilter : keepUs[std::min(indexWas, keepUs.size() - 1)];
+			}
+
 			_filters = keepUs;
-		
+
+			if(newShownFilter)
+			{
+				_shownFilter = newShownFilter;
+				emit shownFilterChanged(this);
+			}
+
 			for(Filter * f : destroyUs)
-				delete f;	
+				delete f;
 		}
 		
 		emit datasetChanged(_dataSetId, tq(colsChanged), tq(colsRemoved), {}, newColumns, rowCountChanged);
@@ -1195,13 +1222,13 @@ const DatabaseInterface &DataSet::db() const
 stringset DataSet::findUsedColumnNames(std::string searchThis)
 {
 	stringset columnsFound, columnsWithTypeFound;
-	ColumnEncoder::columnEncoder()->encodeRScript(searchThis, &columnsWithTypeFound);
+	encoder().encodeRScript(searchThis, &columnsWithTypeFound);
 	
 	//The found columns now also include the type, but we dont really care about that right now.
 	//Instead we'll make use of the encode->decode not being symmetrical (for the results to be less ugly) and dropping the type
 	
 	for(const std::string & colPlusType : columnsWithTypeFound)
-		columnsFound.insert(ColumnEncoder::columnEncoder()->decode(ColumnEncoder::columnEncoder()->encode(colPlusType)));
+		columnsFound.insert(encoder().decode(encoder().encode(colPlusType)));
 	
 	return columnsFound;
 }
@@ -1840,6 +1867,11 @@ bool DataSet::setColumnTypes(stringset columnIndexes, columnType newColumnType)
 
 void DataSet::filterByNameDone(int dataSetID, const QString &name, const QString &error)
 {
+	//Every DataSet is connected to the shared Workspace::filterByNameDone; only act on completions
+	//that target this dataset, otherwise a same-named filter in another dataset would be reloaded.
+	if(dataSetID != id())
+		return;
+
 	Filter * f = filter(fq(name));
 	
 	if(f && f->dbLoadResultAndError())
