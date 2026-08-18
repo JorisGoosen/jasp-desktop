@@ -161,12 +161,28 @@ Rectangle
 				{
 					textDocument:	codeEdit.textDocument
 				}
+				
+				Keys.onEnterPressed:  (event)=> {
+										if((event.modifiers & Qt.ControlModifier) || (event.modifiers & Qt.MetaModifier))
+										{
+											applyButton.forceActiveFocus();
+											root.applyComputedDataSet();
+										}
+									  }
 			}
 		}
 
 		RowLayout
 		{
 			Layout.fillWidth:	true
+			
+			JaspControls.RectangularButton
+			{
+				id:				applyButton
+				text:			qsTr("Apply computed dataset")
+				Layout.alignment: Qt.AlignRight
+				onClicked:		root.applyComputedDataSet()
+			}
 
 			Text
 			{
@@ -179,13 +195,7 @@ Rectangle
 				wrapMode:		Text.Wrap
 			}
 
-			JaspControls.RectangularButton
-			{
-				id:				applyButton
-				text:			qsTr("Apply computed dataset")
-				Layout.alignment: Qt.AlignRight
-				onClicked:		root.applyComputedDataSet()
-			}
+			
 		}
 	}
 }
