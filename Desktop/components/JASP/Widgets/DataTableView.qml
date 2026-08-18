@@ -466,12 +466,12 @@ FocusScope
 							required property string	description
 							required property bool		columnIsComputed
 							
-							name:				name
+							dataSetName:		name
 							description:		description
 							text:				title
 							isComputed:			columnIsComputed
-							buttonActive:		dataSetPackage.workspace.shownDataSet && dataSetPackage.workspace.shownDataSet.name === name
-							showTextField:		buttonActive
+							//buttonActive:		dataSetPackage.workspace.shownDataSet && dataSetPackage.workspace.shownDataSet.name === name
+							//showTextField:		buttonActive
 							onClicked:			dataSetPackage.workspace.setShownDataSet(name)
 						}
 					

@@ -719,8 +719,8 @@ void MainWindow::loadQML()
 	_qml->rootContext()->setContextProperty("plotEditorModel",							_plotEditorModel								);
 	_qml->rootContext()->setContextProperty("preferencesModel",							_preferences									);
 	_qml->rootContext()->setContextProperty("resultsJsInterface",						_resultsJsInterface								);
-	_qml->rootContext()->setContextProperty("aiBridge",									_aiBridge											);
-	_qml->rootContext()->setContextProperty("aiConfigModel",							_aiConfigModel										);
+	_qml->rootContext()->setContextProperty("aiBridge",									_aiBridge										);
+	_qml->rootContext()->setContextProperty("aiConfigModel",							_aiConfigModel									);
 	_qml->rootContext()->setContextProperty("messages",									_msgForwarder									);
 	_qml->rootContext()->setContextProperty("dataSetPackage",							DataSetPackage::pkg()							);
 	_qml->rootContext()->setContextProperty("ribbonModelFiltered",						_ribbonModelFiltered							);
