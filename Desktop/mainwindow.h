@@ -128,8 +128,8 @@ public:
 	bool				checkAutomaticSync()	const	{ return _checkAutomaticSync;	}
 	bool				contactVisible()		const;
 	bool				communityVisible()		const;
-    bool            aiChatVisible()     const   {return _aiChatVisible; }
-	bool			chatWindowActive()	const	{ return _chatWindowActive; }
+    bool				aiChatVisible()     const   {return _aiChatVisible; }
+	bool				chatWindowActive()	const	{ return _chatWindowActive; }
 	QString				downloadNewJASPUrl()	const	{ return _downloadNewJASPUrl;	}
 	const QStringList & commThankYou()			const;
 	const QString &		commGold()				const;

@@ -62,6 +62,8 @@ DataSetViewBase::DataSetViewBase(QQuickItem *parent)
 	connect(PreferencesModelBase::preferences(), &PreferencesModelBase::interfaceFontChanged,this, &DataSetViewBase::resetItems,			Qt::QueuedConnection);
 
 	connect(_selectionModel,			&QItemSelectionModel::selectionChanged,				this, &DataSetViewBase::selectionChanged);
+	
+	connect(this,						&QQuickItem::visibleChanged,						this, [this](){ if(isVisible()) modelWasReset(); }, Qt::QueuedConnection);
 
 	setZ(10);
 	
@@ -176,6 +178,9 @@ void DataSetViewBase::clearCaches()
 
 void DataSetViewBase::modelDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles)
 {
+	if(!isVisible())
+		return;
+	
 	const int	colMin = std::max(0,						topLeft.column()),
 				colMax = std::min(_model->columnCount(),	bottomRight.column()),
 				rowMin = std::max(0,						topLeft.row()),
@@ -235,7 +240,8 @@ void DataSetViewBase::modelDataChanged(const QModelIndex &topLeft, const QModelI
 
 void DataSetViewBase::modelHeaderDataChanged(Qt::Orientation, int, int)
 {
-	calculateCellSizes();
+	if(isVisible())
+		calculateCellSizes();
 }
 
 void DataSetViewBase::modelAboutToBeReset()
@@ -246,7 +252,10 @@ void DataSetViewBase::modelAboutToBeReset()
 
 void DataSetViewBase::modelWasReset()
 {
-	calculateCellSizes();
+	Log::log() << "DataSetViewBase::modelWasReset()" << std::endl;
+	if(isVisible())
+		calculateCellSizes();
+
 	
 	/*QModelIndex startIndex	= _model->index(_selectionStart.y(),	_selectionStart.x()),
 				endIndex	= _model->index(_selectionEnd.y(),		_selectionEnd.x());

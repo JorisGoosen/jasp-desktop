@@ -2060,10 +2060,10 @@ void MainWindow::populateUIfromDataSet()
 
 	bool hasAnalyses = _analyses->count() > 0;
 
-	setDataAvailable(_package->dataSet() && (_package->dataSet()->rowCount() > 0 && _package->dataSet()->columnCount() > 0));
-
 	hideProgress();
 	setWelcomePageVisible(false);
+	
+	setDataAvailable(_package->dataSet() && (_package->dataSet()->rowCount() > 0 && _package->dataSet()->columnCount() > 0));
 
 	_analyses->setVisible(hasAnalyses && !resultXmlCompare::compareResults::theOne()->testMode());
 

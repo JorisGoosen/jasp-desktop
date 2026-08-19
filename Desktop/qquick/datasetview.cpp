@@ -22,6 +22,7 @@ DataSetView::DataSetView(QQuickItem *parent)
 	connect(DataSetPackage::pkg(),		&DataSetPackage::dataModeChanged,				this, &DataSetView::onDataModeChanged);
 	connect(_expandedModel,				&ExpandDataProxyModel::undoChanged,				this, &DataSetView::undoChanged);
 	connect(_selectionModel,			&QItemSelectionModel::currentColumnChanged,		this, &DataSetView::currentSelectedColumnHandler);
+	connect(DataSetPackage::pkg(),		&DataSetPackage::workspaceChanged,				this, &DataSetViewBase::resetItems);
 }
 
 void DataSetView::setModel(QAbstractItemModel * model)
