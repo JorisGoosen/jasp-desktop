@@ -60,6 +60,10 @@ signals:
 	void beginFileUpload(QString nodePath, QString sourcePath);
 	bool checkDoSync();
 	void syncCompleted(int dataSetId, bool success);
+	///Emitted after a (non-sync) load added a dataset to the workspace. The workspace table model
+	///was mutated on the loader thread, so the GUI thread connects to this to refresh it (and any
+	///views bound to it, e.g. the dataset tabbuttons) from the correct thread.
+	void dataSetsChanged();
 
 public slots:
 	///Carries the DataSet (not just its id) so the loader never has to reach into the GUI-owned

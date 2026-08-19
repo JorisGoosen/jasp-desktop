@@ -1319,6 +1319,36 @@ void TestAll::testCloseWorkspaceAndDataSets()
 	DataSet * fresh = _pkg->createDataSet();
 	QVERIFY(fresh);
 	QVERIFY(_pkg->workspace());
+
+	//_pkg->deleteWorkspace() above destroyed the workspace `ws` pointed at; createDataSet() made a new
+	//one, so re-obtain it before touching it.
+	ws = _pkg->workspace();
+	QVERIFY(ws);
+
+	//Regression: after closing the workspace, opening (i.e. adding) datasets again must keep working
+	//instead of targeting a stale/removed workspace. Load data into the fresh dataset and add a couple
+	//more, then make sure the workspace holds them all and can still close them without crashing.
+	importer.loadDataSet(csvPath, fresh, [](int){});
+	QVERIFY(fresh->columnCount() > 0);
+
+	DataSet * secondAfterClose = ws->createDataSet();
+	QVERIFY(secondAfterClose);
+	importer.loadDataSet(csvPath, secondAfterClose, [](int){});
+	QVERIFY(secondAfterClose->columnCount() > 0);
+
+	DataSet * thirdAfterClose = ws->createDataSet();
+	QVERIFY(thirdAfterClose);
+	importer.loadDataSet(csvPath, thirdAfterClose, [](int){});
+	QVERIFY(thirdAfterClose->columnCount() > 0);
+
+	QCOMPARE(ws->dataSets().size(), size_t(3));
+	QVERIFY(ws->shownDataSet());
+
+	while (ws->shownDataSet())
+		ws->deleteShownDataSet();
+
+	QCOMPARE(ws->dataSets().size(), size_t(0));
+	QVERIFY(!ws->shownDataSet());
 }
 
 bool TestAll::_checkDoSyncFake()

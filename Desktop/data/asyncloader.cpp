@@ -299,6 +299,12 @@ void AsyncLoader::loadPackage(QString id)
 			else
 				_loader.loadPackage(path, extension, boost::bind(&AsyncLoader::progressHandler, this, _1));
 
+			//The (non-sync) load above may have added a dataset to the workspace table model. The
+			//model was mutated on this (worker) thread, so let the GUI thread know it must refresh
+			//its views (dataset tabbuttons etc.) of the new row-count.
+			if(!syncTargetDataSet)
+				emit dataSetsChanged();
+
 			QString calcMD5 = fileChecksum(tq(path), QCryptographicHash::Md5);
 
 			if (dataNode != nullptr && calcMD5 != dataNode->md5().toLower())

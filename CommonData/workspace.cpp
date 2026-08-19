@@ -399,10 +399,6 @@ DataSet * Workspace::createDataSet()
 	emit dataSetCreated(newSet->id());
 	emit filtersCountChanged(); //Triggers filterDropDownListChanged in filtermodel
 
-	//A new dataset means another row in this table model: notify (QML) views such as the dataset
-	//tabbuttons, which are a Repeater over the workspace model, that the row-count changed.
-	refresh();
-
 	return newSet;
 }
 

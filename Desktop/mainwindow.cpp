@@ -516,6 +516,12 @@ void MainWindow::makeConnections()
   //The worker thread finishes the sync; route the completion back to the dataset's syncer on the main
   //thread (via a QueuedConnection, since syncCompleted is emitted from the loader worker) so its
   //re-entrancy guard (_isSyncing) is released exactly once for whichever dataset syncs.
+  //A (non-sync) load added a dataset to the workspace on the worker thread; refresh the workspace
+  //table model here, on the GUI thread, so views bound to it (dataset tabbuttons) pick it up.
+  connect(_loader,				&AsyncLoader::dataSetsChanged,						this,					[this](){
+	  if(_package->workspace())
+		  _package->workspace()->refresh();
+  },																											Qt::QueuedConnection);
   connect(_loader,				&AsyncLoader::syncCompleted,						this,					[this](int dataSetId, bool success){
     Log::log() << "[MainWindow::syncCompleted] Received: dataSetId=" << dataSetId << ", success=" << success << std::endl;
     DataSet * ds = _package->workspace() ? _package->workspace()->dataSetById(dataSetId) : nullptr;
@@ -1891,12 +1897,6 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 		if (event->isSuccessful())
 		{
 			populateUIfromDataSet();
-
-			//The actual dataset addition (and its Workspace model mutation) happened on the
-			//AsyncLoader worker thread; refresh the workspace table model on the GUI thread here so
-			//views bound to it (dataset tabbuttons, etc.) pick up the new row reliably.
-			if(_package->workspace())
-				_package->workspace()->refresh();
 
 			_package->setCurrentFile(event->path());
 			
