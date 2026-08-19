@@ -667,11 +667,6 @@ void ColumnModel::checkCurrentColumn(int dataSetId, QStringList, QStringList mis
 
 void ColumnModel::shownDataSetChangedHandler(DataSet * newDataSet)
 {
-	//Only ever connect one shown dataset's labelFilterChanged; switching datasets must not leave the
-	//previous (now background) dataset still firing refreshFilteredOut into this model.
-	if(_shownDataSet && _shownDataSet != newDataSet)
-		disconnect(_shownDataSet, &DataSet::labelFilterChanged, this, &ColumnModel::refreshFilteredOut);
-
 	_shownDataSet = newDataSet;
 
 	if(!newDataSet)
