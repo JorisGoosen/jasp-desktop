@@ -107,9 +107,19 @@ void DataSetPackage::loadWorkspace(std::function<void(float)> progressCallback)
 	
 	_db->close();
 	stopEngines();
-	_db->load();		
+
+	// Whatever happens below (a failed DB migration, a corrupt column, ...) we must not leave the
+	// application without engines. This guard restarts them on every exit path - success or
+	// exception - so a failed load fails cleanly with a still-usable session instead of a dead app.
+	struct EngineRestarter
+	{
+		DataSetPackage * pkg;
+		~EngineRestarter() { try { pkg->restartEngines(); } catch(...) {} } // never throw during unwind
+	} engineRestarter{ this };
+
+	_db->load();
 	_db->upgradeDBFromVersion(_jaspVersion);
-	
+
 	bool do019Upgrade = _jaspVersion < "0.19"; // A tweak needs to be made to the data as its loaded, see https://github.com/jasp-stats/jasp-desktop/pull/5367
 	
 	createWorkspace();
@@ -132,8 +142,7 @@ void DataSetPackage::loadWorkspace(std::function<void(float)> progressCallback)
 	workspace()->initializeComputedDatasets();
 
 	refresh();
-	
-	restartEngines();
+	// engines are restarted by engineRestarter on scope exit (also on the exception paths above)
 }
 
 void DataSetPackage::deleteWorkspace(bool dbDeletePlease)

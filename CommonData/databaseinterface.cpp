@@ -50,6 +50,29 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 {
 	transactionWriteBegin();
 
+	try
+	{
+		_upgradeDBStatements(originalVersion);
+		transactionWriteEnd();
+	}
+	catch(...)
+	{
+		// A failing ALTER/DDL statement throws while the EXCLUSIVE transaction is still open. Roll it
+		// back so the (temporary working-copy) database and the transaction-depth bookkeeping stay
+		// consistent, then rethrow the original cause so the load fails loudly instead of continuing
+		// on a half-migrated schema.
+		Log::log() << "upgradeDBFromVersion(" << originalVersion.asString() << ") failed; rolling back the migration." << std::endl;
+		runStatements("ROLLBACK", true); //ignore a failing rollback so it cannot mask the real error
+		_transactionWriteDepth = 0;
+		throw;
+	}
+}
+
+//The actual migration statements. Kept separate from upgradeDBFromVersion so that one can wrap them
+//in a single transaction with proper rollback-on-failure without indenting this whole block.
+void DatabaseInterface::_upgradeDBStatements(Version originalVersion)
+{
+
 	if((originalVersion < "0.18.2") && !tableHasColumn("DataSets", "description"))
 		runStatements("ALTER TABLE DataSets ADD COLUMN description     TEXT;");
 
@@ -161,7 +184,6 @@ void DatabaseInterface::upgradeDBFromVersion(Version originalVersion)
 	if(!tableHasColumn("DataSets", "defaultInputFilter"))
 		runStatements("ALTER TABLE DataSets  ADD COLUMN defaultInputFilter INT NULL;");
 
-	transactionWriteEnd();
 }
 
 DatabaseInterface::DatabaseInterface(bool createDb, bool inMemory)
