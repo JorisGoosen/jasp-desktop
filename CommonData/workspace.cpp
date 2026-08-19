@@ -455,14 +455,14 @@ QVariantList Workspace::inputFilterDropDownList() const
 		if(dataSet->id() == excludeDataSetId)
 			continue;
 
-		out.append(localMap{std::make_pair("value", tq("-")), std::make_pair("label", dataSet->title() + ":")});
+		//out.append(localMap{std::make_pair("value", tq("-")), std::make_pair("label", dataSet->title() + ":")});
 
 		if(dataSet->defaultFilter())
-			out.append(localMap{std::make_pair("value", tq(std::to_string(dataSet->defaultFilter()->id()))), std::make_pair("label", dataSet->defaultFilter()->title())});
+			out.append(localMap{std::make_pair("value", tq(std::to_string(dataSet->defaultFilter()->id()))), std::make_pair("label", dataSet->title() + " - " + dataSet->defaultFilter()->title())});
 
 		for(const Filter * f : dataSet->filters())
 			if(f != dataSet->defaultFilter())
-				out.append(localMap{std::make_pair("value", tq(std::to_string(f->id()))), std::make_pair("label", f->title())});
+				out.append(localMap{std::make_pair("value", tq(std::to_string(f->id()))), std::make_pair("label", dataSet->title() + " - " + f->title())});
 	}
 
 	return out;
