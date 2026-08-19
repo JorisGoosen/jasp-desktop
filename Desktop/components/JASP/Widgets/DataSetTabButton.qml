@@ -101,7 +101,15 @@ Item
 				width:				height
 				radius:				height
 				iconSource:			jaspTheme.iconPath + "close-button.png"
-				onClicked:			dataSetPackage.workspace.deleteShownDataSet()
+				onClicked:
+				{
+					if (messages.showYesNoQML(
+						qsTr("Delete dataset"),
+						qsTr("Are you sure you want to delete the dataset '%1'? This cannot be undone.").arg(root.dataSetName),
+						qsTr("Delete"),
+						qsTr("Cancel")))
+						dataSetPackage.workspace.deleteShownDataSet()
+				}
 				toolTip:			qsTr("Delete dataset")
 			}
 			
