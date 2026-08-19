@@ -18,9 +18,6 @@ mkdir(c(R_CPP_INCLUDES_LIBRARY, JASP_MODULE_BUNDLE_MANAGER_LIBRARY))
 .libPaths(RENV_LIBRARY)
 options(repos = c(CRAN = "https://packagemanager.posit.co/cran/latest"))
 options(INSTALL_opts = "--no-test-load")
-# Rcpp needs this to expose non-API R symbols (e.g. R_NamespaceRegistry) that this toolchain's Rcpp
-# still relies on against newer R; removing it breaks the R-Interface compile. Only drop it if the
-# locked Rcpp in the renv library is new enough to not need the legacy API.
 Sys.setenv(CPPFLAGS = "-DENABLE_LEGACY_NONAPI")
 
 cat("Restoring Rcpp & RInside\n")
@@ -30,6 +27,20 @@ renv::restore(
   clean    = TRUE
 )
 
-# jaspModuleBundleManager and its dependencies are not critical for C++ build
-# and may take very long to compile (e.g., stringi/ICU) or fail on newer toolchains
-cat("Skipping jaspModuleBundleManager deps restore (non-critical)\n")
+cat("restoring jaspModuleBundleManager deps\n")
+
+renv::restore(
+    lockfile = file.path("@PROJECT_SOURCE_DIR@", "Engine", "jaspModuleBundleManager", "renv.lock"),
+    library  = JASP_MODULE_BUNDLE_MANAGER_LIBRARY,
+    clean    = TRUE,
+    prompt   = FALSE
+)
+
+cat("installing jaspModuleBundleManager\n")
+
+install.packages(
+    file.path("@PROJECT_SOURCE_DIR@", "Engine", "jaspModuleBundleManager"),
+    lib   = JASP_MODULE_BUNDLE_MANAGER_LIBRARY,
+    repos = NULL,
+    type  = "source"
+)
