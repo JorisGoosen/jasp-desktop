@@ -1892,6 +1892,12 @@ void MainWindow::dataSetIOCompleted(FileEvent *event)
 		{
 			populateUIfromDataSet();
 
+			//The actual dataset addition (and its Workspace model mutation) happened on the
+			//AsyncLoader worker thread; refresh the workspace table model on the GUI thread here so
+			//views bound to it (dataset tabbuttons, etc.) pick up the new row reliably.
+			if(_package->workspace())
+				_package->workspace()->refresh();
+
 			_package->setCurrentFile(event->path());
 			
 
