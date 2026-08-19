@@ -67,6 +67,10 @@ private slots:
 	// SQLite database sync test
 	void	testSyncerDatabaseSyncFromSQLite();
 
+	// Closing/removing datasets and workspaces must never crash (regression for the dataset-close crash
+	// and the workspace teardown paths).
+	void	testCloseWorkspaceAndDataSets();
+
 private:
 	DataSetPackage		*	_pkg		= nullptr;
 	Importer			*	_importer	= nullptr;

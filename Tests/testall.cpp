@@ -1265,6 +1265,62 @@ void TestAll::testSyncerDatabaseSyncFromSQLite()
 	delete loader;
 }
 
+void TestAll::testCloseWorkspaceAndDataSets()
+{
+	QVERIFY(_newPkgWithDataSet());
+
+	Workspace * ws = _pkg->workspace();
+	QVERIFY(ws);
+	QVERIFY(_pkg->dataSet());
+
+	//Give the workspace several distinct (non-empty) datasets so deleteShownDataSet has to
+	//re-pick another shown dataset after each removal.
+	CSVImporter importer;
+	const std::string csvPath = fq(_testLibrary().absoluteFilePath("csv/debug.csv"));
+
+	DataSet * second = ws->createDataSet();
+	QVERIFY(second);
+	importer.loadDataSet(csvPath, second, [](int){});
+	QVERIFY(second->columnCount() > 0);
+
+	DataSet * third = ws->createDataSet();
+	QVERIFY(third);
+	importer.loadDataSet(csvPath, third, [](int){});
+	QVERIFY(third->columnCount() > 0);
+
+	QCOMPARE(ws->dataSets().size(), size_t(3));
+
+	//Deleting the shown dataset must not crash and must leave the other datasets alive.
+	DataSet * shown = ws->shownDataSet();
+	QVERIFY(shown);
+	ws->deleteShownDataSet();
+	QCOMPARE(ws->dataSets().size(), size_t(2));
+	QVERIFY(ws->shownDataSet());
+	QVERIFY(ws->shownDataSet() != shown);
+
+	//Delete the remaining ones, one at a time, until the workspace is empty. The old crash
+	//(ColumnModel::shownDataSetChangedHandler disconnecting a stale dataset) used to segfault here.
+	while (ws->shownDataSet())
+		ws->deleteShownDataSet();
+
+	QCOMPARE(ws->dataSets().size(), size_t(0));
+	QVERIFY(!ws->shownDataSet());
+
+	//Re-populate, then tear the whole workspace down (deleteWorkspace/reset) — must not crash either.
+	DataSet * again = ws->createDataSet();
+	QVERIFY(again);
+	importer.loadDataSet(csvPath, again, [](int){});
+	QVERIFY(ws->dataSets().size() == size_t(1));
+
+	_pkg->deleteWorkspace();
+	QVERIFY(!_pkg->workspace());
+
+	//A fresh workspace (as DataSetPackage::createDataSet does on first use) still works afterwards.
+	DataSet * fresh = _pkg->createDataSet();
+	QVERIFY(fresh);
+	QVERIFY(_pkg->workspace());
+}
+
 bool TestAll::_checkDoSyncFake()
 {
 	return true;

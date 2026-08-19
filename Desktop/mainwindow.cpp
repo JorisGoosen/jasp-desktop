@@ -1759,15 +1759,19 @@ void MainWindow::dataSetIORequestHandler(FileEvent *event)
 	}
 	else if (event->operation() == FileEvent::FileOpen)
 	{
-		if (_package->isLoaded())
+		//A .jasp file contains an entire workspace, so opening one while a workspace is already loaded
+		//must happen in a separate instance (that instance opens it for real). Datafiles and database
+		//connections, in contrast, add a dataset to the current workspace (creating the workspace on
+		//first use), so they always open in this instance.
+		bool isJaspFile = (event->type() == Utils::FileType::jasp);
+
+		if (_package->isLoaded() && isJaspFile)
 		{
 			// If this instance has a valid OSF connection save this setting for a new instance
 			_odm->savePasswordFromAuthData(OnlineDataManager::OSF);
 
 			// begin new instance
-			
-			if(event->isDatabase())		MainWindow::startDetached(QCoreApplication::applicationFilePath(), QStringList(tq(event->databaseStr())));
-			else						MainWindow::startDetached(QCoreApplication::applicationFilePath(), QStringList(event->path()));
+			MainWindow::startDetached(QCoreApplication::applicationFilePath(), QStringList(event->path()));
 		}
 		else
 		{
