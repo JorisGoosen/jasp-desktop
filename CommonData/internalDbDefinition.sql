@@ -5,12 +5,12 @@ CREATE TABLE Workspace (
 	showRSyntax			INT DEFAULT 0	
 );
 
-CREATE TABLE DataSets ( 
-id					INTEGER PRIMARY KEY, 
-	dataFilePath		TEXT, 
+CREATE TABLE DataSets (
+	id					INTEGER PRIMARY KEY,
+	dataFilePath		TEXT,
 	dataFileTimestamp	INT DEFAULT 0,
 	description			TEXT,
-	title				TEXT DEFAULT "",
+	title				TEXT DEFAULT '',
 	databaseJson		TEXT, 
 	emptyValuesJson		TEXT, 
 	revision			INT DEFAULT 0, 

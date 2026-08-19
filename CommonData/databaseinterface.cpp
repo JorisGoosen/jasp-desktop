@@ -157,7 +157,7 @@ void DatabaseInterface::_upgradeDBStatements(Version originalVersion)
 			runStatements("ALTER TABLE Filters  ADD COLUMN invalidated		INT DEFAULT 1;");
 
 		if(!tableHasColumn("DataSets", "title"))
-			runStatements("ALTER TABLE DataSets  ADD COLUMN title		TEXT DEFAULT \"\";");
+			runStatements("ALTER TABLE DataSets  ADD COLUMN title		TEXT DEFAULT '';");
 
 		if(tableHasColumn("DataSets", "showRSyntax"))
 		{
@@ -173,6 +173,10 @@ void DatabaseInterface::_upgradeDBStatements(Version originalVersion)
 
 	//Computed datasets (a whole DataSet generated from R code) store their state on the DataSets
 	//table, just like computed columns store it on the Columns table.
+	//These are deliberately NOT version-gated (unlike the < 0.99 block above): they are added purely
+	//on a tableHasColumn() existence check, so a file saved by an intermediate 0.99 dev/beta build that
+	//already went through the Workspace migration but predates these columns still gets them. The
+	//checks are no-ops once the columns exist, so running them on every load is harmless.
 	if(!tableHasColumn("DataSets", "codeType"))
 		runStatements("ALTER TABLE DataSets  ADD COLUMN codeType			TEXT NULL;");
 	if(!tableHasColumn("DataSets", "rCode"))
