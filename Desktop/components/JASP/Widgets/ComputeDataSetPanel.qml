@@ -16,7 +16,7 @@ Rectangle
 
 	property bool				expanded:			true
 
-	property real				headerHeight:		30 * preferencesModel.uiScale
+	property real				headerHeight:		35 * preferencesModel.uiScale
 	property real				contentHeight:		220 * preferencesModel.uiScale
 
 	height:						expanded ? headerHeight + contentHeight : headerHeight
@@ -60,6 +60,7 @@ Rectangle
 		anchors.top:			parent.top
 		height:					root.headerHeight
 		anchors.margins:		jaspTheme.generalAnchorMargin
+		anchors.topMargin:		0
 
 		Text
 		{
@@ -68,7 +69,6 @@ Rectangle
 			font:				jaspTheme.fontGroupTitle
 			color:				jaspTheme.textEnabled
 			verticalAlignment:	Text.AlignTop
-			height:				root.headerHeight
 		}
 
 		
