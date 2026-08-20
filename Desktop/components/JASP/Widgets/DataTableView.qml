@@ -10,7 +10,8 @@ FocusScope
 
 	signal doubleClicked()
 	
-	property alias isMainDataViewer: dataTableView.isMainDataViewer
+	property alias isMainDataViewer:		dataTableView.isMainDataViewer
+	property real calculatedMinimumHeight:	200 * jaspTheme.uiScale + (!computeDataSetPanel.visible ? 0 : computeDataSetPanel.height + jaspTheme.generalAnchorMargin)
 
 	Rectangle
 	{

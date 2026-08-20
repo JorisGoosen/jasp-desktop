@@ -245,6 +245,7 @@ FocusScope
 				id:					helpEasyRectangularButton
 				height:				33 * jaspTheme.uiScale
 				width:				height
+				radius:				height
 				buttonPadding:		6 * preferencesModel.uiScale
 				helpMD:				allHelp.easyfilterconstructor;
 				toolTip:			qsTr("Open Documentation")

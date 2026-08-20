@@ -67,24 +67,19 @@ Rectangle
 			text:				qsTr("Computed dataset")
 			font:				jaspTheme.fontGroupTitle
 			color:				jaspTheme.textEnabled
-			verticalAlignment:	Text.AlignVCenter
+			verticalAlignment:	Text.AlignTop
+			height:				root.headerHeight
 		}
 
-		Text
-		{
-			text:				shownDataSet ? shownDataSet.title : ""
-			font:				jaspTheme.font
-			color:				shownDataSet && shownDataSet.invalidated ? jaspTheme.textDisabled : jaspTheme.textEnabled
-			verticalAlignment:	Text.AlignVCenter
-			Layout.maximumWidth: 200 * jaspTheme.uiScale
-			elide:				Text.ElideRight
-		}
-
-		JaspControls.RectangularButton
+		
+		JaspControls.MenuButton
 		{
 			id:					toggleButton
-			text:				root.expanded ? qsTr("Hide") : qsTr("Show")
+			//text:				root.expanded ? qsTr("Hide") : qsTr("Show")
 			onClicked:			root.expanded = !root.expanded
+			iconSource:			jaspTheme.iconPath + "collapse.png"
+			rotation:			root.expanded ? 180 : 0
+			radius:				height
 		}
 	}
 
