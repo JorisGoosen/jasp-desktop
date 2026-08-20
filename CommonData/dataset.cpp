@@ -1916,6 +1916,9 @@ void DataSet::setTitle(const QString &title)
 
 	emit titleChanged();
 
+	if(_workspace)
+		emit _workspace->dataSetTitleChanged(id());
+
 	dbUpdate();
 }
 

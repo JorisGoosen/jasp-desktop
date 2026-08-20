@@ -137,6 +137,7 @@ public slots:
 	void rescanAnalysisEntriesOfDynamicModule(Modules::DynamicModule * module);
 	void reloadQmlAnalysesDynamicModule(Modules::DynamicModule * module);
 	void setChangedAnalysisTitle();
+	void setChangedAnalysisDataSpec();
 	void analysisTitleChangedInResults(int id, QString title);
 	void setCurrentFormPrevH(double currentFormPrevH);
 	void move(int fromIndex, int toIndex);
@@ -164,6 +165,7 @@ signals:
 	void analysisImageEdited(			Analysis *	source);
 	void analysisResultsChanged(		Analysis *	source);
 	void analysisTitleChanged(			Analysis *  source);
+	void analysisDataSpecChanged(		Analysis *	source);
 	void analysisOverwriteUserdata(		Analysis *	source);
 	void analysisStatusChanged(			Analysis *	source);
 	void sendRScript(					int dataSetId, QString		script, int requestID, bool whiteListedVersion, QString module);

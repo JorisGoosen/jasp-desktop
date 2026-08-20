@@ -281,6 +281,14 @@ void ResultsJsInterface::changeTitle(Analysis *analysis)
     runJavaScript("window.changeTitle(" + QString::number(id) + ", '" + escapeJavascriptString(title) + "')");
 }
 
+void ResultsJsInterface::changeDataSpec(Analysis *analysis)
+{
+	int		id			= analysis->id();
+	QString	dataSpec	= analysis->dataSpec();
+
+	runJavaScript("window.changeDataSpec(" + QString::number(id) + ", '" + escapeJavascriptString(dataSpec) + "')");
+}
+
 void ResultsJsInterface::overwriteUserdata(Analysis *analysis)
 {
 	size_t id = analysis->id();

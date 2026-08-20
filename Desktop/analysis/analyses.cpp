@@ -182,6 +182,7 @@ void Analyses::bindAnalysisHandler(Analysis* analysis)
 	connect(analysis,	&Analysis::sendRScriptSignal,					this, &Analyses::sendRScriptHandler					);
 	connect(analysis,	&Analysis::sendFilterSignal,					this, &Analyses::sendFilterHandler					);
 	connect(analysis,	&Analysis::titleChanged,						this, &Analyses::setChangedAnalysisTitle			);
+	connect(analysis,	&AnalysisBase::dataSpecChanged,					this, &Analyses::setChangedAnalysisDataSpec			);
 	connect(analysis,	&Analysis::imageSavedSignal,					this, &Analyses::analysisImageSaved					);
 	connect(analysis,	&Analysis::imageEditedSignal,					this, &Analyses::analysisImageEdited				);
 	connect(analysis,	&Analysis::requestColumnCreation,				this, &Analyses::requestColumnCreation				);
@@ -843,6 +844,14 @@ void Analyses::setChangedAnalysisTitle()
 
 	if (analysis != nullptr)
 		emit analysisTitleChanged(analysis);
+}
+
+void Analyses::setChangedAnalysisDataSpec()
+{
+	Analysis * analysis = dynamic_cast<Analysis*>(QObject::sender());
+
+	if (analysis != nullptr)
+		emit analysisDataSpecChanged(analysis);
 }
 
 Analysis* Analyses::duplicateAnalysis(size_t id, bool isReport)

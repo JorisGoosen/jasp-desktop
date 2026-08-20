@@ -530,10 +530,6 @@ Json::Value Analysis::loadPlotlyJsonInResults(Json::Value  results) const
 
 Json::Value Analysis::asJSON(bool withRSource) const
 {
-	bool	otherDataSetsExist	= dataSet() && dataSet()->workspace()->dataSets().size() > 1,
-			otherFiltersExist	= dataSet() && dataSet()->filters().size() > 1,
-			otherOthersExist	= otherDataSetsExist && otherFiltersExist;
-	
 	Json::Value analysisAsJson = Json::objectValue;
 
 	analysisAsJson["id"]			= int(_id);
@@ -543,12 +539,9 @@ Json::Value Analysis::asJSON(bool withRSource) const
 	analysisAsJson["filterId"]		= filterId();
 	analysisAsJson["dataSetId"]		= dataSet() ? dataSet()->id()			: -1;
 	analysisAsJson["dataSet"]		= dataSet() ? fq(dataSet()->title())	: "";
-	analysisAsJson["dataSpec"]		= fq(otherOthersExist	?	QString("%1 - %2").arg(dataSet()->title()).arg(filter()->title()) 
-															:	otherDataSetsExist 
-																? dataSet()->title() 
-																: filter()->title());
+	analysisAsJson["dataSpec"]		= fq(dataSpec());
 	analysisAsJson["filter"]		= fq(filterName());
-	analysisAsJson["filterTitle"]	= fq(filter()->title());
+	analysisAsJson["filterTitle"]	= filter() ? fq(filter()->title())		: "";
 	analysisAsJson["rfile"]			= _rfile;
 	analysisAsJson["isReport"]		= _isReport;
 	analysisAsJson["hasReport"]		= _hasReport;

@@ -126,13 +126,21 @@ JASPWidgets.AnalysisView = JASPWidgets.View.extend({
 		self.trigger("analysis:userDataChanged");
 	},
 
-	_setTitle: function (title, format) {
+	_setTitle: function (title, format, dataSpec) {
 
-		this.viewNotes.firstNoteNoteBox.ghostText = title + ` - ${i18n("Introduction:")} ` + this.viewNotes.firstNoteNoteBox.ghostTextDefault;
-		this.viewNotes.lastNoteNoteBox.ghostText  = title + ` - ${i18n("Conclusion:")} `   + this.viewNotes.lastNoteNoteBox.ghostTextDefault;
+		//The dataset/filter indication is shown as part of the heading but is not part of the title itself,
+		//so the toolbar keeps them apart and only lets the user edit the title.
+		dataSpec = (dataSpec === undefined || dataSpec === null) ? "" : dataSpec;
 
-		this.toolbar.title = title;
-		this.toolbar.titleTag = format;
+		var shownTitle = dataSpec === "" ? title : title + " (" + dataSpec + ")";
+
+		this.viewNotes.firstNoteNoteBox.ghostText = shownTitle + ` - ${i18n("Introduction:")} ` + this.viewNotes.firstNoteNoteBox.ghostTextDefault;
+		this.viewNotes.lastNoteNoteBox.ghostText  = shownTitle + ` - ${i18n("Conclusion:")} `   + this.viewNotes.lastNoteNoteBox.ghostTextDefault;
+
+		//The space between the title and the indication comes from the stylesheet, not from the text itself
+		this.toolbar.title			= title;
+		this.toolbar.titleSuffix	= dataSpec === "" ? "" : "(" + dataSpec + ")";
+		this.toolbar.titleTag		= format;
 	},
 
 	events: {
@@ -645,7 +653,7 @@ JASPWidgets.AnalysisView = JASPWidgets.View.extend({
 			this.setErrorOnPreviousResults(errorMessage, status, $tempClone, $innerElement);
 		}
 
-		this._setTitle(dataSpecAnalysis == "" ? titleAnalysis : titleAnalysis + " (" + dataSpecAnalysis + ")", 'h2');
+		this._setTitle(titleAnalysis, 'h2', dataSpecAnalysis);
 
 		this.progressbar.render();
 		$innerElement.prepend(this.progressbar.$el);

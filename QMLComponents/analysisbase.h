@@ -22,6 +22,7 @@ class AnalysisBase : public QObject
 	Q_PROPERTY(Filter * filter		READ filter								NOTIFY filterChanged) //Select filter by changing filterName
 	Q_PROPERTY(QString	filterName	READ filterName							NOTIFY filterChanged)
 	Q_PROPERTY(int		filterId	READ filterId		WRITE setFilterId	NOTIFY filterChanged)
+	Q_PROPERTY(QString	dataSpec	READ dataSpec							NOTIFY dataSpecChanged)
 	
 
 public:
@@ -87,6 +88,11 @@ public:
 						int					filterId()		const;
 						void				setFilterId(int filterId);
 
+						///The dataset and/or filter this analysis runs on, but only insofar as they actually tell it
+						///apart from the others: empty when there is but a single dataset holding a single filter.
+						///This is a read-only decoration of the title and never becomes part of the title itself.
+						QString				dataSpec()		const;
+
 						bool				isAnnotated()		const	{ return _isAnnotated; }
 						void				setIsAnnotated(bool isAnnotated);
 	
@@ -107,11 +113,13 @@ signals:
 	void			qmlErrorChanged();
 	void			boundValuesChanged();
 	void			filterChanged(Filter * f);
+	void			dataSpecChanged();
 
 
 protected:
 	Json::Value&	_getParentBoundValue(const QVector<JASPControl::ParentKey> & parentKeys, QVector<std::string>& parentNames, bool & found, bool createAnyway = false);
 	std::string		_displayParentKeys(const QVector<JASPControl::ParentKey> & parentKeys) const;
+	void			connectDataSpecChanges();
 
 
 	AnalysisForm*	_analysisForm		= nullptr;

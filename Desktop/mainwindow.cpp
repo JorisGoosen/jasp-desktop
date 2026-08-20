@@ -592,6 +592,7 @@ void MainWindow::makeConnections()
 	connect(_analyses,				&Analyses::analysesExportResults,					_fileMenu,				&FileMenu::analysesExportResults							);
 	connect(_analyses,				&Analyses::analysisStatusChanged,					_resultsJsInterface,	&ResultsJsInterface::setStatus								);
 	connect(_analyses,              &Analyses::analysisTitleChanged,                    _resultsJsInterface,    &ResultsJsInterface::changeTitle							);
+	connect(_analyses,              &Analyses::analysisDataSpecChanged,                 _resultsJsInterface,    &ResultsJsInterface::changeDataSpec							);
 	connect(_analyses,				&Analyses::analysisOverwriteUserdata,				_resultsJsInterface,	&ResultsJsInterface::overwriteUserdata						);
 	connect(_analyses,				&Analyses::showAnalysisInResults,					_resultsJsInterface,	&ResultsJsInterface::showAnalysis							);
 	connect(_analyses,				&Analyses::unselectAnalysisInResults,				_resultsJsInterface,	&ResultsJsInterface::unselect								);

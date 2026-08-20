@@ -445,7 +445,8 @@ DropArea
 							let menuFunctions	= []
 							let menuIcons		= []
 							let menuEnabled		= []
-							
+							let menuSelected	= []
+
 							let filtersList		= filterModel.filterDropDownAnalysisList
 							
 							messages.log("filterbutton: " + JSON.stringify(filtersList))
@@ -458,10 +459,12 @@ DropArea
 								
 								let imSelected = formParent.myForm.analysis.filterId == filter["value"] || filter["value"] === "*"
 								
-								menuText		.push((imSelected ? "> " : "") + filter["label"])
+								//The chosen data and filter are shown in bold, that reads a lot clearer than a marker in front of them
+								menuText		.push(filter["label"])
 								menuFunctions	.push(function(){ formParent.myForm.analysis.filterId = filter["value"]; })
 								menuIcons		.push("")
 								menuShortcuts	.push("")
+								menuSelected	.push(imSelected)
 								menuEnabled		.push(!(filter["value"] == "-" || filter["value"] == "*") && !imSelected)
 							}
 			
@@ -471,6 +474,7 @@ DropArea
 								"icons":		menuIcons,
 								"shortcut":		menuShortcuts,
 								"enabled":		menuEnabled,
+								"selected":		menuSelected,
 								"functionCall": function (index)
 								{
 									menuFunctions[index]();
