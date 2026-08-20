@@ -163,7 +163,7 @@ TextInputBase
 
 	function checkValue(resetLastValidValue, addErrorIfNotFocussed)
 	{
-		if (!initialized && isBound) return false
+		if (!initialized || !isBound) return false
 
 		if (control.acceptableInput)
 		{

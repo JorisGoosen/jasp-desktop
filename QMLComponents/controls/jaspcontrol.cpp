@@ -465,7 +465,14 @@ void JASPControl::_hightlightBorder()
 	float	targetBorderWidth = (targetBorderColor == _defaultBorderColor) ? _defaultBorderWidth : theme->jaspControlHighlightWidth(),
 			currentBorderWidth = border->property("width").toFloat();
 
-	if (!qFuzzyCompare(currentBorderWidth, targetBorderWidth))
+	// A running animation keeps changing the width after we return here, so it must be stopped whenever it is heading
+	// somewhere else than where we want to go now. Comparing the current width alone does not catch that: an animation
+	// that has not had the chance to run yet still sits on the width it started from. That happens whenever a control
+	// is highlighted and unhighlighted within a single pass of the eventloop, as the Sections of a form are while it
+	// is being built, and it would leave the border highlighted while the color is already back to normal.
+	bool animatingElsewhere = _borderAnimation.state() == QAbstractAnimation::Running && !qFuzzyCompare(_borderAnimation.endValue().toFloat(), targetBorderWidth);
+
+	if (animatingElsewhere || !qFuzzyCompare(currentBorderWidth, targetBorderWidth))
 	{
 		_borderAnimation.stop();
 		if (qFuzzyCompare(targetBorderWidth, _defaultBorderWidth))
