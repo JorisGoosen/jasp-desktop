@@ -96,7 +96,9 @@ FocusScope
 					{
 						property string labelText:	modelData["label"]
 						property string valueText:	modelData["value"]
+						
 						text:			doSeparator ? "" : labelText
+						
 						onClicked:		
 						{
 							if(!doSeparator)
@@ -108,13 +110,14 @@ FocusScope
 								filterContainer.askIfChanged(function() {  filterModel.addFilter(labelText) } )
 							}
 						}
+						
 						buttonActive:	!hideButtoness && filterModel.currentFilterId  == valueText
 						showTextField:	buttonActive && filterModel.currentFilter != "DEFAULT_FILTER"
 						doSeparator:	valueText == "---"
 						hideButtoness:	valueText == "-" || valueText == "*"
 						hideButtonCol:	valueText == "*" ? jaspTheme.textEnabled : jaspTheme.textDisabled
 						
-						theButton.color:		doSeparator ||  hideButtoness ? jaspTheme.uiBackground		: theButton.defaultColor
+						theButton.color:		doSeparator ||  hideButtoness ? jaspTheme.uiBackground		: !buttonActive ? theButton.defaultColor : jaspTheme.white
 						theButton.border.width:	doSeparator ||  hideButtoness ? 0							: 1
 						theButton.border.color:	doSeparator ||  hideButtoness ? jaspTheme.buttonBorderColor	: theButton.defaultBorderColor
 						
