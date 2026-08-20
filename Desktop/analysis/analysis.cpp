@@ -530,16 +530,28 @@ Json::Value Analysis::loadPlotlyJsonInResults(Json::Value  results) const
 
 Json::Value Analysis::asJSON(bool withRSource) const
 {
+	bool	otherDataSetsExist	= dataSet() && dataSet()->workspace()->dataSets().size() > 1,
+			otherFiltersExist	= dataSet() && dataSet()->filters().size() > 1,
+			otherOthersExist	= otherDataSetsExist && otherFiltersExist;
+	
 	Json::Value analysisAsJson = Json::objectValue;
 
 	analysisAsJson["id"]			= int(_id);
 	analysisAsJson["name"]			= _name;
 	analysisAsJson["title"]			= _title;
 	analysisAsJson["titleDef"]		= _titleDefault;
+	analysisAsJson["filterId"]		= filterId();
+	analysisAsJson["dataSetId"]		= dataSet() ? dataSet()->id()			: -1;
+	analysisAsJson["dataSet"]		= dataSet() ? fq(dataSet()->title())	: "";
+	analysisAsJson["dataSpec"]		= fq(otherOthersExist	?	QString("%1 - %2").arg(dataSet()->title()).arg(filter()->title()) 
+															:	otherDataSetsExist 
+																? dataSet()->title() 
+																: filter()->title());
 	analysisAsJson["filter"]		= fq(filterName());
+	analysisAsJson["filterTitle"]	= fq(filter()->title());
 	analysisAsJson["rfile"]			= _rfile;
-	analysisAsJson["hasReport"]		= _hasReport;
 	analysisAsJson["isReport"]		= _isReport;
+	analysisAsJson["hasReport"]		= _hasReport;
 	analysisAsJson["progress"]		= _progress;
 	analysisAsJson["results"]		= loadPlotlyJsonInResults(_results);
 	analysisAsJson["status"]		= statusToString(_status);
@@ -547,6 +559,7 @@ Json::Value Analysis::asJSON(bool withRSource) const
 	analysisAsJson["userdata"]		= userData();
 	analysisAsJson["dynamicModule"] = _moduleData ? _moduleData->asJsonForJaspFile() : Json::objectValue;
 	analysisAsJson["saveState"]     = (_dynamicModule && _dynamicModule->descriptionQml()) ? (_dynamicModule->descriptionQml()->alwaysSaveState()  ? "always" : _dynamicModule->descriptionQml()->neverSaveState() ? "never" : "default") : "default";
+	
 
 	if (withRSource)
 		analysisAsJson["rSources"]	= rSources();

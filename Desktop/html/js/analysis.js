@@ -4,6 +4,7 @@ JASPWidgets.Analysis = Backbone.Model.extend({
 		progress: null,
 		results: {},
 		title: 'Analysis Title',
+		dataSpec: '',
 		status: 'waiting',
 		optionschanged: [],
 		saveimage: [],
@@ -601,8 +602,10 @@ JASPWidgets.AnalysisView = JASPWidgets.View.extend({
 
 	render: function () {
 
-		var results			= this.model.get("results");
-		var titleAnalysis	= this.model.get("title");
+		var results				= this.model.get("results");
+		var titleAnalysis		= this.model.get("title");
+		var dataSpecAnalysis	= this.model.get("dataSpec");
+		
 
 		if (results === "" || results === null) {
 			progress = this.model.get("progress");
@@ -642,7 +645,7 @@ JASPWidgets.AnalysisView = JASPWidgets.View.extend({
 			this.setErrorOnPreviousResults(errorMessage, status, $tempClone, $innerElement);
 		}
 
-		this._setTitle(titleAnalysis, 'h2');
+		this._setTitle(dataSpecAnalysis == "" ? titleAnalysis : titleAnalysis + " (" + dataSpecAnalysis + ")", 'h2');
 
 		this.progressbar.render();
 		$innerElement.prepend(this.progressbar.$el);
