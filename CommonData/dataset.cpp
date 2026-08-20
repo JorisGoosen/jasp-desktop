@@ -64,6 +64,8 @@ DataSet::DataSet(Workspace * workspace, int id)
 	
 	connect(_workspace,		&Workspace::filterByNameDone,		this,		&DataSet::filterByNameDone				);
 
+	setTitle(name().replace("_", " "));
+
 	_description = fq(tr("Originally created empty by %1 on %2").arg(tq(AppInfo::getShortDesc())).arg(tq(Utils::currentDateTime())));
 
 	connect(_syncer, &DataSetSyncer::askPassword,  this, [this](int, QString title, QString msg) -> QString { return emit askPassword(title, msg); });
@@ -1905,13 +1907,15 @@ void DataSet::setDataFileQ(const QString &newDataFile)
 
 void DataSet::setTitle(const QString &title)
 {
-	if(_title == fq(title))
+	QString uniqueTitle = _workspace ? _workspace->makeDataSetTitleUnique(title, this) : title;
+
+	if(_title == fq(uniqueTitle))
 		return;
-	
-	_title = fq(title);
-	
+
+	_title = fq(uniqueTitle);
+
 	emit titleChanged();
-	
+
 	dbUpdate();
 }
 

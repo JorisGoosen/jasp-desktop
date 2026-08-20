@@ -1,4 +1,5 @@
 #include <QCoreApplication>
+#include <QSet>
 #include "workspace.h"
 #include "qutils.h"
 #include "log.h"
@@ -347,6 +348,25 @@ DataSet *Workspace::dataSetByName(const std::string & name) const
 			return idData.second;
 
 	return nullptr;
+}
+
+QString Workspace::makeDataSetTitleUnique(const QString & title, DataSet * exclude) const
+{
+	QSet<QString> takenTitles;
+	for(const auto & idData : _dataSets)
+		if(idData.second != exclude)
+			takenTitles.insert(idData.second->title());
+
+	if(!takenTitles.contains(title))
+		return title;
+
+	int suffix = 2;
+	QString candidate;
+	do
+		candidate = title + " (" + QString::number(suffix++) + ")";
+	while(takenTitles.contains(candidate));
+
+	return candidate;
 }
 
 Filter *Workspace::filterById(int id) const
