@@ -212,6 +212,7 @@ void SourceItem::connectModels()
 		connect(form->varInfo(),	&VariableInfo::labelsReordered,			_targetListControl->model(), &ListModel::sourceLabelsReordered );
 		connect(form->varInfo(),	&VariableInfo::filterChanged,			_targetListControl->model(), &ListModel::filterChanged );
 		connect(form->varInfo(),	&VariableInfo::variablesChanged,		_targetListControl->model(), &ListModel::sourceVariablesChanged );
+		connect(form->varInfo(),	&VariableInfo::dataSetChanged,			_targetListControl->model(), &ListModel::sourceTermsReset );
 		connect(form->varInfo(),	&VariableInfo::refresh,					_targetListControl->model(), &ListModel::refresh );
 	}
 
