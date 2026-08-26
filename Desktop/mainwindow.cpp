@@ -1157,7 +1157,7 @@ bool MainWindow::openURLFile(QString fileURLPath)
 	{
 		FileEvent * syncEvent = new FileEvent(this, FileEvent::FileSyncData);
 		syncEvent->setPath(filePath);
-		syncEvent->setSyncDataSet(_package->dataSet());
+		syncEvent->setDataSet(_package->dataSet());
 
 		syncEvent->starts();
 	}
@@ -1186,15 +1186,7 @@ void MainWindow::_open(const QString & mainFilePath, const QString & inputDataFi
 	{
 		FileEvent * syncEvent = new FileEvent(this, FileEvent::FileSyncData);
 		syncEvent->setPath(inputDataFile);
-
-		if (openEvent->isCompleted())
-			syncEvent->setSyncDataSet(_package->dataSet());
-		else
-			connect(openEvent, &FileEvent::completed, this, [syncEvent, this] () {
-				syncEvent->setSyncDataSet(_package->dataSet());
-			});
-
-		syncEvent->chain(openEvent);
+		syncEvent->chain(openEvent, true);
 
 		// Once the synchronization is finalized, decide what to do based on whether it succeeded:
 		//  - failed sync:             do not export, and exit with a non-zero code (unless we keep JASP open).
@@ -2375,7 +2367,7 @@ bool MainWindow::startDataEditorHandler()
 				return false;
 
 			event = new FileEvent(this, FileEvent::FileSyncData);
-			event->setSyncDataSet(_package->dataSet());
+			event->setDataSet(_package->dataSet());
 		}
 
 		event->setPath(dataFilePath);
