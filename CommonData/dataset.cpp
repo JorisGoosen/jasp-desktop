@@ -64,8 +64,6 @@ DataSet::DataSet(Workspace * workspace, int id)
 	
 	connect(_workspace,		&Workspace::filterByNameDone,		this,		&DataSet::filterByNameDone				);
 
-	setTitle(name().replace("_", " "));
-
 	_description = fq(tr("Originally created empty by %1 on %2").arg(tq(AppInfo::getShortDesc())).arg(tq(Utils::currentDateTime())));
 
 	connect(_syncer, &DataSetSyncer::askPassword,  this, [this](int, QString title, QString msg) -> QString { return emit askPassword(title, msg); });
@@ -598,39 +596,6 @@ void DataSet::setDataFileSynch(bool synchronizing)
 		emit dataFileSynchChanged();
 }
 
-void DataSet::synchronize()
-{
-	_syncer->syncNow();
-}
-
-void DataSet::synchronizeFromDatabase()
-{
-	if(!isDatabase())
-	{
-		Log::log()	<< "Trying to synch from db but there is no databaseJson" << std::endl;
-		return;
-	}
-
-	_syncer->syncNow();
-}
-
-void DataSet::synchronizeFromDataFile()
-{
-	if(dataFileQ() == "")
-	{
-		Log::log()	<< "Trying to synch from a file but there is no datafile path" << std::endl;
-		return;
-	}
-
-	if(!QFileInfo::exists(dataFileQ()))
-	{
-		Log::log()	<< "Trying to synch from a file but it does not exist (" << dataFileQ() << ")." << std::endl;
-		return;
-	}
-
-	_syncer->syncNow();
-}
-
 void DataSet::dbCreate()
 {
 	JASPTIMER_SCOPE(DataSet::dbCreate);
@@ -640,7 +605,7 @@ void DataSet::dbCreate()
 	db().transactionWriteBegin();
 
 	//The variables are probably empty though:
-_dataSetId		= db().dataSetInsert(_dataFilePath, _dataFileTimestamp, _description, _database.toStyledString(), _emptyValues->toJson().toStyledString(), _dataFileSynch, _csvDelimiter);
+	_dataSetId		= db().dataSetInsert(_dataFilePath, _dataFileTimestamp, _description, _database.toStyledString(), _emptyValues->toJson().toStyledString(), _dataFileSynch, _csvDelimiter);
 	_defaultFilter	= new Filter(this);
 	
 	_defaultFilter->dbCreate();
