@@ -80,6 +80,8 @@ private slots:
 	void	testScriptConstructorUndo();
 	void	testScriptConstructorGobble();
 	void	testScriptConstructorDefaultFilterJson();
+	void	testScriptConstructorAllowedColumnTypes();
+	void	testScriptConstructorRowFunctionFreeSlot();
 
 private:
 	DataSetPackage		*	_pkg		= nullptr;
