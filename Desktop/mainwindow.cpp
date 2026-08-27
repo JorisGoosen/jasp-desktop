@@ -277,6 +277,9 @@ MainWindow::~MainWindow()
 		delete _resultsJsInterface;
 	}
 	catch(...)	{}
+
+	// Only logs when PROFILE_JASP is defined (JASP_TIMER_USED=ON).
+	JASPTIMER_PRINTALL();
 }
 
 QString MainWindow::windowTitle() const
