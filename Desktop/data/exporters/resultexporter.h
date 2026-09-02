@@ -33,6 +33,7 @@ public:
 
 private:
 	bool prepareForExport();
+	bool waitForResultsQuiescence(int maxWaitMs);
 
 private:
 	QString			_pdfPath;
@@ -40,6 +41,9 @@ private:
 	QWaitCondition	_exportPrep;
 	QMutex			_writingToPdfMutex;
 	QWaitCondition	_writingToPdf;
+	QMutex			_quiescenceMutex;
+	QWaitCondition	_quiescenceWait;
+	bool			_pageQuiescent = false;
 
 
 	JASPTIMER_CLASS(ResultExporter);

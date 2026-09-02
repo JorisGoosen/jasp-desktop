@@ -45,6 +45,22 @@ $(document).ready(function () {
   window.reRenderAnalyses = function () {
     analyses.reRender();
   };
+
+  // While a render is in flight (plotly charts, mathjax typesetting, svg->png conversion) the
+  // page is not ready to be captured by the exporter. Everything that renders asynchronously
+  // must bracket itself with renderBusyIncrement()/renderBusyDecrement(), and
+  // resultsReadyForExport() tells the exporter (ResultExporter::prepareForExport) whether the
+  // page can be captured yet.
+  window.__renderBusyCount = 0;
+  window.renderBusyIncrement = function () {
+    window.__renderBusyCount++;
+  };
+  window.renderBusyDecrement = function () {
+    if (window.__renderBusyCount > 0) window.__renderBusyCount--;
+  };
+  window.resultsReadyForExport = function () {
+    return window.__renderBusyCount === 0;
+  };
   window.moveAnalyses = function (fromId, toId) {
     analyses.move(fromId, toId);
   };
@@ -665,14 +681,21 @@ $(document).ready(function () {
 
     jaspWidget.render();
 
-    // using mathJax after result page ready
+    // using mathJax after result page ready; counted as render work so the exporter waits for it
+    window.renderBusyIncrement();
     var MathJax = window.MathJax;
-    MathJax.typesetPromise();
-    const svgs = document.querySelectorAll("mjx-container svg");
-    svgs.forEach((svg) => {
-      const svgToPng = new SvgToPng();
-      svgToPng.convert(svg.parentNode);
-    });
+    MathJax.typesetPromise()
+      .then(function () {
+        const svgs = document.querySelectorAll("mjx-container svg");
+        svgs.forEach((svg) => {
+          const svgToPng = new SvgToPng();
+          svgToPng.convert(svg.parentNode);
+        });
+        window.renderBusyDecrement();
+      })
+      .catch(function () {
+        window.renderBusyDecrement();
+      });
 
     analyses.setBottomSpacerHeight();
   };

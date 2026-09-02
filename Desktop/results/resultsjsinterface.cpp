@@ -378,6 +378,19 @@ void ResultsJsInterface::exportHTML()
 	runJavaScript("window.exportHTML('%EXPORT%');");
 }
 
+void ResultsJsInterface::requestResultsReadiness()
+{
+	//Only a loaded results page can answer; without one the requester simply times out, which
+	//keeps the old behavior (exporting whatever is there after its wait elapses).
+	if (_resultsLoaded)
+		emit runJavaScriptResultSignal("window.resultsReadyForExport()");
+}
+
+void ResultsJsInterface::javaScriptResult(const QString & result)
+{
+	emit resultsQuiescenceResult(result.compare("true", Qt::CaseInsensitive) == 0);
+}
+
 QString ResultsJsInterface::escapeJavascriptString(const QString &str)
 {
 	QString out;

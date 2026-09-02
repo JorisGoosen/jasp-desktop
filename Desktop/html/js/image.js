@@ -222,14 +222,21 @@ JASPWidgets.imagePrimitive = JASPWidgets.View.extend({
 		if (useInteractivePlots && hasInteractive && ((this.model.get("userInteractive") && this.model.get("interactive")) || (!this.model.get("userInteractive") && window.globSet.showInteractiveDefault))) {
 
 			console.log("image.js: this is where the post step to run the json happens!");
+
+			//The plotly render (including its 5s retry loop) is asynchronous: tell the exporter the
+			//page is busy until the chart is in (see resultsReadyForExport in main.js). Only counted
+			//when there is no error, since without error nothing will be rendered at all.
+			var error = this.model.get("interactiveConvertError");
+			if (!error && window.renderBusyIncrement)
+				window.renderBusyIncrement();
+
 			this.preRenderPlotly();
 
 			// Only call jQuery if there's no error
-			var error = this.model.get("interactiveConvertError");
 			if (!error) {
 				this.plotlyRetryCount = 0; // Reset retry counter
 				jQuery(document).ready(() => this.renderPlotlyIfDivExists());
-			}			
+			}
 
 		} else {
 			console.log("image.js: jaspHtml but not plotly or we just want to see the normal plot!")
@@ -330,10 +337,12 @@ JASPWidgets.imagePrimitive = JASPWidgets.View.extend({
 					console.log("Plotly chart rendered successfully");
 					// Mark the element as having a valid Plotly chart
 					targetEl._plotlyInitialized = true;
+					if (window.renderBusyDecrement) window.renderBusyDecrement();
 				})
 				.catch((err) => {
 					console.error("Plotly rendering failed:", err);
 					targetEl._plotlyInitialized = false;
+					if (window.renderBusyDecrement) window.renderBusyDecrement();
 				});
 
 			if (payload.hasRangeFrame)
@@ -348,6 +357,7 @@ JASPWidgets.imagePrimitive = JASPWidgets.View.extend({
 				setTimeout(this.renderPlotlyIfDivExists.bind(this), 50);
 			} else {
 				console.error("Failed to render Plotly after 100 attempts - giving up");
+				if (window.renderBusyDecrement) window.renderBusyDecrement(); //release the wait from render()
 			}
 		}
 	},

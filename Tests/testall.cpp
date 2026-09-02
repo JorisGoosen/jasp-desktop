@@ -1585,9 +1585,11 @@ void TestAll::testCliSyncExportWaitsForAnalysesToSettle()
 	MainWindow * mw = nullptr;
 	QSignalSpy * exitSpy = _newMainWindowWithExitSpy(mw);
 
-	//Short-circuit the exporter's wait for the (nonexistent) webview: prepForExport is emitted from
-	//the exporter thread and only the QML results page would answer it, so answer it here instead.
-	connect(mw->_resultsJsInterface, &ResultsJsInterface::prepForExport, mw->_resultsJsInterface, &ResultsJsInterface::exportPrepFinished, Qt::QueuedConnection);
+	//Short-circuit the exporter's waits for the (nonexistent) webview: prepForExport and the
+	//results-readiness question are emitted from the exporter thread and only the QML results page
+	//would answer them, so answer both here instead.
+	connect(mw->_resultsJsInterface, &ResultsJsInterface::prepForExport,				mw->_resultsJsInterface, &ResultsJsInterface::exportPrepFinished,	Qt::QueuedConnection);
+	connect(mw->_resultsJsInterface, &ResultsJsInterface::runJavaScriptResultSignal,	mw->_resultsJsInterface, [rw = mw->_resultsJsInterface](const QString &) { rw->javaScriptResult("true"); }, Qt::QueuedConnection);
 
 	const QString	syncCsv		= QString::fromStdString(TempFiles::createTmpFolder()) + "/syncdata.csv",
 					outHtml		= QString::fromStdString(TempFiles::createTmpFolder()) + "/results.html";
@@ -1625,11 +1627,14 @@ void TestAll::testCliSyncExportWaitsForAnalysesToSettle()
 	QTRY_VERIFY_WITH_TIMEOUT(mw->_waitingEvent == nullptr, 10000);
 
 	//The exporter waits for the (nonexistent) webview to deliver the HTML, and ResultsJsInterface::
-	//exportHTML resets the ready flag right before that wait; keep setting it so the exporter sees
-	//it ready no matter when exactly its wait starts (it dies with mw):
+	//exportHTML resets the ready flag right before that wait; keep faking the delivery so the
+	//exporter sees HTML ready no matter when exactly its wait starts (it dies with mw):
 	QTimer * readySetter = new QTimer(mw);
 	readySetter->setInterval(100);
-	connect(readySetter, &QTimer::timeout, this, [](){ DataSetPackage::pkg()->setAnalysesHTMLReady(); });
+	connect(readySetter, &QTimer::timeout, this, [](){
+		DataSetPackage::pkg()->setAnalysesHTML("<html><body>SettleTest export</body></html>");
+		DataSetPackage::pkg()->setAnalysesHTMLReady();
+	});
 	readySetter->start();
 
 	//The export finishing is what exits JASP with success:

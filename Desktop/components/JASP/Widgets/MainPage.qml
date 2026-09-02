@@ -418,6 +418,13 @@ Item
 					//set light theme and unselect
 					resultsView.runJavaScript("window.unselect(); window.setTheme(\"lightTheme\");", function() { resultsJsInterface.exportPrepFinished(); });
 				}
+
+				function onRunJavaScriptResultSignal(js)
+				{
+					//The exporter asks whether the page is still rendering anything (plotly, mathjax);
+					//runJavaScript delivers the boolean via its callback.
+					resultsView.runJavaScript(js, function(result) { resultsJsInterface.javaScriptResult(result === undefined || result === null ? "false" : String(result)); });
+				}
 			}
 			onPdfPrintingFinished: (filePath)=>
 			{

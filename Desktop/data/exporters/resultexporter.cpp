@@ -53,7 +53,48 @@ bool ResultExporter::prepareForExport()
 	_exportPrepMutex.unlock();
 	QObject::disconnect(exportPrepConnection);
 	Utils::sleep(200); //why? because the webview lies and says some script are done but while on some systems they are not.
+
+	//The results page may still be rendering (interactive plotly charts, mathjax) even though all
+	//analyses finished: capturing now would export half-rendered or emptied content. So wait until
+	//the page reports itself quiescent (window.resultsReadyForExport) - or give up after a while
+	//and export whatever is there, which is what happened before this wait existed.
+	waitForResultsQuiescence(10000);
 	return true;
+}
+
+bool ResultExporter::waitForResultsQuiescence(int maxWaitMs)
+{
+	_quiescenceMutex.lock();
+	_pageQuiescent = false;
+
+	QMetaObject::Connection quiescenceConnection = QObject::connect(ResultsJsInterface::singleton(), &ResultsJsInterface::resultsQuiescenceResult, [&](bool quiescent)
+	{
+		_quiescenceMutex.lock();
+		_pageQuiescent = quiescent;
+		_quiescenceWait.wakeAll();
+		_quiescenceMutex.unlock();
+	});
+
+	const int	stepMs	= 250;
+	int			waited	= 0;
+
+	emit ResultsJsInterface::singleton()->requestResultsReadiness();
+
+	while (!_pageQuiescent && waited < maxWaitMs)
+	{
+		_quiescenceWait.wait(&_quiescenceMutex, stepMs);
+		waited += stepMs;
+
+		if (!_pageQuiescent && waited < maxWaitMs) //ask again, the page may have started rendering something since
+			emit ResultsJsInterface::singleton()->requestResultsReadiness();
+	}
+
+	QObject::disconnect(quiescenceConnection);
+	bool quiescent = _pageQuiescent;
+	_quiescenceMutex.unlock();
+
+	Log::log() << "Results page " << (quiescent ? "quiescent after " : "still busy after ") << waited << "ms of waiting for the export." << std::endl;
+	return quiescent;
 }
 
 void ResultExporter::saveDataSet(const std::string &path, std::function<void(int)> progressCallback)
@@ -95,6 +136,13 @@ void ResultExporter::saveDataSet(const std::string &path, std::function<void(int
 	{
 		ResultsJsInterface::singleton()->exportHTML();
 		DataSetPackage::pkg()->waitForExportResultsReady(); //waits for html export to be ready
+
+		//If the webview never delivered the HTML (or delivered nothing) writing the file would
+		//silently "succeed" with an empty results export. Fail the export instead, so the CLI
+		//chain exits non-zero and interactive users get an error rather than an empty file.
+		if (!DataSetPackage::pkg()->isReady() || DataSetPackage::pkg()->analysesHTML().isEmpty())
+			throw std::runtime_error("The results page did not deliver any HTML to export");
+
 		std::ofstream outfile(path.c_str(), std::ios::out);
 
 		outfile << DataSetPackage::pkg()->analysesHTML() << std::flush;

@@ -58,6 +58,7 @@ public:
 	void exportHTML();
 	void resetResults();
 	void setRSyntax(		int			id, const QString& syntax);
+	void requestResultsReadiness(); ///< asks the results page whether it is still rendering anything (window.resultsReadyForExport)
 
 	QString			resultsPageUrl()	const { return _resultsPageUrl;	}
 	double			zoom()				const { return _webEngineZoom;	}
@@ -69,6 +70,7 @@ public:
 	Q_INVOKABLE void analysisEditImage(int id, QString options);
 	Q_INVOKABLE void exportAnalysisHTML(int analysisId);
 	Q_INVOKABLE void runJavaScript(const QString & js);
+	Q_INVOKABLE void javaScriptResult(const QString & result); ///< answer to a runJavaScript roundtrip (see MainPage.qml onRequestResultsReadiness)
 
 	//Callable from javascript through resultsJsInterfaceInterface...
 signals:
@@ -92,6 +94,7 @@ signals:
 				void prepForExport();
 	Q_INVOKABLE void exportPrepFinished();
 	Q_INVOKABLE void showRSyntaxInResults(	bool show);
+				void resultsQuiescenceResult(	bool quiescent);
 
 
 public slots:
@@ -122,6 +125,7 @@ signals:
 	void resultsPageUrlChanged(	QUrl	resultsPageUrl);
 	void runJavaScriptSignal(			QString js); //Do not call this directly here, use runJavaScript()
 	void runJavaScriptSignalQueued(		QString js); //Same same
+	void runJavaScriptResultSignal(		QString js); //Same same, but MainPage.qml returns the result through javaScriptResult()
 	void zoomChanged();
 	void resultsPageLoadedSignal();
 	void resultsLoadedChanged(	bool resultsLoaded);
