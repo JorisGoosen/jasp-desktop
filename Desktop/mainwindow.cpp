@@ -1230,6 +1230,18 @@ void MainWindow::_open(const QString & mainFilePath, const QString & inputDataFi
 				connect(exportEvent, &FileEvent::finalized, this, [this, exportEvent]() { emit exitSignal(exportEvent->isSuccessful() ? 0 : 1); });
 
 			_waitingEvent = exportEvent;
+
+			//If the analyses never finish (a crashed engine, say) the export would wait forever:
+			//time out and exit non-zero instead. The same default as --timeOut: ten minutes.
+			if(!_waitingEventTimeoutTimer)
+			{
+				_waitingEventTimeoutTimer = new QTimer(this);
+				_waitingEventTimeoutTimer->setSingleShot(true);
+				_waitingEventTimeoutTimer->setInterval(10 * 60 * 1000);
+				connect(_waitingEventTimeoutTimer, &QTimer::timeout, this, &MainWindow::waitingEventTimedOut);
+			}
+			_waitingEventTimeoutTimer->start();
+
 			waitForAllAnalysesFinishedBeforeStartingEvent();
 		} );
 	}
@@ -1249,6 +1261,8 @@ void MainWindow::waitForAllAnalysesFinishedBeforeStartingEvent()
 		//(a second sync/export with --keepJASPOpen), which would otherwise wait forever.
 		FileEvent * waitingEvent = _waitingEvent;
 		_waitingEvent            = nullptr;
+		if(_waitingEventTimeoutTimer)
+			_waitingEventTimeoutTimer->stop();
 
 		_analyses->applyToAll([&](Analysis * a)
 		{
@@ -1260,6 +1274,19 @@ void MainWindow::waitForAllAnalysesFinishedBeforeStartingEvent()
 
 		waitingEvent->starts();
 	}
+}
+
+void MainWindow::waitingEventTimedOut()
+{
+	if(!_waitingEvent)
+		return;
+
+	Log::log() << "[MainWindow::waitingEventTimedOut] Waiting for the analyses timed out; the queued export will not run." << std::endl;
+	FileEvent * waitingEvent = _waitingEvent;
+	_waitingEvent = nullptr;
+	waitingEvent->setComplete(false, tr("Timed out waiting for the analyses to finish"));
+	waitingEvent->cleanUp();
+	emit exitSignal(1);
 }
 
 ///This function assumes there should afterwards be only 1 DataSet!
@@ -1840,8 +1867,15 @@ void MainWindow::fileEventRequestHandler(FileEvent *event)
 	}
 	else if (event->operation() == FileEvent::FileSyncData)
 	{
+		//Without a dataset there is nothing to synchronize into; failing the event (instead of
+		//silently dropping it) makes whoever waits for it, e.g. the command-line export chain,
+		//finish with a clear error instead of hanging.
 		if (!_package->hasDataSet())
+		{
+			Log::log() << "[MainWindow::fileEventRequestHandler] FileSyncData without a dataset; failing the event." << std::endl;
+			event->setComplete(false, tr("There is no dataset to synchronize with."));
 			return;
+		}
 
 		_loader->io(event);
 		showProgress();
@@ -2115,7 +2149,7 @@ void MainWindow::qmlLoaded()
 {
 	Log::log() << "MainWindow::qmlLoaded()" << std::endl;
 	emit qmlLoadedChanged();
-				
+
 	if(!_openOnLoadDbJson.isNull())
 		QTimer::singleShot(0, this, &MainWindow::_openDbJson);
 }
