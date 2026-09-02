@@ -64,8 +64,6 @@ DataSet::DataSet(Workspace * workspace, int id)
 	
 	connect(_workspace,		&Workspace::filterByNameDone,		this,		&DataSet::filterByNameDone				);
 
-	setTitle(name().replace("_", " "));
-
 	_description = fq(tr("Originally created empty by %1 on %2").arg(tq(AppInfo::getShortDesc())).arg(tq(Utils::currentDateTime())));
 
 	connect(_syncer, &DataSetSyncer::askPassword,  this, [this](int, QString title, QString msg) -> QString { return emit askPassword(title, msg); });
