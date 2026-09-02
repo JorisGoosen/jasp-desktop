@@ -210,6 +210,7 @@ public slots:
 	void	updateShownFilterInQmlContext();
 	void	_open(const QString & mainFilePath, const QString & inputDataFile, const QString & outputFile, bool keepJASPOpen);
 	void	waitForAllAnalysesFinishedBeforeStartingEvent();
+	void	_startWaitingEventIfAnalysesStillFinished();
 	void	waitingEventTimedOut();
 
 private slots:
@@ -408,6 +409,7 @@ private:
 	std::unordered_map<int, RpcLoadJob>	_rpcJobs;
 	int									_nextRpcJobId = 1;
 	FileEvent					*	_waitingEvent			= nullptr;
+	QTimer						*	_waitingEventStartTimer		= nullptr; ///< debounces the start of a waiting event until the analyses have stopped changing status (see waitForAllAnalysesFinishedBeforeStartingEvent)
 	QTimer						*	_waitingEventTimeoutTimer	= nullptr; ///< fires when an export waits on analyses that never finish (a crashed engine, say)
 };
 
