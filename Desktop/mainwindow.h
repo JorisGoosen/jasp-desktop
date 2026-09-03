@@ -69,6 +69,7 @@ using Modules::Upgrader;
 
 class Application;
 class AllHelp;
+class QQuickWebEngineDownloadRequest;
 ///
 /// Not only the main window of the application but also the main class.
 /// Instantiates relevant models and loads QML (see loadQml)
@@ -230,6 +231,7 @@ private:
 	void			analysesCountChangedHandler();
 	void			analysisChangedDownstreamHandler(int id, QString options);
 	void			analysisSaveImageHandler(int id, QString options);
+	void			webEngineDownloadRequested(QQuickWebEngineDownloadRequest * download);
 	void			analysisEditImageHandler(int id, QString options);
 	void			removeAnalysisRequestHandler(int id);
 	Json::Value		getResultsMeta();
