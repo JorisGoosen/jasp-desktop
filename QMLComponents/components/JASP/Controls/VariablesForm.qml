@@ -76,9 +76,6 @@ VariablesFormBase
 			property int	listWidth			: width * 2 / 5
 			property alias	contentItems		: items
 			property bool	removeInvisibles	: false
-
-			property double	_lastListWidth		: 0
-			property double _comboBoxHeight		: 0
 	readonly property var	_activeAssignedListNames	: allAssignedVariablesList.filter((list) => list.visible && list.enabled).map((list) => list.name)
 	readonly property var	_layoutControls				: allJASPControls.filter((control) => !removeInvisibles || control.visible)
 	readonly property real	_changeableHeight			: _computeChangeableHeight(_layoutControls)
@@ -99,8 +96,6 @@ VariablesFormBase
 			variablesForm.Layout.preferredHeight = Qt.binding(function() { return variablesForm.preferredHeight; })
 		}
 	}
-
-	onListWidthChanged: if (initialized && listWidth > 0 && listWidth != _lastListWidth) _lastListWidth = listWidth;
 
 	// Assigned lists that are invisible or disabled are removed from the drop keys:
 	// the first drop key is the target of a double click, and should not be such a list.
