@@ -202,6 +202,7 @@ MainWindow::MainWindow(Application * application, bool batchRun) : QObject(appli
 	
 	_languageModel->setDefaultLocaleFromCurrent(); //Make sure (Q)ColumnUtils knows whats up
 
+	std::cout << "DBG: ctor end, about to log + start rpc server" << std::endl;
 	Log::log() << "JASP Desktop started and Engines initalized." << std::endl;
 
 	// Ensure the agent state tracker is initialized (also done by AiBridge,
@@ -210,7 +211,10 @@ MainWindow::MainWindow(Application * application, bool batchRun) : QObject(appli
 
 	registerRpcHandlers();
 
-	if (PreferencesModel::prefs()->rpcServerEnabled() && !_rpcServer->start())
+	std::cout << "DBG: rpcServerEnabled=" << PreferencesModel::prefs()->rpcServerEnabled() << " port=" << PreferencesModel::prefs()->rpcServerPort() << std::endl;
+	bool rpcStarted = _rpcServer->start();
+	std::cout << "DBG: rpcServer->start() returned " << rpcStarted << std::endl;
+	if (PreferencesModel::prefs()->rpcServerEnabled() && !rpcStarted)
 		Log::log() << "JASP-RPC server failed to start." << std::endl;
 	
 
